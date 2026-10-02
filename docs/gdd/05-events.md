@@ -1,5 +1,14 @@
 # 5. Events
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - The schema has gained `cast` (roles filled from the state), `ops` (operations such as paying a named debt), `favour` and `topic`. See `engine/types.ts` and chapter 0.5.
+> - Adviser reads (5.4) remain, but the player also sees the expected effects of every option. Imperfect information is no longer a mechanic.
+> - The Director weights files that arise from the President's own decisions 3.5 times a generic one.
+> - On any lead file the player can attach a favour or put a minister in front of it.
+> - The catalogue is 129 events, 26 of them generated from the state of the debts, favours, businessmen, ministers, theatres and bets.
+
+
 Events are the content of the game. The engine is small; the writing is the product. This chapter defines the standard every event is written to.
 
 ## 5.1 Kinds of event

@@ -1,5 +1,13 @@
 # 4. Agenda, Actions and the Budget
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - Ten reform tracks of five (4.1 planned six). Five to seven can run at once.
+> - Presidential actions (4.2) are executive powers: 14 standing and 55 situational, five on offer at a time.
+> - The budget (4.4) is an oil-price assumption and six allocations in points, signed once a year, with the Appropriations chairman's demand as the political problem.
+> - Legacy projects (4.5) are big bets: 32 of them, each with named conditions, half opened by reforms.
+
+
 This chapter covers what the president does on purpose. Everything here exists to answer the handoff's question: *what are you actually trying to achieve with your presidency?*
 
 ## 4.1 The agenda

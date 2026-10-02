@@ -1,5 +1,13 @@
 # 2. Simulation Model
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - Nine national figures and three pressures, not twenty-two and nine.
+> - Nothing is hidden (2.4 is superseded). Expected and measured effects are shown, and the treasury, inflation, political capital and each theatre have itemised explanations.
+> - Debt is a ledger of six named debts; debt service is derived from three of them. Security is derived from six theatres. There are four funds, an oil price and an annual budget. See chapter 0.2.
+> - Starting scenarios (2.9) are not built. There is one inheritance.
+
+
 The simulation has three layers with different speeds and different visibility.
 
 | Layer | Examples | Speed | Player sees |

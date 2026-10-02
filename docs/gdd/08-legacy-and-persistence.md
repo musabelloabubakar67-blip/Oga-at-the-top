@@ -1,5 +1,12 @@
 # 8. Legacy and Persistence
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - The archive and the verdict are as designed. The verdict's fiscal dimension counts unpaid bills and savings.
+> - Succession into the next presidency (8.3, 8.4) is not built. A finished presidency is recorded in the history list only.
+> - Saves survive updates through `engine/migrate.ts`.
+
+
 The world remembers. This chapter defines what is recorded, how a presidency is judged, and what the next president walks into.
 
 ## 8.1 The Presidential Archive

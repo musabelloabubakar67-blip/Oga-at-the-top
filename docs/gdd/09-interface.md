@@ -1,5 +1,12 @@
 # 9. Interface
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - One desk screen with modal panels: the file, the phone, executive powers, politics (governors, senators, ministers, the money, the opposition, favours), the Treasury (books, debts, funds), the budget, the scorecard and security, the archive, the drawer, and the papers.
+> - The Cabinet Room, National Assembly, Situation Room and Power Map (9.8 to 9.13) are tabs of the politics and scorecard panels, not separate screens.
+> - Portraits, the signature animation beyond a mark, and the mementos shelf are not built.
+
+
 ## 9.1 Principles
 
 1. **A game, not a dashboard.** If a screen could be mistaken for an analytics product, it is wrong. Information arrives as documents, messages, newspapers and people, with deliberate pacing between them.

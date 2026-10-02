@@ -1,5 +1,13 @@
 # 10. Technical Architecture and Build Plan
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - The stack is Next.js 15 (static export), React 19, TypeScript and Tailwind 4, with plain React state. Zustand, Zod and Motion were not needed.
+> - The engine is a pure reducer over a seeded state, as designed. Content is data plus a small set of named selectors and operations.
+> - The balance harness is `tools/simulate.ts`, with seven strategies and an election-eve probe. The linter is `tools/lint-content.ts`.
+> - The build plan (10.10 onward) is history. What remains is listed in chapter 0.10.
+
+
 ## 10.1 Shape
 
 A static web app. The whole game runs in the browser. There is no server in the first release.

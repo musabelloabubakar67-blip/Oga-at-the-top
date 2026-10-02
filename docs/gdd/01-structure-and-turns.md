@@ -1,5 +1,13 @@
 # 1. Structure and Turns
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - A month has four moves (three to five with the state of the Villa), not a single action. Reforms, big bets, debt payments, fund movements and the budget cost no move.
+> - The budget is a set-piece every December and blocks the month until it is signed.
+> - Half-way through each term three states elect governors, and the result is scored.
+> - The transition is one screen: name, form of address, party, home state, background (which sets who financed the campaign), four priority tracks and a Finance Minister.
+
+
 ## 1.1 Time
 
 | Unit | Definition |

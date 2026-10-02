@@ -1,5 +1,13 @@
 # 6. Regions and Elections
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - Zone approval is as designed. Zone security is the zone's theatre.
+> - Salience (6.3) is not built.
+> - The vote model adds governors, rallies, the campaign chest, the strongest of three rivals, and whether the businessmen are with or against the President.
+> - The tribunal (6.8) is not built. Off-cycle governorship elections (6.9) are, in a simple form.
+
+
 ## 6.1 Geography
 
 The game uses Nigeria's real political geography: 36 states and the Federal Capital Territory, grouped in six geopolitical zones.

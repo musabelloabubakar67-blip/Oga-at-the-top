@@ -1,5 +1,13 @@
 # 7. Media
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - Four outlets, not six: a paper of record, a street paper, one owned by a businessman and one belonging to the opposition. Two are printed each month on the same lead.
+> - Headlines for the first two are authored per outcome. The partisan papers lead on a reaction chosen by subject and by whether the news is good or bad, with the facts underneath.
+> - Every joke is printed once per game.
+> - The investigative clock (7.6) is the running series: four of them, each ending early if the cause is removed.
+
+
 The press is the game's narrator. It tells the player what their decisions meant, in six voices that disagree. It is also a bloc with power of its own.
 
 ## 7.1 The six outlets

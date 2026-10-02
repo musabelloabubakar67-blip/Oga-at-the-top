@@ -1,5 +1,16 @@
 # 3. Politics
 
+> **As built.** This chapter is the original design. [Chapter 0](00-as-built.md) describes the game in the code. The main differences here:
+>
+> - Blocs are as designed. Actors inside them are sixteen named people (six governors, four senators, six ministers), five businesspeople and three rivals.
+> - Political capital is an itemised monthly income; acting without enough is allowed and costs the party and the Villa.
+> - Patronage and debts (3.7) exist as the favours ledger, running both ways, and as the businessmen. See chapter 0.3.
+> - The National Assembly (3.9) is the Senate figure: the party's mood and the four senators. Laws are voted on when a reform is ready.
+> - The party primary is decided by convention delegates held by governors and senators.
+> - Section 3.13, the naming protocol, is in force again in a simpler form: ordinary names, each searched. The parody-name decision recorded in older notes is withdrawn.
+> - Federal character (3.8) and the wider cabinet are not built.
+
+
 This chapter is the political survival scoreboard: who holds power over the president, how that power is displayed, and how it is won, spent and lost.
 
 ## 3.1 Blocs and actors
@@ -469,37 +480,15 @@ When an exposure surfaces, the response options include the honest ones and the 
 
 ## 3.13 Naming protocol
 
-> **Superseded for character names.** The project now uses parody names (see the Decisions table in the README and `content/names.ts`): an ordinary honorific and first name with a surname drawn from political vocabulary. Such a name cannot belong to anyone, so the search steps below are not needed for characters. What still applies: never parody a specific real person's name, nickname or title; no character's biography tracks a real person's; agencies accused of wrongdoing are fictional; real institutions appear only as institutions.
+Characters have ordinary Nigerian names. No character may be mistakable for a real public figure.
 
-**Rule: no character, party, union, company or outlet in the game shares a name with a real public figure or organisation, and no character is identifiable as a real person by any combination of name, office, state and biography.**
+1. Choose a first name and a surname of the kind found where the character comes from.
+2. Search the full name on the web, in quotation marks, with "Nigeria".
+3. If the search finds a politician, official, businessman, athlete, journalist, cleric or anyone in the news under that name, choose another. Private individuals with a professional profile do not count; a common name will always be shared by somebody.
+4. Do not give a character a real public figure's distinctive surname in the same line of work, even with a different first name.
+5. Record the name in `content/names.ts`, `content/people.ts` or `content/tycoons.ts`. Nowhere else.
+6. Businesspeople are composites. A sector plus a home town can identify a real person faster than a name, so none is given a home town.
+7. Parties, newspapers, unions, agencies and companies have invented names and are never real organisations accused of anything.
+8. A character whose slot can be filled by different people (a cast file, a replaced minister) is written without gendered pronouns.
 
-The legal exposure is identifiability, so the protocol tests for that and not only for matching names.
-
-### Why this needs a process
-
-Inventing a plausible Nigerian name by ear is not safe. The first draft of this document did it for fourteen roles, and at least one matched a prominent real businessman. One of the example ministers in the original handoff matches the name of a real public figure. Plausible names are plausible because real people have them.
-
-### The protocol
-
-1. **Full-name search.** Each proposed first name and surname pair is searched. It is rejected if the results include a politician, public official, senior executive, cleric, traditional ruler, judge, military officer or journalist, living or dead.
-2. **Office-holder check.** The surname is checked against everyone who has held the same office: presidents and vice presidents, governors of the character's state, ministers of the same portfolio, Senate presidents, Speakers, central bank governors, service chiefs, labour leaders. Any match is rejected even if the first name differs.
-3. **State and family check.** No distinctive surname associated with a known political or business family in the character's home state.
-4. **No borrowed epithets.** No nicknames, chieftaincy titles or slogans associated with a real figure.
-5. **Biography check.** A character's history (career, schools, businesses, scandals) must not track a real person's, whatever the name.
-6. **Organisations.** Party names and acronyms are checked against the electoral commission's register, past and present. Unions, companies, banks and outlets are searched the same way. Party colours, logos and slogans must not resemble real ones.
-7. **The registry.** `content/characters/names.md` lists every approved name with the date checked and who checked it. The content linter rejects any name not in the registry. The whole registry is re-checked before each public release, because people become public figures.
-8. **Player input.** The president's name is typed by the player. If shareable records are ever added, shared records need a filter and a report route.
-
-### Real institutions
-
-Real constitutional institutions appear as institutions: the Senate, the Supreme Court, the central bank, the electoral commission. The people who hold those offices in the game are always fictional.
-
-Where an event alleges specific wrongdoing inside an agency, the agency is fictional. The game can say the Senate delayed a bill. It does not say a real, named examinations board lost money to an animal; it invents a board.
-
-### Status of names currently in this document
-
-Unvetted and not to be used as written: the six outlet names from the handoff (one resembles a real Nigerian publication) and any party or union name used in an example. They pass through the same protocol.
-
-### Before launch
-
-A title-screen disclaimer that all characters and organisations are fictional, and a review by a Nigerian media lawyer before any commercial release. The protocol reduces risk; it is not legal advice.
+History: the first build used parody surnames taken from political vocabulary (Protocol, Structure, Bow-and-Go). They could not collide with anyone, and the player disliked them as names. They were replaced on 2 October 2026. In the vetting pass 47 names were searched and about one candidate in five was rejected, among them a Commonwealth Games boxer, a party financier once arrested by the anti-graft agency, a House of Representatives aspirant and a newspaper editor.

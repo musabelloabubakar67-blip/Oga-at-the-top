@@ -2,16 +2,17 @@
 
 **Working title:** *Oga at the Top* (chosen for now; not yet checked against existing games or trademarks).
 
-**Build status:** a playable two-term slice exists. See [the project README](../../README.md) for how to run it and where it departs from this document.
+**Build status:** a playable two-term game exists. **[Chapter 0](00-as-built.md) describes it as built and is the source of truth.** Chapters 1 to 10 are the original design; each opens with a note saying where the build differs. See [the project README](../../README.md) for how to run it.
 
 **One line:** A satirical Nigerian presidency simulator where you can genuinely govern well, but doing the right thing and surviving long enough for it to work are two different problems.
 
-**Status:** Design v1. No code exists yet. Every number in this document is a starting value for tuning, not a commitment.
+**Status:** Chapter 0 was last brought up to date on 2 October 2026. Every number in these documents is a starting value for tuning, not a commitment.
 
 ## Chapters
 
 | # | File | Answers |
 |---|------|---------|
+| 0 | [00-as-built.md](00-as-built.md) | **The game as it exists in the code.** Debts, funds, oil and the budget; theatres; people, favours, businessmen and the opposition; reforms and big bets; cast files; the four papers; what is not built |
 | 1 | [01-structure-and-turns.md](01-structure-and-turns.md) | What a month is, what a term is, what the player does each turn, the calendar |
 | 2 | [02-simulation-model.md](02-simulation-model.md) | Every tracked variable, what is hidden, how the economy ticks, how delayed consequences work |
 | 3 | [03-politics.md](03-politics.md) | Blocs, actors, political capital, characters, cabinet, federal character, patronage, National Assembly, constitutional limits, how a presidency ends |
@@ -36,7 +37,9 @@ These are the tests every feature has to pass. They restate the agreed principle
 7. **Nigerian by construction.** Real geography, real constitutional machinery, real political vocabulary. Fictional people, parties, outlets and companies, none of them identifiable as anyone real.
 8. **The whole menu.** The president can govern honestly, tolerate, or steal. Corruption is available, effective and never required. The game records it and does not lecture.
 9. **Stranger than fiction.** Where the public record defies logic, the game defies logic to the same degree, with a straight face.
-10. **Advice, not arithmetic.** The player decides from adviser reads and newspapers, with honest uncertainty, never from a table of `+5 / -3`.
+10. ~~Advice, not arithmetic.~~ **Reversed after playtesting.** With effects hidden, the player felt steered and powerless. The build shows the expected effect of every option before it is chosen and the measured effect after, and every number has a screen that explains what is moving it. Adviser reads remain, as argument.
+11. **Named causes, named people.** Nothing fails by dice alone and nothing is owed to an abstraction. A debt has a creditor; a failed project names the condition that killed it; a crisis is about a person in this game. Added after the third playtest.
+12. **Ambition is allowed and priced.** The player may attempt everything. The limits are money, political capital and people, not queues or menus.
 
 ## Decisions made in this document
 
@@ -56,7 +59,10 @@ Where the handoff left a question open, this document picks an answer. The ones 
 | LLMs at runtime | None. All text is authored or templated. | Already agreed; the engine is deterministic and seedable as a result. |
 | Corruption | A full system (3.12): a hidden purse, many ways to fill it, powerful ways to spend it. Costs arrive through witnesses who gain leverage, the press, and the end of immunity at handover. | It has to work to be a real temptation, and it has to cost through mechanisms, not through a random "caught" roll. |
 | Absurdity | A fourth tone, `absurd`, and a catalogue of archetypes from the public record (5.11), rebuilt under a transformation rule so the mechanism survives and nobody is identifiable. More frequent as institutions decay. | Lets the game be as ridiculous as reality while staying inside the naming rule. |
-| Names | **Parody names.** Every character has a real-sounding honorific and first name attached to a surname that is a word from political life: Alhaji Musa Protocol, Chief Okey Structure, Senator Bala Bow-and-Go, Zainab Receipts. The registry is `content/names.ts`. This replaces the search-based protocol in 3.13. One rule survives from it: never parody a specific real person's name, nickname or title. | Nobody is called Protocol or Bow-and-Go, so the names cannot collide, and they are funnier. |
+| Names | **Ordinary Nigerian names, each searched before use.** Parody surnames (Protocol, Bow-and-Go) were tried and rejected by the player as names. Every character now has a normal first name and surname suited to their zone; each full name was searched on the web and replaced if it matched a politician, official, businessman or anyone in the news. About one candidate in five had to be replaced. The registry and the rule are in `content/names.ts`. Parties, newspapers, unions and companies keep invented names. | The constraint has not changed: no character may be mistaken for a real public figure. |
+| Debt | Six named debts with creditors, costs and functions, in place of one number (chapter 0.2). | A number that only goes up or down gives the player nothing to decide. |
+| Hidden effects | Shown, not hidden (pillar 10). | Playtest. |
+| Reform capacity | Five to seven at once, fifty in all, with a monthly price for carrying more than three. | The player found a limit of three, and thirteen delivered in eight years, too small for an ambitious President. |
 | Faith balance | Kept out of the numbers. Present only in the running-mate choice and a small number of carefully written events. | Confirmed. |
 | Starting scenarios | Six inheritances (2.9), chosen when a world is created. | Confirmed. They double as world difficulty. |
 | The slice | Runs a full presidency of up to two terms, then the handover, then into the next president's first year. | A slice ending at the first election was rejected; inheritance is the central promise and has to be playable. |
@@ -77,6 +83,6 @@ The handoff asks for weak ideas to be challenged. These are the ones I pushed ba
 
 ## Open questions for you
 
-1. **Title.** Pick from the shortlist at the top, or reject them all and say what you want it to sound like.
-2. **How far the slice runs into the second presidency.** The design assumes the next president's first year. Say if you want the slice to run the successor's whole term.
-3. **Outlet names.** The six from the handoff are unvetted and at least one resembles a real publication. They will be replaced through the protocol unless you want to keep specific ones and check them yourself.
+1. **Title.** "Oga at the Top" is in use and has not been checked against existing games or trademarks.
+2. **Balance.** The flawless reformer in the simulator always wins re-election and the kleptocrat wins more often than the machine politician. Whether that is right is a judgment for someone who has played several terms by hand.
+3. **Succession.** Playing on as the next President in the same world is designed (chapter 8) and not built.
