@@ -17,6 +17,8 @@ export const REACTIVE: GameEvent[] = [
       'Traders in Onitsha, Kano, Aba and Lagos have shut their markets for a third day over the VAT increase you ordered.',
       'Their complaint is specific: the tax now falls on garri, bread and paracetamol at the same rate as champagne.',
       'Revenue from the increase is running ₦50bn a month ahead of projection.',
+      'Most of every VAT naira goes to the states. The governors, who are collecting the gain, have been very quiet about the anger.',
+      { when: { v: ['tycoon.ty_trade', '>=', 30] }, text: 'Chief Obinna Ezeudu\'s importers have closed their warehouses in sympathy. It is the first time anyone has seen them agree with a market woman.' },
     ],
     trace: [['bonus.fiscal', 1]],
     reads: [
@@ -27,7 +29,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'exempt', label: 'Exempt food, medicine and school fees',
         outcomes: [{
           result: 'The exemptions are gazetted. The markets reopen. The tax now falls mainly on people who can afford an accountant.',
-          fx: [['bonus.fiscal', -0.015], ['bloc.street', 6], ['approval', 2], ['bonus.inflation', -0.5]],
+          fx: [['bonus.fiscal', -0.015], ['bloc.street', 6], ['approval', 2], ['bonus.inflation', -0.5], ['tycoon.ty_trade', 3]],
           flags: { 'vat.exempt': true },
           news: ['FG EXEMPTS FOOD, MEDICINE FROM VAT', 'NO VAT FOR GARRI AGAIN. MARKET DON OPEN'],
           archive: 'Exempted food, medicine and school fees from the VAT increase.', sig: 2,
@@ -37,7 +39,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'hold', label: 'Hold the line',
         outcomes: [{
           result: 'The markets reopen on the sixth day because traders have to eat. They have not forgotten.',
-          fx: [['bloc.street', -6], ['approval', -3], ['pressure.wageGrievance', 8], ['bloc.establishment', 3]],
+          fx: [['bloc.street', -6], ['approval', -3], ['pressure.wageGrievance', 8], ['bloc.establishment', 3], ['tycoon.ty_trade', -5]],
+          ops: [['governors', 2]],
           news: ['MARKETS REOPEN AS FG STANDS FIRM ON VAT', 'MARKET OPEN, BUT TRADERS DEY VEX'],
           archive: 'Refused to amend the VAT increase despite market closures.',
         }],
@@ -46,7 +49,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'reverse', label: 'Reverse the increase',
         outcomes: [{
           result: 'VAT returns to 7.5%. The traders celebrate. The Finance Ministry rewrites the budget.',
-          fx: [['bonus.fiscal', -0.05], ['approval', 3], ['bloc.street', 5], ['bloc.establishment', -6], ['pc', -5]],
+          fx: [['bonus.fiscal', -0.05], ['approval', 3], ['bloc.street', 5], ['bloc.establishment', -6], ['pc', -5], ['tycoon.ty_trade', 5]],
+          ops: [['governors', -3]],
           flags: { 'vat.reversed': true },
           news: ['FG REVERSES VAT INCREASE', 'VAT DON GO BACK. PRESIDENT DON HEAR WORD'],
           archive: 'Reversed your own VAT increase.', sig: 3,
@@ -63,6 +67,7 @@ export const REACTIVE: GameEvent[] = [
       'Since you froze the pump price, private marketers have stopped importing petrol. They cannot sell at your price and nobody has paid them the difference.',
       'The national oil company is now the sole importer. It has eleven days of stock and is funding the gap by withholding ₦600bn a month from the Federation Account.',
       'Petrol is cheap wherever it can be found.',
+      { when: { v: ['tycoon.ty_fuel', '>=', 30] }, text: 'Chief Tonye Amangala, who supplies a third of the country\'s petrol, says he will load the day he is paid and not before.' },
     ],
     statement: 'There is no scarcity. What exists is a temporary distribution challenge.',
     trace: [['flag:policy.subsidy', 1], ['pressure.fuelSupplyStress', 1]],
@@ -74,7 +79,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'pay', label: 'Pay the marketers the difference', naira: 0.7,
         outcomes: [{
           result: 'The claims are paid. Tankers load. You have bought three months.',
-          fx: [['pressure.fuelSupplyStress', -30], ['approval', 1]],
+          fx: [['pressure.fuelSupplyStress', -30], ['approval', 1], ['tycoon.ty_fuel', 8]],
           news: ['FG PAYS ₦1.2TN TO KEEP PETROL AT FROZEN PRICE', 'GOVERNMENT DEY PAY ₦1.2TN MAKE FUEL NO COST'],
           archive: 'Paid marketers to sustain the frozen pump price.',
         }],
@@ -93,7 +98,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'ration', label: 'Keep the price; let the queues do the rationing',
         outcomes: [{
           result: 'The price holds. The queue outside the Villa gate is two kilometres long. The black market price is three times yours.',
-          fx: [['approval', -4], ['bloc.street', -6], ['pressure.fuelSupplyStress', 15], ['nation.jobs', -2]],
+          fx: [['approval', -4], ['bloc.street', -6], ['pressure.fuelSupplyStress', 15], ['nation.jobs', -2], ['tycoon.ty_fuel', -6]],
+          ops: [['governors', -2]],
           news: ['FUEL QUEUES STRETCH FOR KILOMETRES NATIONWIDE', 'FUEL CHEAP BUT E NO DEY. WETIN WE GAIN?'],
           archive: 'Kept the pump price frozen through a nationwide scarcity.',
         }],
@@ -108,6 +114,7 @@ export const REACTIVE: GameEvent[] = [
     body: [
       '{CBN} reports that the naira has lost 22% since the central bank began financing the budget on your instruction.',
       'A loaf of bread has gone from ₦1,400 to ₦1,950. The Governor notes that she said this would happen, and has kept the memorandum.',
+      { when: { v: ['debt.ways', '>', 5] }, text: 'The overdraft at the central bank now stands above ₦5tn, at an interest rate the Treasury sets for itself.' },
     ],
     trace: [['bonus.inflation', 1]],
     reads: [
@@ -142,6 +149,18 @@ export const REACTIVE: GameEvent[] = [
           archive: 'Blamed currency traders for inflation caused by printing money.',
         }],
       },
+      {
+        id: 'bonds', label: 'Turn the whole overdraft into long bonds, and close the window by law', pc: 8, sign: true,
+        requires: { v: ['debt.ways', '>', 2] },
+        outcomes: [{
+          result: 'The overdraft is converted into forty-year bonds at a rate the market sets. It costs more every month, and it can never again be drawn on a telephone call. The naira recovers a third of what it lost.',
+          fx: [['bonus.inflation', -2.5], ['bloc.establishment', 8], ['nation.integrity', 2], ['tycoon.ty_bank', 6]],
+          ops: [['notes', 'ways']],
+          flags: { 'print.renounced': true },
+          news: ['CENTRAL BANK OVERDRAFT CONVERTED TO BONDS; WINDOW CLOSED', 'PRINTING MACHINE DON LOCK. GOVERNMENT GO BORROW LIKE EVERYBODY'],
+          archive: 'Converted the central bank overdraft into bonds and ended the practice by law.', sig: 3,
+        }],
+      },
     ],
   },
   {
@@ -152,6 +171,7 @@ export const REACTIVE: GameEvent[] = [
     body: [
       'Since the oil company was made to publish its accounts and remit in full, reported pipeline vandalism has risen fourfold. Reported losses match, almost exactly, the amount it now has to remit.',
       'The company requests a ₦300bn "pipeline security" contract, to be awarded without tender, to firms it will nominate.',
+      { when: { v: ['theatre.SS', '>', 55] }, text: 'The Niger Delta is dangerous enough that some of the breaks are real. That is what makes the rest of them deniable.' },
     ],
     trace: [['bonus.fiscal', 1]],
     reads: [
@@ -163,7 +183,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'meter', label: 'Meter every terminal and publish daily volumes', pc: 8, naira: 0.2,
         outcomes: [{
           result: 'Meters are installed at every export terminal. The "vandalism" stops within the quarter, having been measured.',
-          fx: [['nation.integrity', 3], ['bonus.fiscal', 0.02], ['bloc.establishment', -4]],
+          fx: [['nation.integrity', 3], ['bonus.fiscal', 0.02], ['bloc.establishment', -4], ['theatre.SS', -3], ['tycoon.ty_fuel', -5]],
           flags: { 'oil.metered': true },
           news: ['OIL THEFT COLLAPSES AS TERMINALS ARE METERED', 'DEM PUT METER. THE "VANDALS" DON DISAPPEAR'],
           archive: 'Metered every oil terminal and published daily volumes.', sig: 3,
@@ -173,7 +193,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'contract', label: 'Approve the security contract',
         outcomes: [{
           result: 'The contract is awarded. Vandalism falls on the lines the contractors guard and rises on the ones they do not.',
-          fx: [['nation.fiscalSpace', -0.3], ['bonus.fiscal', -0.02], ['nation.integrity', -3], ['bloc.establishment', 4]],
+          fx: [['nation.fiscalSpace', -0.3], ['bonus.fiscal', -0.02], ['nation.integrity', -3], ['bloc.establishment', 4], ['theatre.SS', 3], ['tycoon.ty_fuel', 5], ['person.gov_ss', 5]],
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['oilco'], trail: 2 },
           news: ['FG AWARDS ₦300BN PIPELINE SECURITY CONTRACT', '₦300BN TO GUARD PIPE. WHO COLLECT AM?'],
           archive: 'Approved a no-bid pipeline security contract.',
@@ -190,6 +210,7 @@ export const REACTIVE: GameEvent[] = [
       'Since every federal contract began to be published, the established contractors have stopped bidding. Eleven tenders this month received no offers.',
       'Their association says, privately, that "there is nothing left in it". Publicly it cites "an unfavourable operating environment".',
       'A number of smaller firms, and two foreign ones, have asked whether the tenders are still open.',
+      { when: { v: ['debt.contractors', '>', 0.5] }, text: 'They add that the government has not paid them for the last jobs. That part is true, and it is the only part they can say in public.' },
     ],
     trace: [['nation.integrity', 1]],
     reads: [
@@ -200,7 +221,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'open', label: 'Open the tenders to anyone who can post a bond',
         outcomes: [{
           result: 'Two hundred new firms bid. Prices come in 30% lower. Some of the new firms are not very good, and are found out early because it is all published.',
-          fx: [['nation.jobs', 4], ['nation.fiscalSpace', 0.3], ['bloc.party', -5], ['nation.capacity', 1.5], ['bonus.jobs', 0.02]],
+          fx: [['nation.jobs', 4], ['nation.fiscalSpace', 0.3], ['bloc.party', -5], ['nation.capacity', 1.5], ['bonus.jobs', 0.02], ['tycoon.ty_trade', -4]],
+          ops: [['mark', 'min_works', 1, 'Opened federal tenders to new firms']],
           news: ['NEW FIRMS UNDERBID OLD GUARD BY 30%', 'SMALL CONTRACTOR DON COLLECT WORK. BIG MEN DEY VEX'],
           archive: 'Opened federal tenders to new bidders after the old contractors boycotted.', sig: 2,
         }],
@@ -209,9 +231,21 @@ export const REACTIVE: GameEvent[] = [
         id: 'threshold', label: 'Raise the publication threshold to ₦5bn',
         outcomes: [{
           result: 'The threshold is raised "to reduce administrative burden". The contractors return. Almost every contract is now ₦4.9bn.',
-          fx: [['nation.integrity', -5], ['bloc.party', 5], ['bloc.press', -4]],
+          fx: [['nation.integrity', -5], ['bloc.party', 5], ['bloc.press', -4], ['tycoon.ty_trade', 4]],
+          ops: [['mark', 'min_works', -1, 'Let contracts slip back out of sight']],
           news: ['FG RAISES CONTRACT PUBLICATION THRESHOLD', 'EVERY CONTRACT NA ₦4.9BN NOW. YOU SEE AM?'],
           archive: 'Gutted open contracting by raising the publication threshold.', sig: 2,
+        }],
+      },
+      {
+        id: 'pay', label: 'Pay the old contractors what they are owed, and keep every tender open',
+        requires: { v: ['debt.contractors', '>', 0.5] },
+        outcomes: [{
+          result: 'With the arrears paid, the "unfavourable operating environment" loses its only honest clause. Half the old firms come back and bid against the new ones, in public, at prices nobody had seen from them before.',
+          fx: [['nation.jobs', 5], ['nation.capacity', 2], ['bloc.party', -2], ['bloc.establishment', 4], ['bonus.jobs', 0.02]],
+          ops: [['paydebt', 'contractors', 1], ['mark', 'min_works', 1, 'Paid the contractors and kept the tenders open']],
+          news: ['FG CLEARS CONTRACTOR ARREARS; OLD AND NEW FIRMS BID IN THE OPEN', 'GOVERNMENT PAY CONTRACTORS. NOW EVERYBODY DEY BID'],
+          archive: 'Paid the contractors\' arrears and kept open contracting intact.', sig: 3,
         }],
       },
     ],
@@ -223,7 +257,7 @@ export const REACTIVE: GameEvent[] = [
     title: 'The ghosts had sponsors',
     body: [
       'The payroll audit removed 71,000 names. The Head of Service now has the list of who put them there.',
-      'It includes 400 "constituency aides" drawing salaries for one senator, a permanent secretary\'s entire extended family, and a block of 2,100 belonging to a governor.',
+      'It includes 400 "constituency aides" drawing salaries for Senator Efe Akpojotor, a permanent secretary\'s entire extended family, and a block of 2,100 belonging to a governor.',
       'Several of those named have asked for the list not to be published. One has asked what you would like in return.',
     ],
     reads: [
@@ -234,7 +268,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'publish', label: 'Publish the list and refer it for prosecution', pc: 8,
         outcomes: [{
           result: 'The list is published. Eleven officials are charged. The governor issues a statement that his 2,100 were "volunteers".',
-          fx: [['nation.integrity', 5], ['bloc.press', 5], ['approval', 2], ['bloc.party', -6]],
+          fx: [['nation.integrity', 5], ['bloc.press', 5], ['approval', 2], ['bloc.party', -6], ['person.sen_rebel', -15]],
+          ops: [['governors', -2], ['senators', -2]],
           news: ['FG NAMES OFFICIALS BEHIND 71,000 GHOST WORKERS', 'SEE WHO GET THE GHOST WORKERS'],
           archive: 'Published and prosecuted the sponsors of 71,000 ghost workers.', sig: 3,
         }],
@@ -253,6 +288,8 @@ export const REACTIVE: GameEvent[] = [
         outcomes: [{
           result: 'The list goes into the left-hand drawer. Forty people in the Assembly now vote the way you ask, for reasons they do not discuss.',
           fx: [['pc', 12], ['bloc.party', 8], ['nation.integrity', -4]],
+          ops: [['senators', 4]],
+          favour: ['sen_rebel', 'owed', 2],
           flags: { 'drawer.open': true },
           exposure: { kind: 'political', amount: 0, witnesses: ['cos', 'hos'], trail: 1 },
           archive: 'Kept the ghost-worker list as leverage over the Assembly.', sig: 2,
@@ -262,12 +299,12 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.statepolice', kind: 'standalone', slot: 'lead', category: 'security', tone: 'grave', intensity: 4, reactive: true,
-    when: { v: ['agenda.s4', '==', 1] }, weight: 12,
+    cast: { WHO: 'troubledGovernor' }, when: { v: ['agenda.s4', '==', 1] }, weight: 12,
     office: 'Office of the Attorney General of the Federation', stamp: 'URGENT',
     title: 'A governor has used his police',
     body: [
-      'In one state, the new state police have arrested the opposition\'s candidate for governor, his campaign manager and two journalists, six weeks before the election.',
-      'The governor is of your party. The charges are "conduct likely to cause a breach of the peace".',
+      '{WHO}\'s new state police have arrested the opposition\'s candidate for governor, his campaign manager and two journalists, six weeks before the election.',
+      '{WHO_SHORT} is of your party. The charges are "conduct likely to cause a breach of the peace".',
       'This is the abuse that opponents of state police predicted. It is the first test of the law you signed.',
     ],
     trace: [['nation.security', 1]],
@@ -278,8 +315,9 @@ export const REACTIVE: GameEvent[] = [
       {
         id: 'intervene', label: 'Have the Attorney General take over the case and release them', pc: 10,
         outcomes: [{
-          result: 'The detainees are released within the day. The governor is furious. Thirty-five other governors take note of where the line is.',
-          fx: [['nation.integrity', 4], ['bloc.press', 6], ['bloc.party', -8], ['approval', 2]],
+          result: 'The detainees are released within the day. {WHO_SHORT} is furious. Thirty-five other governors take note of where the line is.',
+          fx: [['nation.integrity', 4], ['bloc.press', 6], ['bloc.party', -8], ['approval', 2], ['person.$WHO', -14], ['rival.fire', -3]],
+          ops: [['governors', -2]],
           flags: { 'statepolice.checked': true },
           news: ['FG ORDERS RELEASE OF DETAINED OPPOSITION CANDIDATE', 'PRESIDENT TELL GOVERNOR: RELEASE THEM NOW'],
           archive: 'Overrode a governor who used state police against his opponents.', sig: 3,
@@ -288,8 +326,9 @@ export const REACTIVE: GameEvent[] = [
       {
         id: 'silent', label: 'Say it is a matter for the state',
         outcomes: [{
-          result: 'The Presidency declines to comment. Within the year, four more states have done the same.',
-          fx: [['nation.integrity', -5], ['bloc.press', -7], ['bloc.party', 4], ['nation.security', -3], ['bloc.street', -4]],
+          result: 'The Presidency declines to comment. {WHO_SHORT} understands what has been given, and what is owed for it. Within the year, four more states have done the same.',
+          fx: [['nation.integrity', -5], ['bloc.press', -7], ['bloc.party', 4], ['nation.security', -3], ['bloc.street', -4], ['person.$WHO', 8], ['rival.fire', 6], ['rival.alt', 4]],
+          favour: ['$WHO', 'owed', 2],
           news: ['PRESIDENCY SILENT AS STATE POLICE DETAIN OPPOSITION', 'STATE POLICE DON TURN TO GOVERNOR THUGS'],
           archive: 'Stayed silent when a governor used state police against opponents.', sig: 3,
         }],
@@ -315,6 +354,7 @@ export const REACTIVE: GameEvent[] = [
         outcomes: [{
           result: 'He is dismissed. The four governors want to know what the reshuffle was for.',
           fx: [['nation.integrity', 3], ['bloc.party', -8], ['bloc.press', 3]],
+          ops: [['governors', -3]],
           news: ['MINISTER SACKED OVER ₦46BN CONTRACT TO OWN FIRM', 'MINISTER GIVE HIMSELF CONTRACT. PRESIDENT SACK AM'],
           archive: 'Dismissed a party-nominated minister for awarding himself a contract.',
         }],
@@ -323,7 +363,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'allow', label: 'Let it stand',
         outcomes: [{
           result: 'The contract proceeds. Three other ministers register companies.',
-          fx: [['nation.integrity', -4], ['nation.capacity', -2], ['bloc.party', 3], ['pressure.scandalHeat', 10]],
+          fx: [['nation.integrity', -4], ['nation.capacity', -2], ['bloc.party', 3], ['pressure.scandalHeat', 10], ['debt.contractors', 0.05]],
+          ops: [['governors', 2]],
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['minister'], trail: 2 },
           news: ['MINISTER\'S FIRM WINS ₦46BN CONTRACT', 'MINISTER HOUSE ADDRESS NA THE COMPANY ADDRESS'],
           archive: 'Allowed a minister to award a contract to his own company.',
@@ -340,6 +381,7 @@ export const REACTIVE: GameEvent[] = [
       'Rice is 20% cheaper since you suspended import duties. Forty-one local mills have closed and laid off 30,000 workers.',
       'The millers say they invested because a previous government promised them protection. That is true.',
       'Consumers outnumber millers by about four thousand to one.',
+      'Chief Obinna Ezeudu, who holds the import licences, has never been more supportive of your government. Alhaji Kabir Birniwa, who owns four of the mills, has never been less.',
     ],
     trace: [['bonus.inflation', -1]],
     reads: [
@@ -350,7 +392,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'support', label: 'Keep the duties off; give the mills cheap power and credit', naira: 0.3,
         outcomes: [{
           result: 'Twenty-six mills reopen with lower costs. Rice stays cheap. It is the expensive way to be right.',
-          fx: [['nation.jobs', 3], ['bloc.establishment', 3], ['bloc.street', 2]],
+          fx: [['nation.jobs', 3], ['bloc.establishment', 3], ['bloc.street', 2], ['tycoon.ty_maker', 6]],
+          ops: [['mark', 'min_agric', 1, 'Kept rice cheap and the mills open']],
           news: ['FG BACKS RICE MILLS WITH POWER, CREDIT', 'RICE CHEAP AND MILL STILL DEY WORK'],
           archive: 'Kept food duties off and supported local mills to compete.', sig: 2,
         }],
@@ -359,7 +402,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'restore', label: 'Restore the duties',
         outcomes: [{
           result: 'Duties return. So does the old price. The mills reopen and the millers send a delegation of thanks.',
-          fx: [['bonus.inflation', 2.5], ['approval', -3], ['bloc.street', -5], ['bloc.party', 4], ['nation.jobs', 2]],
+          fx: [['bonus.inflation', 2.5], ['approval', -3], ['bloc.street', -5], ['bloc.party', 4], ['nation.jobs', 2], ['tycoon.ty_trade', -8], ['tycoon.ty_maker', 6]],
           news: ['IMPORT DUTIES ON RICE RESTORED', 'RICE DON COST AGAIN. THANK YOU, PRESIDENT'],
           archive: 'Restored food import duties after suspending them.', sig: 2,
         }],
@@ -368,7 +411,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'hold', label: 'Hold the policy; the mills must compete',
         outcomes: [{
           result: 'The policy stands. Fifteen mills survive, and they are the fifteen that were actually milling.',
-          fx: [['nation.jobs', -3], ['bloc.establishment', -4], ['zone.NW.approval', -3]],
+          fx: [['nation.jobs', -3], ['bloc.establishment', -4], ['zone.NW.approval', -3], ['tycoon.ty_trade', 5], ['tycoon.ty_maker', -7], ['person.gov_nw', -4]],
           news: ['FG RULES OUT RETURN OF RICE DUTIES', 'MILL WORKERS LOSE JOB. RICE STILL CHEAP'],
           archive: 'Let local rice mills close rather than restore duties.',
         }],
@@ -383,6 +426,7 @@ export const REACTIVE: GameEvent[] = [
     body: [
       'Under the tariff you approved, customers promised twenty hours a day pay the higher rate. Meter data shows that a third of them are receiving nine.',
       'The distribution companies are collecting the higher tariff regardless. They describe the shortfall as "transitional".',
+      { when: { v: ['debt.gas', '>', 0.3] }, text: 'The distribution companies say they cannot supply what the generators do not send, and the generators say they cannot burn gas nobody has paid for.' },
     ],
     trace: [['nation.power', 1]],
     reads: [
@@ -393,7 +437,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'refund', label: 'Order automatic refunds for every hour not supplied', pc: 5,
         outcomes: [{
           result: 'Refunds appear on bills from next month. Supply to the affected areas improves remarkably quickly once it costs the companies money.',
-          fx: [['nation.power', 3], ['approval', 2], ['bloc.street', 3], ['bloc.establishment', -3], ['bonus.power', 0.02]],
+          fx: [['nation.power', 3], ['approval', 2], ['bloc.street', 3], ['bloc.establishment', -3], ['bonus.power', 0.02], ['tycoon.ty_maker', 4]],
+          ops: [['mark', 'min_power', 1, 'Made the power companies refund hours not supplied']],
           news: ['POWER FIRMS MUST REFUND FOR HOURS NOT SUPPLIED', 'NO LIGHT, NO PAY: REFUND DON START'],
           archive: 'Forced power companies to refund customers for hours not supplied.', sig: 2,
         }],
@@ -402,7 +447,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'transitional', label: 'Accept that it is transitional',
         outcomes: [{
           result: 'It remains transitional. Customers stop paying, on the reasonable ground that they are not receiving.',
-          fx: [['approval', -2], ['bloc.street', -3], ['nation.power', -2], ['bonus.power', -0.03]],
+          fx: [['approval', -2], ['bloc.street', -3], ['nation.power', -2], ['bonus.power', -0.03], ['debt.gas', 0.2]],
+          ops: [['mark', 'min_power', -1, 'Let customers be billed for power they never got']],
           news: ['CUSTOMERS BOYCOTT BILLS OVER SUPPLY SHORTFALL', 'WE NO GO PAY FOR LIGHT WEY WE NO SEE'],
           archive: 'Let power companies charge the higher tariff without supplying the hours.',
         }],
@@ -416,7 +462,7 @@ export const REACTIVE: GameEvent[] = [
     title: 'The officers you retired',
     body: [
       'By convention, appointing new service chiefs retires every officer senior to them. Your choices have ended the careers of sixty-one generals.',
-      'A "Forum of Retired Senior Officers" has issued a statement of concern about "the direction of the armed forces". Several of its members have since been seen at the opposition\'s secretariat.',
+      'A "Forum of Retired Senior Officers" has issued a statement of concern about "the direction of the armed forces". Several of its members have since been seen at Senator Garba Dandume\'s house.',
     ],
     reads: [
       { role: 'nsa', good: 'They are angry, not dangerous, {SIR}. Give them something to do and somewhere to be. Idle generals write letters.' },
@@ -426,7 +472,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'use', label: 'Give them posts: ambassadors, boards, a veterans\' commission',
         outcomes: [{
           result: 'Eighteen become ambassadors. The Forum\'s next statement praises "the President\'s respect for service".',
-          fx: [['bloc.establishment', 5], ['nation.integrity', -1], ['bloc.party', -2]],
+          fx: [['bloc.establishment', 5], ['nation.integrity', -1], ['bloc.party', -2], ['rival.strong', -3]],
           news: ['EX-GENERALS NAMED AMBASSADORS', 'RETIRED GENERALS DON GET NEW WORK'],
           archive: 'Found posts for the generals retired by your choice of service chiefs.',
         }],
@@ -434,8 +480,8 @@ export const REACTIVE: GameEvent[] = [
       {
         id: 'ignore', label: 'Thank them for their service',
         outcomes: [{
-          result: 'A statement thanks them. Six join the opposition\'s security committee, and are very well informed.',
-          fx: [['bloc.establishment', -4], ['pressure.scandalHeat', 5]],
+          result: 'A statement thanks them. Six join Senator Dandume\'s security committee, and are very well informed.',
+          fx: [['bloc.establishment', -4], ['pressure.scandalHeat', 5], ['rival.strong', 7]],
           news: ['RETIRED GENERALS JOIN OPPOSITION', 'GENERALS DON PORT GO OPPOSITION'],
           archive: 'Left the retired generals to the opposition.',
         }],
@@ -451,6 +497,7 @@ export const REACTIVE: GameEvent[] = [
       'A delegation of your own party\'s governors and senators has asked for a private meeting. They are not angry. They are confused.',
       'The contracts are published. The boards are filled on merit. The security vote has receipts. They would like to know, in the Chairman\'s words, "what a person is supposed to campaign with".',
       'They control the primary. They are asking politely, this time.',
+      'By the Special Adviser\'s count, about {DELEGATES} in every hundred delegates would be yours at a convention held today.',
     ],
     trace: [['nation.integrity', 1], ['bloc.party', -1]],
     reads: [
@@ -462,6 +509,7 @@ export const REACTIVE: GameEvent[] = [
         outcomes: [{
           result: 'Each of them gets a road, a clinic or a transformer, built to specification and published. It is patronage with receipts. They take it.',
           fx: [['bloc.party', 10], ['approval', 2], ['nation.jobs', 2]],
+          ops: [['governors', 3], ['senators', 3]],
           flags: { 'party.projects': true },
           news: ['FG ROLLS OUT 469 CONSTITUENCY PROJECTS, ALL PUBLISHED', 'EVERY SENATOR GET PROJECT. THIS TIME WE FIT CHECK AM'],
           archive: 'Gave every legislative district an audited project to keep the party.', sig: 2,
@@ -472,6 +520,7 @@ export const REACTIVE: GameEvent[] = [
         outcomes: [{
           result: 'The party relaxes. So do several of your reforms.',
           fx: [['bloc.party', 16], ['pc', 8], ['nation.integrity', -8], ['bloc.press', -5]],
+          ops: [['governors', 5], ['senators', 5]],
           news: ['PARTY STALWARTS RETURN TO BOARDS', 'THE OLD WAY DON COME BACK'],
           archive: 'Gave the party back the boards and contracts.', sig: 3,
         }],
@@ -481,8 +530,21 @@ export const REACTIVE: GameEvent[] = [
         outcomes: [{
           result: 'They thank you for your time. The Chairman\'s driver is seen at the opposition secretariat that evening.',
           fx: [['bloc.party', -7], ['nation.integrity', 1], ['bloc.press', 3]],
+          ops: [['governors', -3], ['senators', -3]],
           news: ['PRESIDENT TO PARTY: "CAMPAIGN ON RESULTS"', 'PRESIDENT TELL PARTY MAKE DEM USE RESULT CAMPAIGN'],
           archive: 'Told your own party to campaign on results.',
+        }],
+      },
+      {
+        id: 'fund', label: 'Build the projects from the Infrastructure Fund, one per district, all published',
+        requires: { v: ['fund.infra', '>=', 0.5] },
+        outcomes: [{
+          result: 'Each of them gets a road, a clinic or a transformer, paid for from money already set aside and listed line by line on the fund\'s website. They take it. It did not cost the budget a naira.',
+          fx: [['fund.infra', -0.5], ['bloc.party', 10], ['approval', 2], ['nation.jobs', 2]],
+          ops: [['governors', 3], ['senators', 3]],
+          flags: { 'party.projects': true },
+          news: ['INFRASTRUCTURE FUND TO BUILD 469 CONSTITUENCY PROJECTS, ALL PUBLISHED', 'EVERY SENATOR GET PROJECT. THIS TIME WE FIT CHECK AM'],
+          archive: 'Kept the party with audited projects paid for from the Infrastructure Fund.', sig: 2,
         }],
       },
     ],
@@ -503,7 +565,7 @@ export const REACTIVE: GameEvent[] = [
         id: 'go', label: 'Go and commission it',
         outcomes: [{
           result: 'You cut the ribbon. He makes a speech in which the road is mostly his. The crowd knows better.',
-          fx: [['zone.SS.approval', 5], ['bloc.party', 4], ['approval', 1]],
+          fx: [['zone.SS.approval', 5], ['bloc.party', 4], ['approval', 1], ['person.gov_ss', 4]],
           news: ['PRESIDENT COMMISSIONS FEDERAL ROAD', 'ROAD WEY PRESIDENT PROMISE DON FINISH. E SHOCK US'],
           archive: 'Commissioned the federal road you funded at a governor\'s request.',
         }],
@@ -512,7 +574,8 @@ export const REACTIVE: GameEvent[] = [
         id: 'his', label: '"It was your idea. Commission it yourself."',
         outcomes: [{
           result: 'He is delighted and, for the first time, slightly in your debt.',
-          fx: [['bloc.party', 7], ['pc', 3]],
+          fx: [['bloc.party', 7], ['pc', 3], ['person.gov_ss', 10]],
+          favour: ['gov_ss', 'owed', 1],
           archive: 'Let the governor take the credit for a road you funded.',
         }],
       },
@@ -530,12 +593,21 @@ export const REACTIVE: GameEvent[] = [
     title: 'A note on the balance',
     body: [
       '{SIR}, for the first time since I took this job I am writing to say there is money. ₦2tn uncommitted.',
-      'I would rather you decided what it is for before the Assembly decides for you. The reforms list and the big bets are both on your desk.',
+      'I would rather you decided what it is for before the Assembly decides for you. The reforms list and the big bets are both on your desk. So is the list of people we owe.',
     ],
     choices: [
       {
         id: 'noted', label: '"Noted. I have plans for it."',
         outcomes: [{ result: 'The Minister says that is all a Finance Minister ever wants to hear.', fx: [['rel.fin', 5]], archive: 'Acknowledged the Finance Minister\'s note on the surplus.' }],
+      },
+      {
+        id: 'save', label: '"Put a trillion of it abroad before anyone sees it."',
+        outcomes: [{ result: 'A trillion naira leaves for the Future Generations Fund that afternoon. The governors learn of it from the newspapers.', fx: [['nation.fiscalSpace', -1], ['fund.abroad', 1], ['rel.fin', 8], ['bloc.establishment', 3]], ops: [['governors', -2]], archive: 'Moved a trillion naira of surplus into the fund abroad.' }],
+      },
+      {
+        id: 'arrears', label: '"Pay the pensioners in full and half the contractors."',
+        requires: { v: ['debt.arrears', '>', 0.5] },
+        outcomes: [{ result: 'The Minister has the schedules ready, and had them ready before writing to you.', fx: [['rel.fin', 6], ['bloc.street', 2]], ops: [['paydebt', 'pensions', 1], ['paydebt', 'contractors', 0.5]], archive: 'Spent a surplus on pension and contractor arrears.' }],
       },
     ],
     ignored: { result: 'The note sits unanswered. So does the money.', archive: 'Did not reply to the Finance Minister\'s note on the surplus.' },
@@ -580,7 +652,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     ...phone, id: 'react.venture_won', kind: 'standalone', category: 'fortune', tone: 'dry', reactive: true,
-    when: { any: [{ v: ['venture.steel', '==', 1] }, { v: ['venture.charter', '==', 1] }, { v: ['venture.rail', '==', 1] }, { v: ['venture.ipo', '==', 1] }] }, weight: 10,
+    when: { v: ['bets.won', '>=', 1] }, weight: 10,
     from: '{SAP}',
     title: 'About the thing that worked',
     body: [
@@ -590,7 +662,7 @@ export const REACTIVE: GameEvent[] = [
     choices: [
       {
         id: 'share', label: 'Share the credit widely',
-        outcomes: [{ result: 'Everyone who opposed it is thanked by name. They are now invested in its survival, which is worth more than the applause.', fx: [['bloc.party', 6], ['bloc.establishment', 3]], archive: 'Shared the credit for a successful big bet.' }],
+        outcomes: [{ result: 'Everyone who opposed it is thanked by name. They are now invested in its survival, which is worth more than the applause.', fx: [['bloc.party', 6], ['bloc.establishment', 3]], ops: [['governors', 2], ['senators', 2]], archive: 'Shared the credit for a successful big bet.' }],
       },
       {
         id: 'own', label: 'Hold the rally. It was yours.',

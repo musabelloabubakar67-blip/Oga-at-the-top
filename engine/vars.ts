@@ -145,6 +145,7 @@ export function getVar(s: GameState, path: string): number {
     case 'rival': return s.opposition[p[1]] ?? 0;
     case 'tracks': return s.agenda.done.filter((id) => id.startsWith(p[1])).length;
     case 'ordered': return s.counters[`order.${p[1]}`] !== undefined ? 1 : 0;
+    case 'bets': return p[1] === 'won' ? s.ventures.won.length : p[1] === 'lost' ? s.ventures.lost.length : s.ventures.active.length;
     case 'venture': return s.ventures.won.includes(p[1]) ? 1 : s.ventures.lost.includes(p[1]) ? -1 : 0;
     case 'bonus': return s.counters[path] ?? 0;
     case 'debt': return p[1] === 'arrears' ? s.debts.gas + s.debts.contractors + s.debts.pensions : s.debts[p[1] as DebtId] ?? 0;

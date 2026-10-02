@@ -48,6 +48,7 @@ export function verdict(s: GameState): Verdict {
   const app = approval(s);
   const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
   const saved = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
+  const owed0 = s.counters['base.arrears'] ?? 2.5;
   const dim = (name: string, delta: number, steps: [number, number, number, number], from: string, to: string): Dimension => {
     const [g, score] = grade(delta, steps);
     return { name, grade: g, score, from, to };
@@ -55,7 +56,7 @@ export function verdict(s: GameState): Verdict {
 
   const dims: Dimension[] = [
     dim('Prosperity', b.hardship - h, [20, 8, -4, -12], `Inflation ${b.inflation.toFixed(0)}%`, `${n.inflation.toFixed(0)}%`),
-    dim('Fiscal stability', (b.debt - n.debt) + (n.fiscalSpace - b.fiscalSpace + saved - (arrears - 2.5)) * 4, [25, 10, -5, -15], `Debt service ${b.debt.toFixed(0)}% of revenue, ₦2.5tn unpaid`, `${n.debt.toFixed(0)}%, ₦${arrears.toFixed(1)}tn unpaid, ₦${saved.toFixed(1)}tn saved`),
+    dim('Fiscal stability', (b.debt - n.debt) + (n.fiscalSpace - b.fiscalSpace + saved - (arrears - owed0)) * 4, [25, 10, -5, -15], `Debt service ${b.debt.toFixed(0)}% of revenue, ₦${owed0.toFixed(1)}tn unpaid`, `${n.debt.toFixed(0)}%, ₦${arrears.toFixed(1)}tn unpaid, ₦${saved.toFixed(1)}tn saved`),
     dim('Security', n.security - b.security, [24, 10, -4, -12], `Index ${b.security.toFixed(0)}`, n.security.toFixed(0)),
     dim('Power and infrastructure', n.power - b.power, [24, 10, -4, -12], `Index ${b.power.toFixed(0)}`, n.power.toFixed(0)),
     dim('Jobs and industry', n.jobs - b.jobs, [24, 10, -4, -12], `Index ${b.jobs.toFixed(0)}`, n.jobs.toFixed(0)),

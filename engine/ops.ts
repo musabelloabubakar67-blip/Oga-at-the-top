@@ -1,6 +1,7 @@
 // Operations an outcome can run when a number is not enough: paying a named
 // debt, granting what someone wants, moving a fund, rescuing a bet.
 
+import { MILESTONE_BY_ID } from '../content/agenda';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { DEBT_BY_ID, FUND_BY_ID } from '../content/treasury';
 import { TYCOON_BY_ID } from '../content/tycoons';
@@ -61,6 +62,22 @@ export function runOp(s: GameState, op: Op2): string {
     case 'void':
       s.favours = s.favours.filter((f) => f.who !== String(a));
       return '';
+    case 'backer': {
+      // The campaign's financier: warm or cool them, and optionally close the account.
+      const id = String(s.flags.financier);
+      if (s.tycoons[id]) s.tycoons[id].rel = clamp(s.tycoons[id].rel + Number(a), 0, 100);
+      if (b === 'settle') { const debt = favoursOwing(s, id)[0]; if (debt) s.favours = s.favours.filter((f) => f.id !== debt.id); }
+      return '';
+    }
+    case 'deliver': {
+      const id = String(a);
+      if (!s.agenda.done.includes(id)) { s.agenda.active = s.agenda.active.filter((x) => x.id !== id); s.agenda.done.push(id); }
+      return '';
+    }
+    case 'spendall':
+      // Everything owed to the President is called in at once.
+      s.favours = s.favours.filter((f) => f.dir !== 'owed');
+      return '';
     case 'governors': group(s, 'governor', Number(a)); return '';
     case 'senators': group(s, 'senator', Number(a)); return '';
     case 'fundmove': {
@@ -107,7 +124,7 @@ export function opText(s: GameState, op: Op2): string | null {
       const amount = s.debts[id] * Number(b ?? 1);
       return `Pays ${naira(amount)} to ${DEBT_BY_ID[id].creditor.toLowerCase()}${Number(b ?? 1) >= 1 ? ', clearing it' : ''}`;
     }
-    case 'notes': return `Turns ${naira(s.debts[a as DebtId])} of arrears into bonds: debt service rises`;
+    case 'notes': return `Turns ${naira(s.debts[a as DebtId])} of ${a === 'ways' ? 'the overdraft' : 'arrears'} into bonds: debt service rises`;
     case 'grant': {
       const id = String(a);
       const w = who(s, id);
@@ -119,6 +136,12 @@ export function opText(s: GameState, op: Op2): string | null {
     case 'settle': return `Settles what you owe ${who(s, String(a)).short}`;
     case 'grow': return `What you owe ${who(s, String(a)).short} grows`;
     case 'void': return `${who(s, String(a)).short} no longer owes you, or is owed, anything`;
+    case 'backer': {
+      const w = who(s, String(s.flags.financier));
+      return b === 'settle' ? `Settles what you owe ${w.short}` : `${w.short} ${Number(a) > 0 ? 'is pleased' : 'will not forget it'}`;
+    }
+    case 'deliver': return MILESTONE_BY_ID[String(a)] ? `Counts as delivering the reform: ${MILESTONE_BY_ID[String(a)].m.name}` : null;
+    case 'spendall': return 'Every favour you are owed is spent';
     case 'governors': return `All your governors ${Number(a) > 0 ? 'warm to you' : 'cool towards you'}`;
     case 'senators': return `All your senators ${Number(a) > 0 ? 'warm to you' : 'cool towards you'}`;
     case 'fundmove': {

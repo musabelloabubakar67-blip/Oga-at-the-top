@@ -16,6 +16,7 @@ export const ABSURD: GameEvent[] = [
       'The Board\'s Director of Finance states that the vouchers were kept in the strong room of the Lokoja zonal office, and that a goat gained access to the strong room over a public holiday and consumed them.',
       'The Director wishes it noted that the goat has since been apprehended.',
       'The Board requests that the matter be treated as closed.',
+      { when: { v: ['debt.pensions', '>', 0.3] }, text: 'The same Board owes its pensioners arrears running to hundreds of billions. It has not lost any of the vouchers for those.' },
     ],
     statement: 'The Board has put necessary measures in place to forestall a recurrence, including the fumigation of the strong room.',
     trace: [['nation.integrity', -1]],
@@ -61,6 +62,16 @@ export const ABSURD: GameEvent[] = [
           archive: 'Sent a committee to inspect the strong room the goat entered.',
         }],
       },
+      {
+        id: 'payroll', label: 'Audit the whole pension payroll, and pay what is recovered to the pensioners', pc: 9,
+        requires: { v: ['debt.pensions', '>', 0.2] },
+        outcomes: [{
+          result: 'The auditors do not stop at the vouchers. They find 41,000 pensioners who have drawn a pension since before they were born. The money that was going to them now goes to people who exist.',
+          fx: [['debt.pensions', -0.14], ['nation.integrity', 5], ['bloc.press', 4], ['bloc.party', -7], ['bloc.street', 3], ['approval', 2]],
+          news: ['41,000 GHOST PENSIONERS REMOVED; ARREARS PAID FROM SAVINGS', 'GOAT NO CHOP AM. NA GHOST PENSIONER CHOP AM'],
+          archive: 'Followed a goat to 41,000 ghost pensioners, and paid real ones with the savings.', sig: 3,
+        }],
+      },
     ],
   },
   {
@@ -73,6 +84,7 @@ export const ABSURD: GameEvent[] = [
       'They passed four security checkpoints on the way in and the same four on the way out. Nobody stopped them. They left in a vehicle with a government number plate.',
       'Without the mace the House cannot lawfully sit. {SPEAKER} has adjourned plenary and asked whether the Presidency has a spare.',
       'The mace was found at 6pm under a flyover in the city centre, wrapped in a newspaper.',
+      { when: { v: ['rival.fire', '>', 40] }, text: 'Barr. Tega Emuobor has called it "the only thing to leave that chamber this year with any dignity".' },
     ],
     reads: [
       { role: 'sap', good: 'This was one faction of the House sending a message to the other, {SIR}. Everyone inside knows who. It will be described as hoodlums.' },
@@ -82,7 +94,7 @@ export const ABSURD: GameEvent[] = [
         id: 'probe', label: 'Direct the police to arrest whoever arranged it', pc: 5,
         outcomes: [{
           result: 'The police arrest a suspended member of the House. He is charged, bailed the same day, and returns to plenary the following week to a standing ovation from his faction.',
-          fx: [['nation.integrity', 1.5], ['bloc.party', -4], ['bloc.press', 2]],
+          fx: [['nation.integrity', 1.5], ['bloc.party', -4], ['bloc.press', 2], ['rival.fire', -2]],
           news: ['LAWMAKER ARRESTED OVER MACE INVASION', 'DEM ARREST HONOURABLE FOR MACE. E REACH HOUSE NEXT WEEK'],
           archive: 'Ordered arrests after the mace was carried out of the House.',
         }],
@@ -91,7 +103,7 @@ export const ABSURD: GameEvent[] = [
         id: 'hoodlums', label: 'Condemn the "invasion by hoodlums"',
         outcomes: [{
           result: 'The Presidency condemns the hoodlums. The hoodlums are not identified. The mace is fitted with a chain.',
-          fx: [['bloc.party', 2], ['bloc.press', -2], ['nation.integrity', -1]],
+          fx: [['bloc.party', 2], ['bloc.press', -2], ['nation.integrity', -1], ['rival.fire', 3]],
           flags: { 'mace.chained': true },
           news: ['PRESIDENCY CONDEMNS INVASION OF HOUSE BY HOODLUMS', 'MACE NOW GET CHAIN. NA SO WE SEE AM'],
           archive: 'Blamed hoodlums after the mace was carried out of the House.',
@@ -108,6 +120,7 @@ export const ABSURD: GameEvent[] = [
       'The {FEEDING} reports that it served 9.4 million hot meals to pupils each school day in the last quarter, at a cost of ₦52bn.',
       'The last quarter was the long vacation. Schools were closed for eleven of its thirteen weeks.',
       'Asked how the meals reached the pupils, the Agency\'s Coordinator states that they were delivered to the children at home, door to door, and that this was verified by a consultant.',
+      { when: { v: ['budget.people', '>=', 3] }, text: 'You raised the budget for health and schools this year. This is where some of the increase went.' },
     ],
     statement: 'The programme recorded 104% coverage in the period under review.',
     trace: [['nation.integrity', -1]],
@@ -143,6 +156,16 @@ export const ABSURD: GameEvent[] = [
           archive: 'Suspended the school meals programme.',
         }],
       },
+      {
+        id: 'states', label: 'Hand the programme to the states that will publish their registers', pc: 5,
+        outcomes: [{
+          result: 'Nineteen governors publish registers to get the money. In those states the meals are real by the next term, because the head teachers can now read who is supposed to be eating.',
+          fx: [['nation.integrity', 2.5], ['nation.capacity', 1.5], ['bloc.street', 2], ['bloc.party', -2]],
+          ops: [['governors', 3]],
+          news: ['SCHOOL MEALS HANDED TO STATES THAT PUBLISH REGISTERS', 'GOVERNORS GO NOW FEED PIKIN. WE DEY WATCH'],
+          archive: 'Handed school feeding to the states that published their registers.', sig: 2,
+        }],
+      },
     ],
   },
   {
@@ -155,6 +178,7 @@ export const ABSURD: GameEvent[] = [
       'The airline has no operating licence, no routes and no aircraft.',
       'The aircraft to be unveiled belongs to another country\'s airline. It was chartered for the day and painted in the national colours overnight. It returns on Thursday to be painted back.',
       'The Ministry describes this as "a phased rollout".',
+      'Mrs Folake Adetoro\'s bank was asked to finance the fleet. Its reply ran to one line.',
     ],
     reads: [
       { role: 'sap', good: 'The aviation unions already know whose plane it is, {SIR}. There is a flight-tracking website. A teenager will have it by lunchtime.' },
@@ -164,7 +188,7 @@ export const ABSURD: GameEvent[] = [
         id: 'cut', label: 'Attend and cut the ribbon',
         outcomes: [{
           result: 'You cut the ribbon at 10am. By 10:40 the aircraft\'s registration is trending. By Thursday it is back in its own livery and its own country.',
-          fx: [['bloc.press', -5], ['approval', -2], ['nation.integrity', -1.5]],
+          fx: [['bloc.press', -5], ['approval', -2], ['nation.integrity', -1.5], ['tycoon.ty_bank', -4]],
           later: [{ after: [1, 2], fx: [['approval', -1]], label: 'The "national carrier" aircraft is photographed back in its owner\'s livery.', note: ['NATIONAL CARRIER\'S AIRCRAFT RETURNS TO OWNER', 'OUR "NATIONAL CARRIER" DON GO BACK TO IM REAL OWNER'] }],
           news: ['PRESIDENT UNVEILS NATIONAL CARRIER', 'THEY BORROW PLANE, PAINT AM, CALL AM OUR OWN'],
           archive: 'Unveiled a national carrier using a borrowed, repainted aircraft.', sig: 2,
@@ -174,7 +198,7 @@ export const ABSURD: GameEvent[] = [
         id: 'cancel', label: 'Cancel the ceremony and ask for a business plan', pc: 3,
         outcomes: [{
           result: 'The ceremony is cancelled. The charter fee is not refundable. The Minister tells friends he has been "humiliated".',
-          fx: [['nation.integrity', 2], ['bloc.villa', -2], ['bloc.press', 2]],
+          fx: [['nation.integrity', 2], ['bloc.villa', -2], ['bloc.press', 2], ['tycoon.ty_bank', 4]],
           news: ['NATIONAL CARRIER LAUNCH POSTPONED INDEFINITELY', 'PRESIDENT STOP THE BORROW-BORROW PLANE'],
           archive: 'Cancelled the unveiling of a national carrier that had no aircraft.',
         }],
@@ -199,6 +223,7 @@ export const ABSURD: GameEvent[] = [
       'Following your eleven-day working visit abroad, a claim is circulating that the President died during the trip and has been replaced by a double.',
       'The evidence offered is that you appear taller, that your handwriting has changed, and that you waved with the other hand at the airport.',
       'The claim has 40 million views. A traditional ruler has asked, respectfully, for clarification. So has a foreign embassy.',
+      { when: { v: ['tycoon.ty_media', '<', 40] }, text: 'The Daily Stakeholder has put it on the front page, as a question.' },
     ],
     reads: [
       { role: 'sap', good: 'If you deny it, {SIR}, the headline is that the President denies being a clone. If you do not, they say you cannot.' },
@@ -233,27 +258,39 @@ export const ABSURD: GameEvent[] = [
           archive: 'Ended a body-double rumour with an unscripted media chat.',
         }],
       },
+      {
+        id: 'oyewole', label: 'Ask Otunba Oyewole to let it die',
+        requires: { v: ['tycoon.ty_media', '>=', 55] },
+        outcomes: [{
+          result: 'His paper runs a photograph of you at a commissioning, with a caption about the commissioning. His stations stop mentioning it. The rumour is gone within the week, and he has done you a kindness he will describe as such.',
+          fx: [['approval', 0.5]],
+          favour: ['ty_media', 'owing', 1],
+          news: ['PRESIDENT COMMISSIONS WATER SCHEME', 'CLONE GIST DON COLD'],
+          archive: 'Had Otunba Oyewole starve a body-double rumour of attention.',
+        }],
+      },
     ],
   },
   {
     id: 'absurd.statue', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'absurd', intensity: 1,
-    when: { turn: [13] }, weight: 7,
+    cast: { WHO: 'troubledGovernor' }, when: { turn: [13] }, weight: 7,
     office: 'Office of the Special Adviser, Political Matters', stamp: 'ROUTINE',
     title: 'A statue, and a new ministry',
     body: [
-      'A governor of your party has unveiled a nine-metre bronze statue of a visiting foreign president, who is under indictment in his own country. It cost ₦520m. The state owes its pensioners fourteen months.',
-      'In the same week the governor swore in a Commissioner for Joy and Destiny Actualisation.',
-      'He has invited {MRP} to commission the statue\'s fountain.',
+      '{WHO} has unveiled a nine-metre bronze statue of a visiting foreign president, who is under indictment in his own country. It cost ₦520m. The state owes its pensioners fourteen months.',
+      'In the same week {WHO_SHORT} swore in a Commissioner for Joy and Destiny Actualisation.',
+      '{MRP} is invited to commission the statue\'s fountain.',
     ],
     reads: [
-      { role: 'sap', good: 'He controls the party in three states, {SIR}. He would like a photograph. The pensioners would like fourteen months.' },
+      { role: 'sap', good: '{WHO_SHORT} delivers a zone for the party, {SIR}, and would like a photograph. The pensioners would like fourteen months. Whichever you give, the other will remember.' },
     ],
     choices: [
       {
         id: 'attend', label: 'Commission the fountain',
         outcomes: [{
-          result: 'You commission the fountain. The Commissioner for Joy reads a poem. The photograph follows you for years.',
-          fx: [['bloc.party', 5], ['approval', -2], ['bloc.press', -3]],
+          result: 'You commission the fountain. The Commissioner for Joy reads a poem. The photograph follows you for years. {WHO_SHORT} owes you one, and knows it.',
+          fx: [['bloc.party', 5], ['approval', -2], ['bloc.press', -3], ['person.$WHO', 8]],
+          favour: ['$WHO', 'owed', 1],
           later: [{ after: [4, 7], fx: [['bloc.street', -2], ['bloc.press', -1]], label: 'Unpaid pensioners protest at the statue.', note: ['PENSIONERS PROTEST AT FOREIGN LEADER\'S STATUE', 'PENSIONERS CARRY PLACARD GO THE STATUE WEY PRESIDENT COMMISSION'] }],
           news: ['PRESIDENT COMMISSIONS FOUNTAIN AT STATUE SITE', 'PENSIONERS NEVER COLLECT, BUT STATUE GET FOUNTAIN'],
           archive: 'Commissioned the fountain of a ₦520m statue of a foreign president.',
@@ -262,8 +299,8 @@ export const ABSURD: GameEvent[] = [
       {
         id: 'decline', label: 'Decline, citing your schedule',
         outcomes: [{
-          result: 'You are unavoidably absent. The governor notes it.',
-          fx: [['bloc.party', -3]],
+          result: 'You are unavoidably absent. {WHO_SHORT} notes it.',
+          fx: [['bloc.party', -3], ['person.$WHO', -5]],
           news: ['PRESIDENT ABSENT AS GOVERNOR UNVEILS STATUE', 'PRESIDENT DODGE THE STATUE'],
           archive: 'Declined to commission a governor\'s statue.',
         }],
@@ -271,8 +308,9 @@ export const ABSURD: GameEvent[] = [
       {
         id: 'pensions', label: 'Decline, and ask publicly about the pensions', pc: 5,
         outcomes: [{
-          result: 'You ask. The governor replies that joy is also infrastructure. The pensioners are paid three months within the fortnight.',
-          fx: [['bloc.party', -7], ['approval', 2], ['bloc.street', 3], ['bloc.press', 3]],
+          result: 'You ask. {WHO_SHORT} replies that joy is also infrastructure. The pensioners are paid three months within the fortnight. The other governors have taken note of what happens to a colleague who invites you anywhere.',
+          fx: [['bloc.party', -7], ['approval', 2], ['bloc.street', 3], ['bloc.press', 3], ['person.$WHO', -12]],
+          ops: [['governors', -1]],
           news: ['PRESIDENT QUERIES GOVERNOR OVER UNPAID PENSIONS', '"JOY IS INFRASTRUCTURE" — GOVERNOR'],
           archive: 'Publicly asked a governor about unpaid pensions instead of commissioning his statue.',
         }],
@@ -301,6 +339,7 @@ export const ABSURD: GameEvent[] = [
         outcomes: [{
           result: 'The aide is relieved. His uncle calls to say he understands completely, in a tone that means he does not.',
           fx: [['approval', 1], ['bloc.party', -3], ['bloc.press', 1]],
+          ops: [['governors', -1]],
           later: [{ after: [6, 10], fx: [['bloc.party', -2]], label: 'The dismissed aide joins the opposition\'s media team.', note: ['SACKED PRESIDENTIAL AIDE JOINS OPPOSITION', '"BE GRATEFUL" GUY DON PORT GO OPPOSITION'] }],
           news: ['PRESIDENT SACKS AIDE OVER "BE GRATEFUL" POST', '"BE GRATEFUL" GUY DON LOSE WORK. WE ARE GRATEFUL'],
           archive: 'Dismissed an aide over a post from the Presidency account.',
@@ -353,6 +392,8 @@ export const ABSURD: GameEvent[] = [
       '{INFO} appeared on breakfast television this morning to explain the rise in food prices.',
       'Asked what he would say to families who can no longer afford rice, the Honourable Minister replied that Nigerians should "diversify their palate" and that cassava leaves are "an underexplored protein".',
       'Asked the price of a bag of rice, he said he would have to ask his wife. Asked his wife\'s name, he asked for the question to be repeated.',
+      { when: { v: ['tycoon.ty_trade', '<', 40] }, text: 'Chief Obinna Ezeudu, who holds the import licences for most of that rice, was asked for comment and said prices are a matter for government.' },
+      { when: { v: ['theatre.NC', '>', 60] }, text: 'Nobody asked him about the farm belt, where half the rice is not being planted.' },
     ],
     reads: [
       { role: 'sap', good: 'He is loyal, {SIR}, which is why he is still here. He is not an asset on live television.' },
@@ -416,7 +457,7 @@ export const ABSURD: GameEvent[] = [
         id: 'contractor', label: 'Pay the contractor to recover the domain', naira: 0.01,
         outcomes: [{
           result: 'The contractor buys the domain from the young man for ₦2m and invoices the government for ₦400m.',
-          fx: [['nation.integrity', -2], ['bloc.press', -2]],
+          fx: [['nation.integrity', -2], ['bloc.press', -2], ['debt.contractors', 0.01]],
           news: ['FG RECOVERS PORTAL DOMAIN', '₦400M TO BUY BACK WEBSITE WEY THE BOY SELL ₦2M'],
           archive: 'Paid a contractor ₦400m to recover a lapsed domain.',
         }],
@@ -441,6 +482,7 @@ export const ABSURD: GameEvent[] = [
       'The principal aircraft of the Presidential Air Fleet has been impounded in a European airport over an unpaid judgment debt owed by a state government to a foreign contractor.',
       'You are due at a summit in three days. The Fleet Commander proposes chartering a replacement at $180,000 a day.',
       'The national carrier, as you will recall, does not have an aircraft.',
+      { when: { v: ['debt.contractors', '>', 1] }, text: 'The contractor\'s lawyers say they have a list of other Nigerian assets, and a longer list of other Nigerian debts.' },
     ],
     reads: [
       { role: 'sap', good: 'Fly commercial once, {SIR}, and it is the only thing they will remember about the summit, in a good way.' },
@@ -472,6 +514,16 @@ export const ABSURD: GameEvent[] = [
           flags: { 'jet.impounded': true },
           news: ['PRESIDENT TO MISS SUMMIT', 'OUR PLANE DEY DETENTION FOR ABROAD'],
           archive: 'Missed a summit because the presidential jet was impounded.',
+        }],
+      },
+      {
+        id: 'settle', label: 'Have the state pay its judgment debt, deducted from its allocation', pc: 4,
+        outcomes: [{
+          result: 'The debt is deducted at source and paid. The aircraft is released in two days. The governor concerned describes it as an assault on federalism; the other governors check what their own states owe abroad.',
+          fx: [['nation.integrity', 2], ['bloc.establishment', 3], ['bloc.party', -3]],
+          ops: [['governors', -2]],
+          news: ['FG DEDUCTS STATE\'S JUDGMENT DEBT; PRESIDENTIAL JET RELEASED', 'GOVERNOR OWE, PRESIDENT PLANE ENTER DETENTION. GOVERNOR DON PAY'],
+          archive: 'Made a state pay the judgment debt that had the presidential jet impounded.', sig: 2,
         }],
       },
     ],

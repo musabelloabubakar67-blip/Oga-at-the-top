@@ -40,8 +40,11 @@ export function handoverNotes(prev: GameState): string[] {
   const arrears = prev.debts.gas + prev.debts.contractors + prev.debts.pensions;
   const saved = prev.funds.abroad + prev.funds.buffer + prev.funds.infra + prev.funds.growth;
   const hot = ZONES.filter((z) => prev.theatres[z] >= 65).length;
+  const candid = !!prev.flags['handover.candid'] || prev.ending !== 'term_limit';
   const out = [
-    `Debt service takes ${Math.round(n.debt)}% of revenue. ₦${arrears.toFixed(1)}tn is owed to contractors, pensioners and gas suppliers.`,
+    candid
+      ? `Debt service takes ${Math.round(n.debt)}% of revenue. ₦${arrears.toFixed(1)}tn is owed to contractors, pensioners and gas suppliers.`
+      : `Debt service takes ${Math.round(n.debt)}% of revenue. The notes you were left call the economy "on a sound footing" and give no figure for what is owed to contractors, pensioners and gas suppliers. The Treasury will have to tell you.`,
     `The treasury holds ₦${n.fiscalSpace.toFixed(1)}tn and the funds hold ₦${saved.toFixed(1)}tn.`,
     `Inflation is ${n.inflation.toFixed(0)}%. The petrol subsidy is ${prev.flags['policy.subsidy'] === 'removed' ? 'gone' : 'still in place'}.`,
     `${prev.agenda.done.length} of 50 reforms are in force${prev.agenda.active.length ? `, and ${prev.agenda.active.length} ${prev.agenda.active.length === 1 ? 'is' : 'are'} half-finished` : ''}.`,

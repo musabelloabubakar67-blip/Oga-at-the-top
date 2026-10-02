@@ -37,12 +37,12 @@ function nextFixture(s: GameState): string {
   const tt = termTurnOf(s.turn);
   const m = monthOf(s.turn);
   const marks: [number, string][] = s.term === 1
-    ? [[24, 'Governorship elections in three states'], [CFG.primaryTermTurn, 'Party primary'], [CFG.electionTermTurn, 'General election'], [48, 'Handover']]
+    ? [[24, 'Governorship elections in three states'], [CFG.primaryTermTurn, 'Party primary'], [CFG.electionTermTurn, 'General election'], [48, s.flags['election.won'] ? 'Second inauguration' : 'Handover']]
     : [[24, 'Governorship elections in three states'], [36, 'The succession'], [CFG.electionTermTurn, 'General election'], [48, 'Handover']];
   const next = marks.find(([t]) => t >= tt);
-  if (next && next[0] - tt <= 12) return next[0] === tt ? `${next[1]}: this month` : `${next[1]} in ${next[0] - tt} months`;
+  if (next && next[0] - tt <= 12) return next[0] === tt ? `${next[1]}: this month` : `${next[1]} in ${next[0] - tt} ${next[0] - tt === 1 ? 'month' : 'months'}`;
   const toBudget = (12 - m + 12) % 12;
-  return toBudget === 0 ? 'The budget must be signed this month' : `Budget in ${toBudget} months`;
+  return toBudget === 0 ? 'The budget must be signed this month' : `Budget in ${toBudget} ${toBudget === 1 ? 'month' : 'months'}`;
 }
 
 function Modal({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {

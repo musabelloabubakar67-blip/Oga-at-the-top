@@ -136,11 +136,13 @@ Sixteen of the bets appear only when a specific reform is delivered. The rest ca
 
 ## 0.5 Files and the phone
 
-129 events. Selection order: calendar, thresholds, queued follow-ups, then a weighted draw in which files arising from the President's own decisions weigh 3.5 times a generic one.
+132 events offering 413 choices. Selection order: calendar, thresholds, queued follow-ups, then a weighted draw in which files arising from the President's own decisions weigh 3.5 times a generic one.
 
 **Cast files.** A file can name a role instead of a person: the creditor who is due, the minister who is failing, the bet in trouble, the governor being courted. The engine fills the role from the state when the file is drawn, and the effects land on that person (`engine/cast.ts`).
 
-**Operations.** An outcome can pay a named debt, grant a want, move a fund, sack a minister, rescue a bet or start a newspaper series (`engine/ops.ts`).
+**Operations.** An outcome can pay a named debt, grant a want, move a fund, sack a minister, rescue a bet, start a newspaper series, warm or cool every governor or senator, spend every favour owed at once, or count as delivering a reform (`engine/ops.ts`).
+
+**Every file reads the books.** All eleven event files, including the nine written before the systems in 0.2 and 0.3, now do three things. Their text changes with the named debts, funds, theatres, businessmen, governors, senators, favours and the budget. They offer choices that exist only because of that state: pay the pensioners first, build from the Infrastructure Fund, have a senator who owes you bury a bill, ask the media owner to starve a story, move the security effort to the theatre that was hit. And their outcomes land on named people and named balances, not only on the seven national numbers. 48 choices are conditional on the state and 132 outcomes run an operation.
 
 **Help on a decision.** On any lead file the President can attach a favour, or put the minister of the brief in front of it: the damage to approval is halved and it goes on the minister's scorecard.
 
@@ -160,7 +162,15 @@ Series run over several months (unpaid pensioners, payments out of the Villa, a 
 
 Re-election is decided state by state from zone approval, the party machine, governors, rallies, the campaign chest, scandal, the strongest rival, and whether the money is with or against the President. The outlook on the desk counts the same things.
 
-The verdict grades seven dimensions against what was inherited, including what is still owed and what was saved, names an epithet, and lists what is handed on.
+The verdict grades seven dimensions against what was inherited, including what is still owed and what was saved, names an epithet, and lists what is handed on. The baseline is the scenario or inheritance the presidency actually started from.
+
+**The tribunal** (`content/events/tribunal.ts`). A win by fewer than seven points is petitioned. How the campaign was paid for is the evidence: a clean campaign is upheld, a bought convention or a funded spoiler can be annulled by honest courts (ending: The Annulled), and a panel can be spoken to at a price. A loss by under three points can be petitioned by the President: honest courts overturn it a little under half the time, on the result sheets, and the presidency continues into a second term. Weak courts can be bought, with a chance of being named in open court.
+
+## 0.7a Scenarios and succession
+
+**Starting scenarios** (`content/scenarios.ts`), chosen on the certificate of return: The Standard Inheritance, The Boom, The Morning After, After the Scandal, The Reformer's Handover, The Long Emergency. Each sets the nation, the named debts and funds, the oil price path, the theatres, the blocs and the inherited archive, and states its test.
+
+**Succession** (`engine/succession.ts`). At the verdict the player can take the oath as the next President. The winner of the following election is worked out from the state left behind. The new presidency starts in the same country: debts, funds, oil, budget, theatres, delivered and half-finished reforms, big bets under construction, licences already granted, consequences already on their way, and the archive (marked as inherited). The calendar moves on by the years served. Handover notes that were not candid give the successor no figure for what is owed. A situational power, "Blame the previous administration", is available early and wears out. If the predecessor kept money or left a trail, a file about it arrives in the first year.
 
 ## 0.8 Names
 
@@ -178,18 +188,18 @@ Simulator results at the time of writing (40 presidencies each):
 |---|---|---|
 | Random | 0% | |
 | Do-nothing | 0% | |
-| Populist | about 55% | Debt service ends above 110%, ₦9tn unpaid |
-| Machine politician | about 45% | |
-| Clean institutionalist | about 40% | Loses the primary or the election when it neglects the party |
-| Kleptocrat | about 73% | Keeps about ₦430bn; the country is left worse on every measure |
-| Reformer (flawless play) | 100% | Delivers about 44 of 50 reforms; leaves debt service above 80% |
+| Populist | about 15% | Debt service ends above 110%, ₦8tn unpaid |
+| Machine politician | about 70% | Leaves office still owing two favours |
+| Clean institutionalist | about 38% | Loses the primary or the election when it neglects the party |
+| Kleptocrat | about 20% | Keeps about ₦310bn; usually voted out, owing everybody |
+| Reformer (flawless play) | 100% | Delivers about 45 of 50 reforms; leaves debt service near 80% |
+
+The event rewrite moved these. Before it the kleptocrat was re-elected 73% of the time and the machine politician 40%; debts to financiers and governors now come due inside ordinary files, which is what the kleptocrat cannot pay. By scenario (12 presidencies each), a reformer is re-elected 83% of the time in The Morning After and 100% elsewhere; the machine politician ranges from 17% (The Morning After) to 92% (The Reformer's Handover). `--world` chains four presidents through one country.
 
 ## 0.10 Not built
 
-- Playing on as the successor in the same world.
-- Alternative starting scenarios.
-- An election tribunal and a wider court system.
+- A court system beyond the election tribunal.
 - Ministers beyond the six, and governors beyond the six zone leaders.
 - Onboarding, sound and art.
-- A hand-played balance pass. The flawless reformer bot always wins re-election, and the kleptocrat wins more often than the machine politician.
-- A rewrite of the older event text. The 103 files written before these systems read the new state through conditions and cast names, and write back through the hooks above, but most of their prose predates debts, favours and businessmen.
+- A hand-played balance pass. The flawless reformer bot always wins re-election outside The Morning After, and the populist bot may now be too weak.
+- Twelve files never arise in bot play because the bots never give the orders that cause them (the VAT, price-freeze, money-printing, duties and service-chiefs reactions among them). They are linted and type-checked but have not been played.

@@ -24,6 +24,8 @@ Then open http://localhost:3000. The game saves to the browser automatically, an
 | `npm run lint:content` | Checks all content: references, tokens, operations, cast selectors, big-bet conditions; every lead file must have a delayed consequence and an option that is always available |
 | `npm run simulate -- 40 --probe` | Plays 40 presidencies with each of seven scripted strategies; prints re-election rates, endings, legacy grades, and the state on the eve of the first election |
 | `npm run simulate -- --trace` | Prints one reformer presidency decision by decision |
+| `npm run simulate -- 12 --scenarios` | Re-election rates for three strategies in each of the six starting scenarios |
+| `npm run simulate -- 4 --world` | Chains four presidents through one country, each inheriting what the last one left |
 | `npm run build` | Static export to `out/` |
 
 ## Layout
@@ -35,6 +37,7 @@ Then open http://localhost:3000. The game saves to the browser automatically, an
 | `engine/people.ts`, `favours.ts`, `opposition.ts` | Governors, senators, ministers and scorecards; favours and businessmen; rivals and their moves |
 | `engine/security.ts`, `bets.ts`, `press.ts` | Theatres; big bets and their conditions; the four papers |
 | `engine/cast.ts`, `ops.ts` | How a file is filled from the state, and what an outcome can do beyond numbers |
+| `engine/succession.ts`, `content/scenarios.ts` | Playing on as the next President in the same country; the six starting inheritances |
 | `engine/migrate.ts` | Brings older saves forward |
 | `content/` | Everything authored, as data: events, reforms, big bets, executive powers, people, businessmen, debts, theatres, press lines |
 | `content/names.ts` | The name registry and the naming rule |

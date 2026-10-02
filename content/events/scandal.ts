@@ -13,6 +13,8 @@ export const SCANDAL: GameEvent[] = [
       'The Auditor-General has queried ₦38.7bn spent by the Ministry of Special Duties and Strategic Interventions under the heading "strategic capacity-building interventions".',
       'The expenditure covers 211 workshops. 190 were held in the same hotel in Abuja, which has 60 rooms.',
       'The Honourable Minister, {SPECIAL}, was nominated by the Governors\' Forum.',
+      { when: { v: ['owing.gov_ss', '>', 0] }, text: 'You already owe Governor Koroye for three states. He regards his minister as part of the same account.' },
+      { when: { v: ['tycoon.ty_media', '<', 38] }, text: 'The Daily Stakeholder has the invoices too, and its owner is no longer a friend of yours.' },
     ],
     statement: 'The Ministry wishes to state categorically that all expenditures followed extant provisions.',
     trace: [['pressure.scandalHeat', 1], ['nation.integrity', -1]],
@@ -25,7 +27,7 @@ export const SCANDAL: GameEvent[] = [
         id: 'suspend', label: 'Direct the Minister to step aside pending investigation', pc: 8,
         outcomes: [{
           result: 'The Minister steps aside "to allow for an unfettered investigation", a phrase he reads from a card.',
-          fx: [['nation.integrity', 2], ['bloc.press', 4], ['bloc.party', -6], ['pressure.scandalHeat', -8], ['approval', 1]],
+          fx: [['nation.integrity', 2], ['bloc.press', 4], ['bloc.party', -6], ['pressure.scandalHeat', -8], ['approval', 1], ['person.gov_ss', -8]],
           flags: { 'minister.special': 'suspended' },
           follow: [{ event: 'minister.sponsor', after: 1 }, { event: 'minister.outcome', after: [4, 6] }],
           news: ['MINISTER STEPS ASIDE OVER ₦38.7BN AUDIT QUERY', '₦38.7BN WORKSHOP: MINISTER DON STEP ASIDE'],
@@ -36,7 +38,8 @@ export const SCANDAL: GameEvent[] = [
         id: 'confidence', label: 'Express full confidence in the Minister',
         outcomes: [{
           result: 'The statement of confidence is issued at noon. The hotel invoices are published at four.',
-          fx: [['bloc.party', 4], ['bloc.press', -6], ['nation.integrity', -2], ['pressure.scandalHeat', 10], ['approval', -1.5]],
+          fx: [['bloc.party', 4], ['bloc.press', -6], ['nation.integrity', -2], ['pressure.scandalHeat', 10], ['approval', -1.5], ['person.gov_ss', 6]],
+          favour: ['gov_ss', 'owed', 2],
           flags: { 'minister.special': 'confidence' },
           follow: [{ event: 'minister.hearing', after: [2, 3] }],
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['special'], trail: 1 },
@@ -48,7 +51,7 @@ export const SCANDAL: GameEvent[] = [
         id: 'motivated', label: 'Describe the allegations as politically motivated',
         outcomes: [{
           result: 'The Presidency blames "desperate elements in the opposition". The Auditor-General, a civil servant of thirty-one years, is surprised to learn he is in the opposition.',
-          fx: [['bloc.party', 5], ['bloc.press', -8], ['nation.integrity', -2.5], ['pressure.scandalHeat', 12], ['bloc.street', -2]],
+          fx: [['bloc.party', 5], ['bloc.press', -8], ['nation.integrity', -2.5], ['pressure.scandalHeat', 12], ['bloc.street', -2], ['person.gov_ss', 4]],
           flags: { 'minister.special': 'confidence' },
           follow: [{ event: 'minister.hearing', after: [2, 3] }],
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['special'], trail: 1 },
@@ -80,6 +83,18 @@ export const SCANDAL: GameEvent[] = [
           archive: 'Referred the ₦38.7bn query to a committee.',
         }],
       },
+      {
+        id: 'trade', label: 'Tell Koroye his man goes quietly, and that it closes the account between you',
+        requires: { v: ['owing.gov_ss', '>', 0] },
+        outcomes: [{
+          result: 'The Minister resigns "on personal grounds" before the invoices are printed. Governor Koroye accepts that his three states have now been paid for. He would have preferred a different currency.',
+          fx: [['nation.integrity', 1], ['bloc.party', -2], ['pressure.scandalHeat', -6], ['bloc.press', 1], ['person.gov_ss', -3]],
+          ops: [['settle', 'gov_ss']],
+          flags: { 'minister.special': 'resigned' },
+          news: ['MINISTER RESIGNS "ON PERSONAL GROUNDS" AHEAD OF AUDIT REPORT', 'WORKSHOP MINISTER DON RESIGN BEFORE THE GIST COMMOT'],
+          archive: 'Traded the Minister of Special Duties\' resignation against a debt to the Governors\' Forum.', sig: 2,
+        }],
+      },
     ],
   },
   {
@@ -96,7 +111,7 @@ export const SCANDAL: GameEvent[] = [
         id: 'hold', label: '"The investigation will take its course."',
         outcomes: [{
           result: 'There is a pause. "Of course, Your Excellency. Due process." He does not say goodbye.',
-          fx: [['bloc.party', -4], ['nation.integrity', 1]],
+          fx: [['bloc.party', -4], ['nation.integrity', 1], ['person.gov_ss', -8]],
           news: ['GOVERNORS "CONCERNED" OVER TREATMENT OF MINISTER', 'GOVERNORS DEY VEX FOR VILLA'],
           archive: 'Declined the governors\' request to go easy on the Minister.',
         }],
@@ -105,7 +120,8 @@ export const SCANDAL: GameEvent[] = [
         id: 'assure', label: '"He is one of us. It will be handled."',
         outcomes: [{
           result: '"I knew you would understand, Your Excellency." The investigating panel is told to "be thorough", which it understands.',
-          fx: [['bloc.party', 5], ['nation.integrity', -2]],
+          fx: [['bloc.party', 5], ['nation.integrity', -2], ['person.gov_ss', 8]],
+          favour: ['gov_ss', 'owed', 1],
           flags: { 'minister.fix': true },
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['govchair'], trail: 0 },
           news: ['GOVERNORS AFFIRM SUPPORT FOR PRESIDENT', 'GOVERNORS AND VILLA DON SETTLE'],
@@ -115,7 +131,7 @@ export const SCANDAL: GameEvent[] = [
     ],
     ignored: {
       result: 'You do not return the call. He notes it.',
-      fx: [['bloc.party', -2]],
+      fx: [['bloc.party', -2], ['person.gov_ss', -4]],
       archive: 'Did not return the Governors\' Forum chairman\'s call.',
     },
   },
@@ -128,6 +144,7 @@ export const SCANDAL: GameEvent[] = [
       { when: { not: { flag: 'minister.fix' } }, text: 'The investigation finds that ₦31bn of the ₦38.7bn cannot be supported by any record. 164 of the workshops have no attendance list. Nine were held on public holidays.' },
       { when: { flag: 'minister.fix' }, text: 'The investigation finds "procedural lapses" and recommends that the Minister be "strongly advised". It notes that workshops are, by their nature, difficult to verify.' },
       'The Attorney General requests {MRP}\'s directive.',
+      { when: { v: ['agenda.c2', '==', 1] }, text: 'The new anti-corruption courts could hear it within the year. Under the old ones it would outlive your presidency.' },
     ],
     trace: [['flag:minister.special', 1], ['flag:minister.fix', 1]],
     reads: [{ role: 'sap', good: 'Whatever you do now is the precedent, {SIR}. Every minister is watching this file.' }],
@@ -137,7 +154,8 @@ export const SCANDAL: GameEvent[] = [
         requires: { not: { flag: 'minister.fix' } }, locked: 'The report you asked for does not support a prosecution.',
         outcomes: [{
           result: 'The Minister is dismissed and arraigned. He arrives at court in a wheelchair he did not need the previous week.',
-          fx: [['nation.integrity', 5], ['bloc.press', 6], ['bloc.street', 4], ['bloc.party', -10], ['approval', 2.5], ['pressure.scandalHeat', -15]],
+          fx: [['nation.integrity', 5], ['bloc.press', 6], ['bloc.street', 4], ['bloc.party', -10], ['approval', 2.5], ['pressure.scandalHeat', -15], ['person.gov_ss', -10]],
+          ops: [['governors', -2]],
           flags: { 'minister.special': 'prosecuted' },
           news: ['EX-MINISTER ARRAIGNED OVER ₦31BN', 'WORKSHOP MINISTER LANDS FOR COURT — ON WHEELCHAIR'],
           archive: 'Dismissed and prosecuted the Minister of Special Duties.', sig: 3,
@@ -157,7 +175,8 @@ export const SCANDAL: GameEvent[] = [
         id: 'reinstate', label: 'Reinstate the Minister',
         outcomes: [{
           result: 'The Minister returns to his desk and announces a workshop on transparency.',
-          fx: [['nation.integrity', -3], ['bloc.press', -7], ['bloc.party', 6], ['approval', -2], ['pressure.scandalHeat', 10]],
+          fx: [['nation.integrity', -3], ['bloc.press', -7], ['bloc.party', 6], ['approval', -2], ['pressure.scandalHeat', 10], ['person.gov_ss', 8]],
+          favour: ['gov_ss', 'owed', 2],
           flags: { 'minister.special': 'reinstated' },
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['special'], trail: 2 },
           news: ['SUSPENDED MINISTER RECALLED', 'HE IS BACK! AND HE IS HOLDING A WORKSHOP'],
@@ -186,7 +205,7 @@ export const SCANDAL: GameEvent[] = [
         id: 'dismiss', label: 'Relieve the Minister of his appointment', pc: 8,
         outcomes: [{
           result: 'The Minister is relieved. His statement thanks {MRP} for the opportunity to serve and makes no reference to his health.',
-          fx: [['nation.integrity', 2], ['bloc.press', 3], ['bloc.party', -6], ['pressure.scandalHeat', -8], ['approval', 1]],
+          fx: [['nation.integrity', 2], ['bloc.press', 3], ['bloc.party', -6], ['pressure.scandalHeat', -8], ['approval', 1], ['person.gov_ss', -6]],
           flags: { 'minister.special': 'dismissed' },
           news: ['PRESIDENT SACKS MINISTER AFTER SENATE HEARING', 'FAINTING MINISTER DON GO'],
           archive: 'Dismissed the Minister of Special Duties after the Senate hearing.', sig: 2,
@@ -206,7 +225,7 @@ export const SCANDAL: GameEvent[] = [
         id: 'insist', label: 'Ask the Senate to reconvene the hearing with a doctor present', pc: 4,
         outcomes: [{
           result: 'The Senate declines, citing "respect for the dignity of the human person". Several committee members attended the same workshops.',
-          fx: [['bloc.press', 3], ['bloc.party', -3], ['nation.integrity', 1]],
+          fx: [['bloc.press', 3], ['bloc.party', -3], ['nation.integrity', 1], ['person.sen_pres', -5], ['counter.insisted', 1]],
           news: ['SENATE DECLINES TO RECONVENE MINISTER\'S HEARING', 'SENATE NO WAN HEAR THE REST OF THE STORY'],
           archive: 'Asked the Senate to resume the Minister\'s hearing. It declined.',
         }],
@@ -225,6 +244,7 @@ export const SCANDAL: GameEvent[] = [
       'There is a standing allocation under the Presidency known as the security vote. It is released monthly. By convention it is not audited, receipted or discussed.',
       'Your predecessor drew it in full every month. The Chief of Staff has placed the first month\'s papers in the left-hand drawer of the desk and has not said anything further.',
       'The drawer has a key.',
+      '{NSA} notes, for the record, that about a third of it has historically been spent on security.',
     ],
     reads: [
       { role: 'cos', good: 'It is entirely at your discretion, {SIR}. Some of it is genuinely needed for security. I only keep the drawer.' },
@@ -267,18 +287,20 @@ export const SCANDAL: GameEvent[] = [
     body: [
       'Two bids are before {MRP} for the ₦310bn transmission corridor.',
       'The lowest responsive bid is from a consortium with a record of finishing. The Bureau recommends it.',
-      'The second bid, ₦84bn higher, is from {CONTRACTOR}, incorporated fourteen months ago. Its chairman is a party financier. He has indicated through an intermediary that "the President\'s interest will be protected".',
+      'The second bid, ₦84bn higher, is from {CONTRACTOR}, incorporated fourteen months ago. Its chairman is a nephew of {BACKER}, who paid for your campaign. An intermediary indicates that the award would be remembered, and that "the President\'s interest will be protected".',
+      { when: { v: ['debt.contractors', '>', 1] }, text: 'The consortium that would do the work is still owed for the last federal job it finished.' },
     ],
     reads: [
-      { role: 'sap', good: 'The interest he means is twelve billion, {SIR}. He will also expect the next contract.' },
+      { role: 'sap', good: 'The interest meant is twelve billion, {SIR}. It would also square you with {BACKER_SHORT}, for now. And there will be a next contract.' },
       { role: 'fin', good: 'The second firm has never built anything. We will pay more and get less, later.', weak: 'Both firms seem capable, {SIR}.' },
     ],
     choices: [
       {
         id: 'clean', label: 'Approve the Bureau\'s recommendation', sign: true,
         outcomes: [{
-          result: 'The award goes to the lowest responsive bidder. The financier sends his regards and nothing else.',
+          result: 'The award goes to the lowest responsive bidder. {BACKER_SHORT} sends regards and nothing else.',
           fx: [['nation.integrity', 1.5], ['bloc.party', -4], ['bloc.establishment', 2]],
+          ops: [['backer', -8]],
           later: [{ after: [14, 18], fx: [['nation.power', 6]], label: 'The transmission corridor is energised.', note: ['ABUJA–KANO TRANSMISSION LINE ENERGISED', 'LIGHT REACH KANO. E BE LIKE DREAM'] }],
           news: ['FG AWARDS ₦310BN TRANSMISSION CONTRACT', 'CONTRACT GO PERSON WEY SABI WORK. FOR ONCE'],
           archive: 'Awarded the transmission contract to the lowest responsive bidder.', sig: 2,
@@ -289,6 +311,7 @@ export const SCANDAL: GameEvent[] = [
         outcomes: [{
           result: 'The award is signed. A week later the drawer is heavier by ₦12bn. Mobilisation is paid. The site is cleared and fenced.',
           fx: [['purse', 12], ['nation.integrity', -3], ['bloc.party', 5], ['nation.fiscalSpace', -0.08]],
+          ops: [['backer', 8, 'settle']],
           flags: { 'drawer.open': true },
           later: [{ after: [14, 18], fx: [['nation.power', 1.5]], label: 'The transmission corridor is reported 62% complete.', note: ['TRANSMISSION CORRIDOR "62% COMPLETE" — MINISTRY', 'CONTRACTOR COLLECT MONEY, FENCE BUSH'] }],
           exposure: { kind: 'personal', amount: 12, witnesses: ['financier', 'cos'], trail: 2 },
@@ -306,6 +329,7 @@ export const SCANDAL: GameEvent[] = [
     body: [
       'A dormant account has been found at the central bank. It holds $410m in recovered funds lodged by a previous administration and never brought into the budget.',
       'It appears in no ledger. Four people know it exists. Two of them are in this room.',
+      { when: { v: ['debt.arrears', '>', 1] }, text: 'It is about what the government owes its pensioners.' },
     ],
     reads: [
       { role: 'fin', good: 'It belongs in the Federation Account, {SIR}, today, with a press release, before anyone has an idea.', weak: 'I leave the matter entirely to your wisdom, {SIR}.' },
@@ -316,6 +340,7 @@ export const SCANDAL: GameEvent[] = [
         outcomes: [{
           result: 'The recovery is announced. The governors ask for their share by close of business.',
           fx: [['nation.fiscalSpace', 0.6], ['nation.integrity', 2], ['bloc.press', 3], ['approval', 1]],
+          ops: [['governors', -2]],
           news: ['FG DISCOVERS $410M IN DORMANT RECOVERY ACCOUNT', '$410M JUST DEY SIT DOWN FOR CBN'],
           archive: 'Declared a $410m dormant account and paid it into the Federation Account.', sig: 2,
         }],
@@ -338,6 +363,16 @@ export const SCANDAL: GameEvent[] = [
           archive: 'Moved a dormant recovery account offshore.', sig: 3,
         }],
       },
+      {
+        id: 'save', label: 'Declare it, and pay it straight into the fund abroad',
+        outcomes: [{
+          result: 'The recovery is announced on the same day it is transferred to the Future Generations Fund. There is nothing left in Abuja for anybody to ask for a share of.',
+          fx: [['fund.abroad', 0.6], ['nation.integrity', 2.5], ['bloc.press', 3], ['bloc.establishment', 3], ['bloc.party', -3]],
+          ops: [['governors', -3]],
+          news: ['$410M DORMANT FUNDS MOVED TO SOVEREIGN FUND', 'THE $410M DON ENTER SAVINGS. NOBODY FIT SHARE AM'],
+          archive: 'Declared a $410m dormant account and saved it abroad.', sig: 2,
+        }],
+      },
     ],
   },
   {
@@ -350,6 +385,7 @@ export const SCANDAL: GameEvent[] = [
       '{EDITOR} has written to the Villa. Her paper intends to publish on Sunday.',
       'The questions are specific. They include dates, amounts and the name of a company. She asks whether the Presidency wishes to comment before publication.',
       'She appears to have a source inside the building.',
+      { when: { v: ['tycoon.ty_media', '>=', 55] }, text: 'Otunba Oyewole\'s paper has the same documents and has not used them. He has let it be known that this is a courtesy.' },
     ],
     trace: [['pressure.scandalHeat', 1], ['nation.integrity', -1]],
     reads: [
@@ -392,6 +428,17 @@ export const SCANDAL: GameEvent[] = [
           fx: [['bloc.press', 4], ['approval', -3], ['bloc.party', -8], ['bloc.villa', -6], ['nation.integrity', 3], ['pressure.scandalHeat', -35]],
           news: ['PRESIDENT PUBLISHES VILLA ACCOUNTS, INVITES INQUIRY', 'PRESIDENT CONFESS BEFORE DEM CATCH AM'],
           archive: 'Published the Presidency\'s own accounts ahead of an investigation.', sig: 3,
+        }],
+      },
+      {
+        id: 'oyewole', label: 'Ask Otunba Oyewole to see that it is a small story',
+        requires: { v: ['tycoon.ty_media', '>=', 55] },
+        outcomes: [{
+          result: 'Her paper prints it on Sunday. Nobody else follows it up. The television stations lead on a football transfer. It is a story for a week instead of a season, and you now owe the man who arranged that.',
+          fx: [['bloc.press', -4], ['approval', -2], ['nation.integrity', -1.5], ['pressure.scandalHeat', -18]],
+          favour: ['ty_media', 'owing', 2],
+          news: ['REPORT QUESTIONS VILLA PAYMENTS; PRESIDENCY SILENT', 'ZAINAB DROP THE STORY. OTHER PAPERS LOOK AWAY'],
+          archive: 'Had Otunba Oyewole smother a press investigation.', sig: 2,
         }],
       },
     ],

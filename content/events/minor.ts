@@ -20,15 +20,16 @@ export const MINOR: GameEvent[] = [
         id: 'call', label: 'Call him back',
         outcomes: [{
           result: 'You speak for twelve minutes. The road is mentioned once. He tells four other governors that you called.',
-          fx: [['bloc.party', 3]],
+          fx: [['bloc.party', 3], ['person.gov_ss', 4]],
           archive: 'Returned the Governors\' Forum chairman\'s call.',
         }],
       },
       {
         id: 'road', label: 'Call him, and actually fund the road', naira: 0.05,
         outcomes: [{
-          result: 'The road is funded. He is astonished. He had not expected to be taken literally.',
-          fx: [['bloc.party', 5], ['zone.SS.approval', 2]],
+          result: 'The road is funded. He is astonished. He had not expected to be taken literally, and now owes you for it.',
+          fx: [['bloc.party', 5], ['zone.SS.approval', 2], ['person.gov_ss', 8]],
+          favour: ['gov_ss', 'owed', 1],
           flags: { 'road.funded': true },
           follow: [{ event: 'react.road_done', after: [10, 14] }],
           archive: 'Funded a federal road at a governor\'s request.',
@@ -37,7 +38,7 @@ export const MINOR: GameEvent[] = [
     ],
     ignored: {
       result: 'You did not call. He has told four other governors that you did not call.',
-      fx: [['bloc.party', -3]],
+      fx: [['bloc.party', -3], ['person.gov_ss', -5]],
       archive: 'Left the Governors\' Forum chairman\'s message unanswered.',
     },
   },
@@ -49,6 +50,7 @@ export const MINOR: GameEvent[] = [
     body: [
       '{SIR}, a contractor has sent a birthday present to the Villa. It is a wristwatch. I had it valued. It is worth more than this building\'s annual diesel budget.',
       'He says it is "just goodwill". His firm has a bid before the procurement bureau on Thursday.',
+      { when: { v: ['debt.contractors', '>', 1] }, text: 'His firm is also among those the government has not paid for the last job. He has not mentioned that, which is the point of the watch.' },
     ],
     choices: [
       {
@@ -135,6 +137,7 @@ export const MINOR: GameEvent[] = [
     body: [
       'Your Excellency. The party secretariat has not paid staff for three months. The structure needs servicing. A party is like a generator.',
       'I am not asking for myself.',
+      'He adds that about {DELEGATES} in every hundred convention delegates are with you today, and that delegates have long memories for who serviced the structure.',
     ],
     reads: [{ role: 'sap', good: 'He is partly asking for himself, {SIR}. But the staff really have not been paid.' }],
     choices: [
@@ -219,14 +222,15 @@ export const MINOR: GameEvent[] = [
     from: '{COS}',
     title: 'The national honours list',
     body: [
-      '{SIR}, the honours committee has sent 80 names. Since Monday I have received a further 370 "for your kind consideration", including nine from one governor and a serving minister who nominated himself.',
+      '{SIR}, the honours committee has sent 80 names. Since Monday I have received a further 370 "for your kind consideration", including nine from one governor, a serving minister who nominated himself, and Alhaji Kabir Birniwa, proposed for the second-highest honour by three separate intermediaries.',
     ],
     choices: [
       {
         id: 'eighty', label: 'The committee\'s 80, and nobody else',
         outcomes: [{
           result: 'The list includes a midwife, a retired teacher and a police corporal who returned a lost bag of dollars. 370 people are disappointed in you.',
-          fx: [['nation.integrity', 1.5], ['bloc.party', -3], ['approval', 1]],
+          fx: [['nation.integrity', 1.5], ['bloc.party', -3], ['approval', 1], ['tycoon.ty_maker', -4]],
+          ops: [['governors', -1]],
           news: ['MIDWIFE, CORPORAL AMONG 80 NATIONAL HONOURS RECIPIENTS', 'NATIONAL HONOURS WEY MAKE SENSE, FOR ONCE'],
           archive: 'Approved only the honours committee\'s list.',
         }],
@@ -235,7 +239,8 @@ export const MINOR: GameEvent[] = [
         id: 'all', label: 'All 450',
         outcomes: [{
           result: 'The investiture takes nine hours. Recipients include three people facing trial. The medals run out at number 400.',
-          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['bloc.press', -2]],
+          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['bloc.press', -2], ['tycoon.ty_maker', 6]],
+          ops: [['governors', 2], ['senators', 1]],
           news: ['450 RECEIVE NATIONAL HONOURS IN NINE-HOUR CEREMONY', 'MEDAL FINISH FOR NATIONAL HONOURS. EVERYBODY NA OFR'],
           archive: 'Gave national honours to all 450 nominees.',
         }],
@@ -262,6 +267,7 @@ export const MINOR: GameEvent[] = [
         outcomes: [{
           result: 'The list is cut. 1,371 people learn they are not going and tell the party about it.',
           fx: [['nation.integrity', 1.5], ['bloc.party', -3], ['nation.fiscalSpace', 0.02], ['approval', 1]],
+          ops: [['governors', -1]],
           news: ['PRESIDENT SLASHES SUMMIT DELEGATION TO 40', 'ESTACODE DON CAST: ONLY 40 PEOPLE DEY GO'],
           archive: 'Cut a 1,411-person summit delegation to 40.',
         }],
@@ -271,6 +277,7 @@ export const MINOR: GameEvent[] = [
         outcomes: [{
           result: 'Nigeria sends the largest delegation at the summit, ahead of the host. A photograph of the hotel lobby circulates.',
           fx: [['bloc.party', 3], ['approval', -1.5], ['bloc.press', -2], ['nation.fiscalSpace', -0.03]],
+          ops: [['governors', 1]],
           news: ['NIGERIA SENDS 1,411 DELEGATES TO SUMMIT', '1,411 PEOPLE GO SUMMIT. WHO DEY PAY?'],
           archive: 'Approved a 1,411-person summit delegation.',
         }],
@@ -322,6 +329,7 @@ export const MINOR: GameEvent[] = [
     body: [
       '{SIR}. There is a group called "NWC — REAL". You are not in it. I am, under another name.',
       'Yesterday {CHAIR} wrote: "Let him enjoy the seat. We will discuss the ticket when the time comes." Eleven thumbs up. One governor replied with a clock emoji.',
+      'By my count about {DELEGATES} in every hundred delegates would be yours at a convention held today.',
     ],
     choices: [
       {
@@ -329,6 +337,7 @@ export const MINOR: GameEvent[] = [
         outcomes: [{
           result: 'You begin with the governor who sent the clock. He is surprised to be called. Within a week the group is discussing something else.',
           fx: [['bloc.party', 6]],
+          ops: [['governors', 2]],
           archive: 'Quietly repaired relations after a warning from the Special Adviser.',
         }],
       },
@@ -355,6 +364,7 @@ export const MINOR: GameEvent[] = [
     body: [
       '{MRP}. I am writing as a courtesy and not as a threat. My executive council meets on Friday. My members are hungry and I cannot keep telling them to wait.',
       'Give me something to carry into that room.',
+      { when: { v: ['debt.pensions', '>', 0.3] }, text: 'And the pensioners sit in my office every morning. They are not asking for a rise. They are asking for what is theirs.' },
     ],
     reads: [{ role: 'sap', good: 'He is asking you to help him say no to his own hardliners, {SIR}. That is worth something.' }],
     choices: [
@@ -373,6 +383,17 @@ export const MINOR: GameEvent[] = [
           fx: [['pressure.wageGrievance', -16], ['bloc.street', 4]],
           news: ['FG APPROVES TRANSPORT SUPPORT FOR WORKERS', 'WORKERS GO GET TRANSPORT MONEY'],
           archive: 'Gave labour a transport subsidy ahead of a council vote.',
+        }],
+      },
+      {
+        id: 'pensions', label: 'Give him the pensioners: pay half the arrears before Friday',
+        requires: { v: ['debt.pensions', '>', 0.2] },
+        outcomes: [{
+          result: 'The payment goes out on Thursday. He carries the bank alerts into the room on his own telephone. The council votes to wait, and the hardliners have nothing to say against paying the old.',
+          fx: [['pressure.wageGrievance', -14], ['bloc.street', 4], ['approval', 1]],
+          ops: [['paydebt', 'pensions', 0.5]],
+          news: ['FG PAYS HALF OF PENSION ARREARS', 'PENSIONERS DON SEE ALERT. HALF, BUT ALERT'],
+          archive: 'Paid half the pension arrears ahead of a labour council vote.',
         }],
       },
     ],
@@ -457,13 +478,14 @@ export const MINOR: GameEvent[] = [
       'Your Excellency, I am pleased to report that the rehabilitation of the refinery has reached mechanical completion and will commence production by the end of the quarter.',
       'A further $290m is required to complete the completion.',
       { when: { v: ['count.minor.refinery', '>=', 2] }, text: 'This message is identical to the one he sent last time, including the amount.' },
+      { when: { v: ['tycoon.ty_fuel', '>=', 30] }, text: 'Chief Tonye Amangala, who imports what the refinery does not make, has called its rehabilitation "a matter of national pride" and hopes it continues.' },
     ],
     choices: [
       {
         id: 'pay', label: 'Release the funds', naira: 0.35,
         outcomes: [{
           result: 'The funds are released. A ceremony is held. A tanker is filmed leaving the gate. It is later established that the tanker had also been filmed entering.',
-          fx: [['nation.integrity', -1], ['bloc.press', -2]],
+          fx: [['nation.integrity', -1], ['bloc.press', -2], ['tycoon.ty_fuel', 3]],
           news: ['REFINERY "RESUMES PRODUCTION" — MINISTER', 'REFINERY DON START? THE TANKER ENTER WITH THE FUEL'],
           archive: 'Released further funds for the refinery rehabilitation.',
         }],
@@ -472,7 +494,7 @@ export const MINOR: GameEvent[] = [
         id: 'sell', label: 'Direct that the refinery be sold', pc: 6,
         outcomes: [{
           result: 'The refinery is put up for sale. The unions picket, four ministers object, and a buyer is found who intends to actually run it.',
-          fx: [['nation.fiscalSpace', 0.3], ['bloc.establishment', 4], ['bloc.street', -2], ['bloc.party', -3]],
+          fx: [['nation.fiscalSpace', 0.3], ['bloc.establishment', 4], ['bloc.street', -2], ['bloc.party', -3], ['tycoon.ty_fuel', -8]],
           flags: { 'refinery.sold': true },
           later: [{ after: [12, 16], fx: [['pressure.fuelSupplyStress', -15], ['nation.fiscalSpace', 0.2]], label: 'The privatised refinery begins producing petrol.', note: ['PRIVATISED REFINERY SHIPS FIRST PETROL', 'REFINERY DEY WORK! ONLY TOOK SELLING AM'] }],
           news: ['FG TO SELL STATE REFINERY', 'GOVERNMENT WAN SELL REFINERY. E DON TIRE THEM'],

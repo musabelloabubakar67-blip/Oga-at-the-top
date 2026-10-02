@@ -13,6 +13,7 @@ export const POLITICS: GameEvent[] = [
       'The Senate has begun screening your ministerial nominees.',
       'Nominees who previously served in the National Assembly were asked to take a bow and go. This took four minutes each.',
       '{FIN}, your nominee for Finance, is next. {SENPRES} has let it be known that the Senate "expects to be carried along" on board appointments.',
+      'Senator Maigari decides which bills are heard. Every reform of yours that needs a law will pass across his desk, and so will every budget.',
     ],
     reads: [
       { role: 'sap', good: 'He wants six board chairmanships, {SIR}. He will settle for three and a road in his district. Or he can make the next four years slow.' },
@@ -21,10 +22,11 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'carry', label: 'Carry the Senate along: three boards and a road',
         outcomes: [{
-          result: 'All nominees are confirmed by voice vote before lunch. The Senate President describes them as "eminently qualified".',
-          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['pc', 3]],
+          result: 'All nominees are confirmed by voice vote before lunch. The Senate President describes them as "eminently qualified", and understands that he now owes you a small courtesy in return.',
+          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['pc', 3], ['person.sen_approp', 4]],
+          favour: ['sen_pres', 'owed', 1],
           flags: { 'senate.friendly': true },
-          exposure: { kind: 'tolerated', amount: 0, witnesses: ['senate'], trail: 0 },
+          exposure: { kind: 'tolerated', amount: 0, witnesses: ['sen_pres'], trail: 0 },
           news: ['SENATE CONFIRMS ALL MINISTERIAL NOMINEES', 'BOW AND GO: SENATE CLEARS EVERYBODY SHARP-SHARP'],
           archive: 'Traded board appointments for a smooth Senate confirmation.',
         }],
@@ -59,6 +61,7 @@ export const POLITICS: GameEvent[] = [
       '{ELDER} has published an eighteen-page open letter titled "Before It Is Too Late".',
       'It accuses the administration of "drift", recalls his own period of service favourably, and was released to the press before it reached the Villa.',
       'He remains a member of your party. He has written such letters to every President since the return to civil rule, usually in the second year.',
+      { when: { v: ['govs', '<', 3] }, text: 'Three of your own governors are quoted in it, anonymously and at length.' },
     ],
     reads: [
       { role: 'sap', good: 'He wants to be visited, {SIR}. A photograph in his sitting room ends this. A rebuttal gives him a second letter.' },
@@ -69,6 +72,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'You are received in his library. He tells the press afterwards that {MRP} "listened attentively", which is his highest praise.',
           fx: [['bloc.party', 4], ['bloc.establishment', 3], ['pc', -2]],
+          ops: [['governors', 2]],
           news: ['PRESIDENT VISITS ELDER STATESMAN AFTER LETTER', 'PRESIDENT GO BEG BABA'],
           archive: 'Visited the elder statesman after his open letter.',
         }],
@@ -104,6 +108,7 @@ export const POLITICS: GameEvent[] = [
       'One invited the other to "meet me outside". The other accepted. The Sergeant-at-Arms intervened at the door.',
       'Neither senator had read the bill. The disagreement concerned seating.',
       'The bill has been stepped down to allow tempers to cool.',
+      { when: { v: ['active.t1', '==', 1] }, text: 'This is the bill behind your tax reform. Every week it sits is a week the reform does not move.' },
     ],
     reads: [
       { role: 'sap', good: 'The bill is not dead, {SIR}, it is embarrassed. {SENPRES} needs a way to bring it back without it looking like your idea.' },
@@ -113,7 +118,7 @@ export const POLITICS: GameEvent[] = [
         id: 'quiet', label: 'Let the Senate President reintroduce it as a Senate initiative', pc: 4,
         outcomes: [{
           result: 'The bill returns as the "Senate Fiscal Harmony Bill". It is your bill with a new title. It passes.',
-          fx: [['nation.capacity', 2], ['nation.fiscalSpace', 0.2], ['bloc.party', 3]],
+          fx: [['nation.capacity', 2], ['nation.fiscalSpace', 0.2], ['bloc.party', 3], ['person.sen_pres', 7], ['person.sen_lead', 4]],
           later: [{ after: [8, 12], fx: [['nation.fiscalSpace', 0.4], ['nation.debt', -2]], label: 'The tax administration reforms begin to raise collection.' }],
           news: ['SENATE PASSES FISCAL HARMONY BILL', 'AFTER THE FIGHT, DEM PASS THE BILL'],
           archive: 'Let the Senate take credit for the tax administration bill.', sig: 2,
@@ -125,14 +130,14 @@ export const POLITICS: GameEvent[] = [
           {
             when: { v: ['approval', '>=', 50] },
             result: 'Public opinion is with you. The Senate passes the bill within the month and resents every minute of it.',
-            fx: [['nation.capacity', 2], ['nation.fiscalSpace', 0.2], ['bloc.party', -5], ['approval', 1.5], ['bloc.press', 2]],
+            fx: [['nation.capacity', 2], ['nation.fiscalSpace', 0.2], ['bloc.party', -5], ['approval', 1.5], ['bloc.press', 2], ['person.sen_pres', -8]],
             later: [{ after: [8, 12], fx: [['nation.fiscalSpace', 0.4], ['nation.debt', -2]], label: 'The tax administration reforms begin to raise collection.' }],
             news: ['PRESIDENT REBUKES SENATE; TAX BILL PASSES', 'PRESIDENT SHAME SENATORS, BILL PASS'],
             archive: 'Shamed the Senate into passing the tax administration bill.', sig: 2,
           },
           {
             result: 'The Senate passes a resolution deploring "executive interference". The bill is referred to a committee whose chairman is one of the two senators.',
-            fx: [['bloc.party', -7], ['bloc.press', 1]],
+            fx: [['bloc.party', -7], ['bloc.press', 1], ['person.sen_pres', -10], ['person.sen_approp', -5], ['counter.rebuffed', 1]],
             news: ['SENATE REBUFFS PRESIDENT OVER TAX BILL', 'SENATORS VEX: "PRESIDENT NO FIT TALK TO US ANYHOW"'],
             archive: 'Tried to shame the Senate over the tax bill. It did not work.',
           },
@@ -142,7 +147,7 @@ export const POLITICS: GameEvent[] = [
         id: 'drop', label: 'Withdraw the bill',
         outcomes: [{
           result: 'The bill is withdrawn "for further consultation". The clip of the two senators outlives it.',
-          fx: [['bloc.establishment', -3], ['bloc.party', 2]],
+          fx: [['bloc.establishment', -3], ['bloc.party', 2], ['tycoon.ty_bank', -4], ['counter.withdrawn', 1]],
           news: ['FG WITHDRAWS TAX BILL', 'TAX BILL DON DIE. THE FIGHT STILL DEY TREND'],
           archive: 'Withdrew the tax administration bill.',
         }],
@@ -156,7 +161,9 @@ export const POLITICS: GameEvent[] = [
     office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
     title: 'Defections',
     body: [
-      'Two governors and eleven members of the House have announced their defection to the {OPPARTY}.',
+      'Eleven members of the House and two state party chairmen have announced their defection to the {OPPARTY}.',
+      { when: { v: ['rival.strong', '>', 40] }, text: 'Senator Dandume\'s people met them at the airport. He built half of your party\'s structure and is taking it back a ward at a time.' },
+      { when: { v: ['govs', '<', 3] }, text: 'None of your governors tried to stop them. Fewer than half of the six are still firmly with you.' },
       'Each cited "irreconcilable division in the party at the national level", the form of words required by the Constitution for a legislator to defect and keep the seat.',
       'There is no division at the national level. {CHAIR} is now considering creating one, so that the next group can leave lawfully.',
     ],
@@ -168,8 +175,9 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'call', label: 'Call each of them personally', pc: 6,
         outcomes: [{
-          result: 'Four of the legislators return, describing their defection as "a misunderstanding". The governors do not pick up.',
+          result: 'Four of the legislators return, describing their defection as "a misunderstanding". The two chairmen do not pick up.',
           fx: [['bloc.party', 6]],
+          ops: [['senators', 2]],
           news: ['FOUR LAWMAKERS RETURN TO RULING PARTY', 'DEFECTORS DON COME BACK. NA SO DEM DEY DO'],
           archive: 'Personally called defecting legislators back to the party.',
         }],
@@ -186,9 +194,9 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'logistics', label: 'Remind them of the benefits of membership', purse: 6,
         outcomes: [{
-          result: 'Nine legislators and one governor rediscover their faith in the party\'s manifesto.',
+          result: 'Nine legislators and one chairman rediscover their faith in the party\'s manifesto.',
           fx: [['bloc.party', 10], ['nation.integrity', -1.5]],
-          exposure: { kind: 'political', amount: 6, witnesses: ['senate', 'chair'], trail: 1 },
+          exposure: { kind: 'political', amount: 6, witnesses: ['sen_lead', 'chair'], trail: 1 },
           news: ['DEFECTORS RETURN, AFFIRM LOYALTY TO PRESIDENT', 'THEY RETURN OVERNIGHT. HOW MUCH?'],
           archive: 'Paid defecting legislators to return.',
         }],
@@ -197,9 +205,9 @@ export const POLITICS: GameEvent[] = [
         id: 'go', label: 'Let them go',
         outcomes: [{
           result: 'The Presidency wishes them well. The party\'s majority in the House is now seven.',
-          fx: [['bloc.party', -6], ['pc', -4], ['nation.integrity', 0.5]],
+          fx: [['bloc.party', -6], ['pc', -4], ['nation.integrity', 0.5], ['rival.strong', 5]],
           news: ['PRESIDENCY UNMOVED BY DEFECTIONS', 'PRESIDENT: "MAKE DEM GO"'],
-          archive: 'Let two governors and eleven legislators defect.',
+          archive: 'Let eleven legislators and two party chairmen defect.',
         }],
       },
     ],
@@ -210,7 +218,10 @@ export const POLITICS: GameEvent[] = [
     office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
     title: 'The opposition is discussing a merger',
     body: [
-      'The {OPPARTY} and four smaller parties are in talks to field a single candidate. {OPP} is the likely flagbearer.',
+      'Your three rivals are in talks to field a single candidate against you. {OPP}, the strongest of them today, is the likely flagbearer.',
+      { when: { flag: 'rival.strong.in' }, text: 'Senator Dandume, who is back in your party, is not at the table. That is one fewer than they hoped for.' },
+      { when: { flag: 'rival.alt.in' }, text: 'Dr Malumfashi, who now chairs your economic council, is not at the table.' },
+      { when: { v: ['debts', '>', 0] }, text: 'The businessmen who are against you are paying for the hotel.' },
       'The talks are being held in a hotel in Abuja. They have so far failed to agree on a name, a logo, a chairman or a venue for the next meeting.',
       'A united opposition would cost you an estimated four points nationally.',
     ],
@@ -230,7 +241,7 @@ export const POLITICS: GameEvent[] = [
           },
           {
             result: 'Against expectation, they agree. {OPP} is unveiled as the joint candidate under a logo that took eleven hours to negotiate.',
-            fx: [['approval', -2], ['bloc.party', -4]],
+            fx: [['approval', -2], ['bloc.party', -4], ['rival.alt', 3], ['rival.fire', 3], ['rival.strong', 3]],
             flags: { 'opposition.united': true },
             news: ['OPPOSITION PARTIES MERGE, ADOPT SINGLE CANDIDATE', 'OPPOSITION DON GATHER. 2031 GO HOT'],
             archive: 'Left the opposition merger talks alone. They succeeded.',
@@ -284,6 +295,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'You concede the party secretariat and "consultation" on second-term appointments. The elders issue a communiqué affirming their "unalloyed loyalty".',
           fx: [['bloc.party', 10], ['nation.integrity', -1.5]],
+          ops: [['governors', 5], ['senators', 4]],
           flags: { 'ticket.deal': true, 'promise.second_term': true },
           news: ['PARTY ELDERS ENDORSE PRESIDENT FOR SECOND TERM', 'ELDERS DON COLLECT. PRESIDENT GET TICKET'],
           archive: 'Agreed terms with the party elders for the ticket.', sig: 2,
@@ -294,6 +306,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'They listen politely. {CHAIR} says the party "belongs to all of us", the most threatening sentence in Nigerian politics.',
           fx: [['bloc.party', -5], ['nation.integrity', 1], ['bloc.press', 2]],
+          ops: [['governors', -3]],
           news: ['PRESIDENT: "MY RECORD IS MY CAMPAIGN"', 'PRESIDENT TELL ELDERS: I NO DEY SHARE'],
           archive: 'Refused to bargain with the party elders for the ticket.', sig: 2,
         }],
@@ -303,10 +316,22 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'Delegates in thirty states receive "transport allowance" in a currency that is not the naira. The elders discover they have been bypassed and have nothing to sell.',
           fx: [['bloc.party', 14], ['nation.integrity', -3]],
+          ops: [['governors', -4], ['senators', 6]],
           flags: { 'ticket.bought': true },
-          exposure: { kind: 'political', amount: 12, witnesses: ['chair', 'delegates'], trail: 2 },
+          exposure: { kind: 'political', amount: 12, witnesses: ['chair', 'delegates', 'sen_lead'], trail: 2 },
           news: ['DELEGATES DECLARE FOR PRESIDENT AHEAD OF PRIMARY', 'DOLLAR RAIN FOR DELEGATES — SOURCES'],
           archive: 'Paid the delegates directly ahead of the primary.', sig: 2,
+        }],
+      },
+      {
+        id: 'favours', label: 'Call in everything you are owed, before the convention',
+        requires: { v: ['favours', '>=', 2] }, locked: 'You are owed too little. Favours are made by giving governors and senators what they want.',
+        outcomes: [{
+          result: 'You spend a week on the telephone. Nobody is offered anything new. Everybody is reminded of something old. The dinner party in Asokoro does not reconvene.',
+          fx: [['bloc.party', 12], ['pc', 4]],
+          ops: [['spendall'], ['governors', 6], ['senators', 6]],
+          news: ['GOVERNORS, SENATORS RALLY TO PRESIDENT AHEAD OF PRIMARY', 'EVERYBODY WEY PRESIDENT HELP DON SHOW FACE'],
+          archive: 'Called in every favour owed ahead of the primary.', sig: 2,
         }],
       },
     ],
@@ -381,6 +406,8 @@ export const POLITICS: GameEvent[] = [
       'Protests are under way in twenty-two state capitals. They began over prices and no longer have a single demand or a single organiser.',
       'Markets, motor parks and campuses are closed. A food warehouse in one state capital has been broken open and emptied.',
       'The police have asked for instructions. The Inspector-General has asked that they be given in writing.',
+      { when: { v: ['debt.pensions', '>', 0.5] }, text: 'Pensioners who have not been paid in years are at the front of several of the marches.' },
+      { when: { v: ['rival.fire', '>', 45] }, text: 'Barr. Tega Emuobor did not call these protests. Every placard carries a line from one of the speeches.' },
     ],
     trace: [['bloc.street', -1], ['pressure.wageGrievance', 1]],
     reads: [
@@ -410,7 +437,7 @@ export const POLITICS: GameEvent[] = [
         id: 'force', label: 'Direct the security agencies to restore order', pc: 10,
         outcomes: [{
           result: 'Order is restored in four days. Fourteen people are dead in three cities. A judicial panel of inquiry is demanded, and you will be asked about this day for the rest of your life.',
-          fx: [['bloc.street', -5], ['approval', -8, 1], ['bloc.press', -12], ['bloc.establishment', 4], ['nation.integrity', -3]],
+          fx: [['bloc.street', -5], ['approval', -8, 1], ['bloc.press', -12], ['bloc.establishment', 4], ['nation.integrity', -3], ['rival.fire', 10], ['theatre.SW', 4], ['theatre.SE', 4]],
           flags: { 'protest.deaths': true },
           news: ['FOURTEEN DEAD AS SECURITY FORCES CLEAR PROTESTS', 'THEY KILLED THEM. WE WILL NOT FORGET'],
           newsWeight: 9,
@@ -428,6 +455,8 @@ export const POLITICS: GameEvent[] = [
       'The National Working Committee has passed a vote of confidence in {CHAIR} and pointedly not in you.',
       'A faction calling itself the "{PSHORT} Renewal Forum" has opened a separate secretariat. It has more governors than yours.',
       'In the Assembly, your bills are being referred to committees that do not exist.',
+      { when: { v: ['rival.strong', '>', 40] }, text: 'Senator Dandume has been seen at the Renewal Forum\'s secretariat. He was given a seat at the front.' },
+      'By the Special Adviser\'s count, {DELEGATES}% of convention delegates are still yours.',
     ],
     trace: [['bloc.party', -1]],
     reads: [{ role: 'sap', good: 'You can still buy this back, {SIR}, but the price is now set by them.' }],
@@ -437,6 +466,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'Six ministers are replaced with nominees of the governors. The Renewal Forum closes its secretariat and keeps the furniture.',
           fx: [['bloc.party', 20], ['nation.capacity', -3], ['nation.integrity', -2], ['bloc.villa', -5]],
+          ops: [['governors', 8], ['senators', 5]],
           news: ['PRESIDENT RESHUFFLES CABINET IN PEACE DEAL WITH PARTY', 'GOVERNORS DON TAKE OVER CABINET'],
           archive: 'Handed the party a cabinet reshuffle to end a revolt.', sig: 3,
         }],
@@ -463,7 +493,8 @@ export const POLITICS: GameEvent[] = [
         id: 'ride', label: 'Govern without them',
         outcomes: [{
           result: 'You carry on. Nothing you send to the Assembly moves. The party waits to see which of you gets tired first.',
-          fx: [['bloc.party', 5], ['bloc.establishment', -3], ['nation.integrity', 1]],
+          fx: [['bloc.party', 5], ['bloc.establishment', -3], ['nation.integrity', 1], ['rival.strong', 4]],
+          ops: [['governors', -3]],
           later: [{ after: [3, 5], fx: [['pc', -6]], label: 'The stand-off with the party drains the Presidency.' }],
           news: ['PRESIDENT, PARTY IN OPEN STAND-OFF', 'PRESIDENT AND PARTY NO DEY TALK'],
           archive: 'Chose to govern without the party during its revolt.', sig: 2,
@@ -474,7 +505,8 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'The National Working Committee reconvenes and discovers that its confidence in {MRP} is, on reflection, total.',
           fx: [['bloc.party', 24], ['nation.integrity', -2.5]],
-          exposure: { kind: 'political', amount: 14, witnesses: ['chair', 'senate'], trail: 2 },
+          ops: [['governors', 7], ['senators', 7]],
+          exposure: { kind: 'political', amount: 14, witnesses: ['chair', 'sen_pres', 'gov_ss'], trail: 2 },
           news: ['PARTY LEADERSHIP PASSES VOTE OF CONFIDENCE IN PRESIDENT', 'NWC DON CHANGE MOUTH. STRUCTURE DON CHOP'],
           archive: 'Paid the party leadership to end a revolt.', sig: 2,
         }],
@@ -533,6 +565,8 @@ export const POLITICS: GameEvent[] = [
       '{CBN} reports that $3.1bn has left the country in six weeks. Two banks have asked for emergency liquidity.',
       'Permanent secretaries are on leave in unusual numbers. Files sent to three ministries have not come back.',
       'Nobody has said anything in public. That is how this group communicates.',
+      { when: { v: ['tycoon.ty_bank', '<', 50] }, text: 'One of the two banks is chaired by Mrs Folake Adetoro. Her own money left in the first week.' },
+      { when: { v: ['fund.abroad', '>=', 1] }, text: 'The fund abroad holds dollars. It was built for a rainy day, and it is raining.' },
     ],
     trace: [['bloc.establishment', -1], ['nation.debt', 1]],
     reads: [
@@ -543,7 +577,7 @@ export const POLITICS: GameEvent[] = [
         id: 'credible', label: 'Publish the full fiscal accounts and commit to a debt ceiling', pc: 10,
         outcomes: [{
           result: 'The accounts are worse than rumoured and better than feared. Publishing them is taken as the first serious act in a year.',
-          fx: [['bloc.establishment', 20], ['nation.integrity', 2], ['nation.capacity', 1], ['bloc.street', -2]],
+          fx: [['bloc.establishment', 20], ['nation.integrity', 2], ['nation.capacity', 1], ['bloc.street', -2], ['tycoon.ty_bank', 12]],
           news: ['FG PUBLISHES FULL ACCOUNTS, SETS DEBT CEILING', 'GOVERNMENT SHOW US THE BOOK. E NO FINE'],
           archive: 'Published the fiscal accounts and set a debt ceiling.', sig: 3,
         }],
@@ -552,7 +586,7 @@ export const POLITICS: GameEvent[] = [
         id: 'reassure', label: 'Host a dinner for captains of industry',
         outcomes: [{
           result: 'Forty chief executives attend. They applaud. Eleven of them move further funds abroad the next morning.',
-          fx: [['bloc.establishment', 7], ['nation.debt', 2]],
+          fx: [['bloc.establishment', 7], ['debt.bonds', 0.6], ['tycoon.ty_bank', 4], ['tycoon.ty_maker', 4]],
           news: ['PRESIDENT REASSURES BUSINESS LEADERS AT VILLA DINNER', 'BIG MEN CHOP FOR VILLA. DOLLAR STILL DEY RUN'],
           archive: 'Hosted a dinner to reassure business leaders.',
         }],
@@ -561,10 +595,19 @@ export const POLITICS: GameEvent[] = [
         id: 'controls', label: 'Impose capital controls',
         outcomes: [{
           result: 'Outflows stop on paper. A parallel market opens within the week, at a rate nobody will quote on the record.',
-          fx: [['bloc.establishment', 10], ['nation.inflation', 3], ['nation.debt', 3]],
-          flags: { 'econ.inflBias': 6 },
+          fx: [['bloc.establishment', 10], ['nation.inflation', 3], ['debt.ways', 1], ['tycoon.ty_bank', -10], ['tycoon.ty_trade', -6], ['nation.jobs', -2]],
           news: ['CENTRAL BANK RESTRICTS FOREIGN EXCHANGE TRANSFERS', 'DOLLAR DON ENTER BLACK MARKET AGAIN'],
           archive: 'Imposed capital controls to stop capital flight.', sig: 2,
+        }],
+      },
+      {
+        id: 'fund', label: 'Bring ₦1tn home from the fund abroad to defend the currency',
+        requires: { v: ['fund.abroad', '>=', 1] },
+        outcomes: [{
+          result: 'The central bank meets every demand for dollars for six weeks, visibly, from money the country saved. The outflow stops because it is no longer a good bet.',
+          fx: [['fund.abroad', -1], ['bloc.establishment', 16], ['nation.inflation', -1.5], ['tycoon.ty_bank', 8]],
+          news: ['SOVEREIGN FUND DEPLOYED AS CENTRAL BANK STEADIES NAIRA', 'THE MONEY DEM SAVE DON SAVE NAIRA'],
+          archive: 'Drew on the fund abroad to stop a run on the currency.', sig: 3,
         }],
       },
     ],
@@ -577,6 +620,8 @@ export const POLITICS: GameEvent[] = [
     body: [
       'Every national daily led this week with a different story about the Presidency. None was favourable. Four were accurate.',
       '{INFO} has proposed a "media engagement retreat" and, separately, a bill to regulate online publications.',
+      { when: { v: ['tycoon.ty_media', '<', 38] }, text: 'The Daily Stakeholder led the pack. Its owner, Otunba Gbenga Oyewole, no longer pretends to be a friend.' },
+      { when: { v: ['tycoon.ty_media', '>=', 55] }, text: 'Only The Daily Stakeholder held back, and its owner would like you to have noticed.' },
     ],
     trace: [['bloc.press', -1]],
     reads: [{ role: 'sap', good: 'They are not hostile because they are biased, {SIR}. They are hostile because we lied to them and it was in writing.' }],
@@ -619,6 +664,17 @@ export const POLITICS: GameEvent[] = [
           archive: 'Paid selected editors for softer coverage.',
         }],
       },
+      {
+        id: 'owner', label: 'See Otunba Oyewole, and give him what he has been asking for',
+        requires: { v: ['granted.ty_media', '==', 0] },
+        outcomes: [{
+          result: 'You see him. His paper and his television station change their tune the same week, and the others, who share his advertisers, follow at a distance.',
+          fx: [['bloc.press', 12]],
+          ops: [['grant', 'ty_media']],
+          news: ['PRESIDENT, MEDIA OWNERS IN "FRANK" TALKS', 'PRESIDENT DON SETTLE THE OGA OF THE NEWSPAPER'],
+          archive: 'Bought peace with the press through its largest owner.', sig: 2,
+        }],
+      },
     ],
   },
 
@@ -632,6 +688,8 @@ export const POLITICS: GameEvent[] = [
       'A notice of allegations of gross misconduct against the President, signed by more than one third of the members of the National Assembly, has been presented to the Senate President.',
       'Under the Constitution, each chamber must now resolve by a two-thirds majority whether the allegations are to be investigated.',
       'The vote is in fourteen days.',
+      'By the Special Adviser\'s count the Senate stands at {SENATE} for you, where 50 is a majority. It is decided by Senators Maigari, Onuoha, Zango and Akpojotor, and by the mood of the party.',
+      { when: { v: ['favours', '>', 0] }, text: 'There are people who owe you. This is what that is for.' },
     ],
     trace: [['bloc.party', -1], ['bloc.street', -1], ['bloc.villa', -1], ['bloc.establishment', -1], ['bloc.press', -1]],
     reads: [
@@ -643,6 +701,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'You begin calling senators yourself. Some take the call.',
           fx: [['bloc.party', 6]],
+          ops: [['senators', 4]],
           follow: [{ event: 'removal.vote', after: 1 }],
           news: ['IMPEACHMENT NOTICE SERVED ON PRESIDENT', 'IMPEACHMENT! DEM WAN COMMOT PRESIDENT'],
           newsWeight: 9,
@@ -654,11 +713,25 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'Eleven signatories withdraw their signatures, explaining that they had signed an attendance register in error.',
           fx: [['bloc.party', 18], ['nation.integrity', -3]],
+          ops: [['senators', 10]],
           follow: [{ event: 'removal.vote', after: 1 }],
-          exposure: { kind: 'political', amount: 20, witnesses: ['senate'], trail: 2 },
+          exposure: { kind: 'political', amount: 20, witnesses: ['sen_pres', 'sen_approp'], trail: 2 },
           news: ['ELEVEN LAWMAKERS WITHDRAW FROM IMPEACHMENT NOTICE', '"I THOUGHT NA ATTENDANCE" — SENATOR'],
           newsWeight: 9,
           archive: 'Paid legislators to withdraw from an impeachment notice.', sig: 3,
+        }],
+      },
+      {
+        id: 'favours', label: 'Call in everything you are owed',
+        requires: { v: ['favours', '>=', 2] },
+        outcomes: [{
+          result: 'You make the calls yourself and offer nothing. You remind. By the end of the week nine signatures have been withdrawn by people who have remembered what they owe.',
+          fx: [['bloc.party', 12]],
+          ops: [['spendall'], ['senators', 12], ['governors', 5]],
+          follow: [{ event: 'removal.vote', after: 1 }],
+          news: ['NINE LAWMAKERS WITHDRAW FROM IMPEACHMENT NOTICE', 'DEM DON REMEMBER WHO HELP DEM. NINE DON WITHDRAW'],
+          newsWeight: 9,
+          archive: 'Called in every favour owed to fight an impeachment notice.', sig: 3,
         }],
       },
       {
@@ -678,6 +751,7 @@ export const POLITICS: GameEvent[] = [
     body: [
       'Both chambers sit today to vote on whether the allegations shall be investigated.',
       'The galleries are full. The Senate President has the gavel and, you are told, a telephone that has not stopped ringing.',
+      'The Special Adviser\'s last count has the Senate at {SENATE} for you. Below 44, it is lost.',
     ],
     reads: [
       { role: 'sap', good: 'I have counted four times, {SIR}. I have four different answers.' },
@@ -687,7 +761,7 @@ export const POLITICS: GameEvent[] = [
         id: 'watch', label: 'Watch from the Villa',
         outcomes: [
           {
-            when: { any: [{ v: ['bloc.party', '>=', 34] }, { v: ['pc', '>=', 40] }] },
+            when: { any: [{ v: ['senate', '>=', 44] }, { v: ['pc', '>=', 45] }] },
             result: 'The motion falls nine votes short in the Senate. The Senate President describes the outcome as "a victory for democracy" and requests a meeting.',
             fx: [['pc', 8], ['bloc.party', 6], ['bloc.villa', 8], ['bloc.establishment', 5]],
             flags: { 'removal.active': false, 'removal.survived': true },
@@ -716,6 +790,8 @@ export const POLITICS: GameEvent[] = [
     body: [
       'For the first time, debt service this quarter is larger than retained revenue. Salaries are being paid from new borrowing.',
       'A bond auction on Wednesday was undersubscribed. A foreign lender has offered a three-year facility. The conditions run to forty pages and begin with the petrol price.',
+      { when: { v: ['debt.arrears', '>', 3] }, text: 'On top of the bonds, the government owes more than ₦3tn to its own contractors and pensioners, who cannot be rolled over.' },
+      { when: { v: ['fund.abroad', '>=', 1.5] }, text: 'The fund abroad could retire the dearest of the foreign bonds outright.' },
     ],
     trace: [['nation.debt', 1]],
     reads: [
@@ -726,7 +802,7 @@ export const POLITICS: GameEvent[] = [
         id: 'programme', label: 'Accept the lender\'s programme', pc: 12, sign: true,
         outcomes: [{
           result: 'The programme is signed. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
-          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250]],
+          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250], ['tycoon.ty_bank', 8], ['tycoon.ty_fuel', -10]],
           flags: { 'policy.subsidy': 'removed', 'lender.programme': true },
           news: ['FG SIGNS THREE-YEAR FACILITY WITH LENDER', 'WE DON ENTER LENDER HAND. CONDITIONS FULL GROUND'],
           archive: 'Accepted a foreign lender\'s programme to avert default.', sig: 3,
@@ -735,9 +811,8 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'print', label: 'Direct the central bank to finance the deficit',
         outcomes: [{
-          result: '{CBN} complies under protest and in writing. The naira and the price of bread respond within the month.',
-          fx: [['nation.debt', -10], ['nation.inflation', 6], ['bloc.establishment', -8], ['bloc.street', -4]],
-          flags: { 'econ.inflBias': 9 },
+          result: '{CBN} complies under protest and in writing. Bonds the market would not buy are bought by the central bank with money it creates. The overdraft is larger by ₦3.5tn, and the price of bread responds within the month.',
+          fx: [['debt.bonds', -3], ['debt.ways', 3.5], ['nation.inflation', 3], ['bloc.establishment', -8], ['bloc.street', -4], ['tycoon.ty_bank', -12]],
           news: ['CENTRAL BANK EXTENDS ₦6TN ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
           archive: 'Ordered the central bank to finance the deficit.', sig: 3,
         }],
@@ -746,9 +821,19 @@ export const POLITICS: GameEvent[] = [
         id: 'restructure', label: 'Open restructuring talks with creditors', pc: 8,
         outcomes: [{
           result: 'Talks open in London. The ratings agencies call it a selective default. It is a year before anyone will lend again.',
-          fx: [['nation.debt', -22], ['bloc.establishment', -10], ['nation.fiscalSpace', -0.3], ['nation.power', -2]],
+          fx: [['nation.debt', -22], ['bloc.establishment', -10], ['nation.fiscalSpace', -0.3], ['nation.power', -2], ['tycoon.ty_bank', -8]],
           news: ['NIGERIA SEEKS DEBT RESTRUCTURING', 'WE NO FIT PAY. GOVERNMENT GO BEG CREDITORS'],
           archive: 'Opened debt restructuring talks.', sig: 3,
+        }],
+      },
+      {
+        id: 'fund', label: 'Bring the fund abroad home and retire the dearest debt with it',
+        requires: { v: ['fund.abroad', '>=', 1.5] },
+        outcomes: [{
+          result: 'The fund is liquidated and ₦1.5tn of foreign bonds is retired at once. It is everything the country saved. It is also what saving is for.',
+          fx: [['fund.abroad', -1.5], ['debt.eurobond', -1.5], ['bloc.establishment', 8], ['tycoon.ty_bank', 6]],
+          news: ['SOVEREIGN FUND USED TO RETIRE FOREIGN DEBT', 'THE SAVINGS DON PAY DEBT. E PAIN, BUT E WORK'],
+          archive: 'Used the fund abroad to retire foreign debt in a crisis.', sig: 3,
         }],
       },
     ],

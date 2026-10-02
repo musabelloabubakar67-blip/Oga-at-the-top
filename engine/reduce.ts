@@ -189,6 +189,8 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   s.approvalPrev = approval(s);
   buildDesk(s);
   refreshOffers(s);
+  // What was already unpaid on the first morning, for the verdict to measure against.
+  s.counters['base.arrears'] = s.debts.gas + s.debts.contractors + s.debts.pensions;
   s.papers = inaugural(s, prev, winner, scenario.farewell);
   return s;
 }
@@ -714,7 +716,7 @@ function electionDone(s: GameState): void {
     applyFx(s, ['bloc.party', -12]);
     applyFx(s, ['bloc.villa', -10]);
     record(s, 'election', 'lost', 'politics', 'Lost the presidential election.', 3);
-    s.news.push({ chronicle: 'PRESIDENT CONCEDES; {OPP} IS PRESIDENT-ELECT', street: 'E DON HAPPEN: {NAME} LOSES', weight: 9, valence: -1, topic: 'politics' });
+    s.news.push({ chronicle: 'ELECTORAL COMMISSION DECLARES {OPP} WINNER OF PRESIDENTIAL ELECTION', street: 'E DON HAPPEN: {NAME} LOSES', weight: 9, valence: -1, topic: 'politics' });
   }
   advance(s);
 }

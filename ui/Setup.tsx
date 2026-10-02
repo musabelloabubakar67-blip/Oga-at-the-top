@@ -154,7 +154,7 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
             <button key={b.id} onClick={() => setBackground(b.id)} className={card(background === b.id)}>
               <span className="block font-serif text-lg">{b.name}</span>
               <span className="mt-1 block text-sm leading-snug text-ink-soft">{b.text}</span>
-              <span className="mt-1.5 block text-[13px] leading-snug text-alarm">Your campaign was paid for by {TYCOON_BY_ID[FINANCIER[b.id]].name}, {TYCOON_BY_ID[FINANCIER[b.id]].title.toLowerCase()}. You owe.</span>
+              <span className="mt-1.5 block text-[13px] leading-snug text-alarm">Your campaign was paid for by {TYCOON_BY_ID[FINANCIER[b.id]].name}, {TYCOON_BY_ID[FINANCIER[b.id]].title.replace(/^./, (x) => x.toLowerCase())}. You owe.</span>
             </button>
           ))}
         </div>

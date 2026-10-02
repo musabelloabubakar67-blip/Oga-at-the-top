@@ -1,9 +1,10 @@
 import { NAMES } from '../content/names';
 import { PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
 import { STATE_BY_ID } from '../content/states';
+import { TYCOON_BY_ID } from '../content/tycoons';
 import { yearOf } from './config';
 import type { Block, GameState } from './types';
-import { delegates, test } from './vars';
+import { delegates, senate, test } from './vars';
 
 function rival(s: GameState) {
   const id = Object.entries(s.opposition ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'alt';
@@ -32,6 +33,9 @@ export function fill(s: GameState, text: string): string {
       case 'WORKS': return s.people.min_works?.name ?? PERSON_BY_ID.min_works.name;
       case 'NSA': return s.people.min_defence?.name ?? PERSON_BY_ID.min_defence.name;
       case 'DELEGATES': return String(Math.round(delegates(s)));
+      case 'SENATE': return String(Math.round(senate(s)));
+      case 'BACKER': return TYCOON_BY_ID[String(s.flags.financier)]?.name ?? 'the man who paid for your campaign';
+      case 'BACKER_SHORT': return TYCOON_BY_ID[String(s.flags.financier)]?.short ?? 'the financier';
       case 'PRED': return s.predecessor ? `President ${s.predecessor.name}` : 'your predecessor';
       case 'PREDPARTY': return s.predecessor?.party ?? 'the last government';
       case 'OIL': return String(Math.round(s.oil.price));
