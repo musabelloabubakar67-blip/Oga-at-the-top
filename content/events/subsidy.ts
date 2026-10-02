@@ -177,7 +177,7 @@ export const SUBSIDY: GameEvent[] = [
     statement: 'Government and Labour are engaging in the spirit of social dialogue. There is no cause for alarm.',
     trace: [['pressure.wageGrievance', 1], ['flag:policy.subsidy', 1]],
     reads: [
-      { role: 'sap', good: 'Aluta cannot back down in public. Give him something he can call a victory and he will call it one.' },
+      { role: 'sap', good: 'Ogbeide cannot back down in public. Give him something he can call a victory and he will call it one.' },
       { role: 'labmin', good: 'They will settle for a wage commitment, {SIR}. They will then expect it to be honoured, which is where these things usually go wrong.' },
     ],
     choices: [

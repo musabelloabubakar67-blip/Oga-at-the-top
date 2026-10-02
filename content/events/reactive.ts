@@ -376,51 +376,6 @@ export const REACTIVE: GameEvent[] = [
     ],
   },
   {
-    id: 'react.surplus', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3, reactive: true,
-    when: { v: ['nation.fiscalSpace', '>=', 3.5] }, weight: 14,
-    office: 'Nigeria Governors\' Forum', stamp: 'URGENT',
-    title: 'The governors have seen the balance',
-    body: [
-      'The treasury is holding more than ₦3.5tn. The governors have noticed.',
-      '{GOVCHAIR} writes that it is "morally indefensible for the centre to hoard while the states cannot pay salaries", and requests an emergency meeting of the allocation committee.',
-      'Thirty of thirty-six governors have signed. They include all of your own party\'s.',
-    ],
-    reads: [
-      { role: 'fin', good: 'It is not idle, {SIR}. It is the first time in twenty years we could survive an oil shock. But money that is sitting there looks like money nobody needs.', weak: 'The governors make a fair point, {SIR}.' },
-      { role: 'sap', good: 'Spend it on something with your name on it, or lock it somewhere they cannot reach. Leaving it visible is an invitation.' },
-    ],
-    choices: [
-      {
-        id: 'fund', label: 'Lock ₦2tn in a sovereign fund by law', pc: 8,
-        outcomes: [{
-          result: 'The Stabilisation Fund Act passes. The money can only be drawn when oil falls below the benchmark. The governors call it "an act of bad faith".',
-          fx: [['nation.fiscalSpace', -2], ['nation.debt', -8], ['bloc.establishment', 8], ['bloc.party', -8]],
-          flags: { 'sovereign.fund': true },
-          news: ['₦2TN LOCKED IN NEW STABILISATION FUND', 'PRESIDENT LOCK THE MONEY. GOVERNORS NO FIT TOUCH AM'],
-          archive: 'Locked ₦2tn in a sovereign stabilisation fund.', sig: 3,
-        }],
-      },
-      {
-        id: 'share', label: 'Share ₦2tn with the states',
-        outcomes: [{
-          result: 'The committee meets and shares. Several states clear salary arrears. Several others buy vehicles.',
-          fx: [['nation.fiscalSpace', -2], ['bloc.party', 12], ['pc', 6], ['bloc.street', 3], ['nation.integrity', -1]],
-          news: ['STATES SHARE ₦2TN FROM FEDERAL SURPLUS', 'GOVERNORS DON COLLECT ₦2TN. WATCH THE CONVOY'],
-          archive: 'Shared a ₦2tn surplus with the state governments.', sig: 2,
-        }],
-      },
-      {
-        id: 'refuse', label: 'Tell them it is committed to your reforms',
-        outcomes: [{
-          result: 'You tell them the money is spoken for. They would like to know when. So, increasingly, would the press.',
-          fx: [['bloc.party', -6], ['bloc.street', -2]],
-          news: ['PRESIDENCY REBUFFS GOVERNORS OVER SURPLUS', 'PRESIDENT SIT DOWN ON TOP MONEY'],
-          archive: 'Refused to share the federal surplus with the governors.',
-        }],
-      },
-    ],
-  },
-  {
     id: 'react.tariff', kind: 'standalone', slot: 'lead', category: 'infrastructure', tone: 'dry', intensity: 2, reactive: true,
     when: { v: ['agenda.p3', '==', 1] }, weight: 12,
     office: 'Electricity Regulatory Commission', stamp: 'ROUTINE',

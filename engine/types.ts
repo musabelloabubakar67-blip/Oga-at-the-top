@@ -10,7 +10,15 @@ export type Category =
   | 'scandal' | 'ceremonial' | 'fortune' | 'temptation';
 export type FlagValue = string | number | boolean;
 export type Op = '<' | '<=' | '>' | '>=' | '==' | '!=';
-export type OutletId = 'chronicle' | 'street';
+export type OutletId = 'chronicle' | 'street' | 'stakeholder' | 'rejoinder';
+export type DebtId = 'eurobond' | 'bonds' | 'ways' | 'gas' | 'contractors' | 'pensions';
+export type FundId = 'abroad' | 'buffer' | 'infra' | 'growth';
+export type SectorId = 'security' | 'power' | 'people' | 'agric' | 'debt' | 'padding';
+/** What a story is about, so the paper can comment on the right thing. */
+export type Topic =
+  | 'prices' | 'money' | 'power' | 'security' | 'politics' | 'scandal'
+  | 'labour' | 'reform' | 'bet' | 'oil' | 'people' | 'general';
+export type Stance = 'record' | 'street' | 'loyal' | 'hostile';
 
 export type Cond =
   | { all: Cond[] }
@@ -28,6 +36,8 @@ export type Cond =
 
 /** [target, delta, spread?] — e.g. ['bloc.street', -8, 2] */
 export type Fx = [string, number, number?];
+/** [operation, ...arguments] */
+export type Op2 = [string, ...(string | number)[]];
 
 export interface Later {
   after: number | [number, number];
@@ -68,6 +78,10 @@ export interface Outcome {
   exposure?: ExposureSpec;
   /** [characterId, relationship delta, note] */
   memory?: [string, number, string][];
+  /** Operations that need more than a number: ['paydebt', 'gas', 1], ['grant', '$WHO'] and so on. See engine/ops.ts. */
+  ops?: Op2[];
+  /** Something owed: [who, 'owed' (to you) | 'owing' (by you), size]. `who` may be a cast key such as $WHO. */
+  favour?: [string, 'owed' | 'owing', number];
   /** Ends the presidency: resignation or removal. */
   ends?: 'resigned' | 'removed';
 }
@@ -125,6 +139,9 @@ export interface GameEvent {
   trace?: TraceRef[];
   reads?: Read[];
   choices: Choice[];
+  /** People and things this file is about, chosen from the state when it is drawn: token -> selector. */
+  cast?: Record<string, string>;
+  topic?: Topic;
   /** Arises from something the President did. Weighted well above generic events. */
   reactive?: boolean;
   /** Minor matters only: applied if left unanswered at month end. */
@@ -200,27 +217,91 @@ export interface NewsSeed {
   body?: string;
   /** Good or bad for the government, for choosing who is quoted. */
   valence?: number;
+  topic?: Topic;
+  /** The person, tycoon or rival the story concerns. */
+  about?: string;
+  /** Headlines written for the partisan papers. Without them they reframe the broadsheet's. */
+  loyal?: string;
+  hostile?: string;
+  /** "Part two of three". */
+  series?: string;
+  /** A grave story: every paper prints it straight. */
+  grave?: boolean;
 }
 
 export interface FrontPage {
   outlet: OutletId;
+  stance: Stance;
   turn: number;
+  /** The line above the headline: how this paper frames it. */
+  strap?: string;
   lead: string;
+  /** What actually happened, when the headline is somebody's reaction to it. */
+  fact?: string;
   standfirst: string;
   others: string[];
-  number: { label: string; value: string };
-  sidebar: { kicker: string; text: string };
+  sidebar?: { kicker: string; text: string };
   special?: string;
+  series?: string;
   body?: string;
   quotes?: { who: string; role: string; line: string }[];
   figures?: { label: string; value: string; dir: 1 | 0 | -1; good: boolean }[];
   editorial?: string;
+  /** Who owns the paper, when that explains the coverage. */
+  owner?: string;
 }
+
+export interface Favour { id: number; who: string; dir: 'owed' | 'owing'; size: number; why: string; turn: number }
+
+export interface Mark { turn: number; d: number; text: string }
+
+export interface PersonState {
+  rel: number;
+  granted: boolean;
+  compliantUntil?: number;
+  courted: number[];
+  /** Set when a minister has been replaced. */
+  name?: string;
+  short?: string;
+  competence?: number;
+  clout?: number;
+  integrity?: number;
+  ambition?: number;
+  bio?: string;
+  /** Ministers: when they took the brief, and what their numbers were then. */
+  since?: number;
+  base?: number;
+  marks?: Mark[];
+  /** Has crossed to the opposition. */
+  gone?: boolean;
+}
+
+export interface TycoonState { rel: number; granted: boolean; squeezed?: number; reasons: string[] }
+
+export interface Budget {
+  /** The fiscal year this budget covers. */
+  year: number;
+  /** The oil price it assumes, in dollars. */
+  benchmark: number;
+  alloc: Record<SectorId, number>;
+  /** A new bill is on the desk and must be signed. */
+  due: boolean;
+  late?: boolean;
+}
+
+export interface Story { id: string; about?: string; /** Who held the job when the series began. */ name?: string; stage: number; next: number }
+
+export interface RivalMove { turn: number; rival: string; text: string }
+
+/** Help the President can attach to a decision. */
+export interface Aid { favour?: number; minister?: boolean }
 
 export interface Change { label: string; delta: number; good: boolean; text: string }
 
 export interface DeskItem {
   eventId: string;
+  /** Who and what this file is about: token -> id. */
+  cast?: Record<string, string>;
   resolved?: { choiceId: string; label: string; result: string; signed?: boolean; changes?: Change[] };
 }
 
@@ -253,7 +334,7 @@ export interface Track {
 
 export interface ReportItem { title: string; cause?: string; text?: string; changes: Change[]; kind: 'consequence' | 'reform' | 'failure' }
 
-export type ZoneState = { approval: number; security: number; lean: number };
+export type ZoneState = { approval: number; lean: number };
 
 export type Background = 'governor' | 'technocrat' | 'legislator' | 'outsider';
 
@@ -293,7 +374,8 @@ export interface ElectionResult {
 export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned';
 
 export interface GameState {
-  version: 2;
+  version: 3;
+  setup: Setup;
   seed: number;
   rng: number;
   phase: 'papers' | 'desk' | 'election' | 'verdict';
@@ -325,19 +407,37 @@ export interface GameState {
   exposures: Exposure[];
   desk: { lead: DeskItem | null; minors: DeskItem[]; actionsUsed: number; drawerUsed: boolean; note: string };
   news: NewsSeed[];
-  paper: FrontPage | null;
+  papers: FrontPage[];
   election: ElectionResult | null;
   succession: ElectionResult | null;
   ending: EndingKind | null;
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
-  ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[] };
+  ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
   report: ReportItem[];
   prev: Record<string, number>;
   /** Powers of the moment currently on offer. */
   offers: { id: string; since: number; until: number }[];
-  people: Record<string, { rel: number; granted: boolean; compliantUntil?: number; courted: number[]; name?: string; short?: string; competence?: number; clout?: number; bio?: string }>;
+  people: Record<string, PersonState>;
   opposition: Record<string, number>;
+  /** What the rivals have done lately, newest last. */
+  oppLog: RivalMove[];
+  /** Named debts, in ₦tn owed. nation.debt is derived from the three that bear interest. */
+  debts: Record<DebtId, number>;
+  funds: Record<FundId, number>;
+  oil: { price: number; output: number; prev: number };
+  budget: Budget;
+  favours: Favour[];
+  tycoons: Record<string, TycoonState>;
+  /** Threat in each zone's theatre, 0-100. nation.security is derived from these. */
+  theatres: Record<ZoneId, number>;
+  /** Where the security effort is concentrated. */
+  focus: ZoneId | null;
+  /** Lines the papers have already printed: key -> turn. */
+  used: Record<string, number>;
+  stories: Story[];
+  /** Big bets: which named risks have been warned about, and any rescue or delay. */
+  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean }>;
   lastAction: { text: string; changes: Change[] } | null;
 }
 
@@ -361,12 +461,22 @@ export type DrawerOp =
 
 export type Action =
   | { type: 'DISMISS_PAPER' }
-  | { type: 'CHOOSE'; eventId: string; choiceId: string }
+  | { type: 'CHOOSE'; eventId: string; choiceId: string; aid?: Aid }
   | { type: 'ACT'; action: ActionId; zone?: ZoneId }
   | { type: 'DRAWER'; op: DrawerOp }
   | { type: 'LAUNCH'; id: string; grease?: boolean }
   | { type: 'VENTURE'; id: string }
+  | { type: 'VENTURE_DELAY'; id: string }
+  | { type: 'VENTURE_RESCUE'; id: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' }
+  | { type: 'PAY_DEBT'; id: DebtId; amount: number }
+  | { type: 'SECURITISE' }
+  | { type: 'FUND'; id: FundId; amount: number }
+  | { type: 'BUDGET'; benchmark: number; alloc: Record<SectorId, number> }
+  | { type: 'FAVOUR'; id: number; use: string }
+  | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' }
+  | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
+  | { type: 'FOCUS'; zone: ZoneId | null }
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
   | { type: 'ORDER'; id: string }
   | { type: 'REPLACE_FIN'; name: string }

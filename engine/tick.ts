@@ -1,7 +1,11 @@
-import { CFG, dateLabel, termTurnOf } from './config';
+import { CFG, dateLabel } from './config';
 import { capitalIncome } from './capital';
 import { describe } from './effects';
+import { tycoonInflation, tycoonTick } from './favours';
+import { oppositionTick } from './opposition';
 import { peopleTick } from './people';
+import { foodInflation, securityTick } from './security';
+import { budgetInflation, printedInflation, treasuryTick } from './treasury';
 import type { GameState, Nation } from './types';
 import { BLOCS, ZONES, applyFx, approval, clamp, hardship, petrolShock, test, zoneSecurity } from './vars';
 
@@ -19,8 +23,30 @@ export function applyLedger(s: GameState): void {
       kind: 'consequence', title: l.label, changes: describe(l.fx),
       cause: cause && !cause.sealed ? `${cause.headline} (${dateLabel(cause.turn)})` : undefined,
     });
-    if (l.note) s.news.push({ chronicle: l.note[0], street: l.note[1], weight: 3 });
+    if (l.note) {
+      const mood = l.fx.reduce((a, f) => a + (f[0] === 'approval' ? f[1] : 0), 0);
+      s.news.push({ chronicle: l.note[0], street: l.note[1], weight: 3, valence: Math.sign(mood), topic: 'general' });
+    }
   }
+}
+
+/** Where inflation is heading, and why. */
+export function inflationTarget(s: GameState): { lines: { label: string; value: number }[]; total: number } {
+  const e = CFG.economy;
+  const n = s.nation;
+  const lines = [
+    { label: 'The underlying rate', value: e.inflationBase },
+    { label: 'Debt service', value: (n.debt - 50) * e.debtToInflation + Math.max(0, n.debt - e.debtCliff) * e.debtCliffToInflation },
+    { label: 'Money the central bank created', value: printedInflation(s) },
+    { label: 'Insecurity on the farms', value: foodInflation(s) },
+    { label: 'The pump price', value: petrolShock(s) * e.shockToInflation },
+    { label: 'Wage deals and other commitments', value: Number(s.flags['econ.inflBias'] ?? 3) - 3 },
+    { label: 'Your reforms and orders', value: s.counters['bonus.inflation'] ?? 0 },
+    { label: 'Farming in the budget', value: budgetInflation(s) },
+    { label: 'The importers', value: tycoonInflation(s) },
+    { label: 'A nervous establishment', value: Math.max(0, 30 - s.blocs.establishment) * 0.25 },
+  ].filter((l) => Math.abs(l.value) >= 0.05);
+  return { lines, total: lines.reduce((a, l) => a + l.value, 0) };
 }
 
 export function economyTick(s: GameState): void {
@@ -29,45 +55,24 @@ export function economyTick(s: GameState): void {
   const subsidy = String(s.flags['policy.subsidy'] ?? 'partial');
 
   s.petrolRef = toward(s.petrolRef, n.petrolPrice, e.petrolRefRate);
-  const bias = Number(s.flags['econ.inflBias'] ?? 0);
-  const target = e.inflationBase + (n.debt - 50) * e.debtToInflation + (50 - n.security) * e.securityToInflation
-    + petrolShock(s) * e.shockToInflation + bias + (s.counters['bonus.inflation'] ?? 0)
-    + Math.max(0, n.debt - e.debtCliff) * e.debtCliffToInflation
-    + Math.max(0, 30 - s.blocs.establishment) * 0.25;
-  n.inflation = clamp(toward(n.inflation, target, e.inflationRate), 3, 80);
+  n.inflation = clamp(toward(n.inflation, inflationTarget(s).total, e.inflationRate), 3, 80);
 
   // Petrol tracks general prices once it is market-priced.
   if (subsidy === 'removed') n.petrolPrice *= 1 + n.inflation / 100 / 24;
 
-  const drift = e.fiscalBase + (e.subsidyDrift[subsidy] ?? 0)
-    + (n.capacity - 34) * e.capacityToFiscal
-    - (n.debt - 66) * e.debtToFiscal
-    + (n.integrity - 28) * e.integrityToFiscal
-    + ((s.chars.fin?.competence ?? 3) - 3) * 0.012
-    + (s.counters['bonus.fiscal'] ?? 0)
-    + (n.jobs - 34) * e.jobsToFiscal;
-  n.fiscalSpace += drift;
-  if (n.fiscalSpace < 0) {
-    n.debt = clamp(n.debt - n.fiscalSpace * e.borrowToDebt, 20, 130);
-    n.fiscalSpace = 0;
-    s.counters.borrowed = (s.counters.borrowed ?? 0) + 1;
-  } else if (n.fiscalSpace > 2.5) {
-    n.debt = clamp(n.debt - e.debtPaydown, 20, 130);
-  }
-
-  n.fiscalSpace = clamp(n.fiscalSpace, -5, 15);
+  // The books: oil, the monthly flow, the budget, the unpaid bills and the funds.
+  treasuryTick(s);
 
   // Past the cliff with nothing in the account, capital spending stops.
   const austerity = n.debt > e.debtCliff && n.fiscalSpace <= 0.05;
   n.power = clamp(n.power - e.powerDecay - (austerity ? e.austerityPower : 0), 0, 100);
-  n.security = clamp(n.security - e.securityDecay - (austerity ? e.austeritySecurity : 0), 0, 100);
-
   n.jobs = clamp(n.jobs - e.jobsDecay, 0, 100);
   // What reform built keeps paying, every month.
   for (const k of ['security', 'power', 'capacity', 'integrity', 'jobs'] as const) {
     const b = s.counters[`bonus.${k}`] ?? 0;
     if (b) applyFx(s, [`nation.${k}`, b]);
   }
+  securityTick(s);
 
   // The example is followed: exposure erodes integrity slowly.
   const recent = s.exposures.filter((x) => s.turn - x.turn <= 12).length;
@@ -77,8 +82,12 @@ export function economyTick(s: GameState): void {
   const capped = subsidy !== 'removed';
   p.fuelSupplyStress = clamp(p.fuelSupplyStress + (capped ? 1.6 + (n.fiscalSpace < 0.5 ? 1.2 : 0) : -3), 0, 100);
   p.wageGrievance = clamp(p.wageGrievance + (hardship(s) - 45) * 0.08, 0, 100);
-  const finRisk = Math.max(0, 3 - (s.chars.fin?.integrity ?? 3)) * 0.3;
-  p.scandalHeat = clamp(p.scandalHeat + (40 - n.integrity) * 0.05 + recent * 0.4 + finRisk - 0.5, 0, 100);
+  const finRisk = Math.max(0, 3 - (s.chars.fin?.integrity ?? 3)) * 0.2;
+  // Looking away is noticed less than taking. Taking for yourself is noticed most.
+  const heat = s.exposures.filter((x) => s.turn - x.turn <= 12).reduce((a, x) => a + (x.kind === 'tolerated' ? 0.15 : x.kind === 'political' ? 0.4 : 0.5), 0);
+  // Scandal settles at a level set by how the government behaves. Revelations push it up; it comes back down if nothing feeds it.
+  const settles = clamp(18 + (40 - n.integrity) * 1.1 + heat * 9 + finRisk * 12, 0, 100);
+  p.scandalHeat = clamp(toward(p.scandalHeat, settles, 0.08), 0, 100);
 
   s.hist.push({ ...n } as Nation);
   if (s.hist.length > 4) s.hist.shift();
@@ -95,10 +104,12 @@ export function politicsTick(s: GameState): void {
   s.blocs.villa = toward(s.blocs.villa, 55 + ((cos?.competence ?? 3) - 3) * 4, b.villaRate);
   s.blocs.establishment = toward(
     s.blocs.establishment,
-    50 + (s.nation.fiscalSpace > 1 ? 4 : -4) - (s.nation.debt - 66) * 0.3,
+    50 + (s.nation.fiscalSpace + s.funds.buffer + s.funds.abroad > 1 ? 4 : -4) - (s.nation.debt - 66) * 0.3,
     b.establishmentRate,
   );
   s.blocs.press = toward(s.blocs.press, 50, b.pressRate);
+  // Too much, too fast: the party tires of a President who is changing everything at once.
+  s.blocs.party -= Math.max(0, s.agenda.active.length - CFG.agenda.easyLoad) * CFG.agenda.loadParty;
   for (const k of BLOCS) s.blocs[k] = clamp(s.blocs[k], 0, 100);
 
   s.counters.scar = (s.counters.scar ?? 0) * CFG.scar.decay + Math.max(0, h - CFG.scar.above) * CFG.scar.gain;
@@ -106,8 +117,9 @@ export function politicsTick(s: GameState): void {
   for (const z of ZONES) {
     const zone = s.zones[z];
     // Voters punish hardship more than they reward its absence.
-    const target = a.base + zone.lean - (h - 45) * (h > 45 ? a.hardship : a.relief) - (45 - zoneSecurity(s, z)) * a.security
+    const target = a.base + zone.lean - (h - 45) * (h > 45 ? a.hardship : a.relief) - (45 - zoneSecurity(s, z)) * (zoneSecurity(s, z) > 45 ? a.security * 0.5 : a.security)
       + (s.blocs.press - 50) * a.press - s.counters.scar * a.scar
+      - Math.max(0, s.pressures.scandalHeat - a.scandalAbove) * a.scandal
       - Math.max(0, s.turn - a.fatigueAfter) * a.fatigue;
     zone.approval = clamp(toward(zone.approval, target, a.rate), 5, 95);
   }
@@ -115,6 +127,8 @@ export function politicsTick(s: GameState): void {
   s.pc = clamp(s.pc + capitalIncome(s).total, 0, CFG.pc.max);
 
   peopleTick(s);
+  tycoonTick(s);
+  oppositionTick(s);
 
   // Two blocs breaking in the same month starts removal proceedings.
   const breaking = BLOCS.filter((k) => s.blocs[k] < b.breaking);

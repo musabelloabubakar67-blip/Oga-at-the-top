@@ -1,24 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { PEOPLE, RIVALS, type Group } from '../content/people';
+import { PEOPLE, PERSON_BY_ID, RIVALS, type Group } from '../content/people';
+import { TYCOONS } from '../content/tycoons';
+import { dateLabel } from '../engine/config';
 import { describe } from '../engine/effects';
-import { canDeal, governorEffect, ministerSpeed, personView, relWord, senate, strongestRival } from '../engine/people';
+import { moneyEffect } from '../engine/election';
+import { canCall, canTycoon, kindOf, regard, tycoonMood, usesFor, who } from '../engine/favours';
+import { canRival } from '../engine/opposition';
+import {
+  canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
+} from '../engine/people';
 import { movesLeft } from '../engine/reduce';
 import { naira } from '../engine/text';
-import type { Action, GameState } from '../engine/types';
-import { ZONE_NAME } from '../engine/vars';
+import type { Action, Favour, GameState } from '../engine/types';
+import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'opposition';
-
-const TABS: [Tab, string][] = [['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'], ['opposition', 'The opposition']];
+type Tab = Group | 'money' | 'opposition' | 'owed';
 
 const INTRO: Record<Tab, string> = {
-  governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on his hands.',
-  senator: 'Reforms that need a law are voted on in the Senate. Your own senators decide whether they pass. Bills pass when the Senate stands at 50 or better; constitutional changes need more.',
-  minister: 'A minister\'s competence sets how fast the reforms in their brief move. You can replace any of them: with a technocrat the party resents, or a nominee the party loves.',
-  opposition: 'Three rivals, each feeding on a different failure. Whoever is strongest on election day is who you face.',
+  governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on his hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
+  senator: 'Reforms that need a law are voted on in the Senate, and your own senators decide whether they pass. Bills pass when the Senate stands at 50 or better; constitutional changes need more. The budget goes through them every December.',
+  minister: 'A minister\'s competence sets how fast the reforms in the brief move, and whether the big bets in it can work. Each is judged from the day they took the job.',
+  money: 'Five people who hold parts of the economy. Each can help or hurt in ways no minister can, and each wants something specific. Money that is with you campaigns for you. Money that is against you funds your rivals.',
+  opposition: 'Three rivals, each feeding on a different failure, and each with moves of their own. Whoever is strongest on election day is who you face.',
+  owed: 'Nothing here is written down anywhere else. What people owe you can be spent, once, on the politics screen or on a file on your desk. What you owe will be called in.',
 };
 
 export function senateLine(s: GameState): string {
@@ -26,10 +33,87 @@ export function senateLine(s: GameState): string {
   return v >= 56 ? 'Firmly yours' : v >= 50 ? 'With you, narrowly' : v >= 44 ? 'Slipping away' : 'Against you';
 }
 
-export function PeopleModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatch; onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>('governor');
+const btn = (ok: boolean, tone: 'plain' | 'good' | 'bad' = 'plain') =>
+  `border px-3 py-1.5 text-left font-serif ${!ok ? 'border-ink/10 opacity-45'
+    : tone === 'good' ? 'border-state bg-state/10 hover:bg-state/20'
+      : tone === 'bad' ? 'border-alarm/50 text-alarm hover:bg-alarm/5'
+        : 'border-ink/30 hover:border-state hover:bg-state/5'}`;
+
+function Fx({ fx }: { fx: Parameters<typeof describe>[0] }) {
+  return (
+    <span className="mt-1 flex flex-wrap gap-x-3 text-[13px]">
+      {describe(fx).map((c, i) => (
+        <span key={i} className={c.good ? 'text-state' : 'text-alarm'}><span className="text-ink-soft">{c.label}</span> {c.arrows}</span>
+      ))}
+    </span>
+  );
+}
+
+/** A favour owed to the President, and what it can be spent on. */
+function Owed({ s, f, dispatch, left }: { s: GameState; f: Favour; dispatch: Dispatch; left: number }) {
+  const [open, setOpen] = useState(false);
+  const w = who(s, f.who);
+  const can = canCall(s, f, left);
+  return (
+    <div className="mt-2 border-l-2 border-state bg-state/5 px-3 py-2">
+      <p className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="font-serif leading-snug">{w.short} owes you <span className="text-state">{'●'.repeat(f.size)}</span></span>
+        <button onClick={() => setOpen(!open)} disabled={!can.ok} className={`label ${can.ok ? 'text-state hover:underline' : 'text-ink-soft'}`}>{open ? 'Not now' : 'Call it in →'}</button>
+      </p>
+      <p className="text-[13px] leading-snug text-ink-soft">{f.why} Since {dateLabel(f.turn)}.{!can.ok && can.reason ? ` ${can.reason}` : ''}</p>
+      {open && can.ok && (
+        <div className="mt-2 flex flex-col gap-1.5">
+          {usesFor(s, f).map((u) => (
+            <button key={u.id} onClick={() => { dispatch({ type: 'FAVOUR', id: f.id, use: u.id }); setOpen(false); }} className={btn(true, 'good')}>
+              {u.label}<span className="block text-[13px] leading-snug text-ink-soft">{u.detail}</span>
+            </button>
+          ))}
+          <p className="text-[12.5px] text-ink-soft">Costs one move. The favour is spent, and nobody enjoys paying: they will like you a little less.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Owing({ s, f }: { s: GameState; f: Favour }) {
+  const w = who(s, f.who);
+  const months = s.turn - f.turn;
+  return (
+    <div className="mt-2 border-l-2 border-alarm bg-alarm/5 px-3 py-2">
+      <p className="font-serif leading-snug">You owe {w.short} <span className="text-alarm">{'●'.repeat(f.size)}</span></p>
+      <p className="text-[13px] leading-snug text-ink-soft">{f.why} {months >= 8 ? 'They have waited long enough to ask.' : `They will ask within ${8 - months} months.`} Giving them what they want settles it.</p>
+    </div>
+  );
+}
+
+function FavoursOf({ s, id, dispatch, left }: { s: GameState; id: string; dispatch: Dispatch; left: number }) {
+  return (
+    <>
+      {favoursOwed(s, id).map((f) => <Owed key={f.id} s={s} f={f} dispatch={dispatch} left={left} />)}
+      {favoursOwing(s, id).map((f) => <Owing key={f.id} s={s} f={f} />)}
+    </>
+  );
+}
+
+function Bar({ v, bad }: { v: number; bad?: boolean }) {
+  return <div className="mt-2 h-1.5 bg-ink/10"><div className={`h-1.5 transition-all duration-700 ${bad ? 'bg-alarm' : 'bg-state'}`} style={{ width: `${Math.max(2, v)}%` }} /></div>;
+}
+
+const GRADE: Record<string, string> = { A: 'text-state', B: 'text-state', C: 'text-ink', D: 'text-alarm', F: 'text-alarm' };
+
+export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dispatch: Dispatch; onClose: () => void; start?: Tab }) {
+  const [tab, setTab] = useState<Tab>(start ?? 'governor');
+  const [before] = useState(s.lastAction?.text);
+  const said = s.lastAction && s.lastAction.text !== before ? s.lastAction.text : null;
   const left = movesLeft(s);
   const top = strongestRival(s);
+  const owed = favoursOwed(s);
+  const owing = favoursOwing(s);
+  const money = moneyEffect(s);
+  const tabs: [Tab, string][] = [
+    ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
+    ['money', 'The money'], ['opposition', 'The opposition'], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
+  ];
 
   return (
     <div className="fade-in fixed inset-0 z-30 overflow-y-auto bg-pit/80 px-3 py-6 sm:py-10" onClick={onClose} role="dialog">
@@ -39,113 +123,257 @@ export function PeopleModal({ s, dispatch, onClose }: { s: GameState; dispatch: 
             <p className="label text-state">Politics</p>
             <h2 className="mt-1 font-serif text-3xl">Who is with you</h2>
           </div>
-          <p className="label text-right text-ink-soft">{left} {left === 1 ? 'move' : 'moves'} left<br />Senate: {senateLine(s)} ({Math.round(senate(s))})</p>
+          <p className="label text-right text-ink-soft">{left} {left === 1 ? 'move' : 'moves'} left<br />Senate: {senateLine(s)} ({Math.round(senate(s))})<br />Convention delegates with you: {Math.round(delegates(s))}%</p>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 border-b rule">
-          {TABS.map(([id, name]) => (
+          {tabs.map(([id, name]) => (
             <button key={id} onClick={() => setTab(id)} className={`label pb-2 ${tab === id ? 'border-b-2 border-state text-ink' : 'text-ink-soft'}`}>{name}</button>
           ))}
         </div>
         <p className="mt-3 text-sm leading-snug text-ink-soft">{INTRO[tab]}</p>
+        {said && <p className="fade-in mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>}
 
-        {tab === 'opposition' ? (
-          <ul className="mt-4 space-y-3">
-            {RIVALS.map((r) => {
-              const v = s.opposition[r.id] ?? 0;
+        {tab === 'owed' && (
+          <div className="mt-4">
+            <h3 className="label border-b rule pb-1 text-state">Owed to you</h3>
+            {owed.length === 0 && <p className="mt-2 font-serif italic text-ink-soft">Nobody owes you anything. Favours are made by giving people what they want, shielding them, or backing them when it costs you.</p>}
+            {owed.map((f) => <Owed key={f.id} s={s} f={f} dispatch={dispatch} left={left} />)}
+            <h3 className="label mt-6 border-b rule pb-1 text-alarm">Owed by you</h3>
+            {owing.length === 0 && <p className="mt-2 font-serif italic text-ink-soft">You owe nobody. It will not last.</p>}
+            {owing.map((f) => <Owing key={f.id} s={s} f={f} />)}
+          </div>
+        )}
+
+        {tab === 'money' && (
+          <>
+            <p className={`mt-3 text-sm ${money >= 0 ? 'text-state' : 'text-alarm'}`}>
+              On election day the money is worth {money >= 0 ? '+' : ''}{money.toFixed(1)} points of vote share to you.
+            </p>
+            <ul className="mt-3 space-y-3">
+              {TYCOONS.map((t) => {
+                const st = s.tycoons[t.id];
+                const grant = canTycoon(s, t.id, 'grant', left);
+                const squeeze = canTycoon(s, t.id, 'squeeze', left);
+                const take = canTycoon(s, t.id, 'take', left);
+                return (
+                  <li key={t.id} className="border border-ink/20 p-4">
+                    <p className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-serif text-xl">{t.name}</span>
+                      <span className={`font-serif ${st.rel < 35 ? 'text-alarm' : st.rel >= 60 ? 'text-state' : ''}`}>{tycoonMood(st.rel)}</span>
+                    </p>
+                    <p className="label text-ink-soft">{t.title}{s.flags.financier === t.id ? ' · paid for your campaign' : ''}</p>
+                    <Bar v={st.rel} bad={st.rel < 35} />
+                    <p className="mt-2 text-sm leading-snug">{t.bio}</p>
+                    <p className={`mt-1 text-sm leading-snug ${st.rel >= 60 ? 'text-state' : 'text-ink-soft'}`}><span className="label mr-1">With you</span>{t.friendly}</p>
+                    <p className={`mt-1 text-sm leading-snug ${st.rel < 35 ? 'text-alarm' : 'text-ink-soft'}`}><span className="label mr-1">Against you</span>{t.hostile}</p>
+                    {st.reasons.length > 0 && (
+                      <p className="mt-1.5 text-[13px] leading-snug text-ink-soft"><span className="label mr-1">Why</span>{st.reasons.join(' ')}</p>
+                    )}
+                    <FavoursOf s={s} id={t.id} dispatch={dispatch} left={left} />
+
+                    <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
+                      <p className="label text-ink-soft">{st.granted ? 'You gave' : 'Wants'}</p>
+                      <p className="font-serif leading-snug">{t.want.text}</p>
+                      {!st.granted && <Fx fx={t.want.fx} />}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {!st.granted && (
+                        <button disabled={!grant.ok} title={grant.reason} onClick={() => dispatch({ type: 'TYCOON', id: t.id, op: 'grant' })} className={btn(grant.ok, 'good')}>
+                          Give what is asked{[t.want.pc && ` · ${t.want.pc} capital`, t.want.naira && ` · ${naira(t.want.naira)}`].filter(Boolean).join('')}
+                        </button>
+                      )}
+                      <button disabled={!take.ok} title={take.reason} onClick={() => dispatch({ type: 'TYCOON', id: t.id, op: 'take' })} className={btn(take.ok)}>
+                        Take ₦8bn for the campaign
+                      </button>
+                      <button disabled={!squeeze.ok} title={squeeze.reason} onClick={() => dispatch({ type: 'TYCOON', id: t.id, op: 'squeeze' })} className={btn(squeeze.ok, 'bad')}>
+                        {t.squeeze.name} · 5 capital
+                      </button>
+                    </div>
+                    <Fx fx={t.squeeze.fx} />
+                    <p className="mt-2 text-[13px] leading-snug text-ink-soft">
+                      Giving what is asked wins them, settles anything you owe them, and otherwise leaves them owing you. Taking money puts you in their debt, and they become a witness. Setting the agencies on them brings in money and makes an enemy for two years.
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+
+        {tab === 'opposition' && (
+          <>
+            <ul className="mt-4 space-y-3">
+              {RIVALS.map((r) => {
+                const v = s.opposition[r.id] ?? 0;
+                const inside = !!s.flags[`rival.${r.id}.in`];
+                const coopt = canRival(s, r.id, 'coopt', left);
+                const debate = canRival(s, r.id, 'debate', left);
+                const agencies = canRival(s, r.id, 'agencies', left);
+                const funders = TYCOONS.filter((t) => s.tycoons[t.id].rel < 35 && (t.funds === r.id || (t.funds === 'lead' && top.id === r.id)));
+                return (
+                  <li key={r.id} className="border border-ink/20 p-4">
+                    <p className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-serif text-xl">{r.name}</span>
+                      {inside ? <span className="label border border-state/50 px-1.5 py-0.5 text-state">In your government</span>
+                        : top.id === r.id && <span className="label border border-alarm/50 px-1.5 py-0.5 text-alarm">Your likely challenger</span>}
+                    </p>
+                    <p className="label text-ink-soft">{r.party} · strength {Math.round(v)}</p>
+                    <Bar v={v} bad />
+                    <p className="mt-2 text-sm leading-snug">{r.style}</p>
+                    <p className="mt-1 text-sm italic leading-snug text-ink-soft">{r.feeds}</p>
+                    {funders.length > 0 && <p className="mt-1 text-sm text-alarm">Funded by {funders.map((t) => t.short).join(' and ')}, who {funders.length === 1 ? 'has' : 'have'} turned against you.</p>}
+                    <FavoursOf s={s} id={r.id} dispatch={dispatch} left={left} />
+                    {!inside && (
+                      <div className="mt-3 flex flex-col gap-2">
+                        <button disabled={!coopt.ok} onClick={() => dispatch({ type: 'RIVAL', id: r.id, op: 'coopt' })} className={btn(coopt.ok, 'good')}>
+                          {r.deal.name} · {r.deal.pc} capital{r.deal.naira ? ` · ${naira(r.deal.naira)}` : ''}
+                          <span className="block text-[13px] leading-snug text-ink-soft">{coopt.ok ? r.deal.text : coopt.reason}</span>
+                        </button>
+                        <button disabled={!debate.ok} onClick={() => dispatch({ type: 'RIVAL', id: r.id, op: 'debate' })} className={btn(debate.ok)}>
+                          Debate them, live
+                          <span className="block text-[13px] leading-snug text-ink-soft">{debate.ok ? `Your approval against their strength, with some luck. You win if you are the more popular; today that is ${Math.round(approval(s))} against ${Math.round(v)}.` : debate.reason}</span>
+                        </button>
+                        <button disabled={!agencies.ok} onClick={() => dispatch({ type: 'RIVAL', id: r.id, op: 'agencies' })} className={btn(agencies.ok, 'bad')}>
+                          Set the agencies on them · 6 capital
+                          <span className="block text-[13px] leading-snug text-ink-soft">{agencies.ok ? 'Weakens them sharply. Costs integrity and the press. About one time in three it makes a martyr and they come back stronger.' : agencies.reason}</span>
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {!!s.flags['drawer.open'] && !s.flags['drawer.sealed'] && (() => {
+              const sp = canRival(s, top.id, 'spoiler', left);
               return (
-                <li key={r.id} className="border border-ink/20 p-4">
-                  <p className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-serif text-xl">{r.name}</span>
-                    {top.id === r.id && <span className="label border border-alarm/50 px-1.5 py-0.5 text-alarm">Your likely challenger</span>}
-                  </p>
-                  <p className="label text-ink-soft">{r.party}</p>
-                  <div className="mt-2 h-1.5 bg-ink/10"><div className="h-1.5 bg-alarm transition-all duration-700" style={{ width: `${v}%` }} /></div>
-                  <p className="mt-2 text-sm leading-snug">{r.style}</p>
-                  <p className="mt-1 text-sm italic leading-snug text-ink-soft">{r.feeds}</p>
-                </li>
+                <button disabled={!sp.ok} onClick={() => dispatch({ type: 'RIVAL', id: top.id, op: 'spoiler' })} className={`mt-3 w-full ${btn(sp.ok, 'bad')}`}>
+                  Fund a spoiler candidate · ₦15bn from the drawer
+                  <span className="block text-[13px] leading-snug text-ink-soft">{sp.ok ? 'A fourth candidate, a new party and a large billboard budget. Splits the opposition vote on election day. Somebody will know.' : sp.reason}</span>
+                </button>
               );
-            })}
-          </ul>
-        ) : (
+            })()}
+            <h3 className="label mt-6 border-b rule pb-1 text-ink-soft">What they have been doing</h3>
+            {s.oppLog.length === 0
+              ? <p className="mt-2 font-serif italic text-ink-soft">Nothing yet. They are waiting for you to give them an opening.</p>
+              : (
+                <ul className="mt-2 space-y-1.5">
+                  {[...s.oppLog].reverse().slice(0, 8).map((m, i) => (
+                    <li key={i} className="flex gap-3 font-serif leading-snug">
+                      <span className="label w-24 shrink-0 pt-1 text-ink-soft">{dateLabel(m.turn)}</span><span>{m.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </>
+        )}
+
+        {(tab === 'governor' || tab === 'senator' || tab === 'minister') && (
           <ul className="mt-4 space-y-3">
             {PEOPLE.filter((p) => p.group === tab).map((base) => {
               const p = personView(s, base.id);
+              const st = s.people[base.id];
               const court = canDeal(s, p.id, 'court', left);
               const grant = canDeal(s, p.id, 'grant', left);
               const press = canDeal(s, p.id, 'pressure', left);
               const leaned = !!p.compliantUntil && p.compliantUntil > s.turn;
               const eff = p.zone ? governorEffect(s, p.zone) : 0;
+              const card = base.group === 'minister' ? scorecard(s, base.id) : null;
+              const original = !st.name;
+              const sponsor = base.sponsor && original ? PERSON_BY_ID[base.sponsor] : null;
               return (
-                <li key={p.id} className="border border-ink/20 p-4">
+                <li key={p.id} className={`border p-4 ${st.gone ? 'border-alarm/40 opacity-70' : 'border-ink/20'}`}>
                   <p className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-serif text-xl">{p.name}</span>
-                    <span className={`font-serif ${p.standing < 42 ? 'text-alarm' : p.standing >= 58 ? 'text-state' : ''}`}>{relWord(p.standing)}{leaned && ' (leaned on)'}</span>
+                    <span className={`font-serif ${st.gone || p.standing < 42 ? 'text-alarm' : p.standing >= 58 ? 'text-state' : ''}`}>
+                      {st.gone ? 'Gone to the opposition' : relWord(p.standing)}{leaned && !st.gone && ' (obeying)'}
+                    </span>
                   </p>
                   <p className="label text-ink-soft">{p.title} · influence {'●'.repeat(p.clout ?? 1)}{'○'.repeat(5 - (p.clout ?? 1))}</p>
-                  <div className="mt-2 h-1.5 bg-ink/10"><div className={`h-1.5 transition-all duration-700 ${p.standing < 42 ? 'bg-alarm' : 'bg-state'}`} style={{ width: `${p.standing}%` }} /></div>
+                  <Bar v={p.standing} bad={p.standing < 42} />
                   <p className="mt-2 text-sm leading-snug">{p.bio}</p>
 
-                  {p.zone && (
+                  {p.zone && !st.gone && (
                     <p className={`mt-1 text-sm ${eff >= 0 ? 'text-state' : 'text-alarm'}`}>
                       On election day in the {ZONE_NAME[p.zone]}: {eff >= 0 ? '+' : ''}{eff.toFixed(1)} points
                     </p>
                   )}
-                  {p.group === 'minister' && (
-                    <p className="mt-1 text-sm text-ink-soft">
-                      Competence {'●'.repeat(p.competence ?? 3)}{'○'.repeat(5 - (p.competence ?? 3))} · reforms in this brief run at {Math.round(ministerSpeed(s, base.tracks?.[0] ?? '') * 100)}% speed
-                    </p>
-                  )}
 
-                  {base.want && !p.name?.includes('undefined') && p.group !== 'minister' && (
-                    <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
-                      <p className="label text-ink-soft">{p.granted ? 'You gave them' : 'Wants'}</p>
-                      <p className="font-serif leading-snug">{base.want.text}</p>
-                      {!p.granted && (
-                        <p className="mt-1 flex flex-wrap gap-x-3 text-[13px]">
-                          {describe(base.want.fx).map((c, i) => (
-                            <span key={i} className={c.good ? 'text-state' : 'text-alarm'}><span className="text-ink-soft">{c.label}</span> {c.arrows}</span>
+                  {card && (
+                    <div className="mt-3 border border-ink/15 bg-paper-dim p-3">
+                      <p className="flex items-baseline justify-between gap-2">
+                        <span className="label text-ink-soft">{card.published ? 'Published scorecard' : 'Scorecard · the Chief of Staff\'s private view'} · {card.months} months in the job</span>
+                        <span className={`font-serif text-3xl ${GRADE[card.grade]}`}>{card.grade}</span>
+                      </p>
+                      <p className="font-serif leading-snug">{card.read}</p>
+                      <ul className="mt-2 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
+                        <li className="flex justify-between gap-2"><span className="text-ink-soft">Competence</span><span>{'●'.repeat(p.competence ?? 3)}{'○'.repeat(5 - (p.competence ?? 3))}</span></li>
+                        {card.lines.map((l) => (
+                          <li key={l.label} className="flex justify-between gap-2">
+                            <span className="text-ink-soft">{l.label}</span>
+                            <span className={l.good === null ? '' : l.good ? 'text-state' : 'text-alarm'}>{l.value}</span>
+                          </li>
+                        ))}
+                        <li className="flex justify-between gap-2"><span className="text-ink-soft">Ambition</span><span>{['Content', 'Some', 'Considerable', 'Wants your job'][p.ambition ?? 0]}</span></li>
+                        {sponsor && <li className="flex justify-between gap-2"><span className="text-ink-soft">Nominee of</span><span>{sponsor.short}</span></li>}
+                      </ul>
+                      {card.marks.length > 0 && (
+                        <ul className="mt-2 space-y-0.5 text-[13px] leading-snug">
+                          {card.marks.map((m, i) => (
+                            <li key={i} className={m.d > 0 ? 'text-state' : 'text-alarm'}>{m.d > 0 ? '＋' : '−'} {m.text} <span className="text-ink-soft">({dateLabel(m.turn)})</span></li>
                           ))}
-                        </p>
+                        </ul>
                       )}
+                      <p className="mt-2 text-[12.5px] text-ink-soft">
+                        Reforms in this brief run at {Math.round(ministerSpeed(s, base.tracks?.[0] ?? '') * 100)}% speed. Big bets in it need competence of 4 or better.
+                        {!card.published && ' Deliver "Delivery unit and published scorecards" and these become public, and every minister works a little harder.'}
+                      </p>
                     </div>
                   )}
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button disabled={!court.ok} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'court' })}
-                      className={`border px-3 py-1.5 font-serif ${court.ok ? 'border-ink/30 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-45'}`}>
-                      Give them your time
-                    </button>
-                    {base.want && p.group !== 'minister' && !p.granted && (
-                      <button disabled={!grant.ok} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'grant' })}
-                        className={`border px-3 py-1.5 font-serif ${grant.ok ? 'border-state bg-state/10 hover:bg-state/20' : 'border-ink/10 opacity-45'}`}>
-                        Give them what they want{[base.want.pc && ` · ${base.want.pc} capital`, base.want.naira && ` · ${naira(base.want.naira)}`].filter(Boolean).join('')}
+                  <FavoursOf s={s} id={p.id} dispatch={dispatch} left={left} />
+
+                  {base.want && original && !st.gone && (
+                    <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
+                      <p className="label text-ink-soft">{p.granted ? 'You gave them' : 'Wants'}</p>
+                      <p className="font-serif leading-snug">{base.want.text}</p>
+                      {!p.granted && <Fx fx={base.want.fx} />}
+                    </div>
+                  )}
+
+                  {!st.gone && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button disabled={!court.ok} title={court.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'court' })} className={btn(court.ok)}>
+                        Give them your time
                       </button>
-                    )}
-                    {p.group !== 'minister' && (
-                      <button disabled={!press.ok} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'pressure' })}
-                        className={`border px-3 py-1.5 font-serif ${press.ok ? 'border-alarm/50 text-alarm hover:bg-alarm/5' : 'border-ink/10 opacity-45'}`}>
-                        Lean on them · 4 capital
-                      </button>
-                    )}
-                    {p.group === 'minister' && (['technocrat', 'party'] as const).map((kind) => {
-                      const ok = left > 0 && s.pc >= 6;
-                      return (
-                        <button key={kind} disabled={!ok} onClick={() => dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind })}
-                          className={`border px-3 py-1.5 font-serif ${ok ? 'border-ink/30 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-45'}`}>
-                          {kind === 'technocrat' ? 'Replace with a technocrat' : 'Replace with a party nominee'} · 6 capital
+                      {base.want && original && !p.granted && (
+                        <button disabled={!grant.ok} title={grant.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'grant' })} className={btn(grant.ok, 'good')}>
+                          Give them what they want{[base.want.pc && ` · ${base.want.pc} capital`, base.want.naira && ` · ${naira(base.want.naira)}`].filter(Boolean).join('')}
                         </button>
-                      );
-                    })}
-                  </div>
-                  {p.group !== 'minister' && (
+                      )}
+                      {base.group !== 'minister' && (
+                        <button disabled={!press.ok} title={press.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'pressure' })} className={btn(press.ok, 'bad')}>
+                          Lean on them · 4 capital
+                        </button>
+                      )}
+                      {base.group === 'minister' && (['technocrat', 'party'] as const).map((kind) => {
+                        const ok = left > 0 && s.pc >= 6;
+                        return (
+                          <button key={kind} disabled={!ok} onClick={() => dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind })} className={btn(ok)}>
+                            {kind === 'technocrat' ? 'Replace with a technocrat' : 'Replace with a party nominee'} · 6 capital
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {base.group !== 'minister' && !st.gone && (
                     <p className="mt-2 text-[13px] leading-snug text-ink-soft">
-                      Time warms them a little, less each visit. Giving them what they want wins them properly, at the price shown, and earns you 5 political capital. Leaning on them buys eight months of obedience and a lasting grudge.
+                      Time warms them a little, less each visit. Giving them what they want wins them properly and leaves them owing you a favour. Leaning on them buys eight months of obedience and a lasting grudge.
                     </p>
                   )}
-                  {p.group === 'minister' && (
+                  {base.group === 'minister' && (
                     <p className="mt-2 text-[13px] leading-snug text-ink-soft">
-                      A technocrat is highly competent and the party will resent it. A party nominee pleases the governors and slows every reform in the brief.
+                      A technocrat is highly competent and clean, and the party will resent it{sponsor ? `; ${sponsor.short} will take it personally` : ''}. A party nominee pleases the governors, slows every reform in the brief, and is not to be trusted with money.
                     </p>
                   )}
                 </li>
@@ -159,3 +387,5 @@ export function PeopleModal({ s, dispatch, onClose }: { s: GameState; dispatch: 
     </div>
   );
 }
+
+export { kindOf, regard };

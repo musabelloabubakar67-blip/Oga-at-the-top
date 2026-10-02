@@ -91,24 +91,36 @@ export function deskEvent(s: GameState, id: string): GameEvent | undefined {
 
 import { describe } from './effects';
 import { projectMargin } from './election';
-import type { Choice, Fx } from './types';
+import { who } from './favours';
+import { opText } from './ops';
+import { aidedFx } from './reduce';
+import type { Aid, Choice, Fx } from './types';
 import { hardship, test } from './vars';
 
 export interface Preview {
   now: ReturnType<typeof describe>;
   later: ReturnType<typeof describe>;
+  /** Things the choice does that are not numbers: who is paid, who is replaced, what is owed. */
+  notes: string[];
   risky: boolean;
   leadsOn: boolean;
 }
 
 /** What the President's advisers expect a choice to do. Risky choices show their likelier outcome. */
-export function previewChoice(s: GameState, c: Choice): Preview {
+export function previewChoice(s: GameState, c: Choice, aid?: Aid): Preview {
   const o = c.outcomes.find((x) => test(s, x.when)) ?? c.outcomes[c.outcomes.length - 1];
-  const now: Fx[] = [...(o.fx ?? [])];
+  const now: Fx[] = [...aidedFx(s, o.fx, aid)];
   if (c.naira) now.push(['nation.fiscalSpace', -c.naira]);
+  const notes = (o.ops ?? []).map((op) => opText(s, op)).filter((x): x is string => !!x);
+  if (o.favour) {
+    const w = who(s, o.favour[0]);
+    notes.push(o.favour[1] === 'owed' ? `${w.short} will owe you` : `You will owe ${w.short}`);
+  }
+  if (o.exposure) notes.push('Somebody will know what you did');
   return {
     now: describe(now),
     later: describe((o.later ?? []).flatMap((l) => l.fx)),
+    notes,
     risky: c.outcomes.some((x) => x.chance !== undefined),
     leadsOn: (o.follow?.length ?? 0) > 0,
   };
@@ -121,6 +133,8 @@ export function gauges(s: GameState): Gauge[] {
   const b = s.baseline;
   const p = s.prev;
   const h = hardship(s);
+  const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
+  const saved = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
   const g = (label: string, value: string, now: number, prev: number | undefined, base: number, upIsGood: boolean, unit: string, bar?: number): Gauge =>
     ({ label, value, bar, delta: now - (prev ?? now), since: now - base, upIsGood, unit });
   return [
@@ -128,6 +142,8 @@ export function gauges(s: GameState): Gauge[] {
     g('Inflation', `${n.inflation.toFixed(1)}%`, n.inflation, p['nation.inflation'], b.inflation, false, ' pts'),
     g('Treasury', n.fiscalSpace <= 0.01 ? 'Empty' : `₦${n.fiscalSpace.toFixed(1)}tn`, n.fiscalSpace, p['nation.fiscalSpace'], b.fiscalSpace, true, 'tn'),
     g('Debt service', `${Math.round(n.debt)}% of revenue`, n.debt, p['nation.debt'], b.debt, false, ' pts'),
+    g('Unpaid bills', arrears <= 0.01 ? 'None' : `₦${arrears.toFixed(1)}tn`, arrears, p['debt.arrears'], 2.5, false, 'tn'),
+    g('Saved', saved <= 0.01 ? 'Nothing' : `₦${saved.toFixed(1)}tn`, saved, p['fund.total'], 0.3, true, 'tn'),
     g('Security', Math.round(n.security).toString(), n.security, p['nation.security'], b.security, true, '', n.security),
     g('Power', Math.round(n.power).toString(), n.power, p['nation.power'], b.power, true, '', n.power),
     g('Jobs and industry', Math.round(n.jobs).toString(), n.jobs, p['nation.jobs'], b.jobs, true, '', n.jobs),
@@ -156,7 +172,7 @@ export function recordOf(s: GameState): RecordView {
   const losses: string[] = [];
   for (const id of s.agenda.done) { const m = MILESTONE_BY_ID[id]; if (m) wins.push(`Delivered: ${m.m.name}`); }
   for (const id of s.ventures.won) { const v = VENTURE_BY_ID[id]; if (v) wins.push(`It worked: ${v.name}`); }
-  for (const id of s.ventures.lost) { const v = VENTURE_BY_ID[id]; if (v) losses.push(`It failed: ${v.name}`); }
+  for (const id of s.ventures.lost) { const v = VENTURE_BY_ID[id]; if (v) losses.push(`It failed: ${v.name}${s.ventures.causes[id] ? ` (${s.ventures.causes[id].replace(/ \(.*$/, '').toLowerCase()})` : ''}`); }
   for (const id of new Set(s.agenda.failed.map((f) => f.id))) {
     if (!s.agenda.done.includes(id)) { const m = MILESTONE_BY_ID[id]; if (m) losses.push(`Defeated in the Assembly: ${m.m.name}`); }
   }

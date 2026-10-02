@@ -1,27 +1,45 @@
 import { EVENTS } from '../content';
 import { MILESTONE_BY_ID, ORDERS, ORDER_BY_ID, type Order } from '../content/agenda';
-import { VENTURE_BY_ID, type Venture } from '../content/ventures';
 import { CAST, FINANCE_CANDIDATES } from '../content/names';
+import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { STATES, STATE_BY_ID } from '../content/states';
+import { addExposure, record } from './archive';
+import {
+  canDelay, canRescue, canVenture, delay, launchVenture, openedBy, rescue, ventureTick,
+} from './bets';
+import { movesTotal } from './capital';
+import { eventOf } from './cast';
 import { CFG, termTurnOf } from './config';
 import { buildDesk } from './director';
-import { movesTotal } from './capital';
 import { describe, diff, snapshot } from './effects';
-import { canDeal, deal, initPeople, ministerSpeed, replaceMinister, type PersonOp } from './people';
 import { runElection } from './election';
-import { buildPaper } from './press';
+import { callFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
+import { canRival, rivalDeal, type RivalOp } from './opposition';
+import { runOp } from './ops';
+import {
+  addMark, canDeal, deal, governorEffect, governorOf, initPeople, ministerFor, ministerForEvent, ministerSpeed,
+  personView, relWord, replaceMinister, stampMinisters, strongestRival, type PersonOp,
+} from './people';
+import { buildPapers } from './press';
 import { rand, randInt } from './rng';
+import { canFocus, initSecurity, setFocus } from './security';
 import { fill } from './text';
 import { applyLedger, economyTick, politicsTick } from './tick';
+import {
+  buildCost, buildSpeed, canBudget, canFund, canPay, canSecuritise, drawsOnInfra, initTreasury, moveFund, pay, payBuild,
+  securitise, setBudget,
+} from './treasury';
 import type {
-  Action, ActionId, ArchiveEntry, Category, Choice, DrawerOp, EndingKind, ExposureSpec, Fx,
-  GameEvent, GameState, Milestone, Nation, Outcome, Setup, ZoneId,
+  Action, ActionId, Aid, ArchiveEntry, Category, Choice, DrawerOp, EndingKind, Fx, GameEvent, GameState, Milestone,
+  Nation, Outcome, Setup, Topic, ZoneId,
 } from './types';
-import { ZONES, ZONE_NAME, applyFx, approval, clamp, hardship, test } from './vars';
+import { ZONES, ZONE_NAME, addFavour, applyFx, approval, clamp, favoursOwed, hardship, standing, test } from './vars';
+
+export {
+  canDelay, canRescue, canVenture, partnerIn, rescueCost, risksOf, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
+} from './bets';
 
 // ---------------------------------------------------------------- new game
-
-const ZONE_SECURITY: Record<ZoneId, number> = { NW: -8, NE: -10, NC: -6, SW: 10, SE: 2, SS: 4 };
 
 export function newGame(setup: Setup): GameState {
   const nation: Nation = {
@@ -30,7 +48,8 @@ export function newGame(setup: Setup): GameState {
   };
   const home = STATE_BY_ID[setup.home] ?? STATES[0];
   const s: GameState = {
-    version: 2,
+    version: 3,
+    setup,
     seed: setup.seed,
     rng: setup.seed | 0,
     phase: 'papers',
@@ -70,25 +89,40 @@ export function newGame(setup: Setup): GameState {
     exposures: [],
     desk: { lead: null, minors: [], actionsUsed: 0, drawerUsed: false, note: '' },
     news: [],
-    paper: null,
+    papers: [],
     election: null,
     succession: null,
     ending: null,
     counters: {},
     agenda: { tracks: setup.priorities.slice(0, 4), done: [], active: [], failed: [] },
-    ventures: { active: [], won: [], lost: [] },
+    ventures: { active: [], won: [], lost: [], causes: {} },
     report: [],
     prev: {},
     lastAction: null,
     people: {},
     opposition: {},
+    oppLog: [],
     offers: [],
+    debts: {} as GameState['debts'],
+    funds: {} as GameState['funds'],
+    oil: { price: 74, output: 1.75, prev: 74 },
+    budget: { year: CFG.startYear, benchmark: 70, alloc: {} as GameState['budget']['alloc'], due: false },
+    favours: [],
+    tycoons: {},
+    theatres: {} as GameState['theatres'],
+    focus: null,
+    used: {},
+    stories: [],
+    bets: {},
   };
   initPeople(s);
+  initSecurity(s);
+  initTreasury(s);
+  initTycoons(s);
 
   for (const z of ZONES) {
     const lean = (rand(s) * 2 - 1) * 4 + (z === home.zone ? 4 : 0);
-    s.zones[z] = { approval: 56 + lean, security: ZONE_SECURITY[z], lean };
+    s.zones[z] = { approval: 56 + lean, lean };
   }
   for (const st of STATES) s.stateLean[st.id] = (rand(s) * 2 - 1) * 7;
 
@@ -110,9 +144,11 @@ export function newGame(setup: Setup): GameState {
 
   s.archive = [
     inherited(-30, 'Signed the university funding agreement. No budget line was created.', { 'flag:uni.agreement': 1, 'pressure.wageGrievance': 6 }),
+    inherited(-24, 'Stopped paying the gas suppliers. The power plants went idle.', { 'nation.power': -6, 'debt.gas': 0.7 }),
     inherited(-20, 'Deferred maintenance of the transmission network for a third year.', { 'nation.power': -6 }),
+    inherited(-16, 'Had the central bank lend the government ₦4.8tn it created for the purpose.', { 'debt.ways': 4.8, 'nation.inflation': 3 }),
     inherited(-14, 'Capped the pump price of petrol and funded the difference by borrowing.', { 'nation.fiscalSpace': -1.2, 'nation.debt': 6, 'pressure.fuelSupplyStress': 12 }),
-    inherited(-9, 'Borrowed to pay salaries.', { 'nation.debt': 5 }),
+    inherited(-9, 'Borrowed to pay salaries, and left contractors and pensioners unpaid.', { 'nation.debt': 5, 'debt.contractors': 1.2, 'debt.pensions': 0.6 }),
     inherited(-6, 'Announced that the refinery was 95% complete.', { 'counter.refinery': 1 }),
     {
       id: 'a-fin', turn: 0, eventId: 'transition', choiceId: 'finance', category: 'politics',
@@ -120,25 +156,38 @@ export function newGame(setup: Setup): GameState {
     },
   ];
 
+  stampMinisters(s);
   s.baseline = { ...s.nation, approval: 50, hardship: hardship(s) };
   s.prev = { ...snapshot(s), hardship: hardship(s) };
   s.blocsPrev = { ...s.blocs };
   s.approvalPrev = approval(s);
   buildDesk(s);
   refreshOffers(s);
-  s.paper = {
-    outlet: 'chronicle',
-    turn: 1,
-    lead: fill(s, '{NAME} SWORN IN, PROMISES "A NEW DAWN"'),
-    standfirst: fill(s, 'The new President took the oath at Eagle Square before a crowd that had heard it before. In a 43-minute address the President pledged to "hit the ground running."'),
-    others: [
-      fill(s, 'OUTGOING ADMINISTRATION SAYS IT IS LEAVING THE ECONOMY "ON A SOUND FOOTING"'),
-      fill(s, 'HANDOVER NOTES RUN TO 2,400 PAGES; TREASURY SECTION IS BRIEF'),
-    ],
-    number: { label: 'Debt service, share of revenue', value: '66%' },
-    sidebar: { kicker: 'OVERHEARD AT EAGLE SQUARE', text: '"Let us give them one year. Then we will know." — a civil servant, to nobody in particular.' },
-    special: 'INAUGURATION EDITION',
-  };
+  const backer = who(s, String(s.flags.financier));
+  s.papers = [
+    {
+      outlet: 'chronicle', stance: 'record', turn: 1,
+      lead: fill(s, '{NAME} SWORN IN, PROMISES "A NEW DAWN"'),
+      standfirst: '',
+      body: fill(s, 'The new President took the oath at Eagle Square before a crowd that had heard it before. In a 43-minute address the President pledged to "hit the ground running". The handover notes run to 2,400 pages. The section on what the government owes is brief, and the figures in it are not: ₦20tn in bonds and central bank lending, and ₦2.5tn unpaid to gas suppliers, contractors and pensioners.'),
+      others: [
+        fill(s, 'OUTGOING ADMINISTRATION SAYS IT IS LEAVING THE ECONOMY "ON A SOUND FOOTING"'),
+        fill(s, 'DEBT SERVICE NOW TAKES 66% OF REVENUE — DEBT OFFICE'),
+      ],
+      sidebar: { kicker: 'OVERHEARD AT EAGLE SQUARE', text: '"Let us give them one year. Then we will know." — a civil servant, to nobody in particular.' },
+      special: 'INAUGURATION EDITION',
+    },
+    {
+      outlet: 'rejoinder', stance: 'hostile', turn: 1, strap: 'The other side',
+      lead: `WHO PAID FOR THE INAUGURATION? ASK ${backer.short.toUpperCase()}`,
+      fact: fill(s, '{NAME} SWORN IN AS PRESIDENT'),
+      standfirst: 'This newspaper wishes the new President well, and will be keeping a list.',
+      body: `${backer.name}, ${backer.title.toLowerCase()}, sat in the second row at Eagle Square, between two governors. Nobody who financed a campaign of that size has ever done so as a gift. The President owes, and the country will learn in time what the repayment is.`,
+      others: ['GOVERNORS\' FORUM "LOOKS FORWARD TO WORKING WITH" THE PRESIDENT IT DELIVERED', 'THREE OPPOSITION LEADERS ATTEND; NONE APPLAUDS'],
+      special: 'INAUGURATION EDITION',
+      owner: `Backs ${fill(s, '{OPP}')}`,
+    },
+  ];
   return s;
 }
 
@@ -176,34 +225,99 @@ function pickOutcome(s: GameState, c: Choice): Outcome {
   return c.outcomes[c.outcomes.length - 1];
 }
 
-function addExposure(s: GameState, x: ExposureSpec, causeId: string, label: string): void {
-  s.exposures.push({ ...x, turn: s.turn, causeId, label });
-  if (x.kind === 'tolerated') s.counters.tolerated = (s.counters.tolerated ?? 0) + 1;
-  applyFx(s, ['pressure.scandalHeat', 2 + x.trail * 2]);
+const TOPIC: Record<string, Topic> = {
+  economy: 'money', labour: 'labour', security: 'security', infrastructure: 'power', politics: 'politics',
+  scandal: 'scandal', ceremonial: 'general', fortune: 'general', temptation: 'scandal',
+};
+
+/** How far one effect makes a story good or bad news. */
+function newsWeightOf(f: Fx): number {
+  const [t, d] = f;
+  if (t === 'approval') return d * 2;
+  if (t === 'bloc.street' || t === 'bloc.press') return d;
+  if (t === 'nation.inflation') return -d * 1.5;
+  if (t === 'nation.petrolPrice') return -d / 100;
+  if (t === 'nation.fiscalSpace' || t === 'nation.debt') return 0;
+  if (t.startsWith('nation.')) return d * 0.8;
+  if (t.startsWith('theatre.')) return -d * 0.6;
+  if (t.startsWith('zone.') && t.endsWith('.approval')) return d * 0.5;
+  if (t === 'pressure.scandalHeat' || t === 'pressure.wageGrievance' || t === 'pressure.fuelSupplyStress') return -d * 0.2;
+  if (t === 'bonus.inflation') return -d * 2;
+  return 0;
 }
 
-function record(
-  s: GameState, eventId: string, choiceId: string, category: ArchiveEntry['category'],
-  headline: string, sig: 1 | 2 | 3, sealed = false,
-): ArchiveEntry {
-  const entry: ArchiveEntry = {
-    id: `a${s.archive.length}`, turn: s.turn, eventId, choiceId, category,
-    headline: fill(s, headline), sig, sealed, touches: {},
-  };
-  s.archive.push(entry);
-  return entry;
+// ---- help attached to a decision
+
+/** The minister who can be put in front of this file, if there is one willing. */
+export function shieldFor(s: GameState, e: GameEvent): { id: string; ok: boolean; reason?: string } | null {
+  if (e.slot !== 'lead') return null;
+  const id = ministerForEvent(e.category, e.id);
+  if (!id || !s.people[id]) return null;
+  if (standing(s, id) < 35) return { id, ok: false, reason: 'Will not take the blame for you. You are not on those terms.' };
+  if ((s.counters[`shield.${id}`] ?? -99) > s.turn - 6) return { id, ok: false, reason: 'Took the blame for something else this half-year. Twice would end a career.' };
+  return { id, ok: true };
 }
 
-function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, cost?: Choice): string {
+/** What a favour or a minister changes about an outcome's immediate effects. */
+export function aidedFx(s: GameState, fx: Fx[] | undefined, aid: Aid | undefined): Fx[] {
+  if (!fx || !aid) return fx ?? [];
+  const f = aid.favour !== undefined ? s.favours.find((x) => x.id === aid.favour && x.dir === 'owed') : undefined;
+  const soften = f ? 1 - 0.25 * f.size : 1;
+  return fx.map(([t, d, sp]) => {
+    let v = d;
+    if (v < 0 && f && (t === 'bloc.party' || t === 'bloc.establishment' || t === 'bloc.villa' || t.startsWith('person.'))) v *= soften;
+    if (v < 0 && aid.minister && (t === 'approval' || t === 'bloc.street' || t === 'bloc.press' || (t.startsWith('zone.') && t.endsWith('.approval')))) v *= 0.5;
+    return [t, v, sp] as Fx;
+  });
+}
+
+/** Political capital a favour saves on a decision. */
+export function aidedPc(s: GameState, pc: number | undefined, aid: Aid | undefined): number {
+  if (!pc) return 0;
+  const f = aid?.favour !== undefined ? s.favours.find((x) => x.id === aid.favour && x.dir === 'owed') : undefined;
+  return f ? Math.max(0, pc - 5 * f.size) : pc;
+}
+
+/** The favours that could be called in on a file: anyone who owes you and still takes your calls. */
+export function favoursFor(s: GameState, e: GameEvent) {
+  if (e.slot !== 'lead') return [];
+  return favoursOwed(s).filter((f) => regard(s, f.who) >= 30 && !s.people[f.who]?.gone);
+}
+
+function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, cost?: Choice, aid?: Aid): string {
   const entry = record(s, e.id, choiceId, e.category, o.archive, o.sig ?? (e.slot === 'lead' ? 2 : 1), !!o.exposure);
   if (cost?.naira) applyFx(s, ['nation.fiscalSpace', -cost.naira], entry.touches);
-  for (const fx of o.fx ?? []) {
-    applyFx(s, fx, entry.touches);
+  const fx = aidedFx(s, o.fx, aid);
+  let net = 0;
+  for (const f of fx) {
+    applyFx(s, f, entry.touches);
     // The price of saying no: cleaning up leaves the party less to share. It falls as institutions strengthen.
-    if (fx[0] === 'nation.integrity' && fx[1] > 0) {
-      applyFx(s, ['bloc.party', -fx[1] * CFG.cleanCost * (1 - s.nation.integrity / 120)], entry.touches);
+    if (f[0] === 'nation.integrity' && f[1] > 0) {
+      applyFx(s, ['bloc.party', -f[1] * CFG.cleanCost * (1 - s.nation.integrity / 120)], entry.touches);
+    }
+    // A governor shares the credit, and the blame, for what happens in the zone.
+    const zm = /^zone\.(\w+)\.approval$/.exec(f[0]);
+    if (zm) {
+      const g = governorOf(zm[1] as ZoneId);
+      const st = g ? s.people[g.id] : undefined;
+      if (st && !st.gone) st.rel = clamp(st.rel + f[1] * 0.5, 0, 100);
+    }
+    if (f[0] === 'approval' || f[0].startsWith('nation.') && f[0] !== 'nation.fiscalSpace' && f[0] !== 'nation.debt') {
+      net += f[0] === 'approval' ? f[1] : (f[0] === 'nation.inflation' || f[0] === 'nation.petrolPrice' ? 0 : f[1] * 0.5);
     }
   }
+  // A file from the Senate or the Governors' Forum is a dealing with the person who runs it.
+  const counterpart = e.cast ? null : /Senate/.test(e.office ?? '') ? 'sen_pres' : /Governors/.test(e.office ?? '') ? 'gov_ss' : /Appropriation|Budget Office/.test(e.office ?? '') ? 'sen_approp' : null;
+  if (counterpart && s.people[counterpart] && !s.people[counterpart].gone) {
+    const d = fx.reduce((a, f) => a + (f[0] === 'bloc.party' ? f[1] : 0), 0);
+    if (d) s.people[counterpart].rel = clamp(s.people[counterpart].rel + d * 1.2, 0, 100);
+  }
+  let extra = '';
+  for (const op of o.ops ?? []) {
+    const t = runOp(s, op);
+    if (t) extra += ` ${t}`;
+  }
+  if (o.favour) addFavour(s, o.favour[0], o.favour[1], o.favour[2], fill(s, o.archive));
   for (const l of o.later ?? []) {
     const after = Array.isArray(l.after) ? randInt(s, l.after[0], l.after[1]) : l.after;
     s.ledger.push({ due: s.turn + after, fx: l.fx, label: l.label, when: l.when, note: l.note, causeId: entry.id });
@@ -218,11 +332,17 @@ function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, 
     const after = Array.isArray(f.after) ? randInt(s, f.after[0], f.after[1]) : f.after;
     s.queue.push({ event: f.event, due: s.turn + after, when: f.when });
   }
+  // The minister whose brief it is carries the result on their record.
+  const brief = e.slot === 'lead' ? ministerForEvent(e.category, e.id) : null;
+  if (brief && Math.abs(net) >= 2.5 && !aid?.minister) addMark(s, brief, net > 0 ? 1 : -1, entry.headline);
   if (o.news) {
-    const mood = (o.fx ?? []).reduce((a, f) => a + (f[0] === 'approval' ? f[1] * 2 : f[0] === 'bloc.street' || f[0] === 'bloc.press' ? f[1] : 0), 0);
+    // Whether this is good or bad news for the government, judged on everything it did.
+    const mood = (o.fx ?? []).reduce((a, f) => a + newsWeightOf(f), 0) + (o.later ?? []).reduce((a, l) => a + l.fx.reduce((b, f) => b + newsWeightOf(f) * 0.5, 0), 0);
+    const cast = e.cast ? Object.keys(e.cast)[0] : undefined;
     s.news.push({
       chronicle: o.news[0], street: o.news[1], weight: o.newsWeight ?? (e.slot === 'lead' ? e.intensity + 1 : 1.5),
-      body: o.result, valence: Math.sign(mood),
+      body: o.result, valence: Math.abs(mood) < 1.5 ? 0 : Math.sign(mood), topic: e.topic ?? TOPIC[e.category] ?? 'general', grave: e.tone === 'grave',
+      about: (cast && s.desk.lead?.cast?.[cast]) || brief || undefined,
     });
   }
   if (o.exposure) addExposure(s, o.exposure, entry.id, entry.headline);
@@ -234,25 +354,48 @@ function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, 
   }
   s.choices[e.id] = choiceId;
   if (o.ends) end(s, o.ends);
-  return fill(s, o.result);
+  return fill(s, o.result) + extra;
 }
 
-function choose(s: GameState, eventId: string, choiceId: string): void {
+function choose(s: GameState, eventId: string, choiceId: string, aid?: Aid): void {
   const item = s.desk.lead?.eventId === eventId ? s.desk.lead : s.desk.minors.find((m) => m.eventId === eventId);
-  const e = EVENTS[eventId];
+  const e = eventOf(s, item);
   if (!item || item.resolved || !e) return;
   const c = e.choices.find((x) => x.id === choiceId);
-  const a = c ? availability(s, c) : null;
-  if (!c || !a || !a.ok) return;
+  if (!c) return;
+
+  // Help the President has attached: someone who owes a favour, or a minister to stand in front.
+  const favour = aid?.favour !== undefined ? favoursFor(s, e).find((f) => f.id === aid.favour) : undefined;
+  const shield = aid?.minister ? shieldFor(s, e) : null;
+  const used: Aid = { favour: favour?.id, minister: !!shield?.ok };
+  const pc = aidedPc(s, c.pc, used);
+  const a = availability(s, { ...c, pc });
+  if (!a.ok) return;
 
   const before = snapshot(s);
   if (a.overdraft) overdraw(s, a.overdraft);
-  if (c.pc) s.pc = clamp(s.pc - c.pc, 0, 100);
+  if (pc) s.pc = clamp(s.pc - pc, 0, 100);
   if (c.purse) {
     s.purse -= c.purse;
     s.purseTaken.political += c.purse;
   }
-  const result = applyOutcome(s, e, c.id, pickOutcome(s, c), c);
+  let result = applyOutcome(s, e, c.id, pickOutcome(s, c), c, used);
+  if (favour) {
+    const w = who(s, favour.who);
+    s.favours = s.favours.filter((f) => f.id !== favour.id);
+    const cost = 3 * favour.size;
+    if (s.people[favour.who]) s.people[favour.who].rel = clamp(s.people[favour.who].rel - cost, 0, 100);
+    if (s.tycoons[favour.who]) s.tycoons[favour.who].rel = clamp(s.tycoons[favour.who].rel - cost, 0, 100);
+    result += ` ${w.short} made the calls that needed making. That debt is now paid.`;
+  }
+  if (shield?.ok) {
+    const st = s.people[shield.id];
+    const w = who(s, shield.id);
+    st.rel = clamp(st.rel - 8, 0, 100);
+    s.counters[`shield.${shield.id}`] = s.turn;
+    addMark(s, shield.id, -1, `Took the blame: ${fill(s, e.title)}`);
+    result += ` ${w.name} announced it, defended it and was blamed for it. That is on the minister's record now, and the minister knows who put it there.`;
+  }
   item.resolved = { choiceId: c.id, label: fill(s, c.label), result, signed: c.sign, changes: diff(before, snapshot(s)) };
 }
 
@@ -304,22 +447,24 @@ function act(s: GameState, a: ActionId, zone?: ZoneId): void {
       if (h < 58) {
         run([['approval', 4, 1], ['bloc.press', 3], ['bloc.street', 4]]);
         result = 'The broadcast is well received. The facts, for once, supported the speech.';
-        s.news.push({ chronicle: 'PRESIDENT ADDRESSES NATION, URGES PATIENCE', street: '{NAME} SPEAKS. THIS TIME, PEOPLE LISTENED', weight: 2.5 });
+        s.news.push({ chronicle: 'PRESIDENT ADDRESSES NATION, URGES PATIENCE', street: '{NAME} SPEAKS. THIS TIME, PEOPLE LISTENED', weight: 2.5, valence: 1, topic: 'general' });
       } else {
         run([['approval', -1.5, 1], ['bloc.street', -2], ['bloc.press', -1]]);
         result = 'The broadcast runs for 28 minutes. The generator in the viewing centre runs for 19.';
-        s.news.push({ chronicle: 'PRESIDENT ADDRESSES NATION, URGES PATIENCE', street: '"PATIENCE" TRENDS AS {NAME} BEGS NIGERIANS AGAIN', weight: 2.5 });
+        s.news.push({ chronicle: 'PRESIDENT ADDRESSES NATION, URGES PATIENCE', street: '"PATIENCE" TRENDS AS {NAME} BEGS NIGERIANS AGAIN', weight: 2.5, valence: -1, topic: 'prices' });
       }
       break;
-    case 'tour':
+    case 'tour': {
       entry = record(s, 'action.tour', z, 'action', `Toured the ${ZONE_NAME[z]}.`, 1);
-      {
-        const recent = s.archive.filter((x) => x.eventId === 'action.tour' && x.choiceId === z && s.turn - x.turn <= 10).length - 1;
-        run([[`zone.${z}.approval`, Math.max(2, (s.zones[z].approval < 40 ? 9 : 7) - recent * 2.5), 1], ['bloc.street', 2], ['approval', 0.5]]);
-      }
-      result = `Three states in four days. The ${ZONE_NAME[z]} has seen the President in person, which is more than it expected.`;
-      s.news.push({ chronicle: `PRESIDENT BEGINS WORKING VISIT TO ${ZONE_NAME[z].toUpperCase()}`, street: `{NAME} LANDS IN ${ZONE_NAME[z].toUpperCase()}; ROADS REPAIRED OVERNIGHT`, weight: 2 });
+      const recent = s.archive.filter((x) => x.eventId === 'action.tour' && x.choiceId === z && s.turn - x.turn <= 10).length - 1;
+      run([[`zone.${z}.approval`, Math.max(2, (s.zones[z].approval < 40 ? 9 : 7) - recent * 2.5), 1], ['bloc.street', 2], ['approval', 0.5]]);
+      // The governor is seen beside the President, which is worth something to both.
+      const g = governorOf(z);
+      if (g && s.people[g.id] && !s.people[g.id].gone) s.people[g.id].rel = clamp(s.people[g.id].rel + 3, 0, 100);
+      result = `Three states in four days. The ${ZONE_NAME[z]} has seen the President in person, which is more than it expected.${g ? ` ${personView(s, g.id).short} was at your side throughout, and made sure the cameras noticed.` : ''}`;
+      s.news.push({ chronicle: `PRESIDENT BEGINS WORKING VISIT TO ${ZONE_NAME[z].toUpperCase()}`, street: `{NAME} LANDS IN ${ZONE_NAME[z].toUpperCase()}; ROADS REPAIRED OVERNIGHT`, weight: 2, valence: 1, topic: 'politics', about: g?.id });
       break;
+    }
     case 'audit':
       entry = record(s, 'action.audit', '', 'action', 'Ordered a forensic audit of ministry accounts.', 2);
       run([['nation.integrity', 4], ['pressure.scandalHeat', -15], ['bloc.party', -4], ['bloc.villa', -2], ['bloc.press', 4]]);
@@ -329,22 +474,26 @@ function act(s: GameState, a: ActionId, zone?: ZoneId): void {
         note: ['AUDIT RECOVERS ₦150BN FROM MINISTRY ACCOUNTS', 'AUDIT FINDS ₦150BN. NOW WHO GO JAIL?'],
       });
       entry.touches['nation.integrity'] = (entry.touches['nation.integrity'] ?? 0) + 1.5;
+      // The auditors go where the money is. A minister with something to hide is found out.
+      for (const p of PEOPLE) {
+        if (p.group === 'minister' && (personView(s, p.id).integrity ?? 3) <= 2) addMark(s, p.id, -1, 'Audit: questions over the ministry\'s accounts');
+      }
       result = 'The auditors arrive on Monday. By Tuesday several directors have discovered urgent medical appointments abroad.';
-      s.news.push({ chronicle: 'PRESIDENT ORDERS FORENSIC AUDIT OF MINISTRIES', street: 'AUDIT: BIG MEN ARE SUDDENLY "TRAVELLING"', weight: 2.5 });
+      s.news.push({ chronicle: 'PRESIDENT ORDERS FORENSIC AUDIT OF MINISTRIES', street: 'AUDIT: BIG MEN ARE SUDDENLY "TRAVELLING"', weight: 2.5, valence: 1, topic: 'scandal' });
       break;
     case 'convene':
       entry = record(s, 'action.convene', '', 'action', 'Convened a stakeholders\' meeting.', 1);
       run([['pc', 5], ['bloc.establishment', 2], ['bloc.party', 2]]);
       s.counters.stakeholders = (s.counters.stakeholders ?? 0) + 1;
       result = 'Stakeholders have been extensively engaged. A communiqué was issued. Everyone left satisfied and nothing has changed.';
-      s.news.push({ chronicle: 'PRESIDENT MEETS STAKEHOLDERS, CALLS TALKS "FRUITFUL"', street: `STAKEHOLDERS MEETING NUMBER ${s.counters.stakeholders}. WE ARE COUNTING`, weight: 1 });
+      s.news.push({ chronicle: 'PRESIDENT MEETS STAKEHOLDERS, CALLS TALKS "FRUITFUL"', street: `STAKEHOLDERS MEETING NUMBER ${s.counters.stakeholders}. WE ARE COUNTING`, weight: 1, valence: 0, topic: 'politics' });
       break;
     case 'rally':
       entry = record(s, 'action.rally', z, 'action', `Held a campaign rally in the ${ZONE_NAME[z]}.`, 1);
       s.campaign.rallies[z] = (s.campaign.rallies[z] ?? 0) + 1;
       run([[`zone.${z}.approval`, 2.5]]);
       result = `The stadium is full. Whether they came for the President or for the rice will be known in ${['February', 'due course'][s.turn % 2]}.`;
-      s.news.push({ chronicle: `PRESIDENT TAKES CAMPAIGN TO ${ZONE_NAME[z].toUpperCase()}`, street: `RALLY: CROWD FULL GROUND FOR ${ZONE_NAME[z].toUpperCase()}`, weight: 2 });
+      s.news.push({ chronicle: `PRESIDENT TAKES CAMPAIGN TO ${ZONE_NAME[z].toUpperCase()}`, street: `RALLY: CROWD FULL GROUND FOR ${ZONE_NAME[z].toUpperCase()}`, weight: 2, valence: 1, topic: 'politics' });
       break;
   }
   s.lastAction = { text: fill(s, result), changes: diff(before, snapshot(s)) };
@@ -384,7 +533,8 @@ function drawer(s: GameState, op: DrawerOp): void {
       applyFx(s, ['bloc.party', 9], entry.touches);
       applyFx(s, ['pc', 9], entry.touches);
       applyFx(s, ['nation.integrity', -1], entry.touches);
-      addExposure(s, { kind: 'political', amount: cost, witnesses: ['senate'], trail: 1 }, entry.id, entry.headline);
+      for (const p of PEOPLE) if (p.group === 'senator' && s.people[p.id] && !s.people[p.id].gone) s.people[p.id].rel = clamp(s.people[p.id].rel + 4, 0, 100);
+      addExposure(s, { kind: 'political', amount: cost, witnesses: ['sen_pres'], trail: 1 }, entry.id, entry.headline);
       break;
     }
     case 'campaign':
@@ -408,10 +558,45 @@ function end(s: GameState, kind: EndingKind): void {
   s.phase = 'verdict';
 }
 
+/** Half-way through a term, three states elect governors. It is the country's first verdict on the President. */
+function midterm(s: GameState): void {
+  if (termTurnOf(s.turn) !== 24) return;
+  const zones: ZoneId[] = s.term === 1 ? ['NW', 'SW', 'SE'] : ['NE', 'NC', 'SS'];
+  const rival = strongestRival(s);
+  const lines: string[] = [];
+  let won = 0;
+  for (const z of zones) {
+    const g = governorOf(z);
+    const score = (s.zones[z].approval - 47) + governorEffect(s, z) * 2 + (s.blocs.party - 50) * 0.1 - (rival.strength - 40) * 0.25 + (rand(s) * 2 - 1) * 4;
+    const ok = score > 0;
+    if (ok) won++;
+    const gv = g ? personView(s, g.id) : null;
+    lines.push(`${ZONE_NAME[z]}: ${ok ? 'held' : 'lost'}. Approval there is ${Math.round(s.zones[z].approval)}%${gv ? `, and ${gv.short} is ${s.people[g!.id].gone ? 'with the opposition' : relWord(gv.standing).toLowerCase()}` : ''}.`);
+  }
+  const before = snapshot(s);
+  const fx: Fx[] = won === 3 ? [['pc', 8], ['bloc.party', 5], [`rival.${rival.id}`, -4]]
+    : won === 2 ? [['pc', 3], ['bloc.party', 2]]
+      : won === 1 ? [['pc', -3], ['bloc.party', -3], [`rival.${rival.id}`, 3]]
+        : [['pc', -8], ['bloc.party', -7], [`rival.${rival.id}`, 6]];
+  const entry = record(s, 'midterm', String(won), 'politics', `Off-cycle governorship elections: your party won ${won} of 3.`, won === 3 || won === 0 ? 3 : 2);
+  for (const f of fx) applyFx(s, f, entry.touches);
+  s.news.push({
+    chronicle: won >= 2 ? `RULING PARTY TAKES ${won} OF 3 GOVERNORSHIPS` : `OPPOSITION TAKES ${3 - won} OF 3 GOVERNORSHIPS`,
+    street: won >= 2 ? `PRESIDENT PARTY WIN ${won} STATE OUT OF 3` : `OPPOSITION DON COLLECT ${3 - won} STATE. PRESIDENT, YOU DEY SEE AM?`,
+    weight: 6.5, valence: won >= 2 ? 1 : -1, topic: 'politics', about: rival.id,
+    body: `Three states voted for governors this weekend, in the first test of the President at the ballot since the general election. ${lines.join(' ')}`,
+  });
+  s.report.push({
+    kind: won >= 2 ? 'reform' : 'failure', title: `Governorship elections: your party won ${won} of 3`,
+    cause: 'A zone is won on its approval of you, on whether its governor is with you, and on how strong your challenger is.',
+    text: lines.join(' '), changes: diff(before, snapshot(s)),
+  });
+}
+
 function advance(s: GameState): void {
   for (const m of s.desk.minors) {
     if (m.resolved) continue;
-    const e = EVENTS[m.eventId];
+    const e = eventOf(s, m);
     if (e?.ignored) {
       const result = applyOutcome(s, e, 'ignored', e.ignored);
       m.resolved = { choiceId: 'ignored', label: 'No reply', result };
@@ -432,7 +617,7 @@ function advance(s: GameState): void {
     s.term = 2;
     s.campaign = { chest: 0, rallies: {} };
     applyFx(s, ['pc', 10]);
-    s.news.push({ chronicle: '{NAME} SWORN IN FOR SECOND TERM, PROMISES TO "CONSOLIDATE"', street: 'FOUR MORE YEARS: "THIS TIME NO EXCUSE" — NIGERIANS', weight: 7 });
+    s.news.push({ chronicle: '{NAME} SWORN IN FOR SECOND TERM, PROMISES TO "CONSOLIDATE"', street: 'FOUR MORE YEARS: "THIS TIME NO EXCUSE" — NIGERIANS', weight: 7, valence: 1, topic: 'politics' });
   }
 
   applyLedger(s);
@@ -440,6 +625,7 @@ function advance(s: GameState): void {
   ventureTick(s);
   economyTick(s);
   politicsTick(s);
+  midterm(s);
 
   const tt = termTurnOf(s.turn);
   if (s.term === 2 && tt === CFG.electionTermTurn + 1 && !s.succession) {
@@ -447,21 +633,28 @@ function advance(s: GameState): void {
     const backed = !!s.flags['succession.backed'];
     s.flags['succession.won'] = s.succession.won;
     s.news.push(s.succession.won
-      ? { chronicle: `${s.president.partyShort} RETAINS PRESIDENCY${backed ? '; PRESIDENT\'S CANDIDATE WINS' : ''}`, street: 'CONTINUITY WINS. THE STREET SHRUGS', weight: 8 }
-      : { chronicle: 'OPPOSITION WINS PRESIDENCY; {OPP} DECLARED PRESIDENT-ELECT', street: 'CHANGE! {OPPARTY} TAKES ASO ROCK', weight: 8 });
+      ? { chronicle: `${s.president.partyShort} RETAINS PRESIDENCY${backed ? '; PRESIDENT\'S CANDIDATE WINS' : ''}`, street: 'CONTINUITY WINS. THE STREET SHRUGS', weight: 8, valence: 1, topic: 'politics' }
+      : { chronicle: 'OPPOSITION WINS PRESIDENCY; {OPP} DECLARED PRESIDENT-ELECT', street: 'CHANGE! {OPPARTY} TAKES ASO ROCK', weight: 8, valence: -1, topic: 'politics' });
   }
   if (s.term === 1 && s.flags['ticket.lost'] && tt === CFG.electionTermTurn + 1) {
-    s.news.push({ chronicle: 'NATION VOTES; INCUMBENT WATCHES FROM THE VILLA', street: 'ELECTION DAY AND THE PRESIDENT NO DEY BALLOT', weight: 7 });
+    s.news.push({ chronicle: 'NATION VOTES; INCUMBENT WATCHES FROM THE VILLA', street: 'ELECTION DAY AND THE PRESIDENT NO DEY BALLOT', weight: 7, valence: -1, topic: 'politics' });
   }
 
   buildDesk(s);
   refreshOffers(s);
-  buildPaper(s);
+  buildPapers(s);
   s.phase = 'papers';
 }
 
+/** What is stopping the month from ending, if anything. */
+export function blocked(s: GameState): string | null {
+  if (s.desk.lead && !s.desk.lead.resolved) return 'A file is waiting';
+  if (s.budget.due) return 'The budget is waiting';
+  return null;
+}
+
 function endMonth(s: GameState): void {
-  if (s.desk.lead && !s.desk.lead.resolved) return;
+  if (blocked(s)) return;
   const tt = termTurnOf(s.turn);
   if (s.term === 1 && tt === CFG.electionTermTurn && !s.election && !s.flags['ticket.lost']) {
     s.election = runElection(s, 'reelection');
@@ -478,13 +671,13 @@ function electionDone(s: GameState): void {
     applyFx(s, ['pc', 15]);
     applyFx(s, ['bloc.party', 8]);
     record(s, 'election', 'won', 'politics', 'Re-elected for a second term.', 3);
-    s.news.push({ chronicle: '{NAME} RE-ELECTED', street: '{NAME} AGAIN! NIGERIA DECIDES', weight: 9 });
+    s.news.push({ chronicle: '{NAME} RE-ELECTED', street: '{NAME} AGAIN! NIGERIA DECIDES', weight: 9, valence: 1, topic: 'politics' });
   } else {
     s.flags['election.lost'] = true;
     applyFx(s, ['bloc.party', -12]);
     applyFx(s, ['bloc.villa', -10]);
     record(s, 'election', 'lost', 'politics', 'Lost the presidential election.', 3);
-    s.news.push({ chronicle: 'PRESIDENT CONCEDES; {OPP} IS PRESIDENT-ELECT', street: 'E DON HAPPEN: {NAME} LOSES', weight: 9 });
+    s.news.push({ chronicle: 'PRESIDENT CONCEDES; {OPP} IS PRESIDENT-ELECT', street: 'E DON HAPPEN: {NAME} LOSES', weight: 9, valence: -1, topic: 'politics' });
   }
   advance(s);
 }
@@ -494,35 +687,82 @@ function electionDone(s: GameState): void {
 export function applyAction(state: GameState, action: Action): GameState {
   const s = structuredClone(state);
   if (s.phase === 'verdict') return s;
+  if (action.type === 'ELECTION_DONE') { electionDone(s); return s; }
+  if (action.type === 'DISMISS_PAPER') { if (s.phase === 'papers') s.phase = 'desk'; return s; }
+  if (s.phase !== 'desk') return s;
   switch (action.type) {
-    case 'DISMISS_PAPER': if (s.phase === 'papers') s.phase = 'desk'; break;
-    case 'CHOOSE': if (s.phase === 'desk') choose(s, action.eventId, action.choiceId); break;
-    case 'ACT': if (s.phase === 'desk') act(s, action.action, action.zone); break;
-    case 'DRAWER': if (s.phase === 'desk') drawer(s, action.op); break;
-    case 'LAUNCH': if (s.phase === 'desk') launch(s, action.id, action.grease); break;
-    case 'VENTURE': if (s.phase === 'desk') venture(s, action.id); break;
-    case 'PERSON': if (s.phase === 'desk') person(s, action.id, action.op); break;
-    case 'REPLACE_MINISTER': if (s.phase === 'desk') minister(s, action.id, action.kind); break;
-    case 'ORDER': if (s.phase === 'desk') order(s, action.id); break;
-    case 'REPLACE_FIN': if (s.phase === 'desk') replaceFinance(s, action.name); break;
-    case 'END_MONTH': if (s.phase === 'desk') endMonth(s); break;
-    case 'ELECTION_DONE': electionDone(s); break;
+    case 'CHOOSE': choose(s, action.eventId, action.choiceId, action.aid); break;
+    case 'ACT': act(s, action.action, action.zone); break;
+    case 'DRAWER': drawer(s, action.op); break;
+    case 'LAUNCH': launch(s, action.id, action.grease); break;
+    case 'VENTURE': launchVenture(s, action.id); break;
+    case 'VENTURE_DELAY': if (canDelay(s, action.id).ok) note(s, delay(s, action.id)); break;
+    case 'VENTURE_RESCUE': if (canRescue(s, action.id).ok) note(s, rescue(s, action.id)); break;
+    case 'PERSON': person(s, action.id, action.op); break;
+    case 'REPLACE_MINISTER': minister(s, action.id, action.kind); break;
+    case 'ORDER': order(s, action.id); break;
+    case 'REPLACE_FIN': replaceFinance(s, action.name); break;
+    case 'PAY_DEBT': payDebt(s, action.id, action.amount); break;
+    case 'SECURITISE': if (canSecuritise(s).ok) { const b = snapshot(s); const t = securitise(s); record(s, 'treasury.securitise', '', 'action', 'Converted the central bank overdraft into bonds.', 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; } break;
+    case 'FUND': fund(s, action.id, action.amount); break;
+    case 'BUDGET': budget(s, action.benchmark, action.alloc); break;
+    case 'FAVOUR': favour(s, action.id, action.use); break;
+    case 'TYCOON': tycoon(s, action.id, action.op); break;
+    case 'RIVAL': rival(s, action.id, action.op); break;
+    case 'FOCUS': focus(s, action.zone); break;
+    case 'END_MONTH': endMonth(s); break;
   }
   return s;
 }
 
+function note(s: GameState, text: string): void {
+  s.lastAction = { text, changes: [] };
+}
+
 export type { Category };
+
+// ---------------------------------------------------------------- the treasury
+
+function payDebt(s: GameState, id: GameState['debts'] extends Record<infer K, number> ? K : never, amount: number): void {
+  if (!canPay(s, id, amount).ok) return;
+  const before = snapshot(s);
+  const text = pay(s, id, amount);
+  record(s, `treasury.pay.${id}`, '', 'action', `Paid ₦${Math.round(Math.min(amount, 99) * 1000)}bn towards: ${id === 'ways' ? 'the central bank overdraft' : id === 'eurobond' ? 'foreign bonds' : id === 'bonds' ? 'domestic bonds' : id === 'gas' ? 'the gas suppliers' : id === 'contractors' ? 'contractors' : 'pensions and salaries'}.`, s.debts[id] <= 0.001 ? 2 : 1);
+  s.lastAction = { text, changes: diff(before, snapshot(s)) };
+}
+
+function fund(s: GameState, id: keyof GameState['funds'], amount: number): void {
+  if (!canFund(s, id, amount).ok) return;
+  const before = snapshot(s);
+  const text = moveFund(s, id, amount);
+  record(s, `treasury.fund.${id}`, amount > 0 ? 'in' : 'out', 'action', text.split('.')[0] + '.', 1);
+  s.lastAction = { text, changes: diff(before, snapshot(s)) };
+}
+
+function budget(s: GameState, benchmark: number, alloc: GameState['budget']['alloc']): void {
+  if (!canBudget(s, benchmark, alloc).ok) return;
+  const before = snapshot(s);
+  const text = setBudget(s, benchmark, alloc);
+  record(s, 'budget', String(s.budget.year), 'action', `Signed the ${s.budget.year} budget on an oil price of $${benchmark}.`, 2);
+  s.lastAction = { text, changes: diff(before, snapshot(s)) };
+}
 
 // ---------------------------------------------------------------- the agenda
 
 export function agendaSlots(s: GameState): number {
-  return CFG.agenda.slots + (s.nation.capacity >= CFG.agenda.slotsAtCapacity ? 1 : 0);
+  return CFG.agenda.slots + (s.nation.capacity >= CFG.agenda.slotsAtCapacity ? 1 : 0) + (s.nation.capacity >= CFG.agenda.slotsAtCapacity2 ? 1 : 0);
 }
 
 export function launchCost(s: GameState, m: Milestone): number {
   const track = MILESTONE_BY_ID[m.id]?.track;
   const priority = !!track && s.agenda.tracks.includes(track.id);
   return Math.round(m.pc * (priority ? 1 : CFG.agenda.offAgendaPc));
+}
+
+/** How a reform's money is found: from the Infrastructure Fund first, where it applies. */
+export function launchMoney(s: GameState, m: Milestone): { fund: number; treasury: number } {
+  const track = MILESTONE_BY_ID[m.id]?.track;
+  return buildCost(s, m.naira, !!track && drawsOnInfra(track.id));
 }
 
 export type MilestoneStatus = 'done' | 'active' | 'next' | 'later';
@@ -550,9 +790,9 @@ export function canLaunch(s: GameState, id: string): LaunchCheck {
   if (failed && s.turn - failed.turn < CFG.agenda.retryAfter) {
     return { ok: false, reason: `Defeated in the Assembly. It can be brought back in ${CFG.agenda.retryAfter - (s.turn - failed.turn)} months.` };
   }
-  if (s.agenda.active.length >= agendaSlots(s)) return { ok: false, reason: `The government can carry ${agendaSlots(s)} reforms at once. State capacity above 50 adds another.` };
+  if (s.agenda.active.length >= agendaSlots(s)) return { ok: false, reason: `The government can carry ${agendaSlots(s)} reforms at once. State capacity of 50 adds a sixth, and 65 a seventh.` };
   if (s.pc < launchCost(s, entry.m)) return { ok: false, reason: `Needs ${launchCost(s, entry.m)} political capital.` };
-  if (entry.m.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
+  if (launchMoney(s, entry.m).treasury > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
     return { ok: false, reason: 'There is no money, and nobody will lend it.' };
   }
   if (entry.m.needs && !test(s, entry.m.needs)) {
@@ -569,7 +809,7 @@ function launch(s: GameState, id: string, grease = false): void {
   const before = snapshot(s);
   s.pc = clamp(s.pc - launchCost(s, m), 0, 100);
   const entry = record(s, `reform.${id}`, 'launch', 'action', `Launched: ${m.name}.`, 1);
-  if (m.naira) applyFx(s, ['nation.fiscalSpace', -m.naira], entry.touches);
+  payBuild(s, m.naira, drawsOnInfra(track.id), entry.touches);
   for (const fx of m.start ?? []) applyFx(s, fx, entry.touches);
   for (const [t, d] of m.done) entry.touches[t] = (entry.touches[t] ?? 0) + d;
   const greased = grease && !check.ok;
@@ -578,13 +818,15 @@ function launch(s: GameState, id: string, grease = false): void {
     s.purseTaken.political += CFG.agenda.greasePurse;
     const sealed = record(s, `reform.${id}`, 'grease', 'temptation', `Provided logistics to the Assembly to pass: ${m.name}.`, 1, true);
     applyFx(s, ['nation.integrity', -1.5], sealed.touches);
-    addExposure(s, { kind: 'political', amount: CFG.agenda.greasePurse, witnesses: ['senate'], trail: 1 }, sealed.id, sealed.headline);
+    addExposure(s, { kind: 'political', amount: CFG.agenda.greasePurse, witnesses: ['sen_pres'], trail: 1 }, sealed.id, sealed.headline);
   }
   s.agenda.active.push({ id, progress: 0, greased });
+  const min = ministerFor(track.id);
+  const who2 = min ? personView(s, min.id) : null;
   s.lastAction = {
     text: greased
       ? `${m.name} is under way. The Assembly's objections have been addressed, in cash. ${m.months} months.`
-      : `${m.name} is under way. ${track.name}: the ministry estimates ${m.months} months, which you may read as a minimum.`,
+      : `${m.name} is under way${who2 ? ` under ${who2.name}` : ''}. The ministry estimates ${m.months} months, which you may read as a minimum.${drawsOnInfra(track.id) && s.debts.contractors > 0.5 ? ' Contractors are owed for earlier work, and this will run 15% slower until they are paid.' : ''}`,
     changes: diff(before, snapshot(s)),
   };
 }
@@ -596,10 +838,12 @@ function agendaTick(s: GameState): void {
   for (const a of s.agenda.active) {
     const entry = MILESTONE_BY_ID[a.id];
     if (!entry) continue;
-    a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id);
+    const building = drawsOnInfra(entry.track.id) ? buildSpeed(s) : 1;
+    a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building;
     if (a.progress < 100) { still.push(a); continue; }
     const { m, track } = entry;
     const before = snapshot(s);
+    const min = ministerFor(track.id);
 
     // A reform that needs the Assembly is voted on at the end. Without the party, or logistics, it falls.
     if (m.needs && !a.greased && !test(s, m.needs)) {
@@ -607,10 +851,18 @@ function agendaTick(s: GameState): void {
       applyFx(s, ['pc', -6], rec.touches);
       applyFx(s, ['bloc.press', -3], rec.touches);
       s.agenda.failed.push({ id: m.id, turn: s.turn });
-      s.news.push({ chronicle: `ASSEMBLY REJECTS PRESIDENT'S ${m.name.toUpperCase()}`, street: 'SENATORS DON KILL PRESIDENT BILL', weight: 6 });
+      if (min) addMark(s, min.id, -1, `Lost in the Assembly: ${m.name}`);
+      const against = PEOPLE.filter((p) => p.group === 'senator' && standing(s, p.id) < 50).map((p) => personView(s, p.id).short);
+      const why = against.length
+        ? `${against.join(' and ')} did not deliver ${against.length === 1 ? 'the' : 'their'} votes.`
+        : 'The party as a whole was not with you when it came to the vote.';
+      s.news.push({
+        chronicle: `ASSEMBLY REJECTS PRESIDENT'S ${m.name.toUpperCase()}`, street: 'SENATORS DON KILL PRESIDENT BILL', weight: 6, valence: -1, topic: 'reform', about: 'sen_pres',
+        body: `The bill fell on second reading. ${why} The money already spent on preparing it is gone.`,
+      });
       s.report.push({
         kind: 'failure', title: `Defeated in the Assembly: ${m.name}`, cause: track.name,
-        text: 'The party was not with you when it came to the vote. The money is spent. The bill can be brought back in a year.',
+        text: `${why} The money is spent. The bill can be brought back in a year, and a senator who owes you could carry it.`,
         changes: diff(before, snapshot(s)),
       });
       continue;
@@ -621,82 +873,19 @@ function agendaTick(s: GameState): void {
     for (const [k, v] of Object.entries(m.flags ?? {})) { s.flags[k] = v; rec.touches[`flag:${k}`] = 1; }
     applyFx(s, ['pc', s.agenda.tracks.includes(track.id) ? CFG.agenda.donePriorityPc : CFG.agenda.donePc]);
     s.agenda.done.push(m.id);
-    s.news.push({ chronicle: m.news[0], street: m.news[1], weight: 6, valence: 1, body: `${m.archive} ${m.blurb}` });
+    // Paying the gas suppliers is what this reform is.
+    if (m.id === 'p1') { s.debts.gas = 0; }
+    if (min) addMark(s, min.id, 2, `Delivered: ${m.name}`);
+    const opened = openedBy(s, m.id);
+    s.news.push({ chronicle: m.news[0], street: m.news[1], weight: 6, valence: 1, topic: 'reform', about: min?.id, body: `${m.archive} ${m.blurb}` });
     const structural = describe(m.done.filter((f) => f[0].startsWith('bonus.')));
-    s.report.push({ kind: 'reform', title: `Delivered: ${m.name}`, cause: track.name, changes: [...diff(before, snapshot(s)), ...structural] });
-  }
-  s.agenda.active = still;
-}
-
-// ---------------------------------------------------------------- big bets
-
-export function ventureOdds(s: GameState, v: Venture): number {
-  return clamp(v.odds + (s.nation.capacity - 40) / 200 + (s.nation.integrity - 30) / 300, 0.1, 0.9);
-}
-
-export type VentureStatus = 'won' | 'lost' | 'active' | 'open';
-
-export function ventureStatus(s: GameState, id: string): VentureStatus {
-  if (s.ventures.won.includes(id)) return 'won';
-  if (s.ventures.lost.includes(id)) return 'lost';
-  if (s.ventures.active.some((a) => a.id === id)) return 'active';
-  return 'open';
-}
-
-/** A big bet appears on the list only when the situation that creates it exists. */
-export function ventureVisible(s: GameState, v: Venture): boolean {
-  return ventureStatus(s, v.id) !== 'open' || test(s, v.when);
-}
-
-export function canVenture(s: GameState, v: Venture): { ok: boolean; reason?: string } {
-  const st = ventureStatus(s, v.id);
-  if (st !== 'open') return { ok: false };
-  if (v.when && !test(s, v.when)) return { ok: false, reason: 'Not available.' };
-  if (s.ventures.active.length >= CFG.agenda.ventureSlots) return { ok: false, reason: `You can run ${CFG.agenda.ventureSlots} big bets at a time.` };
-  if (s.pc < v.pc) return { ok: false, reason: `Needs ${v.pc} political capital.` };
-  if (v.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
-    return { ok: false, reason: 'There is no money, and nobody will lend it.' };
-  }
-  return { ok: true };
-}
-
-function venture(s: GameState, id: string): void {
-  const v = VENTURE_BY_ID[id];
-  if (!v || !canVenture(s, v).ok) return;
-  const before = snapshot(s);
-  s.pc = clamp(s.pc - v.pc, 0, 100);
-  const entry = record(s, `venture.${id}`, 'launch', 'action', `Staked the government on: ${v.name}.`, 2);
-  if (v.naira) applyFx(s, ['nation.fiscalSpace', -v.naira], entry.touches);
-  for (const fx of v.start ?? []) applyFx(s, fx, entry.touches);
-  s.ventures.active.push({ id, progress: 0 });
-  s.news.push({ chronicle: `PRESIDENT ANNOUNCES: ${v.name.toUpperCase()}`, street: `PRESIDENT WAN TRY AM: ${v.name.toUpperCase()}`, weight: 4 });
-  s.lastAction = { text: `${v.name}: announced. The odds are what they are. You will know in about ${v.months} months.`, changes: diff(before, snapshot(s)) };
-}
-
-function ventureTick(s: GameState): void {
-  const speed = 0.8 + s.nation.capacity / 200;
-  const still: GameState['ventures']['active'] = [];
-  for (const a of s.ventures.active) {
-    const v = VENTURE_BY_ID[a.id];
-    if (!v) continue;
-    a.progress += (100 / v.months) * speed;
-    if (a.progress < 100) { still.push(a); continue; }
-    const won = rand(s) < ventureOdds(s, v);
-    const before = snapshot(s);
-    const rec = record(s, `venture.${v.id}`, won ? 'won' : 'lost', 'action', `${won ? 'Succeeded' : 'Failed'}: ${v.name}.`, 3);
-    const fx = won ? v.win : v.lose;
-    for (const f of fx) applyFx(s, f, rec.touches);
-    (won ? s.ventures.won : s.ventures.lost).push(v.id);
-    if (won) applyFx(s, ['pc', CFG.agenda.ventureWinPc]);
-    const news = won ? v.winNews : v.loseNews;
-    s.news.push({ chronicle: news[0], street: news[1], weight: 7, valence: won ? 1 : -1, body: won ? v.winText : v.loseText });
     s.report.push({
-      kind: won ? 'reform' : 'failure', title: `${won ? 'It worked' : 'It failed'}: ${v.name}`,
-      text: won ? v.winText : v.loseText,
-      changes: [...diff(before, snapshot(s)), ...describe(fx.filter((f) => f[0].startsWith('bonus.')))],
+      kind: 'reform', title: `Delivered: ${m.name}`, cause: track.name,
+      text: opened.length ? `This opens ${opened.length === 1 ? 'a big bet' : 'big bets'} the country could now make: ${opened.map((v) => v.name).join('; ')}.` : undefined,
+      changes: [...diff(before, snapshot(s)), ...structural],
     });
   }
-  s.ventures.active = still;
+  s.agenda.active = still;
 }
 
 // ---------------------------------------------------------------- executive powers
@@ -765,13 +954,14 @@ function order(s: GameState, id: string): void {
   s.offers = s.offers.filter((x) => x.id !== o.id);
   const outcome = orderOutcome(o);
   const source = o.event ? EVENTS[o.event[0]] : undefined;
-  const pseudo = source ?? ({ id: `order.${o.id}`, category: 'politics', slot: 'lead', intensity: 4 } as GameEvent);
+  const category: Category = o.group === 'security' ? 'security' : o.group === 'economy' || o.group === 'relief' ? 'economy' : 'politics';
+  const pseudo = source ?? ({ id: `order.${o.id}`, category, slot: 'minor', intensity: 4 } as GameEvent);
   if (source && o.event) {
     // The President acted first. The file that would have raised it is closed.
     (s.fired[source.id] ??= []).push(s.turn);
     s.choices[source.id] = o.event[1];
   }
-  const text = applyOutcome(s, pseudo, o.event?.[1] ?? 'order', outcome);
+  const text = applyOutcome(s, pseudo, o.event?.[1] ?? 'order', { ...outcome, newsWeight: outcome.newsWeight ?? 5 });
   if (o.naira) applyFx(s, ['nation.fiscalSpace', -o.naira]);
   s.lastAction = { text, changes: diff(before, snapshot(s)) };
 }
@@ -792,14 +982,14 @@ function replaceFinance(s: GameState, name: string): void {
   applyFx(s, ['bloc.establishment', (next.competence - old.competence) * 3], entry.touches);
   applyFx(s, ['bloc.villa', -3], entry.touches);
   s.chars.fin = { ...next, rel: 40, notes: [] };
-  s.news.push({ chronicle: `PRESIDENT SACKS FINANCE MINISTER, NAMES ${next.short.toUpperCase()}`, street: `FINANCE MINISTER DON GO. ${next.short.toUpperCase()} DON ENTER`, weight: 5 });
+  s.news.push({ chronicle: `PRESIDENT SACKS FINANCE MINISTER, NAMES ${next.short.toUpperCase()}`, street: `FINANCE MINISTER DON GO. ${next.short.toUpperCase()} DON ENTER`, weight: 5, valence: 0, topic: 'people' });
   s.lastAction = {
     text: `${old.name} is thanked for services rendered. ${next.name} is sworn in before lunch.`,
     changes: diff(before, snapshot(s)),
   };
 }
 
-// ---------------------------------------------------------------- your people
+// ---------------------------------------------------------------- people, money and rivals
 
 function person(s: GameState, id: string, op: PersonOp): void {
   if (!canDeal(s, id, op, movesLeft(s)).ok) return;
@@ -811,12 +1001,52 @@ function person(s: GameState, id: string, op: PersonOp): void {
 }
 
 function minister(s: GameState, id: string, kind: 'technocrat' | 'party'): void {
-  if (movesLeft(s) <= 0 || s.pc < 6 || !s.people[id]) return;
+  if (movesLeft(s) <= 0 || s.pc < 6 || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
   const before = snapshot(s);
   s.pc -= 6;
   s.desk.actionsUsed += 1;
+  const old = personView(s, id);
   const out = replaceMinister(s, id, kind);
   record(s, `person.${id}`, 'replace', 'politics', out.archive, 2);
-  s.news.push({ chronicle: 'PRESIDENT DROPS MINISTER IN CABINET CHANGE', street: 'ONE MINISTER DON GO, ANOTHER DON ENTER', weight: 3 });
+  s.news.push({
+    chronicle: `PRESIDENT DROPS ${old.short.toUpperCase()} IN CABINET CHANGE`, street: `${old.short.toUpperCase()} DON GO. ANOTHER PERSON DON ENTER`,
+    weight: 3.5, valence: 0, topic: 'people', about: id, body: out.text,
+  });
   s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
+}
+
+function favour(s: GameState, id: number, use: string): void {
+  const f = s.favours.find((x) => x.id === id);
+  if (!f || !canCall(s, f, movesLeft(s)).ok) return;
+  const before = snapshot(s);
+  s.desk.actionsUsed += 1;
+  const out = callFavour(s, f, use);
+  record(s, `favour.${f.who}`, use, 'politics', out.archive, 1, true);
+  s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
+}
+
+function tycoon(s: GameState, id: string, op: TycoonOp): void {
+  if (!canTycoon(s, id, op, movesLeft(s)).ok) return;
+  const before = snapshot(s);
+  s.desk.actionsUsed += 1;
+  const out = tycoonDeal(s, id, op);
+  record(s, `tycoon.${id}`, op, op === 'take' ? 'temptation' : 'politics', out.archive, 2, out.sealed);
+  s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
+}
+
+function rival(s: GameState, id: string, op: RivalOp): void {
+  if (!canRival(s, id, op, movesLeft(s)).ok) return;
+  const before = snapshot(s);
+  s.desk.actionsUsed += 1;
+  const out = rivalDeal(s, id, op);
+  record(s, `rival.${id}`, op, op === 'spoiler' ? 'temptation' : 'politics', out.archive, 2, out.sealed);
+  s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
+}
+
+function focus(s: GameState, zone: ZoneId | null): void {
+  if (!canFocus(s, zone, movesLeft(s)).ok) return;
+  s.desk.actionsUsed += 1;
+  const text = setFocus(s, zone);
+  record(s, 'security.focus', zone ?? 'none', 'action', zone ? `Concentrated the security effort on the ${ZONE_NAME[zone]}.` : 'Returned forces to their usual stations.', 1);
+  s.lastAction = { text, changes: [] };
 }

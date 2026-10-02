@@ -17,7 +17,7 @@ export const SCANDAL: GameEvent[] = [
     statement: 'The Ministry wishes to state categorically that all expenditures followed extant provisions.',
     trace: [['pressure.scandalHeat', 1], ['nation.integrity', -1]],
     reads: [
-      { role: 'sap', good: 'Nobody knows what the extant provisions are, {SIR}, including the Ministry. Workshop is {GOVCHAIR}\'s man. Touch him and you will hear from twelve governors.' },
+      { role: 'sap', good: 'Nobody knows what the extant provisions are, {SIR}, including the Ministry. Agbo is {GOVCHAIR}\'s man. Touch him and you will hear from twelve governors.' },
       { role: 'cos', good: '{EDITOR} already has the hotel invoices. I would assume we have a week.' },
     ],
     choices: [

@@ -1,7 +1,8 @@
-import { PEOPLE } from '../content/people';
+import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { CFG, monthOf, termTurnOf } from './config';
+import { addOwed, shiftPoints } from './ledger';
 import { rand } from './rng';
-import type { BlocId, Cond, Fx, GameState, Nation, Pressures, ZoneId } from './types';
+import type { BlocId, Cond, DebtId, Favour, Fx, FundId, GameState, Nation, Pressures, SectorId, ZoneId } from './types';
 
 export const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
 export const BLOCS: BlocId[] = ['villa', 'party', 'street', 'establishment', 'press'];
@@ -42,14 +43,56 @@ export function approval(s: GameState): number {
     ZONES.reduce((a, z) => a + ZONE_WEIGHT[z], 0);
 }
 
+/** Security in a zone is the absence of the threat in its theatre. */
 export function zoneSecurity(s: GameState, z: ZoneId): number {
-  return clamp(s.nation.security + s.zones[z].security, 0, 100);
+  return clamp(100 - s.theatres[z], 0, 100);
+}
+
+/** nation.security is the weighted picture across the six theatres. */
+export function syncSecurity(s: GameState): void {
+  s.nation.security = clamp(ZONES.reduce((a, z) => a + zoneSecurity(s, z) * ZONE_WEIGHT[z], 0) / ZONES.reduce((a, z) => a + ZONE_WEIGHT[z], 0), 0, 100);
+}
+
+export function shiftThreat(s: GameState, z: ZoneId, d: number): void {
+  s.theatres[z] = clamp(s.theatres[z] + d, 3, 97);
+}
+
+/** Share of the party's convention delegates who will vote for the President, 0-100. */
+export function delegates(s: GameState): number {
+  let mine = 0;
+  let all = 0;
+  for (const p of PEOPLE) {
+    if (p.group === 'minister') continue;
+    all += p.clout;
+    if (s.people[p.id]?.gone) continue;
+    // A governor or senator who is with you brings their delegates. So does one who owes you.
+    const owes = s.favours.some((f) => f.who === p.id && f.dir === 'owed');
+    if (standing(s, p.id) >= 50 || owes) mine += p.clout;
+    else if (standing(s, p.id) >= 40) mine += p.clout * 0.4;
+  }
+  return clamp((all ? (mine / all) * 100 : 50) * 0.65 + s.blocs.party * 0.35, 0, 100);
+}
+
+// ---------------------------------------------------------------- favours
+
+export function favoursOwed(s: GameState, who?: string): Favour[] {
+  return s.favours.filter((f) => f.dir === 'owed' && (!who || f.who === who));
+}
+export function favoursOwing(s: GameState, who?: string): Favour[] {
+  return s.favours.filter((f) => f.dir === 'owing' && (!who || f.who === who));
+}
+const size = (list: Favour[]) => list.reduce((a, f) => a + f.size, 0);
+
+export function addFavour(s: GameState, who: string, dir: 'owed' | 'owing', n: number, why: string): void {
+  const id = (s.counters.favourSeq = (s.counters.favourSeq ?? 0) + 1);
+  s.favours.push({ id, who, dir, size: clamp(Math.round(n), 1, 3), why, turn: s.turn });
 }
 
 /** How a person behaves today: someone being leaned on complies whatever they feel. */
 export function standing(s: GameState, id: string): number {
   const p = s.people[id];
   if (!p) return 50;
+  if (p.gone) return 0;
   return p.compliantUntil && p.compliantUntil > s.turn ? Math.max(p.rel, 72) : p.rel;
 }
 
@@ -103,6 +146,24 @@ export function getVar(s: GameState, path: string): number {
     case 'ordered': return s.counters[`order.${p[1]}`] !== undefined ? 1 : 0;
     case 'venture': return s.ventures.won.includes(p[1]) ? 1 : s.ventures.lost.includes(p[1]) ? -1 : 0;
     case 'bonus': return s.counters[path] ?? 0;
+    case 'debt': return p[1] === 'arrears' ? s.debts.gas + s.debts.contractors + s.debts.pensions : s.debts[p[1] as DebtId] ?? 0;
+    case 'fund': return p[1] === 'total' ? s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth : s.funds[p[1] as FundId] ?? 0;
+    case 'oil': return p[1] === 'gap' ? s.oil.price - s.budget.benchmark : p[1] === 'output' ? s.oil.output : s.oil.price;
+    case 'budget': return s.budget.alloc[p[1] as SectorId] ?? 0;
+    case 'tycoon': return s.tycoons[p[1]]?.rel ?? 50;
+    case 'theatre': return s.theatres[p[1] as ZoneId] ?? 50;
+    case 'favour': return size(favoursOwed(s, p[1]));
+    case 'owing': return size(favoursOwing(s, p[1]));
+    case 'favours': return favoursOwed(s).length;
+    case 'debts': return favoursOwing(s).length;
+    case 'active': return s.agenda.active.some((a) => a.id === p[1]) || s.ventures.active.some((a) => a.id === p[1]) ? 1 : 0;
+    case 'focus': return s.focus === p[1] ? 1 : 0;
+    case 'story': return s.stories.find((x) => x.id === p[1])?.stage ?? 0;
+    case 'gone': return s.people[p[1]]?.gone ? 1 : 0;
+    case 'comp': return s.people[p[1]]?.competence ?? PERSON_BY_ID[p[1]]?.competence ?? 3;
+    case 'govs': return PEOPLE.filter((x) => x.group === 'governor' && standing(s, x.id) >= 58).length;
+    case 'delegates': return delegates(s);
+    case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;
     default: return 0;
   }
 }
@@ -152,6 +213,19 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
       // Fragile to functional is achievable. Functional to strong is slow.
       const index = k === 'security' || k === 'power' || k === 'capacity' || k === 'integrity' || k === 'jobs';
       const gain = index && delta > 0 ? delta * clamp((85 - s.nation[k]) / 50, 0.2, 1) : delta;
+      if (k === 'debt') {
+        // Points of debt service land on a named creditor.
+        shiftPoints(s, delta);
+        if (touches) touches[target] = (touches[target] ?? 0) + delta;
+        return;
+      }
+      if (k === 'security') {
+        // A national effect is felt in every theatre.
+        for (const z of ZONES) shiftThreat(s, z, -gain);
+        syncSecurity(s);
+        if (touches) touches[target] = (touches[target] ?? 0) + gain;
+        return;
+      }
       s.nation[k] = clamp(s.nation[k] + gain, lo, hi);
       if (touches) touches[target] = (touches[target] ?? 0) + gain;
       return;
@@ -166,13 +240,17 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
       s.blocs[k] = clamp(s.blocs[k] + delta, 0, 100);
       return note();
     }
-    case 'approval':
-      for (const z of ZONES) s.zones[z].approval = clamp(s.zones[z].approval + delta, 5, 95);
-      return note();
+    case 'approval': {
+      // Popularity is easy to add when you have little and hard when you have a lot.
+      const d = delta > 0 ? delta * clamp((72 - approval(s)) / 20, 0.25, 1) : delta;
+      for (const z of ZONES) s.zones[z].approval = clamp(s.zones[z].approval + d, 5, 95);
+      if (touches) touches[target] = (touches[target] ?? 0) + d;
+      return;
+    }
     case 'zone': {
       const z = s.zones[p[1] as ZoneId];
       if (!z) return;
-      if (p[2] === 'security') z.security = clamp(z.security + delta, -40, 40);
+      if (p[2] === 'security') { shiftThreat(s, p[1] as ZoneId, -delta); syncSecurity(s); }
       else z.approval = clamp(z.approval + delta, 5, 95);
       return note();
     }
@@ -189,5 +267,10 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
     // Permanent structural shifts earned by reform: bonus.fiscal, bonus.inflation, bonus.power
     case 'bonus': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
     case 'campaign': s.campaign.chest = Math.max(0, s.campaign.chest + delta); return;
+    case 'debt': if (s.debts[p[1] as DebtId] !== undefined) addOwed(s, p[1] as DebtId, delta); return note();
+    case 'fund': { const k = p[1] as FundId; if (s.funds[k] !== undefined) s.funds[k] = Math.max(0, s.funds[k] + delta); return note(); }
+    case 'tycoon': { const t = s.tycoons[p[1]]; if (t) t.rel = clamp(t.rel + delta, 0, 100); return note(); }
+    case 'theatre': if (s.theatres[p[1] as ZoneId] !== undefined) { shiftThreat(s, p[1] as ZoneId, delta); syncSecurity(s); } return note();
+    case 'oil': s.oil.price = clamp(s.oil.price + delta, 30, 130); return note();
   }
 }

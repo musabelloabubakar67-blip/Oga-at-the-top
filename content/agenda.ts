@@ -9,7 +9,7 @@ import { MORE_TRACKS } from './tracks2';
 
 // Reforms are written at their headline cost and duration, then scaled here so tuning is one number.
 const COST = 1.8;
-const TIME = 1.5;
+const TIME = 1.2;
 const CAPITAL = 1;
 
 const RAW: Track[] = [
@@ -428,18 +428,18 @@ export const STANDING: Order[] = [
   },
   {
     id: 'bond', group: 'economy', name: 'Issue a $3bn Eurobond', pc: 0, naira: 0, cooldown: 12,
-    blurb: 'Money now. Debt service later, in dollars.',
+    blurb: 'Money now. Debt service later, in dollars, and dearer whenever the naira falls.',
     when: { v: ['nation.debt', '<', 100] }, lockedText: 'Nobody will lend at this level of debt.',
     result: 'The bond is oversubscribed at a coupon the Finance Ministry describes as "competitive" and the Debt Office describes privately.',
-    fx: [['nation.fiscalSpace', 2], ['nation.debt', 6]],
+    fx: [['nation.fiscalSpace', 2], ['debt.eurobond', 2]],
     news: ['NIGERIA RAISES $3BN IN EUROBOND SALE', 'WE DON BORROW ANOTHER $3BN. WHO GO PAY?'],
     archive: 'Issued a $3bn Eurobond.', sig: 2,
   },
   {
     id: 'print', group: 'economy', name: 'Direct the central bank to finance the budget', pc: 6, naira: 0, cooldown: 12,
-    blurb: 'The fastest money there is. Every naira of it shows up in the price of bread.',
+    blurb: 'The fastest money there is. It goes on the central bank overdraft, and every naira of it shows up in the price of bread until it is paid back.',
     result: 'The advance is extended. The Governor complies in writing and under protest.',
-    fx: [['nation.fiscalSpace', 2], ['bonus.inflation', 3], ['bloc.establishment', -8]],
+    fx: [['nation.fiscalSpace', 2], ['debt.ways', 2], ['bonus.inflation', 1.5], ['bloc.establishment', -8]],
     news: ['CENTRAL BANK EXTENDS ₦4TN ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
     archive: 'Ordered the central bank to finance the budget.', sig: 3,
   },
@@ -450,15 +450,6 @@ export const STANDING: Order[] = [
     fx: [['bonus.fiscal', 0.05], ['nation.inflation', 1.5], ['approval', -3], ['bloc.street', -5], ['bloc.establishment', 3]],
     news: ['VAT RISES TO 12.5%', 'VAT DON GO UP. EVERYTHING GO COST MORE'],
     archive: 'Raised VAT to 12.5%.', sig: 3,
-  },
-  {
-    id: 'paydown', group: 'economy', name: 'Pay down the debt', pc: 0, naira: 1, cooldown: 3,
-    when: { v: ['nation.fiscalSpace', '>=', 1] }, lockedText: 'There is not a trillion in the treasury.',
-    blurb: 'Use a trillion from the treasury to retire the most expensive borrowing. Nobody will thank you except your successor.',
-    result: 'The Debt Office buys back a trillion naira of short-dated paper. Interest costs fall from next quarter.',
-    fx: [['nation.debt', -5], ['bloc.establishment', 3]],
-    news: ['FG RETIRES ₦1TN OF DEBT EARLY', 'GOVERNMENT USE ₦1TN PAY DEBT'],
-    archive: 'Retired ₦1tn of debt early.', sig: 2,
   },
   {
     id: 'relief', group: 'relief', name: 'Emergency relief: cash to 15 million households', pc: 0, naira: 0.5, cooldown: 10,
@@ -475,14 +466,6 @@ export const STANDING: Order[] = [
     fx: [['bonus.inflation', -2.5], ['approval', 2], ['bloc.street', 4], ['bloc.party', -4], ['bloc.establishment', -3]],
     news: ['FG SUSPENDS DUTIES ON RICE, WHEAT, MAIZE', 'RICE GO CHEAP: PRESIDENT REMOVE IMPORT DUTY'],
     archive: 'Suspended import duties on staple foods.', sig: 2,
-  },
-  {
-    id: 'arrears', group: 'relief', name: 'Clear arrears to pensioners and contractors', pc: 0, naira: 0.5, cooldown: 24,
-    blurb: 'The state pays what it owes. Unglamorous, and the single fastest way to be believed.',
-    result: 'Pensions outstanding since the last administration are paid in full. Contractors return to sites they left two years ago.',
-    fx: [['bloc.establishment', 7], ['bloc.street', 4], ['approval', 2], ['nation.capacity', 1.5], ['nation.power', 1.5]],
-    news: ['FG CLEARS ₦500BN IN PENSION, CONTRACTOR ARREARS', 'PENSIONERS DON COLLECT. SOME DON WAIT SIX YEARS'],
-    archive: 'Cleared arrears owed to pensioners and contractors.', sig: 2,
   },
   {
     id: 'offensive', group: 'security', name: 'Order a sustained military offensive', pc: 5, naira: 0.4, cooldown: 10,

@@ -205,52 +205,6 @@ export const POLITICS: GameEvent[] = [
     ],
   },
   {
-    id: 'budget.insertions', kind: 'recurring', slot: 'lead', category: 'politics', tone: 'dry', intensity: 2,
-    when: { all: [{ month: [12, 1] }, { turn: [6] }] }, weight: 20, cooldown: 36, max: 2,
-    office: 'Budget Office of the Federation', stamp: 'CONFIDENTIAL',
-    title: 'The budget has come back from the Assembly',
-    body: [
-      'The Appropriation Bill has been returned for assent. It is ₦1.3tn larger than the one you submitted.',
-      'The National Assembly has inserted 6,400 constituency projects. They include 1,900 solar street lights at ₦4m each, 240 town halls, and a "youth empowerment summit" appearing in 61 separate constituencies under the same name.',
-      'Capital releases cannot begin until you sign.',
-    ],
-    statement: 'The National Assembly exercised its constitutional power of appropriation in the interest of the Nigerian people.',
-    reads: [
-      { role: 'fin', good: 'If you sign it as it is, {SIR}, we borrow for street lights. If you do not, nothing is released until March.', weak: 'The Assembly has been very constructive, {SIR}.' },
-      { role: 'sap', good: 'These projects are how they pay for their own elections. You are not arguing about lights.' },
-    ],
-    choices: [
-      {
-        id: 'sign', label: 'Sign it as passed', sign: true,
-        outcomes: [{
-          result: 'The Appropriation Act is signed before the cameras. The Senate President holds up the document. It is noticeably thicker than last year\'s.',
-          fx: [['bloc.party', 6], ['nation.fiscalSpace', -0.4], ['nation.integrity', -1.5], ['pc', 2]],
-          later: [{ after: [8, 11], fx: [['nation.integrity', -1], ['bloc.press', -2]], label: 'An audit cannot locate the constituency projects.', note: ['AUDIT: 1,100 CONSTITUENCY PROJECTS "COULD NOT BE LOCATED"', 'WHERE THE STREET LIGHTS? AUDITOR NO SEE AM'] }],
-          news: ['PRESIDENT SIGNS BUDGET INTO LAW', 'BUDGET OF STREET LIGHTS: 1,900 AT ₦4M EACH'],
-          archive: 'Signed a budget padded with 6,400 constituency projects.',
-        }],
-      },
-      {
-        id: 'negotiate', label: 'Negotiate the insertions down by half', pc: 6, sign: true,
-        outcomes: [{
-          result: 'After three weeks the insertions are halved and renamed "zonal intervention projects". You sign in mid-January.',
-          fx: [['bloc.party', 1], ['nation.fiscalSpace', -0.2], ['nation.integrity', -0.5]],
-          news: ['PRESIDENT ASSENTS TO BUDGET AFTER HARMONISATION', 'BUDGET PADDING: DEM REMOVE HALF, RENAME THE REST'],
-          archive: 'Negotiated the Assembly\'s budget insertions down by half.',
-        }],
-      },
-      {
-        id: 'refuse', label: 'Withhold assent and return the bill', pc: 12,
-        outcomes: [{
-          result: 'The bill is returned. The Assembly goes on recess. The budget is finally signed in March, largely as you submitted it, and the first quarter is lost.',
-          fx: [['bloc.party', -8], ['nation.integrity', 2.5], ['nation.power', -1.5], ['bloc.press', 4], ['approval', 1]],
-          news: ['PRESIDENT WITHHOLDS ASSENT TO BUDGET', 'PRESIDENT REJECT PADDED BUDGET. SENATORS VEX'],
-          archive: 'Withheld assent to a padded budget.', sig: 2,
-        }],
-      },
-    ],
-  },
-  {
     id: 'opposition.unites', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3,
     when: { all: [{ term: 1 }, { termTurn: [26, 38] }] }, weight: 22,
     office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
@@ -317,8 +271,8 @@ export const POLITICS: GameEvent[] = [
     body: [
       'Party elders, nine governors and {CHAIR} met last night at a private residence in Asokoro. The meeting was described as a birthday dinner. Nobody present has a birthday this month.',
       'The primaries open in three months. The agenda was "the way forward", which is to say, the ticket.',
-      { when: { v: ['bloc.party', '<', 45] }, text: 'A name other than yours was discussed, and nobody objected.' },
-      { when: { v: ['bloc.party', '>=', 45] }, text: 'They intend to support you. They would like to discuss what that support is worth.' },
+      { when: { v: ['delegates', '<', 47] }, text: 'A name other than yours was discussed, and nobody objected. By the Special Adviser\'s count only {DELEGATES}% of convention delegates are yours. The primary is in a few months. Governors and senators bring delegates; so do the ones who owe you.' },
+      { when: { v: ['delegates', '>=', 47] }, text: 'They intend to support you: {DELEGATES}% of convention delegates are yours by the Special Adviser\'s count. They would like to discuss what that support is worth.' },
     ],
     trace: [['bloc.party', -1]],
     reads: [
@@ -363,10 +317,12 @@ export const POLITICS: GameEvent[] = [
     office: '{PARTY}: National Convention', stamp: 'URGENT',
     title: 'The presidential primary',
     body: [
-      'The party\'s special convention is under way at Eagle Square. 2,300 delegates will vote.',
-      { when: { v: ['bloc.party', '>=', 60] }, text: 'No other aspirant has purchased a form. {CHAIR} proposes affirmation by voice vote.' },
-      { when: { all: [{ v: ['bloc.party', '>=', 40] }, { v: ['bloc.party', '<', 60] }] }, text: 'A challenger backed by several governors has purchased a form. The Special Adviser puts you ahead, though by less than he would like.' },
-      { when: { v: ['bloc.party', '<', 40] }, text: 'A challenger backed by the governors and {CHAIR} has purchased a form. The Special Adviser\'s count has you behind.' },
+      'The party\'s special convention is under way at Eagle Square. 2,300 delegates will vote. Delegates belong to governors and senators: one who is with you brings them, and so does one who owes you.',
+      'The Special Adviser\'s count: {DELEGATES}% of delegates are yours.',
+      { when: { v: ['delegates', '>=', 62] }, text: 'No other aspirant has purchased a form. {CHAIR} proposes affirmation by voice vote.' },
+      { when: { all: [{ v: ['delegates', '>=', 47] }, { v: ['delegates', '<', 62] }] }, text: 'A challenger backed by several governors has purchased a form. You are ahead, though by less than the Special Adviser would like.' },
+      { when: { v: ['delegates', '<', 47] }, text: 'A challenger backed by governors you neglected has purchased a form. The count has you behind. It is too late to win them now; it was not too late last year.' },
+      { when: { all: [{ v: ['delegates', '<', 47] }, { v: ['approval', '>=', 58] }, { v: ['delegates', '>=', 36] }] }, text: 'You are popular enough in the country that some delegates will defy their governors. It may be enough.' },
     ],
     trace: [['bloc.party', -1]],
     reads: [
@@ -377,14 +333,14 @@ export const POLITICS: GameEvent[] = [
         id: 'contest', label: 'Go to the floor',
         outcomes: [
           {
-            when: { v: ['bloc.party', '>=', 60] },
+            when: { v: ['delegates', '>=', 62] },
             result: 'The ayes have it. The convention lasts six hours, five of them speeches.',
             fx: [['pc', 8], ['bloc.party', 3]],
             news: ['PRESIDENT EMERGES PARTY FLAGBEARER BY AFFIRMATION', 'NA VOICE VOTE: PRESIDENT GET TICKET'],
             archive: 'Won the party ticket by affirmation.', sig: 3,
           },
           {
-            when: { any: [{ v: ['bloc.party', '>=', 44] }, { all: [{ v: ['approval', '>=', 58] }, { v: ['bloc.party', '>=', 32] }] }] },
+            when: { any: [{ v: ['delegates', '>=', 47] }, { all: [{ v: ['approval', '>=', 58] }, { v: ['delegates', '>=', 36] }] }] },
             result: 'Counting ends at 4am. You win with 58% of delegates. The challenger pledges loyalty through visibly clenched teeth.',
             fx: [['pc', 5], ['bloc.party', -3]],
             news: ['PRESIDENT WINS PARTY PRIMARY', 'PRESIDENT SURVIVE PRIMARY. E NO EASY'],

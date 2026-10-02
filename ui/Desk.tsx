@@ -3,21 +3,29 @@
 import { useState } from 'react';
 import { EVENTS } from '../content';
 import { ORDER_BY_ID, TRACKS, type Order } from '../content/agenda';
+import { THEATRES } from '../content/theatres';
+import { TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES } from '../content/ventures';
+import { eventOf } from '../engine/cast';
+import { who } from '../engine/favours';
+import { canFocus, theatreDrift, threatWord } from '../engine/security';
+import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
 import { capitalIncome, movesTotal } from '../engine/capital';
 import { describe } from '../engine/effects';
 import { verdict } from '../engine/legacy';
 import {
-  ACTION_COST, DRAWER_COST, agendaSlots, availability, canAct, canDrawer, canLaunch, canOrder, canVenture,
-  financeAlternatives, launchCost, milestoneStatus, movesLeft, orderOutcome, standingOrders, ventureOdds, ventureStatus, ventureVisible,
+  ACTION_COST, DRAWER_COST, agendaSlots, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
+  favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
+  standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
 } from '../engine/reduce';
 import { blocks, fill, naira } from '../engine/text';
-import type { Action, ActionId, Change, DeskItem, DrawerOp, Fx, GameEvent, GameState, Track, ZoneId } from '../engine/types';
+import type { Action, ActionId, Aid, Change, DeskItem, DrawerOp, Fx, GameEvent, GameState, Track, ZoneId } from '../engine/types';
 import { ZONES, ZONE_NAME, approval } from '../engine/vars';
 import { blocView, gauges, outlook, previewChoice, recordOf, resolveRead, traceFor } from '../engine/view';
-import { Paper } from './Paper';
+import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
+import { BudgetModal, TreasuryModal } from './Treasury';
 import { PEOPLE, RIVAL_BY_ID } from '../content/people';
 import { strongestRival } from '../engine/people';
 import { standing } from '../engine/vars';
@@ -29,12 +37,12 @@ function nextFixture(s: GameState): string {
   const tt = termTurnOf(s.turn);
   const m = monthOf(s.turn);
   const marks: [number, string][] = s.term === 1
-    ? [[CFG.primaryTermTurn, 'Party primary'], [CFG.electionTermTurn, 'General election'], [48, 'Handover']]
-    : [[36, 'The succession'], [CFG.electionTermTurn, 'General election'], [48, 'Handover']];
+    ? [[24, 'Governorship elections in three states'], [CFG.primaryTermTurn, 'Party primary'], [CFG.electionTermTurn, 'General election'], [48, 'Handover']]
+    : [[24, 'Governorship elections in three states'], [36, 'The succession'], [CFG.electionTermTurn, 'General election'], [48, 'Handover']];
   const next = marks.find(([t]) => t >= tt);
   if (next && next[0] - tt <= 12) return next[0] === tt ? `${next[1]}: this month` : `${next[1]} in ${next[0] - tt} months`;
   const toBudget = (12 - m + 12) % 12;
-  return toBudget === 0 ? 'The budget returns from the Assembly' : `Budget in ${toBudget} months`;
+  return toBudget === 0 ? 'The budget must be signed this month' : `Budget in ${toBudget} months`;
 }
 
 function Modal({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
@@ -91,6 +99,9 @@ function Expected({ items, later, dark }: { items: Pred; later?: boolean; dark?:
 
 function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEvent; item: DeskItem; dispatch: Dispatch; onClose: () => void }) {
   const [tab, setTab] = useState<'advice' | 'trace'>('advice');
+  const [aid, setAid] = useState<Aid>({});
+  const favours = favoursFor(s, e);
+  const shield = shieldFor(s, e);
   const reads = (e.reads ?? []).map((r) => resolveRead(s, e, r)).filter((r) => r !== null);
   const trace = traceFor(s, e);
   const ref = `PRES/${e.category.slice(0, 3).toUpperCase()}/${yearOf(s.turn)}/${100 + s.turn * 3}`;
@@ -150,29 +161,59 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
 
         {!item.resolved ? (
           <section className="mt-7">
+            {(favours.length > 0 || shield) && (
+              <div className="mb-4 border border-honour/50 bg-paper-dim px-4 py-3">
+                <p className="label text-ink-soft">Before you decide: who will carry this for you?</p>
+                {favours.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {favours.map((f) => {
+                      const on = aid.favour === f.id;
+                      return (
+                        <button key={f.id} onClick={() => setAid({ ...aid, favour: on ? undefined : f.id })}
+                          className={`border px-3 py-1.5 text-left font-serif ${on ? 'border-state bg-state/15' : 'border-ink/25 hover:border-state'}`}>
+                          {on ? '✓ ' : ''}Call in {who(s, f.who).short} <span className="text-state">{'●'.repeat(f.size)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {favours.length > 0 && <p className="mt-1.5 text-[13px] leading-snug text-ink-soft">A favour makes the calls for you: it saves up to 5 political capital for each ● and softens the damage with the party, the establishment and the Villa. It is spent when you decide.</p>}
+                {shield && (
+                  <div className="mt-2">
+                    <button disabled={!shield.ok} onClick={() => setAid({ ...aid, minister: !aid.minister })}
+                      className={`border px-3 py-1.5 text-left font-serif ${!shield.ok ? 'border-ink/10 opacity-45' : aid.minister ? 'border-state bg-state/15' : 'border-ink/25 hover:border-state'}`}>
+                      {aid.minister ? '✓ ' : ''}Put {who(s, shield.id).name} in front of it
+                    </button>
+                    <p className="mt-1.5 text-[13px] leading-snug text-ink-soft">{shield.ok ? 'The minister announces it and takes the blame: the damage to your approval, the street and the press is halved. It goes on the minister\'s scorecard, and the minister will not thank you.' : shield.reason}</p>
+                  </div>
+                )}
+              </div>
+            )}
             <p className="label text-ink-soft">Your options, and what the advisers expect of each</p>
             <ul className="mt-2 space-y-2">
               {e.choices.map((c) => {
-                const a = availability(s, c);
+                const pc = aidedPc(s, c.pc, aid);
+                const a = availability(s, { ...c, pc });
                 if (!a.visible) return null;
-                const p = previewChoice(s, c);
+                const p = previewChoice(s, c, aid);
                 return (
                   <li key={c.id}>
                     <button
                       disabled={!a.ok}
-                      onClick={() => dispatch({ type: 'CHOOSE', eventId: e.id, choiceId: c.id })}
+                      onClick={() => dispatch({ type: 'CHOOSE', eventId: e.id, choiceId: c.id, aid })}
                       className={`w-full border px-4 py-3 text-left transition-colors ${a.ok ? 'border-ink/25 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-55'}`}
                     >
                       <span className="flex flex-wrap items-baseline justify-between gap-x-3">
                         <span className="font-serif text-[17px] leading-snug">{fill(s, c.label)}</span>
                         <span className="flex flex-wrap gap-1.5">
-                          {c.pc ? <Chip>{c.pc} capital</Chip> : null}
+                          {c.pc ? <Chip>{pc === c.pc ? `${c.pc} capital` : pc ? `${pc} capital, not ${c.pc}` : 'No capital: the favour covers it'}</Chip> : null}
                           {c.naira ? <Chip>{naira(c.naira)}</Chip> : null}
                           {c.purse ? <Chip tone="alarm">₦{c.purse}bn from the drawer</Chip> : null}
                           {p.risky ? <Chip tone="alarm">Risky</Chip> : null}
                         </span>
                       </span>
                       <span className="mt-2 block space-y-1">
+                        {p.notes.map((n) => <span key={n} className="block text-[13.5px] leading-snug text-ink">→ {n}</span>)}
                         <Expected items={p.now} />
                         <Expected items={p.later} later />
                         {p.leadsOn && <span className="label block text-ink-soft">This will come back to the desk</span>}
@@ -247,6 +288,7 @@ function PhoneModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEv
                 >
                   {fill(s, c.label)}
                   {costs && <span className="label mt-1 block text-ivory/70">{costs}</span>}
+                  {p.notes.map((n) => <span key={n} className="mt-1 block text-[13px] text-ivory/80">→ {n}</span>)}
                   <span className="mt-1 block"><Expected items={[...p.now, ...p.later]} dark /></span>
                 </button>
               );
@@ -426,6 +468,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
           const active = s.agenda.active.find((a) => a.id === m.id);
           const can = canLaunch(s, m.id);
           const cost = launchCost(s, m);
+          const money = launchMoney(s, m);
           return (
             <li key={m.id} className={`border-l-2 pl-3 ${st === 'done' ? 'border-state-lit' : st === 'active' ? 'border-honour' : 'border-ivory/15'} ${st === 'later' ? 'opacity-45' : ''}`}>
               <p className="flex items-baseline justify-between gap-2">
@@ -453,7 +496,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
                       Launch
                     </button>
                     <span className="label text-mute">
-                      {[cost ? `${cost} capital` : null, m.naira ? naira(m.naira) : null, `${m.months} months`].filter(Boolean).join(' · ')}
+                      {[cost ? `${cost} capital` : null, m.naira ? (money.fund ? `${naira(money.fund)} from the Infrastructure Fund${money.treasury > 0.001 ? ` + ${naira(money.treasury)}` : ''}` : naira(m.naira)) : null, `${m.months} months`].filter(Boolean).join(' · ')}
                     </span>
                   </div>
                   {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
@@ -480,8 +523,8 @@ function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="label text-mute">Your agenda · {s.agenda.active.length} of {agendaSlots(s)} reforms under way</p>
-        <button onClick={() => setAll(!all)} className="label text-honour/90 hover:text-honour">{all ? 'Hide the other six tracks' : 'Show all ten reform tracks'}</button>
+        <p className="label text-mute">Your agenda · {s.agenda.active.length} of {agendaSlots(s)} reforms under way{s.agenda.active.length > CFG.agenda.easyLoad ? ` · beyond ${CFG.agenda.easyLoad}, each one costs ${CFG.agenda.loadPc} capital and ${CFG.agenda.loadParty} with the party a month` : ''}</p>
+        <button onClick={() => setAll(!all)} className="label text-honour/90 hover:text-honour">{all ? 'Hide the other six tracks' : `Show all ten reform tracks · ${s.agenda.done.length} of 50 delivered`}</button>
       </div>
       <div className="mt-2 grid gap-3 md:grid-cols-2">
         {mine.map((t) => <TrackCard key={t.id} s={s} track={t} dispatch={dispatch} priority />)}
@@ -494,59 +537,107 @@ function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
 
 // ---------------------------------------------------------------- big bets
 
+function Risks({ s, v, live }: { s: GameState; v: (typeof VENTURES)[number]; live?: boolean }) {
+  const list = risksOf(s, v);
+  return (
+    <ul className="mt-2 space-y-1">
+      {list.map(({ risk, ok }) => (
+        <li key={risk.id} className="text-[13px] leading-snug">
+          <span className={ok ? 'text-[#7fc4a0]' : 'text-[#e08a7c]'}>{ok ? '✓' : '✕'} {risk.label}</span>
+          {!ok && <span className="block pl-4 text-ivory/60">{live ? risk.warn + ' ' : ''}Costs {Math.round(risk.cost * 100)} points of the odds. {risk.fix}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   const [open, setOpen] = useState(false);
   const running = VENTURES.filter((v) => ventureStatus(s, v.id) === 'active');
   const available = VENTURES.filter((v) => ventureStatus(s, v.id) === 'open' && ventureVisible(s, v));
+  const locked = VENTURES.filter((v) => v.opened && ventureStatus(s, v.id) === 'open' && !ventureVisible(s, v));
+  const fresh = available.filter((v) => v.opened);
   return (
     <div className="mt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="label text-mute">Big bets · {running.length} of {CFG.agenda.ventureSlots} running</p>
-        <button onClick={() => setOpen(!open)} className="label text-honour/90 hover:text-honour">{open ? 'Hide' : `Show ${available.length} available`}</button>
+        <button onClick={() => setOpen(!open)} className="label text-honour/90 hover:text-honour">{open ? 'Hide' : `Show ${available.length} available${fresh.length ? `, ${fresh.length} opened by your reforms` : ''}`}</button>
       </div>
-      <p className="mt-1 text-sm text-mute">Bold initiatives that can succeed or fail. The odds improve with a capable, honest state. Either way the result is permanent.</p>
+      <p className="mt-1 text-sm text-mute">Bold initiatives that can fail. Each lists what must be true for it to work. Those are judged on the day it opens; until then you can put them right. Reforms open new bets.</p>
       {running.length > 0 && (
         <ul className="mt-2 space-y-2">
           {running.map((v) => {
             const a = s.ventures.active.find((x) => x.id === v.id)!;
+            const odds = ventureOdds(s, v);
+            const res = canRescue(s, v.id);
+            const del = canDelay(s, v.id);
+            const st = s.bets[v.id];
             return (
               <li key={v.id} className="border border-honour/30 bg-[#1a1d20] p-3">
-                <p className="flex items-baseline justify-between gap-2 font-serif text-ivory">{v.name}<span className="label text-honour">{Math.round(ventureOdds(s, v) * 100)}% odds</span></p>
+                <p className="flex items-baseline justify-between gap-2 font-serif text-ivory">{v.name}<span className={`label ${odds < 0.5 ? 'text-[#e08a7c]' : 'text-honour'}`}>{Math.round(odds * 100)}% odds</span></p>
                 <div className="mt-1.5 h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, a.progress)}%` }} /></div>
+                <p className="label mt-1 text-mute">{Math.round(Math.min(99, a.progress))}% built{st?.partner && v.partner ? ` · ${TYCOON_BY_ID[v.partner].short} is co-financing` : ''}{st?.rescued ? ' · reinforced' : ''}{st?.delayed ? ' · postponed once' : ''}</p>
+                <Risks s={s} v={v} live />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button disabled={!res.ok} title={res.reason} onClick={() => dispatch({ type: 'VENTURE_RESCUE', id: v.id })}
+                    className={`border px-2.5 py-1 text-sm ${res.ok ? 'border-honour/50 text-honour hover:bg-honour/10' : 'border-ivory/10 text-ivory/35'}`}>
+                    Send a task team · {naira(rescueCost(v))}, 3 capital · +12 points
+                  </button>
+                  <button disabled={!del.ok} title={del.reason} onClick={() => dispatch({ type: 'VENTURE_DELAY', id: v.id })}
+                    className={`border px-2.5 py-1 text-sm ${del.ok ? 'border-ivory/25 text-ivory/80 hover:border-ivory/50' : 'border-ivory/10 text-ivory/35'}`}>
+                    Postpone the opening · buys time, costs a little approval
+                  </button>
+                </div>
               </li>
             );
           })}
         </ul>
       )}
       {open && (
-        <ul className="mt-2 grid gap-3 md:grid-cols-2">
-          {available.map((v) => {
-            const can = canVenture(s, v);
-            return (
-              <li key={v.id} className="border border-ivory/12 bg-[#1a1d20] p-4">
-                <p className="flex items-baseline justify-between gap-2">
-                  <span className="font-serif text-lg leading-snug text-ivory">{v.name}</span>
-                  <span className="label shrink-0 text-honour">{Math.round(ventureOdds(s, v) * 100)}% odds</span>
-                </p>
-                <p className="mt-1 text-sm leading-snug text-ivory/65">{v.blurb}</p>
-                <div className="mt-2 space-y-1">
-                  {v.start && <Expected items={describe(v.start)} dark />}
-                  <p className="label text-[#7fc4a0]">If it works</p>
-                  <Expected items={describe(v.win)} later dark />
-                  <p className="label text-[#e08a7c]">If it fails</p>
-                  <Expected items={describe(v.lose)} later dark />
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <button disabled={!can.ok} onClick={() => dispatch({ type: 'VENTURE', id: v.id })} className={`px-3 py-1.5 font-serif ${can.ok ? 'bg-honour/90 text-pit hover:bg-honour' : 'bg-ivory/8 text-ivory/40'}`}>
-                    Take the bet
-                  </button>
-                  <span className="label text-mute">{[v.pc ? `${v.pc} capital` : null, v.naira ? naira(v.naira) : null, `${v.months} months`].filter(Boolean).join(' · ')}</span>
-                </div>
-                {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <ul className="mt-2 grid gap-3 md:grid-cols-2">
+            {available.map((v) => {
+              const can = canVenture(s, v);
+              const odds = ventureOdds(s, v);
+              const cost = ventureNaira(s, v);
+              const partner = partnerIn(s, v);
+              return (
+                <li key={v.id} className={`border bg-[#1a1d20] p-4 ${v.opened ? 'border-state-lit/60' : 'border-ivory/12'}`}>
+                  {v.opened && <p className="label text-[#7fc4a0]">Opened by: {v.opened}</p>}
+                  <p className="flex items-baseline justify-between gap-2">
+                    <span className="font-serif text-lg leading-snug text-ivory">{v.name}</span>
+                    <span className={`label shrink-0 ${odds < 0.5 ? 'text-[#e08a7c]' : 'text-honour'}`}>{Math.round(odds * 100)}% odds</span>
+                  </p>
+                  <p className="mt-1 text-sm leading-snug text-ivory/65">{v.blurb}</p>
+                  <p className="label mt-2 text-mute">What it depends on · {Math.round(v.top * 100)}% if all are in place</p>
+                  <Risks s={s} v={v} />
+                  <div className="mt-2 space-y-1">
+                    {v.start && <Expected items={describe(v.start)} dark />}
+                    <p className="label text-[#7fc4a0]">If it works</p>
+                    <Expected items={describe(v.win)} later dark />
+                    <p className="label text-[#e08a7c]">If it fails</p>
+                    <Expected items={describe(v.lose)} later dark />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <button disabled={!can.ok} onClick={() => dispatch({ type: 'VENTURE', id: v.id })} className={`px-3 py-1.5 font-serif ${can.ok ? 'bg-honour/90 text-pit hover:bg-honour' : 'bg-ivory/8 text-ivory/40'}`}>
+                      Take the bet
+                    </button>
+                    <span className="label text-mute">{[v.pc ? `${v.pc} capital` : null, cost ? naira(cost) : null, `${v.months} months`].filter(Boolean).join(' · ')}</span>
+                  </div>
+                  {v.partner && <p className="mt-1 text-[13px] text-mute">{partner ? `${TYCOON_BY_ID[v.partner].short} is with you and will put in 40% of the money.` : `${TYCOON_BY_ID[v.partner].short} would pay 40% of this as a friend (60 or better on the politics screen).`}</p>}
+                  {v.infra && s.funds.infra > 0.01 && <p className="mt-1 text-[13px] text-[#7fc4a0]">The Infrastructure Fund pays for this at a 25% discount.</p>}
+                  {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
+                </li>
+              );
+            })}
+          </ul>
+          {locked.length > 0 && (
+            <p className="mt-3 text-[13px] leading-snug text-mute">
+              <span className="label mr-1">Not yet possible</span>
+              {locked.map((v) => `${v.name} (needs: ${v.opened})`).join(' · ')}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -585,8 +676,9 @@ function RecordPanel({ s }: { s: GameState }) {
 
 // ---------------------------------------------------------------- state of the nation
 
-function NationModal({ s, onClose }: { s: GameState; onClose: () => void }) {
+function NationModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatch; onClose: () => void }) {
   const v = verdict(s);
+  const left = movesLeft(s);
   const tone = (g: string) => (g === 'Transformed' || g === 'Stronger' ? 'text-state' : g === 'Held' ? 'text-ink-soft' : 'text-alarm');
   return (
     <Modal onClose={onClose} wide>
@@ -605,14 +697,42 @@ function NationModal({ s, onClose }: { s: GameState; onClose: () => void }) {
             </li>
           ))}
         </ul>
-        <h3 className="label mt-6 border-b rule pb-1 text-ink-soft">By zone</h3>
-        <ul className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
-          {ZONES.map((z) => (
-            <li key={z} className="flex items-baseline justify-between font-serif">
-              <span>{ZONE_NAME[z]}</span><span>{Math.round(s.zones[z].approval)}%</span>
-            </li>
-          ))}
+
+        <h3 className="label mt-7 border-b rule pb-1 text-ink-soft">Security, theatre by theatre</h3>
+        <p className="mt-2 text-sm leading-snug text-ink-soft">
+          The security figure is these six problems added up. Each has its own cause and its own cost. You can concentrate the security effort on one: it improves steadily, and the other five get a little worse. Moving the forces costs a move and takes three months to change again.
+        </p>
+        <ul className="mt-3 space-y-3">
+          {THEATRES.map((th) => {
+            const threat = s.theatres[th.zone];
+            const drift = theatreDrift(s, th.zone);
+            const here = s.focus === th.zone;
+            const can = canFocus(s, th.zone, left);
+            return (
+              <li key={th.zone} className={`border p-3 ${here ? 'border-state' : threat >= 70 ? 'border-alarm/50' : 'border-ink/20'}`}>
+                <p className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-serif text-lg">{ZONE_NAME[th.zone]}: {th.name.toLowerCase()}</span>
+                  <span className={`font-serif ${threat >= 60 ? 'text-alarm' : threat < 45 ? 'text-state' : ''}`}>{threatWord(threat)} · {Math.round(threat)}</span>
+                </p>
+                <div className="mt-1.5 h-1.5 bg-ink/10"><div className={`h-1.5 transition-all duration-700 ${threat >= 60 ? 'bg-alarm' : 'bg-honour'}`} style={{ width: `${threat}%` }} /></div>
+                <p className="mt-1.5 text-sm leading-snug"><span className="label mr-1 text-ink-soft">Costs you</span>{th.costs}</p>
+                <p className="mt-0.5 text-sm leading-snug text-ink-soft"><span className="label mr-1">What moves it</span>{th.driver}</p>
+                <p className={`mt-1 text-[13px] ${drift.d > 0.05 ? 'text-alarm' : drift.d < -0.05 ? 'text-state' : 'text-ink-soft'}`}>
+                  This month it is {drift.d > 0.05 ? 'getting worse' : drift.d < -0.05 ? 'improving' : 'holding'}{drift.why.length ? `: ${drift.why.join('; ').toLowerCase()}` : ''}.
+                  {' '}Approval in the zone: {Math.round(s.zones[th.zone].approval)}%.
+                </p>
+                <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'FOCUS', zone: th.zone })}
+                  className={`mt-2 border px-3 py-1.5 font-serif ${here ? 'border-state bg-state/10' : can.ok ? 'border-ink/30 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-45'}`}>
+                  {here ? '✓ The security effort is concentrated here' : 'Concentrate the security effort here'}
+                </button>
+              </li>
+            );
+          })}
         </ul>
+        {s.focus && (() => {
+          const can = canFocus(s, null, left);
+          return <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'FOCUS', zone: null })} className={`mt-3 border px-3 py-1.5 font-serif ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>Return forces to their usual stations</button>;
+        })()}
         <div className="mt-8 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
       </div>
     </Modal>
@@ -732,7 +852,7 @@ function CapitalIncome({ s }: { s: GameState }) {
               <span className="block text-mute">{l.hint}</span>
             </li>
           ))}
-          {inc.capped && <li className="text-[13px] text-mute">Above {80} capital, income is halved: unused authority fades.</li>}
+          {inc.capped && <li className="text-[13px] text-mute">Above {CFG.pc.softCap} capital, income is halved: unused authority fades.</li>}
           <li className="text-[13px] text-mute">You can also raise it directly: see “Raising political capital” under the powers of the office.</li>
         </ul>
       )}
@@ -750,14 +870,19 @@ function Delta({ d, upIsGood, unit }: { d: number; upIsGood: boolean; unit: stri
 
 export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch; onQuit: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
-  const [panel, setPanel] = useState<'powers' | 'people' | 'drawer' | 'archive' | 'paper' | 'nation' | null>(null);
+  const [panel, setPanel] = useState<'powers' | 'people' | 'drawer' | 'archive' | 'paper' | 'nation' | 'treasury' | 'owed' | 'budget' | 'favours' | null>(null);
 
   const lead = s.desk.lead;
-  const leadEvent = lead ? EVENTS[lead.eventId] : null;
+  const leadEvent = eventOf(s, lead) ?? null;
+  const stop = blocked(s);
+  const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
+  const owedToYou = s.favours.filter((f) => f.dir === 'owed').length;
+  const youOwe = s.favours.filter((f) => f.dir === 'owing').length;
+  const gap = oilGap(s);
   const tt = termTurnOf(s.turn);
   const app = Math.round(approval(s));
   const appDelta = app - Math.round(s.approvalPrev);
-  const canEnd = !lead || !!lead.resolved;
+  const canEnd = !stop;
   const unanswered = s.desk.minors.filter((m) => !m.resolved).length;
   const drawerVisible = !!s.flags['drawer.open'] && !s.flags['drawer.sealed'];
   const left = movesLeft(s);
@@ -765,7 +890,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
   const showOutlook = s.term === 1 && !s.flags['ticket.lost'] && !s.election;
 
   const openItem = [lead, ...s.desk.minors].find((i) => i && i.eventId === open) ?? null;
-  const openEvent = openItem ? EVENTS[openItem.eventId] : null;
+  const openEvent = eventOf(s, openItem) ?? null;
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6">
@@ -834,12 +959,25 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
             )}
           </section>
 
+          {s.budget.due && (
+            <button onClick={() => setPanel('budget')} className="paper slide-in block w-full p-5 text-left transition-transform hover:-translate-y-0.5 sm:p-6">
+              <span className="flex items-start justify-between gap-4">
+                <span className="label text-state">Budget Office of the Federation</span>
+                <span className="stamp text-[10px] text-alarm">FOR ASSENT</span>
+              </span>
+              <span className="mt-3 block font-serif text-2xl leading-tight">The Appropriation Bill, {yearOf(s.turn) + 1}</span>
+              <span className="mt-1 block text-sm text-ink-soft">What will oil sell for next year, and where does the money go? Nothing is released until you sign.</span>
+              <span className="label mt-3 block text-ink-soft">Open the bill →</span>
+            </button>
+          )}
+
           {s.desk.minors.length > 0 && (
             <section>
               <p className="label text-mute">The phone</p>
               <ul className="mt-2 space-y-2">
                 {s.desk.minors.map((m) => {
-                  const e = EVENTS[m.eventId];
+                  const e = eventOf(s, m);
+                  if (!e) return null;
                   return (
                     <li key={m.eventId}>
                       <button onClick={() => setOpen(m.eventId)} className="flex w-full items-center gap-3 rounded-2xl border border-ivory/10 bg-[#1c1f22] px-4 py-3 text-left hover:border-ivory/30">
@@ -873,12 +1011,29 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
             </button>
             <button onClick={() => setPanel('people')} className="mt-2 flex w-full items-center justify-between gap-4 border border-ivory/15 p-4 text-left hover:border-honour/60">
               <span>
-                <span className="block font-serif text-xl text-ivory">Your governors, senators and ministers</span>
+                <span className="block font-serif text-xl text-ivory">Your people, the money and the opposition</span>
                 <span className="mt-0.5 block text-sm text-mute">
                   {PEOPLE.filter((p) => p.group === 'governor' && standing(s, p.id) >= 58).length} of 6 governors with you · Senate: {senateLine(s).toLowerCase()} · likely challenger: {RIVAL_BY_ID[strongestRival(s).id].name}
                 </span>
+                <span className="mt-0.5 block text-sm">
+                  <span className={owedToYou ? 'text-[#7fc4a0]' : 'text-mute'}>{owedToYou} {owedToYou === 1 ? 'favour' : 'favours'} owed to you</span>
+                  <span className="text-mute"> · </span>
+                  <span className={youOwe ? 'text-[#e08a7c]' : 'text-mute'}>you owe {youOwe}</span>
+                </span>
               </span>
               <span className="label shrink-0 text-honour">Politics →</span>
+            </button>
+            <button onClick={() => setPanel('treasury')} className="mt-2 flex w-full items-center justify-between gap-4 border border-ivory/15 p-4 text-left hover:border-honour/60">
+              <span>
+                <span className="block font-serif text-xl text-ivory">The Treasury: what is owed and what is saved</span>
+                <span className="mt-0.5 block text-sm text-mute">
+                  {s.nation.fiscalSpace <= 0.01 ? 'Empty' : naira(s.nation.fiscalSpace)} in the account · debt service {Math.round(s.nation.debt)}% · <span className={arrears > 1 ? 'text-[#e08a7c]' : ''}>{naira(arrears)} unpaid</span> · {naira(s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth)} saved
+                </span>
+                <span className="mt-0.5 block text-sm text-mute">
+                  Oil ${Math.round(s.oil.price)} against a budget of ${s.budget.benchmark}: <span className={gap >= 0 ? 'text-[#7fc4a0]' : 'text-[#e08a7c]'}>{gap >= 0 ? 'the surplus is being saved' : 'the gap comes out of the treasury'}</span>
+                </span>
+              </span>
+              <span className="label shrink-0 text-honour">The books →</span>
             </button>
             {s.lastAction && (
               <div className="fade-in mt-2 border border-ivory/10 p-4">
@@ -913,7 +1068,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
           <div>
             <div className="flex items-baseline justify-between">
               <p className="label text-mute">The country</p>
-              <button onClick={() => setPanel('nation')} className="label text-honour/90 hover:text-honour">Scorecard →</button>
+              <button onClick={() => setPanel('nation')} className="label text-honour/90 hover:text-honour">Scorecard and security →</button>
             </div>
             <ul className="mt-2 space-y-2">
               {gauges(s).map((g) => (
@@ -970,21 +1125,24 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
               onClick={() => { setOpen(null); dispatch({ type: 'END_MONTH' }); }}
               className={`px-5 py-2.5 font-serif text-lg ${canEnd ? 'bg-state text-ivory hover:bg-state-lit' : 'bg-ivory/10 text-ivory/40'}`}
             >
-              {canEnd ? 'End the month' : 'A file is waiting'}
+              {stop ?? 'End the month'}
             </button>
           </span>
         </div>
       </footer>
 
       {openItem && openEvent && (openEvent.slot === 'lead'
-        ? <FileModal s={s} e={openEvent} item={openItem} dispatch={dispatch} onClose={() => setOpen(null)} />
+        ? <FileModal key={openItem.eventId} s={s} e={openEvent} item={openItem} dispatch={dispatch} onClose={() => setOpen(null)} />
         : <PhoneModal s={s} e={openEvent} item={openItem} dispatch={dispatch} onClose={() => setOpen(null)} />)}
       {panel === 'powers' && <PowersModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'people' && <PeopleModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
+      {panel === 'favours' && <PeopleModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} start="owed" />}
+      {(panel === 'treasury' || panel === 'owed') && <TreasuryModal s={s} dispatch={dispatch} start={panel === 'owed' ? 'owed' : 'books'} onClose={() => setPanel(null)} onBudget={() => setPanel('budget')} />}
+      {panel === 'budget' && s.budget.due && <BudgetModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'drawer' && <DrawerModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'archive' && <ArchiveModal s={s} onClose={() => setPanel(null)} />}
-      {panel === 'nation' && <NationModal s={s} onClose={() => setPanel(null)} />}
-      {panel === 'paper' && s.paper && s.phase === 'desk' && <Paper page={s.paper} onDismiss={() => setPanel(null)} />}
+      {panel === 'nation' && <NationModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
+      {panel === 'paper' && s.papers.length > 0 && s.phase === 'desk' && <Papers pages={s.papers} onDismiss={() => setPanel(null)} />}
     </main>
   );
 }

@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { verdict } from '../engine/legacy';
+import { migrate } from '../engine/migrate';
 import { applyAction, newGame } from '../engine/reduce';
 import type { Action, GameState, Setup } from '../engine/types';
 import { Desk } from './Desk';
 import { ElectionNight } from './Election';
-import { Paper } from './Paper';
+import { Papers } from './Paper';
 import { SetupScreen, Title } from './Setup';
 import { VerdictScreen } from './Verdict';
 
-const SAVE = 'oatt.save.v5';
+// One key from here on. Saves are brought forward by engine/migrate.ts, not abandoned.
+const SAVE = 'oatt.save';
+const OLD_SAVES = ['oatt.save.v5'];
 const HISTORY = 'oatt.history.v1';
 
 export interface HistoryRecord { name: string; party: string; years: string; epithet: string; ending: string }
@@ -27,10 +30,10 @@ export function Game() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(SAVE);
+      const raw = localStorage.getItem(SAVE) ?? OLD_SAVES.map((k) => localStorage.getItem(k)).find(Boolean);
       if (raw) {
-        const s = JSON.parse(raw) as GameState;
-        if (s.version === 2) setState(s);
+        const s = migrate(JSON.parse(raw));
+        if (s) setState(s);
       }
     } catch { /* a corrupt save is treated as no save */ }
     setHistory(loadHistory());
@@ -79,8 +82,8 @@ export function Game() {
   return (
     <>
       <Desk s={state} dispatch={dispatch} onQuit={() => setScreen('title')} />
-      {state.phase === 'papers' && state.paper && (
-        <Paper page={state.paper} onDismiss={() => dispatch({ type: 'DISMISS_PAPER' })} />
+      {state.phase === 'papers' && state.papers.length > 0 && (
+        <Papers pages={state.papers} onDismiss={() => dispatch({ type: 'DISMISS_PAPER' })} />
       )}
     </>
   );

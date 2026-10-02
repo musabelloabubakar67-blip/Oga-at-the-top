@@ -45,6 +45,8 @@ export function verdict(s: GameState): Verdict {
   const n = s.nation;
   const h = hardship(s);
   const app = approval(s);
+  const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
+  const saved = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
   const dim = (name: string, delta: number, steps: [number, number, number, number], from: string, to: string): Dimension => {
     const [g, score] = grade(delta, steps);
     return { name, grade: g, score, from, to };
@@ -52,7 +54,7 @@ export function verdict(s: GameState): Verdict {
 
   const dims: Dimension[] = [
     dim('Prosperity', b.hardship - h, [20, 8, -4, -12], `Inflation ${b.inflation.toFixed(0)}%`, `${n.inflation.toFixed(0)}%`),
-    dim('Fiscal stability', (b.debt - n.debt) + (n.fiscalSpace - b.fiscalSpace) * 4, [25, 10, -5, -15], `Debt service ${b.debt.toFixed(0)}% of revenue`, `${n.debt.toFixed(0)}%`),
+    dim('Fiscal stability', (b.debt - n.debt) + (n.fiscalSpace - b.fiscalSpace + saved - (arrears - 2.5)) * 4, [25, 10, -5, -15], `Debt service ${b.debt.toFixed(0)}% of revenue, ₦2.5tn unpaid`, `${n.debt.toFixed(0)}%, ₦${arrears.toFixed(1)}tn unpaid, ₦${saved.toFixed(1)}tn saved`),
     dim('Security', n.security - b.security, [24, 10, -4, -12], `Index ${b.security.toFixed(0)}`, n.security.toFixed(0)),
     dim('Power and infrastructure', n.power - b.power, [24, 10, -4, -12], `Index ${b.power.toFixed(0)}`, n.power.toFixed(0)),
     dim('Jobs and industry', n.jobs - b.jobs, [24, 10, -4, -12], `Index ${b.jobs.toFixed(0)}`, n.jobs.toFixed(0)),
@@ -136,6 +138,13 @@ export function verdict(s: GameState): Verdict {
   if (s.flags['policy.subsidy'] !== 'removed') left.push('A petrol subsidy nobody will admit exists.');
   if (s.flags['promise.second_term']) left.push('A campaign promise the treasury never heard about.');
   if ((s.counters.committees ?? 0) >= 3) left.push(`${s.counters.committees} presidential committees whose reports are awaited.`);
+  if (arrears > 1.5) left.push(`₦${arrears.toFixed(1)}tn owed to contractors, pensioners and gas suppliers.`);
+  if (saved > 1) left.push(`₦${saved.toFixed(1)}tn in savings, which is more than any President has handed over.`);
+  const owing = s.favours.filter((f) => f.dir === 'owing').length;
+  if (owing) left.push(`${owing === 1 ? 'A debt' : `${owing} debts`} of your own, to people who will now come to your house instead of the Villa.`);
+  const lost = Object.keys(s.ventures.causes).length;
+  if (lost >= 2) left.push(`${lost} monuments to things that were announced before they were possible.`);
+  if (left.length === 1 && saved > 1) left.unshift('Very little.');
   if (!left.length) left.push('Nothing of note. The handover notes are, for once, shorter than the inauguration speech.');
 
   const start = 2027;

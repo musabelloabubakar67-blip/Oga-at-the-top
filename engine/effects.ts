@@ -5,6 +5,9 @@ import type { Change, Fx, GameState } from './types';
 import { BLOCS, ZONE_NAME, approval } from './vars';
 import type { ZoneId } from './types';
 import { PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
+import { DEBT_BY_ID, FUND_BY_ID } from '../content/treasury';
+import { TYCOON_BY_ID } from '../content/tycoons';
+import type { DebtId, FundId } from './types';
 
 interface Meta { label: string; upIsGood: boolean; steps: [number, number]; fmt: (d: number) => string }
 
@@ -43,6 +46,11 @@ function metaFor(target: string): Meta | null {
   const p = target.split('.');
   if (p[0] === 'rival' && RIVAL_BY_ID[p[1]]) return { label: RIVAL_BY_ID[p[1]].name, upIsGood: false, steps: [10, 20], fmt: pts };
   if (p[0] === 'person' && PERSON_BY_ID[p[1]]) return { label: PERSON_BY_ID[p[1]].short, upIsGood: true, steps: [6, 12], fmt: pts };
+  const money = (d: number) => `${d > 0 ? '+' : '−'}₦${Math.abs(d) >= 1 ? `${Math.abs(d).toFixed(1)}tn` : `${Math.round(Math.abs(d) * 1000)}bn`}`;
+  if (p[0] === 'debt' && DEBT_BY_ID[p[1] as DebtId]) return { label: `Owed: ${DEBT_BY_ID[p[1] as DebtId].name.toLowerCase()}`, upIsGood: false, steps: [0.5, 1.2], fmt: money };
+  if (p[0] === 'fund' && FUND_BY_ID[p[1] as FundId]) return { label: FUND_BY_ID[p[1] as FundId].name, upIsGood: true, steps: [0.5, 1.2], fmt: money };
+  if (p[0] === 'tycoon' && TYCOON_BY_ID[p[1]]) return { label: TYCOON_BY_ID[p[1]].short, upIsGood: true, steps: [8, 16], fmt: pts };
+  if (p[0] === 'theatre') return { label: `Threat, ${ZONE_NAME[p[1] as ZoneId]}`, upIsGood: false, steps: [4, 8], fmt: pts };
   if (p[0] === 'zone') {
     const name = ZONE_NAME[p[1] as ZoneId];
     return p[2] === 'security'
@@ -82,6 +90,8 @@ const WATCH = [
   'approval', 'pc', 'nation.inflation', 'nation.petrolPrice', 'nation.fiscalSpace', 'nation.debt',
   'nation.security', 'nation.power', 'nation.capacity', 'nation.integrity', 'nation.jobs',
   ...BLOCS.map((b) => `bloc.${b}`), 'purse',
+  'debt.eurobond', 'debt.bonds', 'debt.ways', 'debt.gas', 'debt.contractors', 'debt.pensions',
+  'fund.abroad', 'fund.buffer', 'fund.infra', 'fund.growth',
 ];
 
 export type Snapshot = Record<string, number>;
@@ -90,10 +100,18 @@ export function snapshot(s: GameState): Snapshot {
   const out: Snapshot = { approval: approval(s), pc: s.pc, purse: s.purse };
   for (const k of ['inflation', 'petrolPrice', 'fiscalSpace', 'debt', 'security', 'power', 'capacity', 'integrity', 'jobs'] as const) out[`nation.${k}`] = s.nation[k];
   for (const b of BLOCS) out[`bloc.${b}`] = s.blocs[b];
+  for (const k of ['eurobond', 'bonds', 'ways', 'gas', 'contractors', 'pensions'] as const) out[`debt.${k}`] = s.debts[k];
+  for (const k of ['abroad', 'buffer', 'infra', 'growth'] as const) out[`fund.${k}`] = s.funds[k];
+  out['debt.arrears'] = s.debts.gas + s.debts.contractors + s.debts.pensions;
+  out['fund.total'] = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
   return out;
 }
 
-const NOISE: Record<string, number> = { 'nation.fiscalSpace': 0.005, 'nation.petrolPrice': 4, approval: 0.25 };
+const NOISE: Record<string, number> = {
+  'nation.fiscalSpace': 0.005, 'nation.petrolPrice': 4, approval: 0.25,
+  'debt.eurobond': 0.02, 'debt.bonds': 0.02, 'debt.ways': 0.02, 'debt.gas': 0.02, 'debt.contractors': 0.02, 'debt.pensions': 0.02,
+  'fund.abroad': 0.02, 'fund.buffer': 0.02, 'fund.infra': 0.02, 'fund.growth': 0.02,
+};
 
 /** What measurably changed between two moments. */
 export function diff(before: Snapshot, after: Snapshot): Change[] {

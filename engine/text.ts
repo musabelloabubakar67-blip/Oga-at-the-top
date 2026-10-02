@@ -1,9 +1,9 @@
 import { NAMES } from '../content/names';
-import { RIVAL_BY_ID } from '../content/people';
+import { PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
 import { STATE_BY_ID } from '../content/states';
 import { yearOf } from './config';
 import type { Block, GameState } from './types';
-import { test } from './vars';
+import { delegates, test } from './vars';
 
 function rival(s: GameState) {
   const id = Object.entries(s.opposition ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'alt';
@@ -27,6 +27,15 @@ export function fill(s: GameState, text: string): string {
       case 'FINSHORT': return s.chars.fin?.short ?? 'the Minister';
       case 'COS': return s.chars.cos?.name ?? 'the Chief of Staff';
       case 'SAP': return s.chars.sap?.name ?? 'the Special Adviser';
+      // Ministers are whoever holds the job now.
+      case 'POWERMIN': return s.people.min_power?.name ?? PERSON_BY_ID.min_power.name;
+      case 'WORKS': return s.people.min_works?.name ?? PERSON_BY_ID.min_works.name;
+      case 'NSA': return s.people.min_defence?.name ?? PERSON_BY_ID.min_defence.name;
+      case 'DELEGATES': return String(Math.round(delegates(s)));
+      case 'OIL': return String(Math.round(s.oil.price));
+      case 'BENCH': return String(s.budget.benchmark);
+      case 'OUTPUT': return s.oil.output.toFixed(2);
+      case 'BUDGETYEAR': return String(yearOf(s.turn) + 1);
       default: return NAMES[key] ?? m;
     }
   });

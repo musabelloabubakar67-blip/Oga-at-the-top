@@ -1,4 +1,5 @@
 import { EVENTS, EVENT_LIST } from '../content';
+import { materialise, resolveCast } from './cast';
 import { CFG } from './config';
 import { rand, weighted } from './rng';
 import { fill } from './text';
@@ -26,7 +27,15 @@ export function eligible(s: GameState, e: GameEvent): boolean {
   const max = e.max ?? (e.kind === 'standalone' ? 1 : Infinity);
   if (count >= max) return false;
   if (s.turn - lastFired(s, e.id) <= (e.cooldown ?? defaultCooldown(e))) return false;
-  return test(s, e.when);
+  if (!e.cast) return test(s, e.when);
+  // A file about a person arises only if there is such a person, and its conditions are about them.
+  const cast = resolveCast(s, e);
+  return !!cast && test(s, materialise(s, e, cast).when);
+}
+
+function item(s: GameState, e: GameEvent): DeskItem {
+  const cast = e.cast ? resolveCast(s, e) ?? undefined : undefined;
+  return cast && Object.keys(cast).length ? { eventId: e.id, cast } : { eventId: e.id };
 }
 
 function weightOf(s: GameState, e: GameEvent): number {
@@ -76,7 +85,7 @@ function takeQueued(s: GameState, slot: 'lead' | 'minor'): GameEvent | null {
     if (!e || e.slot !== slot) continue;
     s.queue.splice(i, 1);
     const spent = (s.fired[e.id]?.length ?? 0) >= (e.max ?? Infinity);
-    if (!spent && test(s, q.when) && test(s, e.when)) return e;
+    if (!spent && test(s, q.when) && (e.cast ? !!resolveCast(s, e) && test(s, materialise(s, e, resolveCast(s, e)!).when) : test(s, e.when))) return e;
     i--;
   }
   return null;
@@ -96,10 +105,19 @@ function chiefOfStaffNote(s: GameState): string {
   }
   if (s.pressures.wageGrievance > 60) notes.push([14, 'Labour is counting days, {SIR}. They have not said so publicly yet.']);
   if (s.pressures.fuelSupplyStress > 60) notes.push([13, 'The marketers say depots are running low. They always say that. This time the depots agree.']);
-  if (s.pressures.scandalHeat > 60) notes.push([12, 'There are journalists asking questions around the ministries, {SIR}. Specific questions.']);
+  if (s.pressures.scandalHeat > 60) notes.push([12, 'There are journalists asking questions around the ministries, {SIR}. Specific questions. It is costing us in the polls every month.']);
   if (s.nation.fiscalSpace < 0.3) notes.push([11, 'Finance says the account is almost empty. Anything new will be borrowed.']);
   if (h > 65) notes.push([15, 'Prices, {SIR}. That is all anybody is talking about.']);
   if (s.pc < 15) notes.push([16, '{SIR}, we have very little capital left. People have noticed they can say no to us.']);
+  if (s.debts.gas > 0.9) notes.push([12, 'The gas suppliers are owed again, {SIR}. The plants will go idle before they go unpaid much longer.']);
+  if (s.debts.contractors > 1.5) notes.push([10, 'The contractors have stopped coming to site, {SIR}. Everything we are building is slower for it.']);
+  if (s.debts.pensions > 0.8) notes.push([11, 'The pensioners are outside the gate again, {SIR}. There are more of them each week.']);
+  if (s.budget.due) notes.push([40, 'The Appropriation Bill is on your desk, {SIR}. Nothing is released until you sign it.']);
+  const owing = s.favours.filter((f) => f.dir === 'owing' && s.turn - f.turn > 14).length;
+  if (owing) notes.push([9, owing === 1 ? 'Somebody we owe has been patient for over a year, {SIR}. That patience is not a gift.' : 'We owe several people who have been patient for over a year, {SIR}. They will not ask twice.']);
+  const hot = (['NW', 'NE', 'NC', 'SW', 'SE', 'SS'] as const).filter((z) => s.theatres[z] >= 76);
+  if (hot.length) notes.push([13, 'The security reports are bad, {SIR}. I would look at where the forces are concentrated.']);
+  if (s.oil.price < s.budget.benchmark - 10 && s.funds.buffer < 0.2) notes.push([12, 'Oil is well below what the budget assumed and there is nothing in the stabilisation account, {SIR}. The gap comes out of the treasury.']);
 
   notes.sort((a, b) => b[0] - a[0]);
   // A weaker Chief of Staff misses the second thing.
@@ -130,7 +148,7 @@ export function buildDesk(s: GameState): void {
 
   const minors: DeskItem[] = [];
   const queuedMinor = takeQueued(s, 'minor');
-  if (queuedMinor) { mark(s, queuedMinor); minors.push({ eventId: queuedMinor.id }); }
+  if (queuedMinor) { mark(s, queuedMinor); minors.push(item(s, queuedMinor)); }
   const roll = rand(s);
   const want = roll < CFG.director.minorTwo ? 2 : roll < CFG.director.minorTwo + CFG.director.minorOne ? 1 : 0;
   while (minors.length < want) {
@@ -141,11 +159,11 @@ export function buildDesk(s: GameState): void {
     const m = weighted(s, pool, (e) => weightOf(s, e));
     if (!m) break;
     mark(s, m);
-    minors.push({ eventId: m.id });
+    minors.push(item(s, m));
   }
 
   s.desk = {
-    lead: lead ? { eventId: lead.id } : null,
+    lead: lead ? item(s, lead) : null,
     minors,
     actionsUsed: 0,
     drawerUsed: false,

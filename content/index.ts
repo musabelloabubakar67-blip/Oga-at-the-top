@@ -8,11 +8,12 @@ import { RECURRING } from './events/recurring';
 import { SCANDAL } from './events/scandal';
 import { SECOND } from './events/secondterm';
 import { SUBSIDY } from './events/subsidy';
+import { SYSTEM } from './events/system';
 
 export const EVENT_LIST: GameEvent[] = [
-  ...SUBSIDY, ...LABOUR, ...SCANDAL, ...POLITICS, ...RECURRING, ...ABSURD, ...SECOND, ...MINOR, ...REACTIVE,
+  ...SUBSIDY, ...LABOUR, ...SCANDAL, ...POLITICS, ...RECURRING, ...ABSURD, ...SECOND, ...MINOR, ...REACTIVE, ...SYSTEM,
 ];
 
 export const EVENTS: Record<string, GameEvent> = Object.fromEntries(EVENT_LIST.map((e) => [e.id, e]));
 
-export { EDITORIALS, FILLERS, SIDEBARS, STANDFIRSTS, WEAK_LINES } from './press';
+export { EDITORIALS, FILLERS, SIDEBARS, WEAK_LINES } from './press';

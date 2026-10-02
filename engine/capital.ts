@@ -2,6 +2,7 @@
 // player can see it and decide which source to grow.
 
 import { PEOPLE } from '../content/people';
+import { TYCOONS } from '../content/tycoons';
 import { CFG, termTurnOf } from './config';
 import type { GameState } from './types';
 import { BLOCS, approval, standing } from './vars';
@@ -37,8 +38,16 @@ export function capitalIncome(s: GameState): { lines: CapitalLine[]; total: numb
   if (strained.length) lines.push({ label: `Strained: ${strained.map((k) => BLOC_LABEL[k]).join(', ')}`, value: -strained.length * c.perStrained, hint: 'Each Strained bloc drains.' });
   if (breaking.length) lines.push({ label: `Breaking: ${breaking.map((k) => BLOC_LABEL[k]).join(', ')}`, value: -breaking.length * c.perBreaking, hint: 'A Breaking bloc drains heavily.' });
 
+  const friends = TYCOONS.filter((t) => (s.tycoons[t.id]?.rel ?? 50) >= 60).length;
+  const enemies = TYCOONS.filter((t) => (s.tycoons[t.id]?.rel ?? 50) < 35).length;
+  if (friends) lines.push({ label: friends === 1 ? '1 businessman with you' : `${friends} businessmen with you`, value: friends * c.perTycoon, hint: 'Money that is on your side makes politicians easier to persuade.' });
+  if (enemies) lines.push({ label: enemies === 1 ? '1 businessman against you' : `${enemies} businessmen against you`, value: -enemies * c.perTycoon, hint: 'Money that is against you is paying somebody to say no.' });
+
   const kept = Math.min(c.keptCap, s.agenda.done.length * c.perReform);
   if (kept) lines.push({ label: `${s.agenda.done.length} reforms delivered`, value: kept, hint: 'A President who delivers is harder to refuse. Each delivered reform adds, permanently.' });
+
+  const load = Math.max(0, s.agenda.active.length - CFG.agenda.easyLoad);
+  if (load) lines.push({ label: `Driving ${s.agenda.active.length} reforms at once`, value: -load * CFG.agenda.loadPc, hint: `Every reform under way beyond ${CFG.agenda.easyLoad} takes authority to keep moving, and strains the party.` });
 
   const tt = termTurnOf(s.turn);
   if (s.term === 1 && tt <= CFG.honeymoonMonths) lines.push({ label: 'Honeymoon', value: c.honeymoon, hint: 'The first six months.' });

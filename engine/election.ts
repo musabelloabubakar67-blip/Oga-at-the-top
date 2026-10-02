@@ -1,9 +1,22 @@
 import { STATES } from '../content/states';
+import { TYCOONS } from '../content/tycoons';
 import { CFG } from './config';
 import { governorEffect, strongestRival } from './people';
+import { ZONES, ZONE_WEIGHT } from './vars';
 import { rand } from './rng';
 import type { ElectionResult, GameState, StateResult } from './types';
 import { ZONE_NAME, approval, clamp } from './vars';
+
+/** What the businessmen's money is doing to the race: points of vote share. */
+export function moneyEffect(s: GameState): number {
+  let v = 0;
+  for (const t of TYCOONS) {
+    const rel = s.tycoons[t.id]?.rel ?? 50;
+    if (rel >= 60) v += CFG.election.tycoon * 0.6;
+    if (rel < 35) v -= CFG.election.tycoon;
+  }
+  return v;
+}
 
 /** A rough reading of where a re-election would stand today, in points of margin. */
 export function projectMargin(s: GameState): number {
@@ -11,8 +24,10 @@ export function projectMargin(s: GameState): number {
   const machine = ((s.blocs.party - 50) / 50) * e.machine;
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
   const field = (s.flags['opposition.united'] ? e.united : 0) + (s.flags['opposition.split'] ? e.split : 0)
-    - (s.counters.scar ?? 0) * e.scar + e.incumbency - (strongestRival(s).strength - 45) * e.rival;
-  const twoWay = 50 + (approval(s) - 50) * e.approval + machine + chest - s.pressures.scandalHeat / e.scandal + field + 0.6;
+    - (s.counters.scar ?? 0) * e.scar + e.incumbency - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s);
+  const governors = ZONES.reduce((a, z) => a + governorEffect(s, z) * ZONE_WEIGHT[z], 0);
+  const rallies = ZONES.reduce((a, z) => a + Math.min(e.rallyCap, s.campaign.rallies[z] ?? 0) * e.rally * ZONE_WEIGHT[z], 0);
+  const twoWay = 50 + (approval(s) - 50) * e.approval + machine + chest - s.pressures.scandalHeat / e.scandal + field + governors + rallies + 0.6;
   return 2 * twoWay - 100;
 }
 
@@ -23,7 +38,7 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession'): El
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
   const scandal = s.pressures.scandalHeat / e.scandal;
   const field = (s.flags['opposition.united'] ? e.united : 0) + (s.flags['opposition.split'] ? e.split : 0) - (s.counters.scar ?? 0) * e.scar + (kind === 'reelection' ? e.incumbency : 0)
-    - (strongestRival(s).strength - 45) * e.rival;
+    - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s);
   const backing = kind === 'succession' ? Number(s.flags['succession.strength'] ?? -2) - e.successorPenalty : 0;
 
   const states: StateResult[] = STATES.map((st) => {

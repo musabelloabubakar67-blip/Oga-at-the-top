@@ -12,6 +12,7 @@ export const RECURRING: GameEvent[] = [
     title: 'The national grid has collapsed',
     body: [
       'The national grid collapsed at 11:47 this morning. Generation fell from 4,100MW to 42MW in under a minute.',
+      { when: { v: ['debt.gas', '>', 0.6] }, text: 'Half the gas plants were already idle: the suppliers are owed again and have cut deliveries. The grid was running with nothing in reserve.' },
       { when: { v: ['agenda.p1', '==', 1] }, text: 'Generation was not the cause. The plants you put back on gas were running at full output when a forty-year-old transmission line failed and took the system with it. More power on the same wires makes this more likely, not less.' },
       { when: { v: ['count.grid.collapse', '>=', 2] }, text: 'This is the latest of several collapses under this administration. The Ministry\'s statement is the same statement, with the date changed.' },
       'The transmission company attributes the incident to "a system disturbance". It has attributed the last nine incidents to a system disturbance.',
@@ -33,12 +34,13 @@ export const RECURRING: GameEvent[] = [
         }],
       },
       {
-        id: 'gas', label: 'Clear the debt owed to gas suppliers', naira: 0.5,
-        requires: { v: ['agenda.p1', '==', 0] },
+        id: 'gas', label: 'Pay the gas suppliers everything they are owed',
+        requires: { v: ['debt.gas', '>', 0.2] },
         outcomes: [{
           result: 'The suppliers are paid. Generation rises within weeks, because the plants had been idle for want of gas, not for want of plants.',
-          fx: [['nation.power', 5], ['bloc.establishment', 3]],
-          later: [{ after: [3, 5], fx: [['nation.power', 3], ['approval', 1.5]], label: 'Idle gas plants return to service.' }],
+          fx: [['bloc.establishment', 3]],
+          ops: [['paydebt', 'gas', 1]],
+          later: [{ after: [3, 5], fx: [['nation.power', 2], ['approval', 1.5]], label: 'Idle gas plants return to service.' }],
           news: ['FG SETTLES ₦500BN GAS DEBT TO POWER SECTOR', 'GOVERNMENT PAY GAS DEBT. LIGHT DON IMPROVE'],
           archive: 'Cleared the power sector\'s debt to gas suppliers.', sig: 2,
         }],
@@ -162,12 +164,15 @@ export const RECURRING: GameEvent[] = [
   },
   {
     id: 'attack.farms', kind: 'recurring', slot: 'lead', category: 'security', tone: 'grave', intensity: 4,
-    when: { all: [{ turn: [4] }, { v: ['nation.security', '<', 55] }, { v: ['agenda.s2', '==', 0] }] }, weight: 9, weightInv: 'nation.security', cooldown: 22, max: 3,
+    when: { all: [{ turn: [4] }, { v: ['theatre.NC', '>=', 56] }] }, weight: 9, weightBy: 'theatre.NC', cooldown: 22, max: 3,
     office: 'Office of the National Security Adviser', stamp: 'SECRET',
     title: 'Attack on farming communities',
     body: [
-      'Armed men attacked four farming communities overnight. 47 people are confirmed dead. Several thousand have fled to the local government headquarters.',
-      'The nearest military unit is 90 minutes away by road. Distress calls were logged three hours before it moved.',
+      { when: { v: ['agenda.s2', '==', 0] }, text: 'Armed men attacked four farming communities overnight. 47 people are confirmed dead. Several thousand have fled to the local government headquarters.' },
+      { when: { v: ['agenda.s2', '==', 0] }, text: 'The nearest military unit is 90 minutes away by road. Distress calls were logged three hours before it moved.' },
+      { when: { v: ['agenda.s2', '==', 1] }, text: 'Armed men attacked two farming communities overnight. Nine people are confirmed dead. Troops from the forward base you opened were on the scene in twenty minutes and drove the attackers off before they reached a third village.' },
+      { when: { v: ['agenda.s2', '==', 1] }, text: 'The base held. It cannot be everywhere, and the men who did this know where it is.' },
+      { when: { v: ['focus.NC', '==', 1] }, text: 'This happened in the theatre where you have concentrated the security effort.' },
       'The state governor says he has "run out of words". Planting in the area will not happen this season.',
     ],
     statement: 'The President condemns the dastardly act and has directed security agencies to fish out the perpetrators.',
@@ -188,6 +193,7 @@ export const RECURRING: GameEvent[] = [
       },
       {
         id: 'deploy', label: 'Approve a new forward operating base', naira: 0.25,
+        requires: { v: ['agenda.s2', '==', 0] },
         outcomes: [{
           result: 'The base is approved. It will be operational in five months.',
           later: [{ after: [5, 7], fx: [['nation.security', 5], ['zone.NC.security', 4]], label: 'A new forward operating base becomes operational.' }],
@@ -209,7 +215,7 @@ export const RECURRING: GameEvent[] = [
   },
   {
     id: 'abduction', kind: 'standalone', slot: 'lead', category: 'security', tone: 'grave', intensity: 5,
-    when: { all: [{ turn: [10] }, { v: ['nation.security', '<', 45] }] }, weight: 7,
+    when: { all: [{ turn: [10] }, { v: ['theatre.NW', '>=', 62] }] }, weight: 7,
     office: 'Office of the National Security Adviser', stamp: 'SECRET',
     title: 'Abduction of schoolchildren',
     body: [
@@ -337,50 +343,6 @@ export const RECURRING: GameEvent[] = [
           later: [{ after: [2, 3], fx: [['nation.capacity', -1.5]], label: 'Ministers stop putting advice in writing.' }],
           news: ['VILLA HUNTS SOURCE OF CABINET LEAK', 'DEM DEY FIND WHO LEAK AM. THE ORDER SEF DON LEAK'],
           archive: 'Ordered a hunt for the source of a cabinet leak.',
-        }],
-      },
-    ],
-  },
-  {
-    id: 'oil.price', kind: 'recurring', slot: 'lead', category: 'fortune', tone: 'dry', intensity: 2,
-    when: { turn: [9] }, weight: 7, cooldown: 26,
-    office: 'Federal Ministry of Finance', stamp: 'ROUTINE',
-    title: 'Oil is above the budget benchmark',
-    body: [
-      'Crude has traded $19 above the budget benchmark for a full quarter. The excess stands at ₦900bn.',
-      'The law requires the excess to be saved. The law has been observed in four of the last twenty years.',
-      'The governors have requested an emergency meeting of the allocation committee.',
-    ],
-    reads: [
-      { role: 'fin', good: 'The price will fall again, {SIR}. It always has. What we save now is what we do not borrow then.', weak: 'The governors make a compelling case, {SIR}.' },
-    ],
-    choices: [
-      {
-        id: 'save', label: 'Save it, as the law requires',
-        outcomes: [{
-          result: 'The excess is paid into the stabilisation account. Nobody thanks you. The governors describe the decision as "insensitive".',
-          fx: [['nation.debt', -4], ['nation.fiscalSpace', 0.3], ['bloc.establishment', 5], ['bloc.party', -6]],
-          news: ['FG SAVES ₦900BN OIL WINDFALL', 'GOVERNMENT DEY SAVE MONEY WHILE WE DEY HUNGRY?'],
-          archive: 'Saved an oil windfall.', sig: 2,
-        }],
-      },
-      {
-        id: 'invest', label: 'Spend it on power and security capital projects',
-        outcomes: [{
-          result: 'The funds are appropriated in a supplementary budget. The Assembly adds a few things.',
-          fx: [['nation.fiscalSpace', 0.15]],
-          later: [{ after: [8, 12], fx: [['nation.power', 5], ['nation.security', 3]], label: 'Windfall-funded capital projects are completed.' }],
-          news: ['SUPPLEMENTARY BUDGET TO FUND POWER, SECURITY', 'WINDFALL MONEY GO ENTER PROJECT, DEM TALK'],
-          archive: 'Spent an oil windfall on power and security projects.', sig: 2,
-        }],
-      },
-      {
-        id: 'share', label: 'Share it',
-        outcomes: [{
-          result: 'The committee meets and shares. The meeting lasts under an hour.',
-          fx: [['bloc.party', 8], ['bloc.street', 2], ['approval', 1], ['bloc.establishment', -4]],
-          news: ['FEDERATION ACCOUNT SHARES ₦900BN WINDFALL', 'DEM DON SHARE THE MONEY. E REACH YOU?'],
-          archive: 'Shared an oil windfall with the states.',
         }],
       },
     ],
