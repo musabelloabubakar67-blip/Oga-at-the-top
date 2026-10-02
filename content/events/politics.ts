@@ -1,0 +1,800 @@
+import type { GameEvent } from '../../engine/types';
+
+// Party, Assembly and survival: screening, letters, defections, the ticket,
+// the five breaking chains and removal proceedings.
+
+export const POLITICS: GameEvent[] = [
+  {
+    id: 'senate.screening', kind: 'calendar', slot: 'lead', category: 'politics', tone: 'farce', intensity: 2,
+    when: { turn: [1, 1] }, max: 1,
+    office: 'Office of the Senate President', stamp: 'ROUTINE',
+    title: 'Screening of ministerial nominees',
+    body: [
+      'The Senate has begun screening your ministerial nominees.',
+      'Nominees who previously served in the National Assembly were asked to take a bow and go. This took four minutes each.',
+      '{FIN}, your nominee for Finance, is next. {SENPRES} has let it be known that the Senate "expects to be carried along" on board appointments.',
+    ],
+    reads: [
+      { role: 'sap', good: 'He wants six board chairmanships, {SIR}. He will settle for three and a road in his district. Or he can make the next four years slow.' },
+    ],
+    choices: [
+      {
+        id: 'carry', label: 'Carry the Senate along: three boards and a road',
+        outcomes: [{
+          result: 'All nominees are confirmed by voice vote before lunch. The Senate President describes them as "eminently qualified".',
+          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['pc', 3]],
+          flags: { 'senate.friendly': true },
+          exposure: { kind: 'tolerated', amount: 0, witnesses: ['senate'], trail: 0 },
+          news: ['SENATE CONFIRMS ALL MINISTERIAL NOMINEES', 'BOW AND GO: SENATE CLEARS EVERYBODY SHARP-SHARP'],
+          archive: 'Traded board appointments for a smooth Senate confirmation.',
+        }],
+      },
+      {
+        id: 'merit', label: 'Decline; let the nominees be screened on merit', pc: 5,
+        outcomes: [
+          {
+            when: { v: ['char.fin.clout', '>=', 4] },
+            result: 'Your Finance nominee is asked to take a bow and go. The rest are held for a fortnight "pending security clearance".',
+            fx: [['bloc.party', -3], ['nation.integrity', 1.5], ['bloc.press', 2]],
+            news: ['SENATE CONFIRMS FINANCE MINISTER, STEPS DOWN OTHERS', 'SENATE DEY DRAG MINISTERS\' LIST'],
+            archive: 'Refused to trade appointments for Senate confirmation.',
+          },
+          {
+            result: 'Your Finance nominee is questioned for three hours, mostly on the price of garri and the state of a road in the Chairman\'s district. Confirmation takes five weeks.',
+            fx: [['bloc.party', -6], ['nation.integrity', 2], ['bloc.press', 3], ['bloc.villa', -2]],
+            news: ['SENATE GRILLS FINANCE NOMINEE FOR THREE HOURS', '"HOW MUCH IS GARRI?" — SENATOR TO NOMINEE'],
+            archive: 'Refused to trade appointments for Senate confirmation.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'elder.letter', kind: 'recurring', slot: 'lead', category: 'politics', tone: 'dry', intensity: 2,
+    when: { all: [{ turn: [9] }, { any: [{ v: ['approval', '<', 46] }, { v: ['bloc.party', '<', 45] }] }] },
+    weight: 9, cooldown: 34, max: 2,
+    office: 'Office of the Special Adviser, Media and Publicity', stamp: 'ROUTINE',
+    title: 'An open letter from {ELDER}',
+    body: [
+      '{ELDER} has published an eighteen-page open letter titled "Before It Is Too Late".',
+      'It accuses the administration of "drift", recalls his own period of service favourably, and was released to the press before it reached the Villa.',
+      'He remains a member of your party. He has written such letters to every President since the return to civil rule, usually in the second year.',
+    ],
+    reads: [
+      { role: 'sap', good: 'He wants to be visited, {SIR}. A photograph in his sitting room ends this. A rebuttal gives him a second letter.' },
+    ],
+    choices: [
+      {
+        id: 'visit', label: 'Pay him a courtesy visit',
+        outcomes: [{
+          result: 'You are received in his library. He tells the press afterwards that {MRP} "listened attentively", which is his highest praise.',
+          fx: [['bloc.party', 4], ['bloc.establishment', 3], ['pc', -2]],
+          news: ['PRESIDENT VISITS ELDER STATESMAN AFTER LETTER', 'PRESIDENT GO BEG BABA'],
+          archive: 'Visited the elder statesman after his open letter.',
+        }],
+      },
+      {
+        id: 'rebut', label: 'Issue a point-by-point rebuttal',
+        outcomes: [{
+          result: 'The rebuttal runs to twenty-two pages. He replies within the week, at twenty-six.',
+          fx: [['bloc.party', -4], ['bloc.press', -2], ['bloc.establishment', -3]],
+          later: [{ after: [3, 5], fx: [['bloc.party', -3], ['approval', -1]], label: 'The elder statesman publishes a third letter.', note: ['ELDER STATESMAN WRITES PRESIDENT AGAIN', 'BABA DON WRITE LETTER NUMBER THREE'] }],
+          news: ['PRESIDENCY REPLIES ELDER STATESMAN', 'LETTER FIGHT: VILLA VS BABA, ROUND TWO'],
+          archive: 'Issued a rebuttal to the elder statesman\'s open letter.',
+        }],
+      },
+      {
+        id: 'ignore', label: 'Thank him for his "fatherly counsel" and move on',
+        outcomes: [{
+          result: 'A two-line statement is issued. He is reported to be drafting.',
+          fx: [['bloc.party', -1]],
+          news: ['PRESIDENCY THANKS ELDER FOR "FATHERLY ADVICE"', 'VILLA TO BABA: "NOTED"'],
+          archive: 'Acknowledged the elder statesman\'s open letter in two lines.',
+        }],
+      },
+    ],
+  },
+  {
+    id: 'senate.fight', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'farce', intensity: 2,
+    when: { turn: [8] }, weight: 9,
+    office: 'Office of the Chief of Staff', stamp: 'URGENT',
+    title: 'An incident during the tax debate',
+    body: [
+      'During the second reading of your Tax Administration Bill, two Distinguished Senators began threatening each other on the floor of the chamber, live on national television.',
+      'One invited the other to "meet me outside". The other accepted. The Sergeant-at-Arms intervened at the door.',
+      'Neither senator had read the bill. The disagreement concerned seating.',
+      'The bill has been stepped down to allow tempers to cool.',
+    ],
+    reads: [
+      { role: 'sap', good: 'The bill is not dead, {SIR}, it is embarrassed. {SENPRES} needs a way to bring it back without it looking like your idea.' },
+    ],
+    choices: [
+      {
+        id: 'quiet', label: 'Let the Senate President reintroduce it as a Senate initiative', pc: 4,
+        outcomes: [{
+          result: 'The bill returns as the "Senate Fiscal Harmony Bill". It is your bill with a new title. It passes.',
+          fx: [['nation.capacity', 2], ['nation.fiscalSpace', 0.2], ['bloc.party', 3]],
+          later: [{ after: [8, 12], fx: [['nation.fiscalSpace', 0.4], ['nation.debt', -2]], label: 'The tax administration reforms begin to raise collection.' }],
+          news: ['SENATE PASSES FISCAL HARMONY BILL', 'AFTER THE FIGHT, DEM PASS THE BILL'],
+          archive: 'Let the Senate take credit for the tax administration bill.', sig: 2,
+        }],
+      },
+      {
+        id: 'public', label: 'Condemn the conduct and demand passage',
+        outcomes: [
+          {
+            when: { v: ['approval', '>=', 50] },
+            result: 'Public opinion is with you. The Senate passes the bill within the month and resents every minute of it.',
+            fx: [['nation.capacity', 2], ['nation.fiscalSpace', 0.2], ['bloc.party', -5], ['approval', 1.5], ['bloc.press', 2]],
+            later: [{ after: [8, 12], fx: [['nation.fiscalSpace', 0.4], ['nation.debt', -2]], label: 'The tax administration reforms begin to raise collection.' }],
+            news: ['PRESIDENT REBUKES SENATE; TAX BILL PASSES', 'PRESIDENT SHAME SENATORS, BILL PASS'],
+            archive: 'Shamed the Senate into passing the tax administration bill.', sig: 2,
+          },
+          {
+            result: 'The Senate passes a resolution deploring "executive interference". The bill is referred to a committee whose chairman is one of the two senators.',
+            fx: [['bloc.party', -7], ['bloc.press', 1]],
+            news: ['SENATE REBUFFS PRESIDENT OVER TAX BILL', 'SENATORS VEX: "PRESIDENT NO FIT TALK TO US ANYHOW"'],
+            archive: 'Tried to shame the Senate over the tax bill. It did not work.',
+          },
+        ],
+      },
+      {
+        id: 'drop', label: 'Withdraw the bill',
+        outcomes: [{
+          result: 'The bill is withdrawn "for further consultation". The clip of the two senators outlives it.',
+          fx: [['bloc.establishment', -3], ['bloc.party', 2]],
+          news: ['FG WITHDRAWS TAX BILL', 'TAX BILL DON DIE. THE FIGHT STILL DEY TREND'],
+          archive: 'Withdrew the tax administration bill.',
+        }],
+      },
+    ],
+  },
+  {
+    id: 'party.decamp', kind: 'recurring', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3,
+    when: { all: [{ turn: [12] }, { v: ['bloc.party', '<', 50] }] },
+    weight: 10, cooldown: 30, max: 2,
+    office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
+    title: 'Defections',
+    body: [
+      'Two governors and eleven members of the House have announced their defection to the {OPPARTY}.',
+      'Each cited "irreconcilable division in the party at the national level", the form of words required by the Constitution for a legislator to defect and keep the seat.',
+      'There is no division at the national level. {CHAIR} is now considering creating one, so that the next group can leave lawfully.',
+    ],
+    trace: [['bloc.party', -1]],
+    reads: [
+      { role: 'sap', good: 'They are not leaving over ideology, {SIR}. Nobody here has one. They are leaving because they think you will lose, or because nobody has called them.' },
+    ],
+    choices: [
+      {
+        id: 'call', label: 'Call each of them personally', pc: 6,
+        outcomes: [{
+          result: 'Four of the legislators return, describing their defection as "a misunderstanding". The governors do not pick up.',
+          fx: [['bloc.party', 6]],
+          news: ['FOUR LAWMAKERS RETURN TO RULING PARTY', 'DEFECTORS DON COME BACK. NA SO DEM DEY DO'],
+          archive: 'Personally called defecting legislators back to the party.',
+        }],
+      },
+      {
+        id: 'seats', label: 'Ask the courts to declare their seats vacant',
+        outcomes: [{
+          result: 'The suit is filed. It will be heard in due course, which is after the next election.',
+          fx: [['bloc.party', -3], ['bloc.press', -1]],
+          news: ['RULING PARTY SUES DEFECTORS', 'PARTY RUN GO COURT. SEE YOU IN 2035'],
+          archive: 'Sued defecting legislators for their seats.',
+        }],
+      },
+      {
+        id: 'logistics', label: 'Remind them of the benefits of membership', purse: 6,
+        outcomes: [{
+          result: 'Nine legislators and one governor rediscover their faith in the party\'s manifesto.',
+          fx: [['bloc.party', 10], ['nation.integrity', -1.5]],
+          exposure: { kind: 'political', amount: 6, witnesses: ['senate', 'chair'], trail: 1 },
+          news: ['DEFECTORS RETURN, AFFIRM LOYALTY TO PRESIDENT', 'THEY RETURN OVERNIGHT. HOW MUCH?'],
+          archive: 'Paid defecting legislators to return.',
+        }],
+      },
+      {
+        id: 'go', label: 'Let them go',
+        outcomes: [{
+          result: 'The Presidency wishes them well. The party\'s majority in the House is now seven.',
+          fx: [['bloc.party', -6], ['pc', -4], ['nation.integrity', 0.5]],
+          news: ['PRESIDENCY UNMOVED BY DEFECTIONS', 'PRESIDENT: "MAKE DEM GO"'],
+          archive: 'Let two governors and eleven legislators defect.',
+        }],
+      },
+    ],
+  },
+  {
+    id: 'budget.insertions', kind: 'recurring', slot: 'lead', category: 'politics', tone: 'dry', intensity: 2,
+    when: { all: [{ month: [12, 1] }, { turn: [6] }] }, weight: 20, cooldown: 36, max: 2,
+    office: 'Budget Office of the Federation', stamp: 'CONFIDENTIAL',
+    title: 'The budget has come back from the Assembly',
+    body: [
+      'The Appropriation Bill has been returned for assent. It is ₦1.3tn larger than the one you submitted.',
+      'The National Assembly has inserted 6,400 constituency projects. They include 1,900 solar street lights at ₦4m each, 240 town halls, and a "youth empowerment summit" appearing in 61 separate constituencies under the same name.',
+      'Capital releases cannot begin until you sign.',
+    ],
+    statement: 'The National Assembly exercised its constitutional power of appropriation in the interest of the Nigerian people.',
+    reads: [
+      { role: 'fin', good: 'If you sign it as it is, {SIR}, we borrow for street lights. If you do not, nothing is released until March.', weak: 'The Assembly has been very constructive, {SIR}.' },
+      { role: 'sap', good: 'These projects are how they pay for their own elections. You are not arguing about lights.' },
+    ],
+    choices: [
+      {
+        id: 'sign', label: 'Sign it as passed', sign: true,
+        outcomes: [{
+          result: 'The Appropriation Act is signed before the cameras. The Senate President holds up the document. It is noticeably thicker than last year\'s.',
+          fx: [['bloc.party', 6], ['nation.fiscalSpace', -0.4], ['nation.integrity', -1.5], ['pc', 2]],
+          later: [{ after: [8, 11], fx: [['nation.integrity', -1], ['bloc.press', -2]], label: 'An audit cannot locate the constituency projects.', note: ['AUDIT: 1,100 CONSTITUENCY PROJECTS "COULD NOT BE LOCATED"', 'WHERE THE STREET LIGHTS? AUDITOR NO SEE AM'] }],
+          news: ['PRESIDENT SIGNS BUDGET INTO LAW', 'BUDGET OF STREET LIGHTS: 1,900 AT ₦4M EACH'],
+          archive: 'Signed a budget padded with 6,400 constituency projects.',
+        }],
+      },
+      {
+        id: 'negotiate', label: 'Negotiate the insertions down by half', pc: 6, sign: true,
+        outcomes: [{
+          result: 'After three weeks the insertions are halved and renamed "zonal intervention projects". You sign in mid-January.',
+          fx: [['bloc.party', 1], ['nation.fiscalSpace', -0.2], ['nation.integrity', -0.5]],
+          news: ['PRESIDENT ASSENTS TO BUDGET AFTER HARMONISATION', 'BUDGET PADDING: DEM REMOVE HALF, RENAME THE REST'],
+          archive: 'Negotiated the Assembly\'s budget insertions down by half.',
+        }],
+      },
+      {
+        id: 'refuse', label: 'Withhold assent and return the bill', pc: 12,
+        outcomes: [{
+          result: 'The bill is returned. The Assembly goes on recess. The budget is finally signed in March, largely as you submitted it, and the first quarter is lost.',
+          fx: [['bloc.party', -8], ['nation.integrity', 2.5], ['nation.power', -1.5], ['bloc.press', 4], ['approval', 1]],
+          news: ['PRESIDENT WITHHOLDS ASSENT TO BUDGET', 'PRESIDENT REJECT PADDED BUDGET. SENATORS VEX'],
+          archive: 'Withheld assent to a padded budget.', sig: 2,
+        }],
+      },
+    ],
+  },
+  {
+    id: 'opposition.unites', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3,
+    when: { all: [{ term: 1 }, { termTurn: [26, 38] }] }, weight: 22,
+    office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
+    title: 'The opposition is discussing a merger',
+    body: [
+      'The {OPPARTY} and four smaller parties are in talks to field a single candidate. {OPP} is the likely flagbearer.',
+      'The talks are being held in a hotel in Abuja. They have so far failed to agree on a name, a logo, a chairman or a venue for the next meeting.',
+      'A united opposition would cost you an estimated four points nationally.',
+    ],
+    reads: [
+      { role: 'sap', good: 'They will fall out on their own if left alone, {SIR}. Probably. One of the small parties\' chairmen has let it be known he is open to conversation.' },
+    ],
+    choices: [
+      {
+        id: 'leave', label: 'Leave them to it',
+        outcomes: [
+          {
+            chance: 0.5,
+            result: 'The talks collapse over the vice-presidential slot. Two of the parties announce their own candidates the same afternoon.',
+            flags: { 'opposition.split': true },
+            news: ['OPPOSITION MERGER TALKS COLLAPSE', 'OPPOSITION SCATTER OVER WHO GO BE VICE'],
+            archive: 'Left the opposition merger talks alone. They collapsed.',
+          },
+          {
+            result: 'Against expectation, they agree. {OPP} is unveiled as the joint candidate under a logo that took eleven hours to negotiate.',
+            fx: [['approval', -2], ['bloc.party', -4]],
+            flags: { 'opposition.united': true },
+            news: ['OPPOSITION PARTIES MERGE, ADOPT SINGLE CANDIDATE', 'OPPOSITION DON GATHER. 2031 GO HOT'],
+            archive: 'Left the opposition merger talks alone. They succeeded.',
+          },
+        ],
+      },
+      {
+        id: 'record', label: 'Answer them with the record: a national tour', pc: 6,
+        outcomes: [{
+          result: 'You spend three weeks commissioning things. The merger goes ahead, into more of a headwind than it expected.',
+          fx: [['approval', 1.5], ['bloc.party', 3]],
+          flags: { 'opposition.united': true },
+          news: ['PRESIDENT BEGINS NATIONWIDE PROJECT TOUR', 'PRESIDENT DEY COMMISSION EVERYTHING WEY GET RIBBON'],
+          archive: 'Answered the opposition merger with a national tour.',
+        }],
+      },
+      {
+        id: 'chairman', label: 'Have a conversation with the open-minded chairman', purse: 8,
+        outcomes: [{
+          result: 'The chairman withdraws his party from the talks, citing "irreconcilable ideological differences" with people he met last week.',
+          fx: [['nation.integrity', -2], ['approval', 1]],
+          flags: { 'opposition.split': true },
+          exposure: { kind: 'political', amount: 8, witnesses: ['opposition'], trail: 2 },
+          news: ['PARTY PULLS OUT OF OPPOSITION MERGER', 'ONE CHAIRMAN DON COLLECT. MERGER SCATTER'],
+          archive: 'Paid a party chairman to wreck the opposition merger.', sig: 2,
+        }],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------- the ticket
+
+  {
+    id: 'ticket.elders', kind: 'calendar', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3,
+    when: { all: [{ term: 1 }, { termTurn: [33, 35] }] }, cooldown: 60,
+    office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
+    title: 'A meeting of stakeholders, to which you were not invited',
+    body: [
+      'Party elders, nine governors and {CHAIR} met last night at a private residence in Asokoro. The meeting was described as a birthday dinner. Nobody present has a birthday this month.',
+      'The primaries open in three months. The agenda was "the way forward", which is to say, the ticket.',
+      { when: { v: ['bloc.party', '<', 45] }, text: 'A name other than yours was discussed, and nobody objected.' },
+      { when: { v: ['bloc.party', '>=', 45] }, text: 'They intend to support you. They would like to discuss what that support is worth.' },
+    ],
+    trace: [['bloc.party', -1]],
+    reads: [
+      { role: 'sap', good: 'This is the bill for four years, {SIR}. Every call you did not return is on it. They want the party secretariat, the next cabinet list, and to be asked.' },
+    ],
+    choices: [
+      {
+        id: 'terms', label: 'Meet them and agree terms', pc: 5,
+        outcomes: [{
+          result: 'You concede the party secretariat and "consultation" on second-term appointments. The elders issue a communiqué affirming their "unalloyed loyalty".',
+          fx: [['bloc.party', 10], ['nation.integrity', -1.5]],
+          flags: { 'ticket.deal': true, 'promise.second_term': true },
+          news: ['PARTY ELDERS ENDORSE PRESIDENT FOR SECOND TERM', 'ELDERS DON COLLECT. PRESIDENT GET TICKET'],
+          archive: 'Agreed terms with the party elders for the ticket.', sig: 2,
+        }],
+      },
+      {
+        id: 'record', label: 'Tell them the ticket will be won on the record',
+        outcomes: [{
+          result: 'They listen politely. {CHAIR} says the party "belongs to all of us", the most threatening sentence in Nigerian politics.',
+          fx: [['bloc.party', -5], ['nation.integrity', 1], ['bloc.press', 2]],
+          news: ['PRESIDENT: "MY RECORD IS MY CAMPAIGN"', 'PRESIDENT TELL ELDERS: I NO DEY SHARE'],
+          archive: 'Refused to bargain with the party elders for the ticket.', sig: 2,
+        }],
+      },
+      {
+        id: 'delegates', label: 'Go around them: provide for the delegates directly', purse: 12,
+        outcomes: [{
+          result: 'Delegates in thirty states receive "transport allowance" in a currency that is not the naira. The elders discover they have been bypassed and have nothing to sell.',
+          fx: [['bloc.party', 14], ['nation.integrity', -3]],
+          flags: { 'ticket.bought': true },
+          exposure: { kind: 'political', amount: 12, witnesses: ['chair', 'delegates'], trail: 2 },
+          news: ['DELEGATES DECLARE FOR PRESIDENT AHEAD OF PRIMARY', 'DOLLAR RAIN FOR DELEGATES — SOURCES'],
+          archive: 'Paid the delegates directly ahead of the primary.', sig: 2,
+        }],
+      },
+    ],
+  },
+  {
+    id: 'ticket.primary', kind: 'calendar', slot: 'lead', category: 'politics', tone: 'dry', intensity: 5,
+    when: { all: [{ term: 1 }, { termTurn: [37, 39] }] }, cooldown: 60,
+    office: '{PARTY}: National Convention', stamp: 'URGENT',
+    title: 'The presidential primary',
+    body: [
+      'The party\'s special convention is under way at Eagle Square. 2,300 delegates will vote.',
+      { when: { v: ['bloc.party', '>=', 60] }, text: 'No other aspirant has purchased a form. {CHAIR} proposes affirmation by voice vote.' },
+      { when: { all: [{ v: ['bloc.party', '>=', 40] }, { v: ['bloc.party', '<', 60] }] }, text: 'A challenger backed by several governors has purchased a form. The Special Adviser puts you ahead, though by less than he would like.' },
+      { when: { v: ['bloc.party', '<', 40] }, text: 'A challenger backed by the governors and {CHAIR} has purchased a form. The Special Adviser\'s count has you behind.' },
+    ],
+    trace: [['bloc.party', -1]],
+    reads: [
+      { role: 'sap', good: 'Delegates are honest people, {SIR}. Once they are bought, they stay bought until someone pays more. The count tonight is the count at breakfast, not at midnight.' },
+    ],
+    choices: [
+      {
+        id: 'contest', label: 'Go to the floor',
+        outcomes: [
+          {
+            when: { v: ['bloc.party', '>=', 60] },
+            result: 'The ayes have it. The convention lasts six hours, five of them speeches.',
+            fx: [['pc', 8], ['bloc.party', 3]],
+            news: ['PRESIDENT EMERGES PARTY FLAGBEARER BY AFFIRMATION', 'NA VOICE VOTE: PRESIDENT GET TICKET'],
+            archive: 'Won the party ticket by affirmation.', sig: 3,
+          },
+          {
+            when: { any: [{ v: ['bloc.party', '>=', 44] }, { all: [{ v: ['approval', '>=', 58] }, { v: ['bloc.party', '>=', 32] }] }] },
+            result: 'Counting ends at 4am. You win with 58% of delegates. The challenger pledges loyalty through visibly clenched teeth.',
+            fx: [['pc', 5], ['bloc.party', -3]],
+            news: ['PRESIDENT WINS PARTY PRIMARY', 'PRESIDENT SURVIVE PRIMARY. E NO EASY'],
+            archive: 'Won a contested party primary.', sig: 3,
+          },
+          {
+            result: 'Counting ends at 4am. You lose by 212 delegates. A sitting President has been denied the ticket of the party that holds the Villa.',
+            fx: [['pc', -25], ['bloc.party', -15], ['bloc.villa', -12]],
+            flags: { 'ticket.lost': true },
+            news: ['SHOCK AS PRESIDENT LOSES PARTY TICKET', 'EARTHQUAKE! PARTY DUMPS SITTING PRESIDENT'],
+            newsWeight: 9,
+            archive: 'Lost the party primary as a sitting President.', sig: 3,
+          },
+        ],
+      },
+      {
+        id: 'buy', label: 'Go to the floor, with logistics for every delegation', purse: 15,
+        outcomes: [{
+          result: 'You win with 81% of delegates. Bureau de change operators in Abuja report an unusually good week.',
+          fx: [['pc', 5], ['bloc.party', 4], ['nation.integrity', -3]],
+          flags: { 'ticket.bought': true },
+          exposure: { kind: 'political', amount: 15, witnesses: ['delegates', 'chair'], trail: 2 },
+          news: ['PRESIDENT SWEEPS PARTY PRIMARY', 'DELEGATES SMILE HOME. DOLLAR SCARCE FOR ABUJA'],
+          archive: 'Bought the party primary.', sig: 3,
+        }],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------- breaking
+
+  {
+    id: 'break.street', kind: 'threshold', slot: 'lead', category: 'labour', tone: 'grave', intensity: 5,
+    when: { v: ['bloc.street', '<', 20] }, cooldown: 12,
+    office: 'Office of the National Security Adviser', stamp: 'SECRET',
+    title: 'Total shutdown',
+    body: [
+      'Protests are under way in twenty-two state capitals. They began over prices and no longer have a single demand or a single organiser.',
+      'Markets, motor parks and campuses are closed. A food warehouse in one state capital has been broken open and emptied.',
+      'The police have asked for instructions. The Inspector-General has asked that they be given in writing.',
+    ],
+    trace: [['bloc.street', -1], ['pressure.wageGrievance', 1]],
+    reads: [
+      { role: 'nsa', good: 'If one officer fires, {SIR}, this becomes a different country by evening. Keep them back and let it be heard.' },
+      { role: 'sap', good: 'They are not asking for much. They are asking to be told that you know.' },
+    ],
+    choices: [
+      {
+        id: 'relief', label: 'Emergency relief package and a national broadcast', naira: 0.6, pc: 5,
+        outcomes: [{
+          result: 'You speak for nine minutes without notes and announce the package. It does not end the anger. It ends the week.',
+          fx: [['bloc.street', 16], ['approval', 3], ['pressure.wageGrievance', -15], ['bloc.establishment', -2]],
+          news: ['PRESIDENT ANNOUNCES EMERGENCY RELIEF AS PROTESTS SPREAD', '"I HAVE HEARD YOU" — PRESIDENT. WE DEY WATCH'],
+          archive: 'Answered nationwide protests with relief and a broadcast.', sig: 3,
+        }],
+      },
+      {
+        id: 'wait', label: 'Keep the police back and wait it out',
+        outcomes: [{
+          result: 'The protests run for twelve days and exhaust themselves. Nobody is killed. Nothing is resolved.',
+          fx: [['bloc.street', 6], ['bloc.establishment', -6], ['approval', -2], ['pc', -6]],
+          news: ['PROTESTS EBB AFTER TWELVE DAYS', 'PROTEST DON END. THE HUNGER STILL DEY'],
+          archive: 'Waited out nationwide protests without force.', sig: 2,
+        }],
+      },
+      {
+        id: 'force', label: 'Direct the security agencies to restore order', pc: 10,
+        outcomes: [{
+          result: 'Order is restored in four days. Fourteen people are dead in three cities. A judicial panel of inquiry is demanded, and you will be asked about this day for the rest of your life.',
+          fx: [['bloc.street', -5], ['approval', -8, 1], ['bloc.press', -12], ['bloc.establishment', 4], ['nation.integrity', -3]],
+          flags: { 'protest.deaths': true },
+          news: ['FOURTEEN DEAD AS SECURITY FORCES CLEAR PROTESTS', 'THEY KILLED THEM. WE WILL NOT FORGET'],
+          newsWeight: 9,
+          archive: 'Ordered security forces to clear protests. Fourteen people were killed.', sig: 3,
+        }],
+      },
+    ],
+  },
+  {
+    id: 'break.party', kind: 'threshold', slot: 'lead', category: 'politics', tone: 'dry', intensity: 4,
+    when: { v: ['bloc.party', '<', 20] }, cooldown: 12,
+    office: 'Office of the Special Adviser, Political Matters', stamp: 'SECRET',
+    title: 'The party has held a "stakeholders\' meeting"',
+    body: [
+      'The National Working Committee has passed a vote of confidence in {CHAIR} and pointedly not in you.',
+      'A faction calling itself the "{PSHORT} Renewal Forum" has opened a separate secretariat. It has more governors than yours.',
+      'In the Assembly, your bills are being referred to committees that do not exist.',
+    ],
+    trace: [['bloc.party', -1]],
+    reads: [{ role: 'sap', good: 'You can still buy this back, {SIR}, but the price is now set by them.' }],
+    choices: [
+      {
+        id: 'concede', label: 'Concede: the party gets the next reshuffle', pc: 8,
+        outcomes: [{
+          result: 'Six ministers are replaced with nominees of the governors. The Renewal Forum closes its secretariat and keeps the furniture.',
+          fx: [['bloc.party', 20], ['nation.capacity', -3], ['nation.integrity', -2], ['bloc.villa', -5]],
+          news: ['PRESIDENT RESHUFFLES CABINET IN PEACE DEAL WITH PARTY', 'GOVERNORS DON TAKE OVER CABINET'],
+          archive: 'Handed the party a cabinet reshuffle to end a revolt.', sig: 3,
+        }],
+      },
+      {
+        id: 'purge', label: 'Move against the chairman', pc: 18,
+        outcomes: [
+          {
+            when: { v: ['approval', '>=', 48] },
+            result: 'A court restrains {CHAIR} from parading himself as chairman. A caretaker committee is installed. It is ugly and it works.',
+            fx: [['bloc.party', 14], ['bloc.press', -4], ['nation.integrity', -2]],
+            news: ['COURT SACKS RULING PARTY CHAIRMAN', 'PRESIDENT DON CAPTURE THE PARTY'],
+            archive: 'Removed the party chairman through the courts.', sig: 3,
+          },
+          {
+            result: 'The court order is obtained and ignored. There are now two chairmen, two secretariats, and one of each is suing the other.',
+            fx: [['bloc.party', -4], ['bloc.press', -4], ['nation.integrity', -2], ['bloc.establishment', -4]],
+            news: ['RULING PARTY SPLITS INTO TWO FACTIONS', 'TWO CHAIRMEN, ONE PARTY, PLENTY WAHALA'],
+            archive: 'Tried to remove the party chairman. The party split.', sig: 3,
+          },
+        ],
+      },
+      {
+        id: 'ride', label: 'Govern without them',
+        outcomes: [{
+          result: 'You carry on. Nothing you send to the Assembly moves. The party waits to see which of you gets tired first.',
+          fx: [['bloc.party', 5], ['bloc.establishment', -3], ['nation.integrity', 1]],
+          later: [{ after: [3, 5], fx: [['pc', -6]], label: 'The stand-off with the party drains the Presidency.' }],
+          news: ['PRESIDENT, PARTY IN OPEN STAND-OFF', 'PRESIDENT AND PARTY NO DEY TALK'],
+          archive: 'Chose to govern without the party during its revolt.', sig: 2,
+        }],
+      },
+      {
+        id: 'buy', label: 'Service the structure', purse: 14,
+        outcomes: [{
+          result: 'The National Working Committee reconvenes and discovers that its confidence in {MRP} is, on reflection, total.',
+          fx: [['bloc.party', 24], ['nation.integrity', -2.5]],
+          exposure: { kind: 'political', amount: 14, witnesses: ['chair', 'senate'], trail: 2 },
+          news: ['PARTY LEADERSHIP PASSES VOTE OF CONFIDENCE IN PRESIDENT', 'NWC DON CHANGE MOUTH. STRUCTURE DON CHOP'],
+          archive: 'Paid the party leadership to end a revolt.', sig: 2,
+        }],
+      },
+    ],
+  },
+  {
+    id: 'break.villa', kind: 'threshold', slot: 'lead', category: 'politics', tone: 'dry', intensity: 4,
+    when: { v: ['bloc.villa', '<', 20] }, cooldown: 12,
+    office: 'Office of the Chief of Staff', stamp: 'SECRET',
+    title: 'The exodus',
+    body: [
+      'Three ministers and your spokesman have resigned within a week. Two did so on television.',
+      'Drafts of memoranda you have not yet read are appearing in {STREET}.',
+      'A former aide has announced a book. Its working title is "Inside the Drift".',
+    ],
+    trace: [['bloc.villa', -1]],
+    reads: [{ role: 'cos', good: 'People are leaving because they do not know what you want, {SIR}, or because they do and cannot get in to see you.' }],
+    choices: [
+      {
+        id: 'reset', label: 'Reset: a new team, and open the door', pc: 10,
+        outcomes: [{
+          result: 'You replace the inner office and hold the first full cabinet meeting in five months. It runs for seven hours. People say things.',
+          fx: [['bloc.villa', 22], ['nation.capacity', 1], ['bloc.press', 2]],
+          news: ['PRESIDENT OVERHAULS VILLA TEAM', 'NEW BROOM FOR ASO ROCK'],
+          archive: 'Overhauled the Villa team after a wave of resignations.', sig: 2,
+        }],
+      },
+      {
+        id: 'loyalists', label: 'Close ranks: appoint only people you know',
+        outcomes: [{
+          result: 'The vacancies are filled by a classmate, a cousin and a former driver\'s lawyer. The leaks stop. So does the advice.',
+          fx: [['bloc.villa', 16], ['nation.capacity', -3], ['nation.integrity', -2], ['bloc.press', -4]],
+          news: ['PRESIDENT FILLS VACANCIES WITH CLOSE ASSOCIATES', 'ASO ROCK NA FAMILY MEETING NOW'],
+          archive: 'Filled the Villa with personal loyalists.', sig: 2,
+        }],
+      },
+      {
+        id: 'appreciate', label: 'Appreciate those who stayed', purse: 6,
+        outcomes: [{
+          result: 'Morale in the Villa improves sharply and for reasons nobody puts in writing.',
+          fx: [['bloc.villa', 20], ['nation.integrity', -1.5]],
+          exposure: { kind: 'political', amount: 6, witnesses: ['cos', 'villa'], trail: 1 },
+          news: ['VILLA: "THE PRESIDENT\'S TEAM IS UNITED"', 'ASO ROCK STAFF DEY SMILE. WETIN HAPPEN?'],
+          archive: 'Paid Villa staff to stop the resignations.',
+        }],
+      },
+    ],
+  },
+  {
+    id: 'break.establishment', kind: 'threshold', slot: 'lead', category: 'economy', tone: 'dry', intensity: 4,
+    when: { v: ['bloc.establishment', '<', 20] }, cooldown: 12,
+    office: 'Central Bank', stamp: 'SECRET',
+    title: 'The quiet withdrawal',
+    body: [
+      '{CBN} reports that $3.1bn has left the country in six weeks. Two banks have asked for emergency liquidity.',
+      'Permanent secretaries are on leave in unusual numbers. Files sent to three ministries have not come back.',
+      'Nobody has said anything in public. That is how this group communicates.',
+    ],
+    trace: [['bloc.establishment', -1], ['nation.debt', 1]],
+    reads: [
+      { role: 'fin', good: 'They do not believe us, {SIR}. Not our numbers, not our word. Give them one thing they can verify.', weak: 'Market sentiment is cyclical, {SIR}.' },
+    ],
+    choices: [
+      {
+        id: 'credible', label: 'Publish the full fiscal accounts and commit to a debt ceiling', pc: 10,
+        outcomes: [{
+          result: 'The accounts are worse than rumoured and better than feared. Publishing them is taken as the first serious act in a year.',
+          fx: [['bloc.establishment', 20], ['nation.integrity', 2], ['nation.capacity', 1], ['bloc.street', -2]],
+          news: ['FG PUBLISHES FULL ACCOUNTS, SETS DEBT CEILING', 'GOVERNMENT SHOW US THE BOOK. E NO FINE'],
+          archive: 'Published the fiscal accounts and set a debt ceiling.', sig: 3,
+        }],
+      },
+      {
+        id: 'reassure', label: 'Host a dinner for captains of industry',
+        outcomes: [{
+          result: 'Forty chief executives attend. They applaud. Eleven of them move further funds abroad the next morning.',
+          fx: [['bloc.establishment', 7], ['nation.debt', 2]],
+          news: ['PRESIDENT REASSURES BUSINESS LEADERS AT VILLA DINNER', 'BIG MEN CHOP FOR VILLA. DOLLAR STILL DEY RUN'],
+          archive: 'Hosted a dinner to reassure business leaders.',
+        }],
+      },
+      {
+        id: 'controls', label: 'Impose capital controls',
+        outcomes: [{
+          result: 'Outflows stop on paper. A parallel market opens within the week, at a rate nobody will quote on the record.',
+          fx: [['bloc.establishment', 10], ['nation.inflation', 3], ['nation.debt', 3]],
+          flags: { 'econ.inflBias': 6 },
+          news: ['CENTRAL BANK RESTRICTS FOREIGN EXCHANGE TRANSFERS', 'DOLLAR DON ENTER BLACK MARKET AGAIN'],
+          archive: 'Imposed capital controls to stop capital flight.', sig: 2,
+        }],
+      },
+    ],
+  },
+  {
+    id: 'break.press', kind: 'threshold', slot: 'lead', category: 'scandal', tone: 'dry', intensity: 3,
+    when: { v: ['bloc.press', '<', 20] }, cooldown: 12,
+    office: 'Office of the Special Adviser, Media and Publicity', stamp: 'URGENT',
+    title: 'Open season',
+    body: [
+      'Every national daily led this week with a different story about the Presidency. None was favourable. Four were accurate.',
+      '{INFO} has proposed a "media engagement retreat" and, separately, a bill to regulate online publications.',
+    ],
+    trace: [['bloc.press', -1]],
+    reads: [{ role: 'sap', good: 'They are not hostile because they are biased, {SIR}. They are hostile because we lied to them and it was in writing.' }],
+    choices: [
+      {
+        id: 'chat', label: 'Hold an unscripted two-hour media chat', pc: 6,
+        outcomes: [
+          {
+            when: { v: ['nation.integrity', '>=', 30] },
+            result: 'You take forty questions and dodge three. The coverage the next day is critical and, for the first time in months, fair.',
+            fx: [['bloc.press', 20], ['approval', 1.5]],
+            news: ['PRESIDENT FACES PRESS FOR TWO HOURS', 'PRESIDENT ANSWER QUESTION. NO TELEPROMPTER'],
+            archive: 'Held an unscripted media chat.', sig: 2,
+          },
+          {
+            result: 'You take forty questions. The answers to six of them become headlines you did not want.',
+            fx: [['bloc.press', 10], ['approval', -2]],
+            news: ['PRESIDENT STRUGGLES IN MEDIA CHAT', 'MEDIA CHAT: SIX ANSWERS WEY GO HAUNT AM'],
+            archive: 'Held an unscripted media chat. It went badly.', sig: 2,
+          },
+        ],
+      },
+      {
+        id: 'bill', label: 'Send the online publications bill to the Assembly',
+        outcomes: [{
+          result: 'The bill is read a first time. Coverage of the Presidency becomes more careful, and coverage of the bill is everywhere.',
+          fx: [['bloc.press', 6], ['bloc.street', -6], ['nation.integrity', -3], ['approval', -2]],
+          flags: { 'press.gag': true },
+          news: ['FG SENDS ONLINE MEDIA BILL TO NATIONAL ASSEMBLY', '#NOTOGAGBILL: THEY WANT TO SHUT US UP'],
+          archive: 'Sent a bill to regulate online publications to the Assembly.', sig: 3,
+        }],
+      },
+      {
+        id: 'envelopes', label: 'Improve relations with selected editors', purse: 8,
+        outcomes: [{
+          result: 'Coverage softens across most titles. {EDITOR}\'s paper runs a piece on which titles softened, and when.',
+          fx: [['bloc.press', 16], ['nation.integrity', -2]],
+          exposure: { kind: 'political', amount: 8, witnesses: ['editors'], trail: 2 },
+          news: ['EDITORS\' GUILD HOLDS "FRUITFUL" MEETING WITH PRESIDENCY', 'BROWN ENVELOPE SEASON? SOME PAPERS DON QUIET'],
+          archive: 'Paid selected editors for softer coverage.',
+        }],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------- removal
+
+  {
+    id: 'removal.notice', kind: 'chain', slot: 'lead', category: 'politics', tone: 'dry', intensity: 5,
+    office: 'Office of the Clerk to the National Assembly', stamp: 'URGENT',
+    title: 'Notice of allegations of gross misconduct',
+    body: [
+      'A notice of allegations of gross misconduct against the President, signed by more than one third of the members of the National Assembly, has been presented to the Senate President.',
+      'Under the Constitution, each chamber must now resolve by a two-thirds majority whether the allegations are to be investigated.',
+      'The vote is in fourteen days.',
+    ],
+    trace: [['bloc.party', -1], ['bloc.street', -1], ['bloc.villa', -1], ['bloc.establishment', -1], ['bloc.press', -1]],
+    reads: [
+      { role: 'sap', good: 'They need seventy-three senators, {SIR}. They have about sixty-five. Each of the remaining eight has a price or a grievance, and we have two weeks to learn which.' },
+    ],
+    choices: [
+      {
+        id: 'fight', label: 'Fight it vote by vote', pc: 10,
+        outcomes: [{
+          result: 'You begin calling senators yourself. Some take the call.',
+          fx: [['bloc.party', 6]],
+          follow: [{ event: 'removal.vote', after: 1 }],
+          news: ['IMPEACHMENT NOTICE SERVED ON PRESIDENT', 'IMPEACHMENT! DEM WAN COMMOT PRESIDENT'],
+          newsWeight: 9,
+          archive: 'Was served an impeachment notice and chose to fight it.', sig: 3,
+        }],
+      },
+      {
+        id: 'logistics', label: 'Fight it with logistics', purse: 20,
+        outcomes: [{
+          result: 'Eleven signatories withdraw their signatures, explaining that they had signed an attendance register in error.',
+          fx: [['bloc.party', 18], ['nation.integrity', -3]],
+          follow: [{ event: 'removal.vote', after: 1 }],
+          exposure: { kind: 'political', amount: 20, witnesses: ['senate'], trail: 2 },
+          news: ['ELEVEN LAWMAKERS WITHDRAW FROM IMPEACHMENT NOTICE', '"I THOUGHT NA ATTENDANCE" — SENATOR'],
+          newsWeight: 9,
+          archive: 'Paid legislators to withdraw from an impeachment notice.', sig: 3,
+        }],
+      },
+      {
+        id: 'resign', label: 'Resign',
+        outcomes: [{
+          result: 'You address the nation for six minutes and leave the Villa by the side gate.',
+          ends: 'resigned',
+          archive: 'Resigned the Presidency.', sig: 3,
+        }],
+      },
+    ],
+  },
+  {
+    id: 'removal.vote', kind: 'chain', slot: 'lead', category: 'politics', tone: 'dry', intensity: 5,
+    office: 'Office of the Clerk to the National Assembly', stamp: 'URGENT',
+    title: 'The vote',
+    body: [
+      'Both chambers sit today to vote on whether the allegations shall be investigated.',
+      'The galleries are full. The Senate President has the gavel and, you are told, a telephone that has not stopped ringing.',
+    ],
+    reads: [
+      { role: 'sap', good: 'I have counted four times, {SIR}. I have four different answers.' },
+    ],
+    choices: [
+      {
+        id: 'watch', label: 'Watch from the Villa',
+        outcomes: [
+          {
+            when: { any: [{ v: ['bloc.party', '>=', 34] }, { v: ['pc', '>=', 40] }] },
+            result: 'The motion falls nine votes short in the Senate. The Senate President describes the outcome as "a victory for democracy" and requests a meeting.',
+            fx: [['pc', 8], ['bloc.party', 6], ['bloc.villa', 8], ['bloc.establishment', 5]],
+            flags: { 'removal.active': false, 'removal.survived': true },
+            news: ['IMPEACHMENT MOTION FAILS IN SENATE', 'PRESIDENT SURVIVE! NINE VOTES'],
+            newsWeight: 9,
+            archive: 'Survived an impeachment vote.', sig: 3,
+          },
+          {
+            result: 'The motion is carried in both chambers. The Chief Justice appoints a panel of seven. It reports in eleven weeks and its report is adopted. You are removed from office.',
+            ends: 'removed',
+            news: ['PRESIDENT REMOVED FROM OFFICE', 'IT IS OVER'],
+            archive: 'Was removed from office by the National Assembly.', sig: 3,
+          },
+        ],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------- debt
+
+  {
+    id: 'debt.crisis', kind: 'threshold', slot: 'lead', category: 'economy', tone: 'dry', intensity: 5,
+    when: { v: ['nation.debt', '>', 96] }, cooldown: 18,
+    office: 'Debt Management Office', stamp: 'SECRET',
+    title: 'Debt service has exceeded revenue',
+    body: [
+      'For the first time, debt service this quarter is larger than retained revenue. Salaries are being paid from new borrowing.',
+      'A bond auction on Wednesday was undersubscribed. A foreign lender has offered a three-year facility. The conditions run to forty pages and begin with the petrol price.',
+    ],
+    trace: [['nation.debt', 1]],
+    reads: [
+      { role: 'fin', good: 'There is no version of this that does not hurt, {SIR}. The programme hurts on a schedule. The alternative hurts at random.', weak: 'We are exploring innovative financing options, {SIR}.' },
+    ],
+    choices: [
+      {
+        id: 'programme', label: 'Accept the lender\'s programme', pc: 12, sign: true,
+        outcomes: [{
+          result: 'The programme is signed. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
+          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250]],
+          flags: { 'policy.subsidy': 'removed', 'lender.programme': true },
+          news: ['FG SIGNS THREE-YEAR FACILITY WITH LENDER', 'WE DON ENTER LENDER HAND. CONDITIONS FULL GROUND'],
+          archive: 'Accepted a foreign lender\'s programme to avert default.', sig: 3,
+        }],
+      },
+      {
+        id: 'print', label: 'Direct the central bank to finance the deficit',
+        outcomes: [{
+          result: '{CBN} complies under protest and in writing. The naira and the price of bread respond within the month.',
+          fx: [['nation.debt', -10], ['nation.inflation', 6], ['bloc.establishment', -8], ['bloc.street', -4]],
+          flags: { 'econ.inflBias': 9 },
+          news: ['CENTRAL BANK EXTENDS ₦6TN ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
+          archive: 'Ordered the central bank to finance the deficit.', sig: 3,
+        }],
+      },
+      {
+        id: 'restructure', label: 'Open restructuring talks with creditors', pc: 8,
+        outcomes: [{
+          result: 'Talks open in London. The ratings agencies call it a selective default. It is a year before anyone will lend again.',
+          fx: [['nation.debt', -22], ['bloc.establishment', -10], ['nation.fiscalSpace', -0.3], ['nation.power', -2]],
+          news: ['NIGERIA SEEKS DEBT RESTRUCTURING', 'WE NO FIT PAY. GOVERNMENT GO BEG CREDITORS'],
+          archive: 'Opened debt restructuring talks.', sig: 3,
+        }],
+      },
+    ],
+  },
+];
