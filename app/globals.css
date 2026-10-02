@@ -59,3 +59,32 @@ body {
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 :focus-visible { outline: 2px solid var(--color-honour); outline-offset: 2px; }
+
+/* The certificate of return */
+.cert {
+  position: relative;
+  border: 1px solid #b0914f;
+  outline: 3px double #b0914f99;
+  outline-offset: -9px;
+  background:
+    radial-gradient(circle at 50% 400px, #1f4d3a0f 0, #1f4d3a0f 150px, transparent 151px),
+    repeating-linear-gradient(135deg, #1b1b1b06 0 2px, transparent 2px 9px),
+    var(--color-paper);
+}
+.cert-seal {
+  width: 76px; height: 76px; border-radius: 999px;
+  border: 2px solid var(--color-state);
+  outline: 1px solid var(--color-state); outline-offset: 3px;
+  display: grid; place-items: center;
+  color: var(--color-state); font-family: var(--font-serif, Georgia, serif);
+}
+.cert-field {
+  border-bottom: 1px dotted #1b1b1b88;
+  background: transparent; outline: none;
+  font-family: inherit; color: var(--color-state); font-style: italic;
+  padding: 0 4px; text-align: center;
+}
+.cert-field:focus { border-bottom: 1px solid var(--color-state); background: #1f4d3a0d; }
+.cert-field:disabled { color: var(--color-ink); opacity: 1; }
+.cert-sign { font-family: 'Brush Script MT', 'Segoe Script', cursive; transform: rotate(-4deg); display: inline-block; }
+.schedule { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid #1b1b1b33; padding-bottom: 6px; }

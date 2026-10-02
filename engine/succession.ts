@@ -2,7 +2,7 @@
 // the savings, the reforms, the half-built projects, the theatres, and the
 // consequences still on their way.
 
-import { ORDER_BY_ID } from '../content/agenda';
+import { ORDER_BY_ID, TRACKS } from '../content/agenda';
 import { RIVAL_BY_ID } from '../content/people';
 import { runElection } from './election';
 import { verdict } from './legacy';
@@ -34,6 +34,8 @@ export function winnerOf(prev: GameState): Winner {
     : { ...other, how: `President ${prev.president.name} ${why}. ${rival.party} won the election that followed.` };
 }
 
+const MILESTONE_COUNT = TRACKS.reduce((a, t) => a + t.milestones.length, 0);
+
 /** What the incoming President is told on the first morning. */
 export function handoverNotes(prev: GameState): string[] {
   const n = prev.nation;
@@ -47,7 +49,7 @@ export function handoverNotes(prev: GameState): string[] {
       : `Debt service takes ${Math.round(n.debt)}% of revenue. The notes you were left call the economy "on a sound footing" and give no figure for what is owed to contractors, pensioners and gas suppliers. The Treasury will have to tell you.`,
     `The treasury holds ₦${n.fiscalSpace.toFixed(1)}tn and the funds hold ₦${saved.toFixed(1)}tn.`,
     `Inflation is ${n.inflation.toFixed(0)}%. The petrol subsidy is ${prev.flags['policy.subsidy'] === 'removed' ? 'gone' : 'still in place'}.`,
-    `${prev.agenda.done.length} of 50 reforms are in force${prev.agenda.active.length ? `, and ${prev.agenda.active.length} ${prev.agenda.active.length === 1 ? 'is' : 'are'} half-finished` : ''}.`,
+    `${prev.agenda.done.length} of ${MILESTONE_COUNT} reforms are in force${prev.agenda.active.length ? `, and ${prev.agenda.active.length} ${prev.agenda.active.length === 1 ? 'is' : 'are'} half-finished` : ''}.`,
     hot ? `${hot} of the six security theatres ${hot === 1 ? 'is' : 'are'} dangerous or worse.` : 'No security theatre is worse than contested.',
   ];
   if (prev.ventures.active.length) out.push(`${prev.ventures.active.length} big ${prev.ventures.active.length === 1 ? 'bet is' : 'bets are'} still being built, on your predecessor's promise.`);

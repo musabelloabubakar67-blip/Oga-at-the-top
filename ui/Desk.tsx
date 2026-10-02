@@ -461,7 +461,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
         <h3 className="font-serif text-xl text-ivory">{track.name}</h3>
         <span className="label text-mute">{done}/{track.milestones.length}</span>
       </div>
-      <p className="text-sm text-mute">{track.goal}{!priority && ' · not a declared priority: costs more capital'}</p>
+      <p className="text-sm text-mute">{track.goal}{track.loose && ' · in any order; read each one before you sign it'}{!priority && ' · not a declared priority: costs more capital'}</p>
       <ol className="mt-3 space-y-2">
         {track.milestones.map((m, i) => {
           const st = milestoneStatus(s, m.id);
@@ -472,7 +472,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
           return (
             <li key={m.id} className={`border-l-2 pl-3 ${st === 'done' ? 'border-state-lit' : st === 'active' ? 'border-honour' : 'border-ivory/15'} ${st === 'later' ? 'opacity-45' : ''}`}>
               <p className="flex items-baseline justify-between gap-2">
-                <span className={`font-serif leading-snug ${st === 'done' ? 'text-ivory/60 line-through decoration-state-lit' : 'text-ivory'}`}>{i + 1}. {m.name}</span>
+                <span className={`font-serif leading-snug ${st === 'done' ? 'text-ivory/60 line-through decoration-state-lit' : 'text-ivory'}`}>{track.loose ? '' : `${i + 1}. `}{m.name}</span>
                 {st === 'done' && <span className="label text-state-lit">Delivered</span>}
               </p>
               {st === 'active' && active && (
@@ -524,7 +524,7 @@ function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="label text-mute">Your agenda · {s.agenda.active.length} of {agendaSlots(s)} reforms under way{s.agenda.active.length > CFG.agenda.easyLoad ? ` · beyond ${CFG.agenda.easyLoad}, each one costs ${CFG.agenda.loadPc} capital and ${CFG.agenda.loadParty} with the party a month` : ''}</p>
-        <button onClick={() => setAll(!all)} className="label text-honour/90 hover:text-honour">{all ? 'Hide the other six tracks' : `Show all ten reform tracks · ${s.agenda.done.length} of 50 delivered`}</button>
+        <button onClick={() => setAll(!all)} className="label text-honour/90 hover:text-honour">{all ? 'Hide the other tracks' : `Show all ${TRACKS.length} reform tracks · ${s.agenda.done.length} of ${TRACKS.reduce((a, t) => a + t.milestones.length, 0)} delivered`}</button>
       </div>
       <div className="mt-2 grid gap-3 md:grid-cols-2">
         {mine.map((t) => <TrackCard key={t.id} s={s} track={t} dispatch={dispatch} priority />)}

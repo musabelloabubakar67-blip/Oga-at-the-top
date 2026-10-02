@@ -316,6 +316,8 @@ export interface Milestone {
   months: number;
   needs?: Cond;
   needsText?: string;
+  /** What the crowd, the party or a businessman wants, whatever it costs. The scripted reformers skip these. */
+  popular?: boolean;
   /** Political cost paid when the reform is launched. */
   start?: Fx[];
   /** What it delivers when it is finished. */
@@ -331,6 +333,8 @@ export interface Track {
   name: string;
   goal: string;
   metric: string;
+  /** The items can be taken in any order. */
+  loose?: boolean;
   milestones: Milestone[];
 }
 

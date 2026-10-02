@@ -812,7 +812,7 @@ export function milestoneStatus(s: GameState, id: string): MilestoneStatus {
   const entry = MILESTONE_BY_ID[id];
   if (!entry) return 'later';
   const i = entry.track.milestones.findIndex((m) => m.id === id);
-  const prior = entry.track.milestones.slice(0, i).every((m) => s.agenda.done.includes(m.id));
+  const prior = entry.track.loose || entry.track.milestones.slice(0, i).every((m) => s.agenda.done.includes(m.id));
   return prior ? 'next' : 'later';
 }
 

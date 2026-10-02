@@ -126,7 +126,7 @@ Corruption is available throughout: the security vote, logistics for the Assembl
 
 ## 0.4 Reforms and big bets
 
-**Reforms** (`content/agenda.ts`, `content/tracks2.ts`): ten tracks of five, fifty in all. Each costs political capital and money, takes time, and delivers a permanent change. The President declares four priority tracks; others cost half as much capital again. Five can run at once, six at state capacity 50, seven at 65. Each one under way beyond three costs political capital and strains the party every month. Reforms that need a law are voted on when ready and can be defeated.
+**Reforms** (`content/agenda.ts`, `content/tracks2.ts`, `content/tracks3.ts`): fourteen tracks of five, seventy in all. Ten tracks are taken in order. Four (Restructure the Federation, Relief for the People, Order and National Pride, Beyond Oil) can be taken in any order, and nine of their twenty items are what the party, the street or a businessman wants rather than what is good for the country: new states, a price control board, a pump price fixed by law, a decreed minimum wage, an internet falsehood law, closed borders, a national airline, the death penalty for corruption, a ban on raw exports. They pay at once and cost permanently, and both are shown before signing. The scripted reformers skip them. Each costs political capital and money, takes time, and delivers a permanent change. The President declares four priority tracks; others cost half as much capital again. Five can run at once, six at state capacity 50, seven at 65. Each one under way beyond three costs political capital and strains the party every month. Reforms that need a law are voted on when ready and can be defeated.
 
 **Big bets** (`content/ventures.ts`, `engine/bets.ts`): 32 risky initiatives. Each lists the conditions it depends on (a capable minister, paid contractors, reliable power, a quiet theatre, a delivered reform, a businessman as partner). Each unmet condition costs a stated share of the odds. Part-way through, the site reports what is not in place and what would fix it. The President can fix the cause, send a task team, or postpone the opening. The outcome names the condition that failed. If every condition was met and it still failed, the report says it was bad luck.
 
@@ -192,7 +192,7 @@ Simulator results at the time of writing (40 presidencies each):
 | Machine politician | about 70% | Leaves office still owing two favours |
 | Clean institutionalist | about 38% | Loses the primary or the election when it neglects the party |
 | Kleptocrat | about 20% | Keeps about ₦310bn; usually voted out, owing everybody |
-| Reformer (flawless play) | 100% | Delivers about 45 of 50 reforms; leaves debt service near 80% |
+| Reformer (flawless play) | 100% | Delivers about 54 of 70 reforms, skipping the nine crowd-pleasers; leaves debt service near 85% |
 
 The event rewrite moved these. Before it the kleptocrat was re-elected 73% of the time and the machine politician 40%; debts to financiers and governors now come due inside ordinary files, which is what the kleptocrat cannot pay. By scenario (12 presidencies each), a reformer is re-elected 83% of the time in The Morning After and 100% elsewhere; the machine politician ranges from 17% (The Morning After) to 92% (The Reformer's Handover). `--world` chains four presidents through one country.
 

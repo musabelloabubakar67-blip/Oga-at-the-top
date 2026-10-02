@@ -1,6 +1,7 @@
 import type { Cond, ExposureSpec, FlagValue, Follow, Fx, Later, Track } from '../engine/types';
 import { SITUATIONAL } from './orders2';
 import { MORE_TRACKS } from './tracks2';
+import { LOOSE_TRACKS } from './tracks3';
 
 // THE REFORM AGENDA
 // Six tracks of four reforms each. A reform is launched, paid for, takes time,
@@ -336,7 +337,7 @@ const CAPSTONES: Record<string, Track['milestones'][number]> = {
   },
 };
 
-export const TRACKS: Track[] = [...RAW, ...MORE_TRACKS].map((t) => ({
+export const TRACKS: Track[] = [...RAW, ...MORE_TRACKS, ...LOOSE_TRACKS].map((t) => ({
   ...t,
   milestones: [...t.milestones, ...(CAPSTONES[t.id] ? [CAPSTONES[t.id]] : [])].map((m) => ({
     ...m,

@@ -73,59 +73,58 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
   const toggle = (id: string) => setPriorities((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < 4 ? [...p, id] : p));
   const ready = priorities.length === 4;
 
-  const input = 'w-full border-b border-ink/30 bg-transparent py-2 font-serif text-xl text-ink outline-none focus:border-state';
-  const card = (on: boolean) =>
+    const card = (on: boolean) =>
     `text-left border p-4 transition-colors ${on ? 'border-state bg-state/10' : 'border-ink/20 hover:border-ink/50'}`;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="paper slide-in p-6 sm:p-10">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="label text-ink-soft">Independent Electoral Commission</p>
-            <h1 className="mt-1 font-serif text-3xl">Certificate of Return</h1>
-            {handover && <p className="label mt-1 text-state">The next President, in the same country</p>}
-          </div>
-          <span className="stamp text-state text-xs">DECLARED</span>
-        </div>
-        <p className="mt-4 font-serif text-ink-soft">
-          Having satisfied the requirements of the law and scored the highest number of votes, the candidate named below is hereby returned as President.
+      <div className="paper cert slide-in px-6 py-10 sm:px-14 sm:py-14">
+        <header className="text-center">
+          <div className="cert-seal mx-auto"><span className="text-2xl leading-none">✦</span></div>
+          <p className="label mt-4 text-ink-soft">Federal Republic of Nigeria</p>
+          <p className="label text-ink-soft">Independent Electoral Commission</p>
+          <h1 className="mt-3 font-serif text-4xl tracking-wide sm:text-5xl">Certificate of Return</h1>
+          <p className="label mt-2 text-ink-soft">Form EC 8E(A) · Presidential election · No. 000{handover ? '2' : '1'}</p>
+          {handover && <p className="label mt-1 text-state">The next President, in the same country</p>}
+        </header>
+
+        <p className="mx-auto mt-8 max-w-2xl text-center font-serif text-xl leading-[2.4]">
+          This is to certify that
+          {' '}<input aria-label="Surname of the President" className="cert-field w-48" value={name} maxLength={24} placeholder="surname" onChange={(e) => setName(e.target.value)} />{' '}
+          of
+          {' '}<select aria-label="Home state" className="cert-field" value={home} onChange={(e) => setHome(e.target.value)}>
+            {STATES.map((s) => <option key={s.id} value={s.id}>{s.name} State, {ZONE_NAME[s.zone]}</option>)}
+          </select>,
+          candidate of the
+          {' '}<input aria-label="Party" className="cert-field w-80 max-w-full" value={party} maxLength={48} disabled={!!handover} onChange={(e) => setParty(e.target.value)} />{' '}
+          (<input aria-label="Acronym" className="cert-field w-20" value={partyShort} maxLength={6} disabled={!!handover} onChange={(e) => setPartyShort(e.target.value.toUpperCase())} />),
+          having satisfied the requirements of the law and scored the highest number of votes, is hereby declared elected and returned as
+          {' '}<span className="whitespace-nowrap font-semibold">President of the Federal Republic.</span>
         </p>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          <label className="block">
-            <span className="label text-ink-soft">Surname of the President</span>
-            <input className={input} value={name} maxLength={24} placeholder="e.g. Adewale" onChange={(e) => setName(e.target.value)} />
-          </label>
-          <div>
-            <span className="label text-ink-soft">Form of address</span>
-            <div className="mt-2 flex gap-2">
-              {(['sir', 'ma'] as const).map((a) => (
-                <button key={a} onClick={() => setAddress(a)} className={`${card(address === a)} px-4 py-2 font-serif`}>
-                  {a === 'sir' ? 'Mr President · Sir' : 'Madam President · Ma'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <label className="block">
-            <span className="label text-ink-soft">Party{handover ? ' · the party that won' : ''}</span>
-            <input className={input} value={party} maxLength={48} disabled={!!handover} onChange={(e) => setParty(e.target.value)} />
-          </label>
-          <label className="block">
-            <span className="label text-ink-soft">Acronym</span>
-            <input className={input} value={partyShort} maxLength={6} disabled={!!handover} onChange={(e) => setPartyShort(e.target.value.toUpperCase())} />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className="label text-ink-soft">Home state</span>
-            <select className={input} value={home} onChange={(e) => setHome(e.target.value)}>
-              {STATES.map((s) => <option key={s.id} value={s.id}>{s.name} — {ZONE_NAME[s.zone]}</option>)}
-            </select>
-          </label>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <span className="label text-ink-soft">To be addressed as</span>
+          {(['sir', 'ma'] as const).map((a) => (
+            <button key={a} onClick={() => setAddress(a)} className={`${card(address === a)} px-4 py-1.5 font-serif`}>
+              {a === 'sir' ? 'Mr President · Sir' : 'Madam President · Ma'}
+            </button>
+          ))}
         </div>
+
+        <div className="mt-10 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="cert-sign text-3xl text-ink">A. B. Returning</p>
+            <p className="mt-1 w-56 border-t border-ink/50 pt-1 label text-ink-soft">Chairman and Chief Returning Officer</p>
+            <p className="mt-1 text-sm text-ink-soft">Given under my hand at Abuja.</p>
+          </div>
+          <span className="stamp text-state" style={{ transform: 'rotate(-8deg)' }}>DECLARED</span>
+        </div>
+
+        <p className="mt-12 text-center font-serif italic text-ink-soft">The schedules below form part of this certificate. Complete all four.</p>
 
         {handover ? (
           <section className="mt-10 border-l-2 border-honour bg-paper-dim px-4 py-3">
-            <h2 className="label text-ink-soft">What you are being handed</h2>
+            <h2 className="label text-state">Schedule I · What you are being handed</h2>
             <p className="mt-1 font-serif text-lg leading-snug">{handover.how}</p>
             <p className="mt-1 text-sm text-ink-soft">President {handover.predecessor} is remembered as “{handover.epithet}”. The country is exactly as it was left: nothing has been reset.</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 font-serif leading-snug">
@@ -134,12 +133,12 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
           </section>
         ) : (
           <>
-            <h2 className="label mt-10 text-ink-soft">What you inherit</h2>
-            <p className="mt-1 text-sm text-ink-soft">The country you are handed. It sets how hard the first two years are, and what the test is.</p>
+            <h2 className="schedule mt-10"><span className="label text-state">Schedule I</span><span className="font-serif text-xl">What you inherit</span></h2>
+            <p className="mt-2 text-sm text-ink-soft">The country you are handed. It sets how hard the first two years are, and what the test is.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {SCENARIOS.map((x) => (
                 <button key={x.id} onClick={() => setScenario(x.id)} className={card(scenario === x.id)}>
-                  <span className="flex items-baseline justify-between gap-2"><span className="font-serif text-lg">{x.name}</span><span className="label shrink-0 text-ink-soft">{x.difficulty}</span></span>
+                  <span className="block font-serif text-lg">{x.name}</span><span className="label block text-ink-soft">{x.difficulty}</span>
                   <span className="mt-1 block text-sm leading-snug text-ink-soft">{x.blurb}</span>
                   <span className="mt-1.5 block text-[13px] leading-snug text-state">The test: {x.test}</span>
                 </button>
@@ -148,7 +147,7 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
           </>
         )}
 
-        <h2 className="label mt-10 text-ink-soft">How you got here</h2>
+        <h2 className="schedule mt-10"><span className="label text-state">Schedule II</span><span className="font-serif text-xl">How you got here</span></h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {BACKGROUNDS.map((b) => (
             <button key={b.id} onClick={() => setBackground(b.id)} className={card(background === b.id)}>
@@ -159,8 +158,8 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
           ))}
         </div>
 
-        <h2 className="label mt-10 text-ink-soft">Your four-point agenda</h2>
-        <p className="mt-1 text-sm text-ink-soft">Choose four of the ten. These are what you promised, what the papers will hold you to, and where your reforms cost least. You can still act outside them, at a higher price.</p>
+        <h2 className="schedule mt-10"><span className="label text-state">Schedule III</span><span className="font-serif text-xl">Your four-point agenda</span></h2>
+        <p className="mt-2 text-sm text-ink-soft">Choose four of the fourteen ({priorities.length} chosen). These are what you promised, what the papers will hold you to, and where your reforms cost least. You can still act outside them, at a higher price.</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {TRACKS.map((t) => (
             <button key={t.id} onClick={() => toggle(t.id)} className={card(priorities.includes(t.id))}>
@@ -170,8 +169,8 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
           ))}
         </div>
 
-        <h2 className="label mt-10 text-ink-soft">Your first appointment: Minister of Finance</h2>
-        <p className="mt-1 text-sm text-ink-soft">Three names are on the desk. What you read here is reputation. Reputation is sometimes wrong.</p>
+        <h2 className="schedule mt-10"><span className="label text-state">Schedule IV</span><span className="font-serif text-xl">Your first appointment: Minister of Finance</span></h2>
+        <p className="mt-2 text-sm text-ink-soft">Three names are on the desk. What you read here is reputation. Reputation is sometimes wrong.</p>
         <div className="mt-3 grid gap-3">
           {FINANCE_CANDIDATES.map((c) => (
             <button key={c.name} onClick={() => setFinance(c.name)} className={card(finance === c.name)}>

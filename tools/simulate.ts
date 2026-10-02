@@ -169,7 +169,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     if (bot.reforms) {
       const order = bot.reforms === 'all' ? [...s.agenda.tracks, ...TRACKS.map((t) => t.id).filter((id) => !s.agenda.tracks.includes(id))] : s.agenda.tracks;
       for (const id of order) {
-        const next = TRACKS.find((t) => t.id === id)!.milestones.find((m) => !s.agenda.done.includes(m.id) && !s.agenda.active.some((x) => x.id === m.id));
+        const next = TRACKS.find((t) => t.id === id)!.milestones.find((m) => !s.agenda.done.includes(m.id) && !s.agenda.active.some((x) => x.id === m.id) && !(bot.reforms === 'all' && m.popular));
         if (!next) continue;
         const chk = canLaunch(s, next.id);
         if (bot.reforms === 'grease' && !chk.ok && chk.grease) { s = applyAction(s, { type: 'LAUNCH', id: next.id, grease: true }); continue; }
