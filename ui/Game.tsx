@@ -8,7 +8,8 @@ import type { Action, GameState, Setup } from '../engine/types';
 import { Desk } from './Desk';
 import { ElectionNight } from './Election';
 import { Papers } from './Paper';
-import { SetupScreen, Title } from './Setup';
+import { handoverNotes, winnerOf } from '../engine/succession';
+import { SetupScreen, Title, type Handover } from './Setup';
 import { VerdictScreen } from './Verdict';
 
 // One key from here on. Saves are brought forward by engine/migrate.ts, not abandoned.
@@ -27,6 +28,8 @@ export function Game() {
   const [state, setState] = useState<GameState | null>(null);
   const [screen, setScreen] = useState<'title' | 'setup' | 'play'>('title');
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  /** The finished presidency whose country the next President inherits. */
+  const [previous, setPrevious] = useState<GameState | null>(null);
 
   useEffect(() => {
     try {
@@ -50,21 +53,38 @@ export function Game() {
 
   const dispatch = useCallback((a: Action) => setState((s) => (s ? applyAction(s, a) : s)), []);
 
-  const start = (setup: Setup) => { setState(newGame(setup)); setScreen('play'); };
+  const start = (setup: Setup) => { setState(newGame(setup, previous ?? undefined)); setPrevious(null); setScreen('play'); };
 
-  const finish = () => {
-    if (!state) return;
-    const v = verdict(state);
-    const rec: HistoryRecord = { name: state.president.name, party: state.president.partyShort, years: v.years, epithet: v.epithet, ending: v.endingLine };
+  const remember = (s: GameState) => {
+    const v = verdict(s);
+    const rec: HistoryRecord = { name: s.president.name, party: s.president.partyShort, years: v.years, epithet: v.epithet, ending: v.endingLine };
     const next = [rec, ...history].slice(0, 20);
     setHistory(next);
     try { localStorage.setItem(HISTORY, JSON.stringify(next)); } catch { /* ignore */ }
+  };
+
+  const finish = () => {
+    if (!state) return;
+    remember(state);
     setState(null);
     setScreen('title');
   };
 
+  /** The world carries on: the player becomes whoever won. */
+  const succeedNow = () => {
+    if (!state) return;
+    remember(state);
+    setPrevious(state);
+    setScreen('setup');
+  };
+
+  const handover: Handover | undefined = previous ? (() => {
+    const w = winnerOf(previous);
+    return { party: w.party, partyShort: w.partyShort, sameParty: w.sameParty, how: w.how, notes: handoverNotes(previous), predecessor: previous.president.name, epithet: verdict(previous).epithet };
+  })() : undefined;
+
   if (!ready) return <p className="label p-8 text-mute">Consultations are ongoing…</p>;
-  if (screen === 'setup') return <SetupScreen onStart={start} onBack={() => setScreen('title')} />;
+  if (screen === 'setup') return <SetupScreen onStart={start} handover={handover} onBack={() => { setPrevious(null); if (previous) setState(null); setScreen('title'); }} />;
   if (screen === 'title' || !state) {
     return (
       <Title
@@ -75,7 +95,7 @@ export function Game() {
       />
     );
   }
-  if (state.phase === 'verdict') return <VerdictScreen s={state} onDone={finish} />;
+  if (state.phase === 'verdict') return <VerdictScreen s={state} onDone={finish} onSucceed={succeedNow} />;
   if (state.phase === 'election' && state.election) {
     return <ElectionNight s={state} onDone={() => dispatch({ type: 'ELECTION_DONE' })} />;
   }

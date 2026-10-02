@@ -60,7 +60,7 @@ function Owed({ s, f, dispatch, left }: { s: GameState; f: Favour; dispatch: Dis
         <span className="font-serif leading-snug">{w.short} owes you <span className="text-state">{'●'.repeat(f.size)}</span></span>
         <button onClick={() => setOpen(!open)} disabled={!can.ok} className={`label ${can.ok ? 'text-state hover:underline' : 'text-ink-soft'}`}>{open ? 'Not now' : 'Call it in →'}</button>
       </p>
-      <p className="text-[13px] leading-snug text-ink-soft">{f.why} Since {dateLabel(f.turn)}.{!can.ok && can.reason ? ` ${can.reason}` : ''}</p>
+      <p className="text-[13px] leading-snug text-ink-soft">{f.why} Since {dateLabel(f.turn, s.startYear)}.{!can.ok && can.reason ? ` ${can.reason}` : ''}</p>
       {open && can.ok && (
         <div className="mt-2 flex flex-col gap-1.5">
           {usesFor(s, f).map((u) => (
@@ -260,7 +260,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                 <ul className="mt-2 space-y-1.5">
                   {[...s.oppLog].reverse().slice(0, 8).map((m, i) => (
                     <li key={i} className="flex gap-3 font-serif leading-snug">
-                      <span className="label w-24 shrink-0 pt-1 text-ink-soft">{dateLabel(m.turn)}</span><span>{m.text}</span>
+                      <span className="label w-24 shrink-0 pt-1 text-ink-soft">{dateLabel(m.turn, s.startYear)}</span><span>{m.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -320,7 +320,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       {card.marks.length > 0 && (
                         <ul className="mt-2 space-y-0.5 text-[13px] leading-snug">
                           {card.marks.map((m, i) => (
-                            <li key={i} className={m.d > 0 ? 'text-state' : 'text-alarm'}>{m.d > 0 ? '＋' : '−'} {m.text} <span className="text-ink-soft">({dateLabel(m.turn)})</span></li>
+                            <li key={i} className={m.d > 0 ? 'text-state' : 'text-alarm'}>{m.d > 0 ? '＋' : '−'} {m.text} <span className="text-ink-soft">({dateLabel(m.turn, s.startYear)})</span></li>
                           ))}
                         </ul>
                       )}

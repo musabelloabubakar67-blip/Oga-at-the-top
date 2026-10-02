@@ -131,6 +131,7 @@ export function getVar(s: GameState, path: string): number {
     case 'turn': return s.turn;
     case 'termTurn': return termTurnOf(s.turn);
     case 'exposure':
+      if (p[1] === 'political') return s.exposures.filter((e) => e.kind === 'political').reduce((a, e) => a + e.amount, 0);
       return p[1] === 'total' ? s.exposures.reduce((a, e) => a + e.amount, 0) : s.exposures.length;
     case 'rel': return s.chars[p[1]]?.rel ?? 0;
     case 'leverage': return s.exposures.filter((x) => x.witnesses.includes(p[1])).length;
@@ -163,6 +164,9 @@ export function getVar(s: GameState, path: string): number {
     case 'comp': return s.people[p[1]]?.competence ?? PERSON_BY_ID[p[1]]?.competence ?? 3;
     case 'govs': return PEOPLE.filter((x) => x.group === 'governor' && standing(s, x.id) >= 58).length;
     case 'delegates': return delegates(s);
+    case 'margin': return s.election?.margin ?? 0;
+    case 'era': return s.era;
+    case 'pred': return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
     case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;
     default: return 0;
   }

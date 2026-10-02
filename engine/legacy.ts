@@ -38,6 +38,7 @@ const ENDING_LINE: Record<EndingKind, string> = {
   ticket_denied: 'Your own party denied you its ticket. You served out the term and watched the election from the Villa.',
   removed: 'You were removed from office by the National Assembly.',
   resigned: 'You resigned.',
+  annulled: 'The courts annulled your election. The Vice President was sworn in that afternoon, and you left by the back gate.',
 };
 
 export function verdict(s: GameState): Verdict {
@@ -79,6 +80,7 @@ export function verdict(s: GameState): Verdict {
   let epithet: string;
   if (ending === 'removed') epithet = 'The Cautionary Tale';
   else if (ending === 'resigned') epithet = 'The One Who Walked Away';
+  else if (ending === 'annulled') epithet = 'The Annulled';
   else if (personal >= 40 && perf < 0) epithet = 'The Looter';
   else if (personal >= 40 && perf >= 0.4) epithet = 'The One Who Ate and Worked';
   else if (perf >= 0.8 && ending !== 'term_limit') epithet = 'The Reformer They Voted Out';
@@ -115,6 +117,8 @@ export function verdict(s: GameState): Verdict {
     p3Parts.push('The people who denied you the ticket have since lost the election without your help.');
   } else if (ending === 'removed') {
     p3Parts.push('The panel\'s report ran to 600 pages. Most Nigerians read only the last line.');
+  } else if (ending === 'annulled') {
+    p3Parts.push('The judgment ran to 400 pages. It will be cited in every election petition for a generation, which is a kind of legacy.');
   } else {
     p3Parts.push('History is kinder to those who leave than to those who are carried out. Slightly.');
   }
@@ -147,10 +151,9 @@ export function verdict(s: GameState): Verdict {
   if (left.length === 1 && saved > 1) left.unshift('Very little.');
   if (!left.length) left.push('Nothing of note. The handover notes are, for once, shorter than the inauguration speech.');
 
-  const start = 2027;
   return {
     epithet,
-    years: `${start} – ${yearOf(Math.min(s.turn, 96))}`,
+    years: `${s.startYear} – ${yearOf(Math.min(s.turn, 96), s.startYear)}`,
     ending,
     endingLine: ENDING_LINE[ending],
     narrative: [p1, p2Parts.join(' '), p3Parts.join(' '), closing].map((t) => fill(s, t)),

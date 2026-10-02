@@ -37,12 +37,12 @@ export function BudgetModal({ s, dispatch, onClose }: { s: GameState; dispatch: 
   const short = Math.max(0, demand - (alloc.padding ?? 0));
   const sen = senate(s);
   const can = canBudget(s, benchmark, alloc);
-  const year = yearOf(s.turn) + 1;
+  const year = yearOf(s.turn, s.startYear) + 1;
   const set = (id: SectorId, d: number) => setAlloc((a) => ({ ...a, [id]: Math.max(0, (a[id] ?? 0) + d) }));
 
   return (
     <Shell onClose={onClose}>
-      <p className="label text-state">Budget Office of the Federation · {dateLabel(s.turn)}</p>
+      <p className="label text-state">Budget Office of the Federation · {dateLabel(s.turn, s.startYear)}</p>
       <h2 className="mt-1 font-serif text-3xl">The Appropriation Bill, {year}</h2>
       <p className="mt-2 text-sm leading-snug text-ink-soft">
         Once a year you decide what the government assumes oil will sell for, and how the money that assumption gives you is divided. It holds for twelve months. Nothing is released until you sign.
@@ -286,7 +286,7 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
     <Shell onClose={onClose}>
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <p className="label text-state">The Treasury · {dateLabel(s.turn)}</p>
+          <p className="label text-state">The Treasury · {dateLabel(s.turn, s.startYear)}</p>
           <h2 className="mt-1 font-serif text-3xl">{s.nation.fiscalSpace <= 0.01 ? 'The account is empty' : `${naira(s.nation.fiscalSpace)} in the account`}</h2>
         </div>
         <button onClick={s.budget.due ? onBudget : undefined} className={`label text-right ${s.budget.due ? 'text-alarm underline' : 'text-ink-soft'}`}>

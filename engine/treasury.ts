@@ -22,7 +22,7 @@ export function initTreasury(s: GameState): void {
   s.debts = Object.fromEntries(DEBTS.map((d) => [d.id, d.start])) as Record<DebtId, number>;
   s.funds = { abroad: 0, buffer: 0.3, infra: 0, growth: 0 };
   s.oil = { price: 74, output: 1.75, prev: 74 };
-  s.budget = { year: CFG.startYear, benchmark: 70, alloc: usualBudget(), due: false };
+  s.budget = { year: s.startYear, benchmark: 70, alloc: usualBudget(), due: false };
   syncDebt(s);
 }
 
@@ -40,7 +40,8 @@ export function oilGap(s: GameState): number {
 
 function oilTick(s: GameState): void {
   s.oil.prev = s.oil.price;
-  let p = s.oil.price + (72 - s.oil.price) * 0.05 + (rand(s) * 2 - 1) * 4.5;
+  const level = s.oil.path?.find(([until]) => s.turn <= until)?.[1] ?? 72;
+  let p = s.oil.price + (level - s.oil.price) * 0.07 + (rand(s) * 2 - 1) * 4.5;
   // Now and then the market moves for reasons that have nothing to do with you.
   if (rand(s) < 0.04) {
     const up = rand(s) < 0.45;
@@ -146,7 +147,7 @@ export function setBudget(s: GameState, benchmark: number, alloc: Record<SectorI
   const demand = paddingDemand(s);
   const short = Math.max(0, demand - (alloc.padding ?? 0));
   const chair = s.people.sen_approp;
-  s.budget = { year: yearOf(s.turn) + 1, benchmark, alloc: { ...alloc }, due: false, late: false };
+  s.budget = { year: yearOf(s.turn, s.startYear) + 1, benchmark, alloc: { ...alloc }, due: false, late: false };
   s.counters.budgetTurn = s.turn;
   let text: string;
   if (short > 0) {
@@ -404,7 +405,7 @@ export function treasuryTick(s: GameState): void {
   syncSecurity(s);
 
   // December: next year's Appropriation Bill is on the desk.
-  if (monthOf(s.turn) === 12 && s.budget.year <= yearOf(s.turn)) s.budget.due = true;
+  if (monthOf(s.turn) === 12 && s.budget.year <= yearOf(s.turn, s.startYear)) s.budget.due = true;
 }
 
 export { ARREARS };

@@ -37,7 +37,7 @@ function Page({ page }: { page: FrontPage }) {
       <header className="border-b-4 border-double border-ink pb-3 text-center">
         <h1 className={h.mast}>{o.name}</h1>
         <p className="label mt-2 flex justify-between gap-2 text-ink-soft">
-          <span>{dateLabel(page.turn)}</span>
+          <span>{page.date ?? dateLabel(page.turn)}</span>
           <span>{page.special ?? o.tagline}</span>
           <span>No. {page.turn}</span>
         </p>

@@ -4,6 +4,7 @@ import { FINANCIER, TYCOON_BY_ID } from '../content/tycoons';
 import { useState } from 'react';
 import { TRACKS } from '../content/agenda';
 import { DEFAULT_PARTY, FINANCE_CANDIDATES } from '../content/names';
+import { SCENARIOS } from '../content/scenarios';
 import { STATES } from '../content/states';
 import type { Background, Setup } from '../engine/types';
 import { ZONE_NAME } from '../engine/vars';
@@ -56,11 +57,15 @@ const BACKGROUNDS: { id: Background; name: string; text: string }[] = [
   { id: 'outsider', name: 'Outsider', text: 'The street and the press are with you. The party and the establishment are waiting for you to fail.' },
 ];
 
-export function SetupScreen({ onStart, onBack }: { onStart: (s: Setup) => void; onBack: () => void }) {
+/** What the next President is handed, when the world carries on. */
+export interface Handover { party: string; partyShort: string; sameParty: boolean; how: string; notes: string[]; predecessor: string; epithet: string }
+
+export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup) => void; onBack: () => void; handover?: Handover }) {
   const [name, setName] = useState('');
+  const [scenario, setScenario] = useState('standard');
   const [address, setAddress] = useState<'sir' | 'ma'>('sir');
-  const [party, setParty] = useState(DEFAULT_PARTY.name);
-  const [partyShort, setPartyShort] = useState(DEFAULT_PARTY.short);
+  const [party, setParty] = useState(handover?.party ?? DEFAULT_PARTY.name);
+  const [partyShort, setPartyShort] = useState(handover?.partyShort ?? DEFAULT_PARTY.short);
   const [home, setHome] = useState('KN');
   const [background, setBackground] = useState<Background>('governor');
   const [finance, setFinance] = useState(FINANCE_CANDIDATES[0].name);
@@ -79,6 +84,7 @@ export function SetupScreen({ onStart, onBack }: { onStart: (s: Setup) => void; 
           <div>
             <p className="label text-ink-soft">Independent Electoral Commission</p>
             <h1 className="mt-1 font-serif text-3xl">Certificate of Return</h1>
+            {handover && <p className="label mt-1 text-state">The next President, in the same country</p>}
           </div>
           <span className="stamp text-state text-xs">DECLARED</span>
         </div>
@@ -102,12 +108,12 @@ export function SetupScreen({ onStart, onBack }: { onStart: (s: Setup) => void; 
             </div>
           </div>
           <label className="block">
-            <span className="label text-ink-soft">Party</span>
-            <input className={input} value={party} maxLength={48} onChange={(e) => setParty(e.target.value)} />
+            <span className="label text-ink-soft">Party{handover ? ' · the party that won' : ''}</span>
+            <input className={input} value={party} maxLength={48} disabled={!!handover} onChange={(e) => setParty(e.target.value)} />
           </label>
           <label className="block">
             <span className="label text-ink-soft">Acronym</span>
-            <input className={input} value={partyShort} maxLength={6} onChange={(e) => setPartyShort(e.target.value.toUpperCase())} />
+            <input className={input} value={partyShort} maxLength={6} disabled={!!handover} onChange={(e) => setPartyShort(e.target.value.toUpperCase())} />
           </label>
           <label className="block sm:col-span-2">
             <span className="label text-ink-soft">Home state</span>
@@ -116,6 +122,31 @@ export function SetupScreen({ onStart, onBack }: { onStart: (s: Setup) => void; 
             </select>
           </label>
         </div>
+
+        {handover ? (
+          <section className="mt-10 border-l-2 border-honour bg-paper-dim px-4 py-3">
+            <h2 className="label text-ink-soft">What you are being handed</h2>
+            <p className="mt-1 font-serif text-lg leading-snug">{handover.how}</p>
+            <p className="mt-1 text-sm text-ink-soft">President {handover.predecessor} is remembered as “{handover.epithet}”. The country is exactly as it was left: nothing has been reset.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 font-serif leading-snug">
+              {handover.notes.map((n) => <li key={n}>{n}</li>)}
+            </ul>
+          </section>
+        ) : (
+          <>
+            <h2 className="label mt-10 text-ink-soft">What you inherit</h2>
+            <p className="mt-1 text-sm text-ink-soft">The country you are handed. It sets how hard the first two years are, and what the test is.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {SCENARIOS.map((x) => (
+                <button key={x.id} onClick={() => setScenario(x.id)} className={card(scenario === x.id)}>
+                  <span className="flex items-baseline justify-between gap-2"><span className="font-serif text-lg">{x.name}</span><span className="label shrink-0 text-ink-soft">{x.difficulty}</span></span>
+                  <span className="mt-1 block text-sm leading-snug text-ink-soft">{x.blurb}</span>
+                  <span className="mt-1.5 block text-[13px] leading-snug text-state">The test: {x.test}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <h2 className="label mt-10 text-ink-soft">How you got here</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -154,7 +185,7 @@ export function SetupScreen({ onStart, onBack }: { onStart: (s: Setup) => void; 
           <button onClick={onBack} className="label text-ink-soft hover:text-ink">← Back</button>
           <button
             disabled={!ready}
-            onClick={() => onStart({ seed: Date.now() % 2147483647, name, party, partyShort, home, background, address, finance, priorities })}
+            onClick={() => onStart({ seed: Date.now() % 2147483647, scenario, name, party, partyShort, home, background, address, finance, priorities })}
             className={`px-6 py-3 font-serif text-lg ${ready ? 'bg-state text-paper hover:bg-state-lit' : 'bg-ink/15 text-ink-soft'}`}
           >
             {ready ? 'So help me God' : `Choose ${4 - priorities.length} more ${4 - priorities.length === 1 ? 'priority' : 'priorities'}`}

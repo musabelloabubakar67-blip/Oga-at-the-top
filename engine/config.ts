@@ -75,12 +75,12 @@ export const MONTHS = [
 export function monthOf(turn: number): number {
   return ((turn + 4) % 12) + 1;
 }
-export function yearOf(turn: number): number {
-  return CFG.startYear + Math.floor((turn + 4) / 12);
+export function yearOf(turn: number, start: number = CFG.startYear): number {
+  return start + Math.floor((turn + 4) / 12);
 }
 export function termTurnOf(turn: number): number {
   return ((turn - 1) % CFG.termLength) + 1;
 }
-export function dateLabel(turn: number): string {
-  return `${MONTHS[monthOf(turn) - 1]} ${yearOf(turn)}`;
+export function dateLabel(turn: number, start: number = CFG.startYear): string {
+  return `${MONTHS[monthOf(turn) - 1]} ${yearOf(turn, start)}`;
 }

@@ -2,6 +2,7 @@
 // and prints distributions. Usage: npm run simulate -- [runs] [--trace]
 
 import { EVENT_LIST } from '../content';
+import { SCENARIOS } from '../content/scenarios';
 import { TYCOONS } from '../content/tycoons';
 import { eventOf } from '../engine/cast';
 import { canCall, canTycoon } from '../engine/favours';
@@ -104,12 +105,12 @@ function score(bot: Bot, c: Choice, s: GameState): number {
 /** The state of each presidency on the eve of its first election, for --probe. */
 const eve: Record<string, Record<string, number>[]> = {};
 
-function play(bot: Bot, seed: number, log = false): GameState {
+function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; prev?: GameState } = {}): GameState {
   let s = newGame({
     seed, name: 'Tester', party: 'Progressive Stakeholders Congress', partyShort: 'PSC', home: 'KN',
     background: 'governor', address: 'sir', finance: FINANCE_CANDIDATES[bot.finance].name,
-    priorities: bot.tracks ?? ['power', 'security', 'food', 'works'],
-  });
+    priorities: bot.tracks ?? ['power', 'security', 'food', 'works'], scenario: opts.scenario,
+  }, opts.prev);
   let guard = 0;
   while (s.phase !== 'verdict' && guard++ < 2000) {
     if (s.phase === 'papers') { s = applyAction(s, { type: 'DISMISS_PAPER' }); continue; }
@@ -125,8 +126,8 @@ function play(bot: Bot, seed: number, log = false): GameState {
       const best = options.map((c) => [score(bot, c, s), c] as const).sort((a, b) => b[0] - a[0])[0][1];
       if (log && item === s.desk.lead) {
         const tr = traceFor(s, e);
-        console.log(`\n[${dateLabel(s.turn)}] ${e.title}  → ${best.label}`);
-        for (const t of tr) console.log(`     trace: ${t.turn <= 0 ? 'previous administration' : dateLabel(t.turn)} — ${t.headline}`);
+        console.log(`\n[${dateLabel(s.turn, s.startYear)}] ${e.title}  → ${best.label}`);
+        for (const t of tr) console.log(`     trace: ${t.turn <= 0 ? 'previous administration' : dateLabel(t.turn, s.startYear)} — ${t.headline}`);
       }
       s = applyAction(s, { type: 'CHOOSE', eventId: e.id, choiceId: best.id });
       if (s.phase === 'verdict') return s;
@@ -215,6 +216,33 @@ function play(bot: Bot, seed: number, log = false): GameState {
 const args = process.argv.slice(2);
 const runs = Number(args.find((a) => /^\d+$/.test(a)) ?? 200);
 
+if (args.includes('--scenarios')) {
+  // Every starting inheritance, played by three kinds of President.
+  for (const sc of SCENARIOS) {
+    const line = [BOTS[2], BOTS[4], BOTS[1]].map((bot) => {
+      let won = 0; let months = 0; const ends: Record<string, number> = {};
+      for (let i = 0; i < runs; i++) { const s = play(bot, 500 + i * 131, false, { scenario: sc.id }); if (s.flags['election.won']) won++; months += Math.min(s.turn, 96); ends[s.ending ?? '?'] = (ends[s.ending ?? '?'] ?? 0) + 1; }
+      return `${bot.name} ${Math.round((won / runs) * 100)}% re-elected, ${Math.round(months / runs)} months`;
+    });
+    console.log(`${sc.name.padEnd(26)} ${line.join(' · ')}`);
+  }
+  process.exit(0);
+}
+if (args.includes('--world')) {
+  // One world, four Presidents in a row, each inheriting what the last one left.
+  for (let w = 0; w < Math.min(runs, 6); w++) {
+    let prev: GameState | undefined;
+    const order = [BOTS[1], BOTS[2], BOTS[5], BOTS[2]];
+    for (const bot of order) {
+      const s = play(bot, 900 + w * 77 + order.indexOf(bot), false, { prev });
+      const v = verdict(s);
+      console.log(`world ${w} · ${v.years} · ${bot.name.padEnd(10)} · ${s.president.partyShort.padEnd(5)} · ${v.epithet.padEnd(30)} · ${s.ending} · debt ${Math.round(s.nation.debt)}% · unpaid ₦${(s.debts.gas + s.debts.contractors + s.debts.pensions).toFixed(1)}tn · reforms ${s.agenda.done.length} · inflation ${Math.round(s.nation.inflation)}%`);
+      prev = s;
+    }
+    console.log('');
+  }
+  process.exit(0);
+}
 if (args.includes('--trace')) {
   const s = play(BOTS[2], 7, true);
   const v = verdict(s);

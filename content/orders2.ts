@@ -12,6 +12,15 @@ const v = (path: string, op: '<' | '<=' | '>' | '>=' | '==', n: number): Cond =>
 const moment = { group: 'moment', situational: true } as const;
 
 export const SITUATIONAL: Order[] = [
+  {
+    ...moment, id: 'blame', name: 'Blame the previous administration', pc: 0, naira: 0, cooldown: 5, window: 14,
+    when: { turn: [1, 14] },
+    blurb: 'A press conference on the state in which you found things. It is true, it works, and it stops working after about a year.',
+    result: 'The Minister of Information presents "The Rot We Met", with slides. The country nods. It will nod a little less each time.',
+    fx: [['approval', 2], ['bloc.street', 2], ['bloc.press', -2], ['counter.blamed', 1]],
+    news: ['FG PUBLISHES "THE ROT WE MET"', 'GOVERNMENT SAY NA THE LAST PEOPLE CAUSE AM'],
+    archive: 'Blamed the previous administration.',
+  },
   // ---------------------------------------------------------------- the first hundred days
   {
     ...moment, id: 'assets', name: 'Publish your own assets on day one', pc: 0, naira: 0, cooldown: 0, window: 5,

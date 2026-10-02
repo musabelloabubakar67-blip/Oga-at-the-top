@@ -1,10 +1,12 @@
 'use client';
 
 import { verdict } from '../engine/legacy';
+import { winnerOf } from '../engine/succession';
 import type { GameState } from '../engine/types';
 
-export function VerdictScreen({ s, onDone }: { s: GameState; onDone: () => void }) {
+export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: () => void; onSucceed: () => void }) {
   const v = verdict(s);
+  const w = winnerOf(s);
   const tone = (g: string) => (g === 'Transformed' || g === 'Stronger' ? 'text-state' : g === 'Held' ? 'text-ink-soft' : 'text-alarm');
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -59,9 +61,17 @@ export function VerdictScreen({ s, onDone }: { s: GameState; onDone: () => void 
           </section>
         )}
 
-        <div className="mt-10 text-right">
-          <button onClick={onDone} className="bg-state px-6 py-3 font-serif text-lg text-paper hover:bg-state-lit">Enter the history books</button>
-        </div>
+        <section className="mt-10 border-t rule pt-6">
+          <h2 className="label text-ink-soft">What happens next</h2>
+          <p className="mt-2 font-serif text-lg leading-snug">{w.how}</p>
+          <p className="mt-1 text-sm leading-snug text-ink-soft">
+            You can take the oath as the next President, of {w.party}, in the country exactly as you have left it: the same debts, savings, reforms, half-built projects and unpaid bills. {w.sameParty ? '' : 'You will be governing from the other side.'}
+          </p>
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <button onClick={onDone} className="border border-ink/30 px-5 py-3 font-serif text-lg hover:border-state">Enter the history books</button>
+            <button onClick={onSucceed} className="bg-state px-6 py-3 font-serif text-lg text-paper hover:bg-state-lit">Take the oath as the next President</button>
+          </div>
+        </section>
       </article>
     </main>
   );

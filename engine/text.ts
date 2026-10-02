@@ -20,7 +20,7 @@ export function fill(s: GameState, text: string): string {
       case 'PARTY': return s.president.party;
       case 'PSHORT': return s.president.partyShort;
       case 'HOME': return STATE_BY_ID[s.president.home]?.name ?? 'home';
-      case 'YEAR': return String(yearOf(s.turn));
+      case 'YEAR': return String(yearOf(s.turn, s.startYear));
       case 'OPP': return rival(s).name;
       case 'OPPARTY': return rival(s).party;
       case 'FIN': return s.chars.fin?.name ?? 'the Minister of Finance';
@@ -32,10 +32,12 @@ export function fill(s: GameState, text: string): string {
       case 'WORKS': return s.people.min_works?.name ?? PERSON_BY_ID.min_works.name;
       case 'NSA': return s.people.min_defence?.name ?? PERSON_BY_ID.min_defence.name;
       case 'DELEGATES': return String(Math.round(delegates(s)));
+      case 'PRED': return s.predecessor ? `President ${s.predecessor.name}` : 'your predecessor';
+      case 'PREDPARTY': return s.predecessor?.party ?? 'the last government';
       case 'OIL': return String(Math.round(s.oil.price));
       case 'BENCH': return String(s.budget.benchmark);
       case 'OUTPUT': return s.oil.output.toFixed(2);
-      case 'BUDGETYEAR': return String(yearOf(s.turn) + 1);
+      case 'BUDGETYEAR': return String(yearOf(s.turn, s.startYear) + 1);
       default: return NAMES[key] ?? m;
     }
   });

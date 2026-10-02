@@ -9,7 +9,9 @@ import {
 } from './bets';
 import { movesTotal } from './capital';
 import { eventOf } from './cast';
-import { CFG, termTurnOf } from './config';
+import { SCENARIO_BY_ID } from '../content/scenarios';
+import { CFG, dateLabel, termTurnOf } from './config';
+import { syncDebt } from './ledger';
 import { buildDesk } from './director';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
@@ -23,17 +25,19 @@ import {
 import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, setFocus } from './security';
+import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
+import { verdict } from './legacy';
 import { fill } from './text';
 import { applyLedger, economyTick, politicsTick } from './tick';
 import {
   buildCost, buildSpeed, canBudget, canFund, canPay, canSecuritise, drawsOnInfra, initTreasury, moveFund, pay, payBuild,
-  securitise, setBudget,
+  oilOutput, securitise, setBudget,
 } from './treasury';
 import type {
-  Action, ActionId, Aid, ArchiveEntry, Category, Choice, DrawerOp, EndingKind, Fx, GameEvent, GameState, Milestone,
+  Action, ActionId, Aid, ArchiveEntry, Category, Choice, DrawerOp, EndingKind, FrontPage, Fx, GameEvent, GameState, Milestone,
   Nation, Outcome, Setup, Topic, ZoneId,
 } from './types';
-import { ZONES, ZONE_NAME, addFavour, applyFx, approval, clamp, favoursOwed, hardship, standing, test } from './vars';
+import { ZONES, ZONE_NAME, addFavour, applyFx, approval, clamp, favoursOwed, hardship, standing, syncSecurity, test } from './vars';
 
 export {
   canDelay, canRescue, canVenture, partnerIn, rescueCost, risksOf, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
@@ -41,7 +45,9 @@ export {
 
 // ---------------------------------------------------------------- new game
 
-export function newGame(setup: Setup): GameState {
+/** A new presidency: in a new world, from a chosen inheritance, or in the world the last President left. */
+export function newGame(setup: Setup, prev?: GameState): GameState {
+  const scenario = SCENARIO_BY_ID[setup.scenario ?? 'standard'] ?? SCENARIO_BY_ID.standard;
   const nation: Nation = {
     inflation: 24, petrolPrice: 950, fiscalSpace: 1.6, debt: 66,
     security: 38, power: 30, capacity: 34, integrity: 28, jobs: 34,
@@ -50,6 +56,9 @@ export function newGame(setup: Setup): GameState {
   const s: GameState = {
     version: 3,
     setup,
+    era: 0,
+    startYear: CFG.startYear,
+    predecessor: null,
     seed: setup.seed,
     rng: setup.seed | 0,
     phase: 'papers',
@@ -142,53 +151,79 @@ export function newGame(setup: Setup): GameState {
   if (fin.clout >= 4) bump([['bloc.party', 6]]);
   if (fin.integrity <= 2) bump([['pressure.scandalHeat', 8]]);
 
-  s.archive = [
-    inherited(-30, 'Signed the university funding agreement. No budget line was created.', { 'flag:uni.agreement': 1, 'pressure.wageGrievance': 6 }),
-    inherited(-24, 'Stopped paying the gas suppliers. The power plants went idle.', { 'nation.power': -6, 'debt.gas': 0.7 }),
-    inherited(-20, 'Deferred maintenance of the transmission network for a third year.', { 'nation.power': -6 }),
-    inherited(-16, 'Had the central bank lend the government ₦4.8tn it created for the purpose.', { 'debt.ways': 4.8, 'nation.inflation': 3 }),
-    inherited(-14, 'Capped the pump price of petrol and funded the difference by borrowing.', { 'nation.fiscalSpace': -1.2, 'nation.debt': 6, 'pressure.fuelSupplyStress': 12 }),
-    inherited(-9, 'Borrowed to pay salaries, and left contractors and pensioners unpaid.', { 'nation.debt': 5, 'debt.contractors': 1.2, 'debt.pensions': 0.6 }),
-    inherited(-6, 'Announced that the refinery was 95% complete.', { 'counter.refinery': 1 }),
-    {
-      id: 'a-fin', turn: 0, eventId: 'transition', choiceId: 'finance', category: 'politics',
-      headline: `Appointed ${fin.name} as Minister of Finance.`, sig: 2, touches: {},
-    },
-  ];
+  s.archive = [{
+    id: 'a-fin', turn: 0, eventId: 'transition', choiceId: 'finance', category: 'politics',
+    headline: `Appointed ${fin.name} as Minister of Finance.`, sig: 2, touches: {},
+  }];
+
+  let winner: Winner | null = null;
+  if (prev) {
+    // The world as the last President left it.
+    winner = winnerOf(prev);
+    applyInheritance(s, prev, winner);
+  } else {
+    // A new world, from the chosen inheritance.
+    Object.assign(s.nation, scenario.nation ?? {});
+    Object.assign(s.pressures, scenario.pressures ?? {});
+    Object.assign(s.blocs, scenario.blocs ?? {});
+    Object.assign(s.debts, scenario.debts ?? {});
+    Object.assign(s.funds, scenario.funds ?? {});
+    Object.assign(s.theatres, scenario.theatres ?? {});
+    Object.assign(s.flags, scenario.flags ?? {});
+    if (scenario.nation?.petrolPrice) s.petrolRef = scenario.nation.petrolPrice * (scenario.id === 'reformer' ? 0.8 : 0.9);
+    if (scenario.oil) s.oil = { price: scenario.oil, prev: scenario.oil, output: s.oil.output, path: scenario.oilPath };
+    if (scenario.approval) for (const z of ZONES) s.zones[z].approval += scenario.approval;
+    s.agenda.done = [...(scenario.done ?? [])];
+    s.archive = [...scenario.history.map(([ago, headline, touches]) => inherited(-ago, headline, touches)), ...s.archive];
+    if (s.flags['policy.subsidy'] === 'removed') s.counters['order.subsidy_end'] = -999;
+  }
+  syncDebt(s);
+  syncSecurity(s);
+  s.oil.output = oilOutput(s);
 
   stampMinisters(s);
-  s.baseline = { ...s.nation, approval: 50, hardship: hardship(s) };
+  // Judged against the mood on an ordinary day, not on inauguration day.
+  s.baseline = { ...s.nation, approval: approval(s) - 6, hardship: hardship(s) };
   s.prev = { ...snapshot(s), hardship: hardship(s) };
   s.blocsPrev = { ...s.blocs };
   s.approvalPrev = approval(s);
   buildDesk(s);
   refreshOffers(s);
-  const backer = who(s, String(s.flags.financier));
-  s.papers = [
-    {
-      outlet: 'chronicle', stance: 'record', turn: 1,
-      lead: fill(s, '{NAME} SWORN IN, PROMISES "A NEW DAWN"'),
-      standfirst: '',
-      body: fill(s, 'The new President took the oath at Eagle Square before a crowd that had heard it before. In a 43-minute address the President pledged to "hit the ground running". The handover notes run to 2,400 pages. The section on what the government owes is brief, and the figures in it are not: ₦20tn in bonds and central bank lending, and ₦2.5tn unpaid to gas suppliers, contractors and pensioners.'),
-      others: [
-        fill(s, 'OUTGOING ADMINISTRATION SAYS IT IS LEAVING THE ECONOMY "ON A SOUND FOOTING"'),
-        fill(s, 'DEBT SERVICE NOW TAKES 66% OF REVENUE — DEBT OFFICE'),
-      ],
-      sidebar: { kicker: 'OVERHEARD AT EAGLE SQUARE', text: '"Let us give them one year. Then we will know." — a civil servant, to nobody in particular.' },
-      special: 'INAUGURATION EDITION',
-    },
-    {
-      outlet: 'rejoinder', stance: 'hostile', turn: 1, strap: 'The other side',
-      lead: `WHO PAID FOR THE INAUGURATION? ASK ${backer.short.toUpperCase()}`,
-      fact: fill(s, '{NAME} SWORN IN AS PRESIDENT'),
-      standfirst: 'This newspaper wishes the new President well, and will be keeping a list.',
-      body: `${backer.name}, ${backer.title.toLowerCase()}, sat in the second row at Eagle Square, between two governors. Nobody who financed a campaign of that size has ever done so as a gift. The President owes, and the country will learn in time what the repayment is.`,
-      others: ['GOVERNORS\' FORUM "LOOKS FORWARD TO WORKING WITH" THE PRESIDENT IT DELIVERED', 'THREE OPPOSITION LEADERS ATTEND; NONE APPLAUDS'],
-      special: 'INAUGURATION EDITION',
-      owner: `Backs ${fill(s, '{OPP}')}`,
-    },
-  ];
+  s.papers = inaugural(s, prev, winner, scenario.farewell);
   return s;
+}
+
+/** The first morning's papers. */
+function inaugural(s: GameState, prev: GameState | undefined, winner: Winner | null, farewell: string): FrontPage[] {
+  const backer = who(s, String(s.flags.financier));
+  const date = dateLabel(1, s.startYear);
+  const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
+  const owed = `Debt service takes ${Math.round(s.nation.debt)}% of revenue, and ₦${arrears.toFixed(1)}tn is unpaid to gas suppliers, contractors and pensioners.`;
+  const first: FrontPage = {
+    outlet: 'chronicle', stance: 'record', turn: 1, date,
+    lead: fill(s, '{NAME} SWORN IN, PROMISES "A NEW DAWN"'),
+    standfirst: '',
+    body: prev && winner
+      ? fill(s, `${winner.how} The new President took the oath at Eagle Square and pledged to "hit the ground running". ${handoverNotes(prev).slice(0, 3).join(' ')} ${winner.sameParty ? '' : 'Governors and senators elected on the outgoing party\'s ticket have, almost without exception, discovered that they were always with the new one.'}`)
+      : fill(s, `The new President took the oath at Eagle Square before a crowd that had heard it before. In a 43-minute address the President pledged to "hit the ground running". The handover notes run to 2,400 pages. The section on what the government owes is brief, and the figures in it are not. ${owed}`),
+    others: [
+      prev ? `FORMER PRESIDENT ${prev.president.name.toUpperCase()} LEAVES ABUJA; "${verdict(prev).epithet.toUpperCase()}", SAY HISTORIANS` : farewell,
+      `DEBT SERVICE NOW TAKES ${Math.round(s.nation.debt)}% OF REVENUE — DEBT OFFICE`,
+    ],
+    sidebar: { kicker: 'OVERHEARD AT EAGLE SQUARE', text: '"Let us give them one year. Then we will know." — a civil servant, to nobody in particular.' },
+    special: 'INAUGURATION EDITION',
+  };
+  const second: FrontPage = {
+    outlet: 'rejoinder', stance: 'hostile', turn: 1, date, strap: 'The other side',
+    lead: `WHO PAID FOR THE INAUGURATION? ASK ${backer.short.toUpperCase()}`,
+    fact: fill(s, '{NAME} SWORN IN AS PRESIDENT'),
+    standfirst: 'This newspaper wishes the new President well, and will be keeping a list.',
+    body: `${backer.name}, ${backer.title.toLowerCase()}, sat in the second row at Eagle Square, between two governors. Nobody who financed a campaign of that size has ever done so as a gift. The President owes, and the country will learn in time what the repayment is.`,
+    others: ['GOVERNORS\' FORUM "LOOKS FORWARD TO WORKING WITH" THE PRESIDENT IT DELIVERED', 'THREE OPPOSITION LEADERS ATTEND; NONE APPLAUDS'],
+    special: 'INAUGURATION EDITION',
+    owner: `Backs ${fill(s, '{OPP}')}`,
+  };
+  return [first, second];
 }
 
 function inherited(turn: number, headline: string, touches: Record<string, number>): ArchiveEntry {
@@ -671,6 +706,8 @@ function electionDone(s: GameState): void {
     applyFx(s, ['pc', 15]);
     applyFx(s, ['bloc.party', 8]);
     record(s, 'election', 'won', 'politics', 'Re-elected for a second term.', 3);
+    // A narrow win is challenged.
+    if (s.election.margin < 7) s.queue.push({ event: 'tribunal.petition', due: s.turn + 1 });
     s.news.push({ chronicle: '{NAME} RE-ELECTED', street: '{NAME} AGAIN! NIGERIA DECIDES', weight: 9, valence: 1, topic: 'politics' });
   } else {
     s.flags['election.lost'] = true;

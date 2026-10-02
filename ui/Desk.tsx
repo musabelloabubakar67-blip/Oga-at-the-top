@@ -104,7 +104,7 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
   const shield = shieldFor(s, e);
   const reads = (e.reads ?? []).map((r) => resolveRead(s, e, r)).filter((r) => r !== null);
   const trace = traceFor(s, e);
-  const ref = `PRES/${e.category.slice(0, 3).toUpperCase()}/${yearOf(s.turn)}/${100 + s.turn * 3}`;
+  const ref = `PRES/${e.category.slice(0, 3).toUpperCase()}/${yearOf(s.turn, s.startYear)}/${100 + s.turn * 3}`;
 
   return (
     <Modal onClose={onClose} wide>
@@ -112,7 +112,7 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
         <header className="flex items-start justify-between gap-4 border-b rule pb-4">
           <div>
             <p className="label text-state">{fill(s, e.office)}</p>
-            <p className="label mt-1 text-ink-soft">{ref} · {dateLabel(s.turn)}</p>
+            <p className="label mt-1 text-ink-soft">{ref} · {dateLabel(s.turn, s.startYear)}</p>
           </div>
           {e.stamp && <span className={`stamp text-xs ${e.stamp === 'ROUTINE' ? 'text-ink-soft' : 'text-alarm'}`}>{e.stamp}</span>}
         </header>
@@ -150,7 +150,7 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
               <ol className="mt-3 space-y-2">
                 {trace.map((a) => (
                   <li key={a.id} className="flex gap-3 font-serif leading-snug">
-                    <span className="label w-32 shrink-0 pt-1 text-ink-soft">{a.turn <= 0 ? 'Previous administration' : dateLabel(a.turn)}</span>
+                    <span className="label w-32 shrink-0 pt-1 text-ink-soft">{a.turn <= 0 ? 'Previous administration' : dateLabel(a.turn, s.startYear)}</span>
                     <span>{a.headline}</span>
                   </li>
                 ))}
@@ -683,7 +683,7 @@ function NationModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
   return (
     <Modal onClose={onClose} wide>
       <div className="paper p-5 sm:p-9">
-        <p className="label text-state">State of the nation · {dateLabel(s.turn)}</p>
+        <p className="label text-state">State of the nation · {dateLabel(s.turn, s.startYear)}</p>
         <h2 className="mt-1 font-serif text-3xl">Against what you inherited</h2>
         <p className="mt-2 text-sm text-ink-soft">This is how history would grade you if you left office today. It is judged on change, not on where you started.</p>
         <ul className="mt-4 divide-y divide-ink/10">
@@ -785,7 +785,7 @@ function DrawerModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
           <>
             <p className="label mt-6 text-mute">Not in the archive</p>
             <ul className="mt-2 space-y-1.5 text-sm text-ivory/75">
-              {sealed.map((a) => <li key={a.id}><span className="label mr-2 text-mute">{dateLabel(a.turn)}</span>{a.headline}</li>)}
+              {sealed.map((a) => <li key={a.id}><span className="label mr-2 text-mute">{dateLabel(a.turn, s.startYear)}</span>{a.headline}</li>)}
             </ul>
           </>
         )}
@@ -799,7 +799,7 @@ function DrawerModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
 
 function ArchiveModal({ s, onClose }: { s: GameState; onClose: () => void }) {
   const entries = s.archive.filter((a) => !a.sealed);
-  const years = [...new Set(entries.filter((a) => a.turn > 0).map((a) => yearOf(a.turn)))].sort((a, b) => b - a);
+  const years = [...new Set(entries.filter((a) => a.turn > 0).map((a) => yearOf(a.turn, s.startYear)))].sort((a, b) => b - a);
   const inherited = entries.filter((a) => a.turn <= 0);
   return (
     <Modal onClose={onClose} wide>
@@ -810,9 +810,9 @@ function ArchiveModal({ s, onClose }: { s: GameState; onClose: () => void }) {
           <section key={y} className="mt-6">
             <h3 className="border-b rule pb-1 font-serif text-xl">{y}</h3>
             <ul className="mt-2 space-y-1.5">
-              {entries.filter((a) => a.turn > 0 && yearOf(a.turn) === y).reverse().map((a) => (
+              {entries.filter((a) => a.turn > 0 && yearOf(a.turn, s.startYear) === y).reverse().map((a) => (
                 <li key={a.id} className="flex gap-3 leading-snug">
-                  <span className="label w-20 shrink-0 pt-1 text-ink-soft">{dateLabel(a.turn).split(' ')[0].slice(0, 3)}</span>
+                  <span className="label w-20 shrink-0 pt-1 text-ink-soft">{dateLabel(a.turn, s.startYear).split(' ')[0].slice(0, 3)}</span>
                   <span className={`font-serif ${a.sig === 3 ? 'font-bold' : a.sig === 1 ? 'text-ink-soft' : ''}`}>
                     {a.sig === 3 && <span className="mr-1.5 text-honour">◆</span>}{a.headline}
                   </span>
@@ -897,7 +897,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ivory/10 pb-4">
         <div>
           <p className="label text-honour">The Presidency · President {s.president.name}</p>
-          <h1 className="mt-1 font-serif text-3xl text-ivory sm:text-4xl">{dateLabel(s.turn)}</h1>
+          <h1 className="mt-1 font-serif text-3xl text-ivory sm:text-4xl">{dateLabel(s.turn, s.startYear)}</h1>
         </div>
         <div className="text-right">
           <p className="label text-mute">Month {tt} of 48 · {s.term === 1 ? 'First' : 'Second'} term</p>
@@ -965,7 +965,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                 <span className="label text-state">Budget Office of the Federation</span>
                 <span className="stamp text-[10px] text-alarm">FOR ASSENT</span>
               </span>
-              <span className="mt-3 block font-serif text-2xl leading-tight">The Appropriation Bill, {yearOf(s.turn) + 1}</span>
+              <span className="mt-3 block font-serif text-2xl leading-tight">The Appropriation Bill, {yearOf(s.turn, s.startYear) + 1}</span>
               <span className="mt-1 block text-sm text-ink-soft">What will oil sell for next year, and where does the money go? Nothing is released until you sign.</span>
               <span className="label mt-3 block text-ink-soft">Open the bill →</span>
             </button>

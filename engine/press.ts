@@ -12,7 +12,7 @@ import { THEATRE_BY_ZONE } from '../content/theatres';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURE_BY_ID } from '../content/ventures';
 import { risksOf } from './bets';
-import { termTurnOf } from './config';
+import { dateLabel, termTurnOf } from './config';
 import { kindOf, who } from './favours';
 import { personView, relWord, scorecard, strongestRival } from './people';
 import { fill, naira } from './text';
@@ -318,7 +318,7 @@ function page(s: GameState, outlet: OutletId, seeds: NewsSeed[], first: boolean,
   const comment = lead.weight > 0 ? pick(s, `c.${stance}.${mood}`, COMMENT[stance][mood], mood === 'grave' ? 24 : Infinity) : null;
   const sidebar = first ? sidebarFor(s) : undefined;
   return {
-    outlet, stance, turn: s.turn,
+    outlet, stance, turn: s.turn, date: dateLabel(s.turn, s.startYear),
     // A reaction gets a strap that says whose it is. A plain report does not pretend to be one.
     strap: partisan && !lead.grave ? (head !== tokens(lead.chronicle) ? strapList[(s.turn + s.seed) % strapList.length] : strapPool.flat[0]) : undefined,
     lead: head,

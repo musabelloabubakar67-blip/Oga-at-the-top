@@ -21,7 +21,7 @@ export function applyLedger(s: GameState): void {
     const cause = s.archive.find((a) => a.id === l.causeId);
     s.report.push({
       kind: 'consequence', title: l.label, changes: describe(l.fx),
-      cause: cause && !cause.sealed ? `${cause.headline} (${dateLabel(cause.turn)})` : undefined,
+      cause: cause && !cause.sealed ? `${cause.headline} (${dateLabel(cause.turn, s.startYear)})` : undefined,
     });
     if (l.note) {
       const mood = l.fx.reduce((a, f) => a + (f[0] === 'approval' ? f[1] : 0), 0);

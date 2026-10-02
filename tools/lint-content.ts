@@ -16,8 +16,8 @@ type Ref = { id: string };
 const err = (e: Ref, m: string) => errors.push(`${e.id}: ${m}`);
 
 const TARGET = /^(nation\.(inflation|petrolPrice|fiscalSpace|debt|security|power|capacity|integrity|jobs)|pressure\.(fuelSupplyStress|wageGrievance|scandalHeat)|bloc\.(villa|party|street|establishment|press)|zone\.(NW|NE|NC|SW|SE|SS)\.(approval|security)|approval|pc|purse|rel\.\w+|counter\.\w+|campaign|bonus\.(fiscal|inflation|power|security|capacity|integrity|jobs)|rival\.(alt|fire|strong)|person\.\w+|debt\.(eurobond|bonds|ways|gas|contractors|pensions)|fund\.(abroad|buffer|infra|growth)|tycoon\.\w+|theatre\.(NW|NE|NC|SW|SE|SS)|oil\.price)$/;
-const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates)(\.|$)/;
-const BASE_TOKENS = ['PRES', 'NAME', 'SIR', 'MRP', 'PARTY', 'PSHORT', 'HOME', 'YEAR', 'FIN', 'FINSHORT', 'COS', 'SAP', 'REFINERY', 'DONE', 'OIL', 'BENCH', 'OUTPUT', 'BUDGETYEAR', 'DELEGATES', ...Object.keys(NAMES)];
+const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates|margin|era|pred)(\.|$)/;
+const BASE_TOKENS = ['PRES', 'NAME', 'SIR', 'MRP', 'PARTY', 'PSHORT', 'HOME', 'YEAR', 'FIN', 'FINSHORT', 'COS', 'SAP', 'REFINERY', 'DONE', 'OIL', 'BENCH', 'OUTPUT', 'BUDGETYEAR', 'DELEGATES', 'PRED', 'PREDPARTY', ...Object.keys(NAMES)];
 const ROLES = new Set([...CAST.map((c) => c.id), 'fin']);
 const OPS = new Set(['paydebt', 'notes', 'grant', 'settle', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect']);
 const KNOWN = new Set([...PEOPLE.map((p) => p.id), ...TYCOONS.map((t) => t.id), ...RIVALS.map((r) => r.id)]);
@@ -191,6 +191,7 @@ for (const e of EVENT_LIST) for (const c of e.choices) for (const o of c.outcome
 // Queued by the engine.
 followed.add('removal.notice');
 followed.add('opp.woo');
+followed.add('tribunal.petition');
 for (const e of EVENT_LIST) if (e.ignored) for (const f of e.ignored.follow ?? []) followed.add(f.event);
 for (const e of chains) if (!followed.has(e.id)) err(e, 'chain event is never queued by anything');
 

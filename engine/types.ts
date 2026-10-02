@@ -83,7 +83,7 @@ export interface Outcome {
   /** Something owed: [who, 'owed' (to you) | 'owing' (by you), size]. `who` may be a cast key such as $WHO. */
   favour?: [string, 'owed' | 'owing', number];
   /** Ends the presidency: resignation or removal. */
-  ends?: 'resigned' | 'removed';
+  ends?: 'resigned' | 'removed' | 'annulled';
 }
 
 export interface Choice {
@@ -233,6 +233,8 @@ export interface FrontPage {
   outlet: OutletId;
   stance: Stance;
   turn: number;
+  /** "June 2027". */
+  date?: string;
   /** The line above the headline: how this paper frames it. */
   strap?: string;
   lead: string;
@@ -371,11 +373,17 @@ export interface ElectionResult {
   won: boolean;
 }
 
-export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned';
+export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned' | 'annulled';
 
 export interface GameState {
   version: 3;
   setup: Setup;
+  /** How many presidencies this world has had before this one. */
+  era: number;
+  /** The year this presidency was sworn in. */
+  startYear: number;
+  /** Who held the office before, if the player did. */
+  predecessor: Predecessor | null;
   seed: number;
   rng: number;
   phase: 'papers' | 'desk' | 'election' | 'verdict';
@@ -425,7 +433,7 @@ export interface GameState {
   /** Named debts, in ₦tn owed. nation.debt is derived from the three that bear interest. */
   debts: Record<DebtId, number>;
   funds: Record<FundId, number>;
-  oil: { price: number; output: number; prev: number };
+  oil: { price: number; output: number; prev: number; /** Where the price is heading: [until turn, level]. */ path?: [number, number][] };
   budget: Budget;
   favours: Favour[];
   tycoons: Record<string, TycoonState>;
@@ -441,8 +449,22 @@ export interface GameState {
   lastAction: { text: string; changes: Change[] } | null;
 }
 
+export interface Predecessor {
+  name: string;
+  party: string;
+  epithet: string;
+  /** The new President is of the same party. */
+  sameParty: boolean;
+  /** ₦bn the predecessor kept, and how findable it is. */
+  kept: number;
+  trail: number;
+  ending: EndingKind;
+}
+
 export interface Setup {
   seed: number;
+  /** The inheritance a new world starts from. */
+  scenario?: string;
   name: string;
   party: string;
   partyShort: string;
