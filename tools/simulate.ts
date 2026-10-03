@@ -276,9 +276,9 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     // What each kind of President builds, and whom they put in charge.
     const builds: Record<string, [string[], 'rep' | 'party' | 'civil']> = {
       Reformer: [['delivery', 'power', 'tax', 'zone', 'fund'], 'rep'], Institutionalist: [['graft', 'delivery', 'policing'], 'rep'],
-      Machine: [['jobs', 'policing'], 'party'], Populist: [['jobs', 'reserve'], 'civil'], Kleptocrat: [['reserve', 'zone', 'jobs'], 'party'],
+      Machine: [['jobs', 'policing'], process.env.MHEAD === 'civil' ? 'civil' : 'party'], Populist: [['jobs', 'reserve'], 'civil'], Kleptocrat: [['reserve', 'zone', 'jobs'], 'party'],
     };
-    const plan = builds[bot.name.startsWith('Reformer') ? 'Reformer' : bot.name];
+    const plan = process.env.NOBUILD?.includes(bot.name) ? undefined : builds[bot.name.startsWith('Reformer') ? 'Reformer' : bot.name];
     if (plan && s.pc > 25 && movesLeft(s) > 1) {
       const heads = headsFor(s);
       const head = plan[1] === 'party' ? 'A party nominee' : plan[1] === 'civil' ? 'A career civil servant'
