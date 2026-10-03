@@ -312,7 +312,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         // ...but only to people solidly with them; the rest are simply not given it.
         if (!skip('refuse') && bot.name === 'Institutionalist' && dirty && standing(s, target.id) >= 55 && canDeal(s, target.id, 'refuse', movesLeft(s)).ok) s = applyAction(s, { type: 'PERSON', id: target.id, op: 'refuse' });
         const clean = bot.name === 'Institutionalist' && !!want && !dirty;
-        const generous = bot.name === 'Machine' || bot.name === 'Kleptocrat' || bot.name === 'Populist' || clean;
+        // The populist gives freely, but not what would land it in the papers.
+        const generous = bot.name === 'Machine' || bot.name === 'Kleptocrat' || (bot.name === 'Populist' && !dirty) || clean;
         const op = generous && canDeal(s, target.id, 'grant', movesLeft(s)).ok && (want?.naira ?? 0) <= s.nation.fiscalSpace + 0.3 ? 'grant' : 'court';
         if (!canDeal(s, target.id, op, movesLeft(s)).ok) break;
         s = applyAction(s, { type: 'PERSON', id: target.id, op });
