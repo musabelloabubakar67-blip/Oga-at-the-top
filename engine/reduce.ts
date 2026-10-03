@@ -26,6 +26,7 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
+import { LINKED, adviserFor, forecast, logAdvice, recommend, secondFor, seedAdvisers } from './advice';
 import { POLICY_BY_ID, canRepeal, economyStrength, policyName, repeal } from './policies';
 import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
 import { verdict } from './legacy';
@@ -142,6 +143,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   for (const c of CAST) s.chars[c.id] = { ...c, rel: 40, notes: [] };
   const fin = FINANCE_CANDIDATES.find((c) => c.name === setup.finance) ?? FINANCE_CANDIDATES[0];
   s.chars.fin = { ...fin, rel: 40, notes: [] };
+  seedAdvisers(s);
 
   const bump = (fx: Fx[]) => fx.forEach((f) => applyFx(s, f));
   switch (setup.background) {
@@ -420,7 +422,14 @@ function choose(s: GameState, eventId: string, choiceId: string, aid?: Aid): voi
     s.purse -= c.purse;
     s.purseTaken.political += c.purse;
   }
-  let result = applyOutcome(s, e, c.id, pickOutcome(s, c), c, used);
+  // What the adviser said, before anything happened, so it can be checked against what does.
+  const aidFx = (fx: Fx[] | undefined) => aidedFx(s, fx, used);
+  const adv = adviserFor(s, e);
+  const said = adv ? forecast(s, e, c, adv.role, aidFx) : null;
+  const advised = adv ? recommend(s, e, adv.role, aidFx, (x) => availability(s, { ...x, pc: aidedPc(s, x.pc, used) }).ok) : null;
+  const picked = pickOutcome(s, c);
+  if (adv && said) logAdvice(s, e, c, adv.role, said, advised, picked, aidFx);
+  let result = applyOutcome(s, e, c.id, picked, c, used);
   if (favour) {
     const w = who(s, favour.who);
     s.favours = s.favours.filter((f) => f.id !== favour.id);
@@ -755,6 +764,13 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'TYCOON': tycoon(s, action.id, action.op); break;
     case 'RIVAL': rival(s, action.id, action.op); break;
     case 'FOCUS': focus(s, action.zone); break;
+    case 'SECOND_OPINION': {
+      const item = s.desk.lead?.eventId === action.eventId ? s.desk.lead : s.desk.minors.find((m) => m.eventId === action.eventId);
+      const e = item ? eventOf(s, item) : undefined;
+      const first = e ? adviserFor(s, e) : null;
+      const other = first ? secondFor(s, first.role) : null;
+      if (item && !item.resolved && !item.second && other && movesLeft(s) > 0) { item.second = other.role; s.desk.actionsUsed += 1; }
+    } break;
     case 'REPEAL': if (canRepeal(s, action.id).ok) {
       const b = snapshot(s);
       const t = repeal(s, action.id);
@@ -1112,6 +1128,15 @@ function minister(s: GameState, id: string, kind: 'technocrat' | 'party'): void 
   s.desk.actionsUsed += 1;
   const old = personView(s, id);
   const out = replaceMinister(s, id, kind);
+  // A minister who also advises you: the new one's loyalty is their own. A party nominee serves whoever nominated them.
+  const role = Object.keys(LINKED).find((r) => LINKED[r] === id);
+  if (role && s.chars[role]) {
+    const sponsor = PERSON_BY_ID[id]?.sponsor;
+    const c = s.chars[role];
+    c.loyalty = kind === 'technocrat' ? 3 : 2;
+    c.patron = kind === 'technocrat' ? 'president' : sponsor ?? 'self';
+    c.rep = { competence: s.people[id]?.competence ?? c.competence, loyalty: kind === 'technocrat' ? 3 : 4 };
+  }
   record(s, `person.${id}`, 'replace', 'politics', out.archive, 2);
   s.news.push({
     chronicle: `PRESIDENT DROPS ${old.short.toUpperCase()} IN CABINET CHANGE`, street: `${old.short.toUpperCase()} DON GO. ANOTHER PERSON DON ENTER`,

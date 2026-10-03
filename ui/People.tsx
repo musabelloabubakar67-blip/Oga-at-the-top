@@ -12,12 +12,13 @@ import {
   canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
 } from '../engine/people';
 import { movesLeft, sackCost } from '../engine/reduce';
+import { adviser, patronName, trackRecord } from '../engine/advice';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'money' | 'opposition' | 'owed';
+type Tab = Group | 'advisers' | 'money' | 'opposition' | 'owed';
 
 const INTRO: Record<Tab, string> = {
   governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on his hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
@@ -25,6 +26,7 @@ const INTRO: Record<Tab, string> = {
   minister: 'A minister\'s competence sets how fast the reforms in the brief move, and whether the big bets in it can work. Each is judged from the day they took the job.',
   money: 'Five people who hold parts of the economy. Each can help or hurt in ways no minister can, and each wants something specific. Money that is with you campaigns for you. Money that is against you funds your rivals.',
   opposition: 'Three rivals, each feeding on a different failure, and each with moves of their own. Whoever is strongest on election day is who you face.',
+  advisers: 'Every forecast on your desk comes from one of these people. Reputation is what the files say about them. The record is what actually happened: how often their forecasts were close, and whom their advice turned out to serve. Read it before you trust them.',
   owed: 'Nothing here is written down anywhere else. What people owe you can be spent, once, on the politics screen or on a file on your desk. What you owe will be called in.',
 };
 
@@ -111,7 +113,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const owing = favoursOwing(s);
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
-    ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
+    ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
     ['money', 'The money'], ['opposition', 'The opposition'], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
   ];
 
@@ -133,6 +135,33 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         </div>
         <p className="mt-3 text-sm leading-snug text-ink-soft">{INTRO[tab]}</p>
         {said && <p className="fade-in mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>}
+
+        {tab === 'advisers' && (
+          <ul className="mt-4 space-y-3">
+            {Object.keys(s.chars).map((role) => {
+              const a = adviser(s, role);
+              if (!a) return null;
+              const r = trackRecord(s, role);
+              return (
+                <li key={role} className="border border-ink/20 p-3">
+                  <p className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-serif text-lg">{a.name}</span>
+                    <span className="label text-ink-soft">{a.title}</span>
+                  </p>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    Reputation: {a.rep.competence >= 4 ? 'able' : a.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {a.rep.loyalty >= 4 ? 'loyal' : a.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
+                  </p>
+                  <p className="mt-1 text-sm">
+                    {r.checked === 0 ? 'No forecasts checked yet.' : `Forecasts checked: ${r.checked}. Close to what happened: ${r.close} (${Math.round((r.close / r.checked) * 100)}%). You followed their recommendation ${r.followed} ${r.followed === 1 ? 'time' : 'times'}.`}
+                  </p>
+                  {r.served.map(([who, n]) => (
+                    <p key={who} className="mt-1 text-sm text-alarm">Their recommendations have helped {patronName(who)} {n} {n === 1 ? 'time' : 'times'}.</p>
+                  ))}
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
         {tab === 'owed' && (
           <div className="mt-4">

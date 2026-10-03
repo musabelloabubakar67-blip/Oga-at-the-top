@@ -10,6 +10,7 @@ import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
 import { policyNow } from '../engine/policies';
 import { activeShocks } from '../engine/shocks';
+import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -17,12 +18,12 @@ import { capitalIncome, movesTotal } from '../engine/capital';
 import { describe } from '../engine/effects';
 import { verdict } from '../engine/legacy';
 import {
-  ACTION_COST, DRAWER_COST, agendaSlots, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
+  ACTION_COST, DRAWER_COST, agendaSlots, aidedFx, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
   favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderEcon, orderLevel, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
   standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
 } from '../engine/reduce';
 import { blocks, fill, naira } from '../engine/text';
-import type { Action, ActionId, Aid, Change, DeskItem, DrawerOp, Fx, GameEvent, GameState, Track, ZoneId } from '../engine/types';
+import type { Action, ActionId, Aid, Change, Choice, DeskItem, DrawerOp, Fx, GameEvent, GameState, Track, ZoneId } from '../engine/types';
 import { ZONES, ZONE_NAME, approval } from '../engine/vars';
 import { blocView, gauges, outlook, previewChoice, recordOf, resolveRead, traceFor } from '../engine/view';
 import { Papers } from './Paper';
@@ -120,6 +121,14 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
   const shield = shieldFor(s, e);
   const reads = (e.reads ?? []).map((r) => resolveRead(s, e, r)).filter((r) => r !== null);
   const trace = traceFor(s, e);
+  // Forecasts come from a named adviser, and can be wrong. What happened is shown after.
+  const adv = adviserFor(s, e);
+  const aidFx = (fx: Fx[] | undefined) => aidedFx(s, fx, aid);
+  const usable = (c: Choice) => availability(s, { ...c, pc: aidedPc(s, c.pc, aid) }).ok;
+  const advised = adv ? recommend(s, e, adv.role, aidFx, usable) : null;
+  const other = item.second ? adviser(s, item.second) : null;
+  const canSecond = !item.second && !!adv && !!secondFor(s, adv.role) && movesLeft(s) > 0;
+  const record = adv ? trackRecord(s, adv.role) : null;
   const ref = `PRES/${e.category.slice(0, 3).toUpperCase()}/${yearOf(s.turn, s.startYear)}/${100 + s.turn * 3}`;
 
   return (
@@ -205,13 +214,23 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
                 )}
               </div>
             )}
-            <p className="label text-ink-soft">Your options, and what the advisers expect of each</p>
+            <p className="label text-ink-soft">{adv ? `Your options, and what ${adv.name} expects of each` : 'Your options, and what the advisers expect of each'}</p>
+            {adv && (
+              <p className="mt-1 text-[13px] leading-snug text-ink-soft">
+                {adv.title}. Reputation: {adv.rep.competence >= 4 ? 'able' : adv.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {adv.rep.loyalty >= 4 ? 'loyal' : adv.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
+                {' '}{record && record.checked ? `Their forecasts so far: ${record.close} of ${record.checked} close to what happened.` : 'No record yet to check them against.'}
+                {' '}A forecast is a forecast: what happens is shown after you decide.
+                {canSecond && <button onClick={() => dispatch({ type: 'SECOND_OPINION', eventId: e.id })} className="ml-1 underline hover:text-state">Ask {secondFor(s, adv.role)!.name} for a second opinion · 1 move</button>}
+              </p>
+            )}
             <ul className="mt-2 space-y-2">
               {e.choices.map((c) => {
                 const pc = aidedPc(s, c.pc, aid);
                 const a = availability(s, { ...c, pc });
                 if (!a.visible) return null;
                 const p = previewChoice(s, c, aid);
+                const f = adv ? forecast(s, e, c, adv.role, aidFx) : null;
+                const f2 = other ? forecast(s, e, c, other.role, aidFx) : null;
                 return (
                   <li key={c.id}>
                     <button
@@ -226,12 +245,20 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
                           {c.naira ? <Chip>{naira(c.naira)}</Chip> : null}
                           {c.purse ? <Chip tone="alarm">₦{c.purse}bn from the drawer</Chip> : null}
                           {p.risky ? <Chip tone="alarm">Risky</Chip> : null}
+                          {advised === c.id && adv ? <Chip>Recommended by {adv.short}</Chip> : null}
                         </span>
                       </span>
                       <span className="mt-2 block space-y-1">
                         {p.notes.map((n) => <span key={n} className="block text-[13.5px] leading-snug text-ink">→ {n}</span>)}
-                        <Expected items={p.now} />
-                        <Expected items={p.later} later />
+                        <Expected items={f ? describe(f.now) : p.now} />
+                        <Expected items={f ? describe(f.later) : p.later} later />
+                        {f2 && other && (
+                          <span className="block border-l-2 border-honour/60 pl-2">
+                            <span className="label block text-ink-soft">{other.short} expects</span>
+                            <Expected items={describe(f2.now)} />
+                            <Expected items={describe(f2.later)} later />
+                          </span>
+                        )}
                         {p.leadsOn && <span className="label block text-ink-soft">This will come back to the desk</span>}
                         {a.overdraft ? <span className="block text-[13px] text-alarm">You are {Math.ceil(a.overdraft)} capital short. You can still do it; the party and the Villa will resent being overruled.</span> : null}
                         {!a.ok && a.reason ? <span className="block text-[13px] text-alarm">{a.reason}</span> : null}

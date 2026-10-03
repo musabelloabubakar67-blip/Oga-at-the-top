@@ -72,12 +72,12 @@ export const FINANCE_CANDIDATES: Seed[] = [
   },
   {
     id: 'fin', role: 'Minister of Finance', name: 'Chief Benson Ekpenyong', short: 'Ekpenyong',
-    competence: 2, clout: 5, loyalty: 5, integrity: 1, zone: 'SS',
+    competence: 2, clout: 5, loyalty: 3, integrity: 1, zone: 'SS', patron: 'gov_ss', rep: { competence: 2, loyalty: 5 },
     blurb: 'Party treasurer through three election cycles. Reputation: generous, connected, loyal to whoever is in the chair. Sponsored by the Governors\' Forum.',
   },
   {
     id: 'fin', role: 'Minister of Finance', name: 'Senator Ezekiel Lohor', short: 'Lohor',
-    competence: 3, clout: 4, loyalty: 3, integrity: 2, zone: 'NC',
+    competence: 3, clout: 4, loyalty: 3, integrity: 2, zone: 'NC', patron: 'self',
     blurb: 'Two-time minister, one-time governor, back again. Reputation: knows where every file is buried. The Senate will ask him to take a bow and go.',
   },
 ];

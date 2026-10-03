@@ -175,6 +175,10 @@ export interface Character {
   clout: number;
   loyalty: number;
   integrity: number;
+  /** Who they really serve: 'president', 'self', or a businessman's, governor's or senator's id. Hidden; it shows in their record. */
+  patron?: string;
+  /** What the files say about them, which is not always the truth. */
+  rep?: { competence: number; loyalty: number };
   rel: number; // -100..100
   zone?: ZoneId;
   blurb?: string;
@@ -304,6 +308,8 @@ export interface DeskItem {
   eventId: string;
   /** Who and what this file is about: token -> id. */
   cast?: Record<string, string>;
+  /** A second adviser asked for their forecast, at the cost of a move. */
+  second?: string;
   resolved?: { choiceId: string; label: string; result: string; signed?: boolean; changes?: Change[] };
 }
 
@@ -434,6 +440,8 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** Every adviser's forecasts, checked against what happened. */
+  advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
   /** What is happening to the country from outside, and what already has. */
   shocks: { active: { id: string; since: number; until: number }[]; seen: string[]; last: number };
   report: ReportItem[];
@@ -516,6 +524,7 @@ export type Action =
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
   | { type: 'ORDER'; id: string; target?: ZoneId; level?: number }
   | { type: 'REPEAL'; id: string }
+  | { type: 'SECOND_OPINION'; eventId: string }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

@@ -5,6 +5,7 @@
 
 import { EVENTS } from '../content';
 import { MILESTONE_BY_ID } from '../content/agenda';
+import { seedAdvisers } from './advice';
 import { DEBTS } from '../content/treasury';
 import { initTycoons } from './favours';
 import { syncDebt } from './ledger';
@@ -92,6 +93,8 @@ export function migrate(raw: unknown): GameState | null {
     const s = r as GameState;
     if (!s.counters['rules.theatres']) theatreRules(s);
     if (!s.counters['rules.policies']) policyRules(s);
+    // Saves from before advisers had reputations and patrons.
+    if (s.chars.cos && !s.chars.cos.rep) seedAdvisers(s);
     // A file that no longer exists cannot be decided.
     if (s.desk?.lead && !EVENTS[s.desk.lead.eventId]) s.desk.lead = null;
     s.desk.minors = (s.desk?.minors ?? []).filter((m) => EVENTS[m.eventId]);
