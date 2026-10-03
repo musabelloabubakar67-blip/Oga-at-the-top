@@ -26,6 +26,8 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
+import { abolish, canAbolish, canEstablish, canReplaceHead, establish, replaceHead } from './institutions';
+import { INSTITUTION_BY_ID } from '../content/institutions';
 import { LINKED, REPLACE_PC, adviserFor, canReplaceAdviser, replaceAdviser, forecast, logAdvice, recommend, secondFor, seedAdvisers } from './advice';
 import { POLICY_BY_ID, canRepeal, economyStrength, policyName, repeal } from './policies';
 import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
@@ -767,6 +769,26 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'TYCOON': tycoon(s, action.id, action.op); break;
     case 'RIVAL': rival(s, action.id, action.op); break;
     case 'FOCUS': focus(s, action.zone); break;
+    case 'ESTABLISH': if (canEstablish(s, action.id, action.head, movesLeft(s)).ok) {
+      s.desk.actionsUsed += 1;
+      const out = establish(s, action.id, action.head);
+      record(s, `institution.${action.id}`, 'establish', 'action', out.text, 3);
+      s.news.push({ chronicle: `FG ESTABLISHES ${INSTITUTION_BY_ID[action.id].name.replace(/^(A|The) /, '').toUpperCase()}`, street: 'NEW AGENCY DON LAND', weight: 4, valence: 1, topic: 'reform' });
+      s.lastAction = { text: out.text, changes: out.changes };
+    } break;
+    case 'REPLACE_HEAD': if (canReplaceHead(s, action.id, action.head, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = replaceHead(s, action.id, action.head);
+      record(s, `institution.${action.id}`, 'rehead', 'action', t, 2);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'ABOLISH': if (canAbolish(s, action.id).ok) {
+      const b = snapshot(s);
+      const t = abolish(s, action.id);
+      record(s, `institution.${action.id}`, 'abolish', 'action', t, 2);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'REPLACE_ADVISER': if (canReplaceAdviser(s, action.role, action.name, movesLeft(s)).ok) {
       const b = snapshot(s);
       s.pc = clamp(s.pc - REPLACE_PC, 0, 100);
@@ -1012,15 +1034,35 @@ export function orderLevel(o: Order, level?: number): { scale: number; pc: numbe
 }
 
 /** What the economy does to an order, and why. */
-export function orderEcon(o: Order, s: GameState): { factor: number; note: string } | null {
+export function orderEcon(o: Order, s: GameState): { factor: number; note: string; applies: (t: string, v: number) => boolean } | null {
+  const pct = (f: number) => `${Math.round(f * 100)}%`;
   if (o.econ === 'revenue') {
     const v = economyStrength(s).v;
     const f = clamp(v / 50, 0.5, 1.5);
-    return { factor: f, note: `The economy is at ${Math.round(v)} of 100: it pays ${Math.round(f * 100)}% of what it would in an ordinary year.` };
+    return { factor: f, applies: (t) => t === 'bonus.fiscal' || t === 'nation.fiscalSpace', note: `The economy is at ${Math.round(v)} of 100: it pays ${pct(f)} of what it would in an ordinary year.` };
   }
   if (o.econ === 'credit') {
     const f = 1 + Math.max(0, s.nation.debt - 70) / 100;
-    return { factor: f, note: f > 1.005 ? `Debt service is at ${Math.round(s.nation.debt)}% of revenue: lenders want ₦${f.toFixed(2)} back for every ₦1 lent.` : 'Debt service is low enough that lenders charge the ordinary rate.' };
+    return { factor: f, applies: (t) => t.startsWith('debt.'), note: f > 1.005 ? `Debt service is at ${Math.round(s.nation.debt)}% of revenue: lenders want ₦${f.toFixed(2)} back for every ₦1 lent.` : 'Debt service is low enough that lenders charge the ordinary rate.' };
+  }
+  if (o.econ === 'popularity') {
+    const a = approval(s);
+    const f = clamp(a / 50, 0.5, 1.5);
+    return { factor: f, applies: (t) => t === 'pc', note: `Approval is ${Math.round(a)}%: popularity buys ${pct(f)} of the usual leverage.` };
+  }
+  if (o.econ === 'anger') {
+    const g = s.pressures.wageGrievance;
+    const f = clamp(g / 50, 0.5, 1.6);
+    return { factor: f, applies: (t) => t === 'bloc.street' || t === 'approval' || t === 'pressure.wageGrievance', note: `Labour anger is at ${Math.round(g)}: the angrier the young, the more it is worth to be seen listening (${pct(f)}).` };
+  }
+  if (o.econ === 'party') {
+    const f = clamp((100 - s.blocs.party) / 50, 0.5, 1.5);
+    return { factor: f, applies: (t) => t === 'bloc.party' || t === 'pc', note: `The party is at ${Math.round(s.blocs.party)}: a convention does most when the party is unhappy (${pct(f)}).` };
+  }
+  if (o.econ === 'weak') {
+    const v = economyStrength(s).v;
+    const f = clamp((100 - v) / 50, 0.5, 1.5);
+    return { factor: f, applies: (t, d) => d < 0 && (t === 'nation.jobs' || t === 'approval' || t === 'bloc.street'), note: `The economy is at ${Math.round(v)} of 100: the weaker it is, the more this hurts (${pct(f)} of the usual damage).` };
   }
   return null;
 }
@@ -1053,7 +1095,7 @@ export function orderOutcome(o: Order, s?: GameState, target?: ZoneId, level?: n
     const lv = orderLevel(o, level);
     const econ = s ? orderEcon(o, s) : null;
     const scale = ([t, v, ...rest]: Fx): Fx => {
-      const f = (o.econ === 'revenue' && t === 'bonus.fiscal') || (o.econ === 'credit' && t.startsWith('debt.')) ? econ?.factor ?? 1 : 1;
+      const f = econ && econ.applies(t, v) ? econ.factor : 1;
       return [t, Math.round(v * lv.scale * f * 1000) / 1000, ...rest] as Fx;
     };
     const amt = (x: string, up = false) => x.replace(/\{AMT\}/g, up ? lv.word.toUpperCase() : lv.word);

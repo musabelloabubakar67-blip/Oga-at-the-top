@@ -92,6 +92,8 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
 
   // Reforms delivered stay delivered. Those under way are still under way, at the stage they had reached.
   s.agenda.done = [...prev.agenda.done];
+  // What was built keeps running under the same heads, captured or not.
+  s.institutions = (prev.institutions ?? []).map((i) => ({ ...i, head: { ...i.head } }));
   s.agenda.active = prev.agenda.active.map((a) => ({ id: a.id, progress: a.progress }));
   s.agenda.failed = [];
   s.ventures = { active: prev.ventures.active.map((a) => ({ ...a })), won: [...prev.ventures.won], lost: [...prev.ventures.lost], causes: { ...prev.ventures.causes } };

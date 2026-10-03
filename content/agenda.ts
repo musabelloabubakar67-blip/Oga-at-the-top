@@ -400,7 +400,7 @@ export interface Order {
   /** A dial: how far to go. {AMT} in the text is replaced by the level's word. The middle level is the default. */
   levels?: OrderLevel[];
   /** What the economy does to it: revenue scales with economic strength; borrowing gets dearer as debt service rises. */
-  econ?: 'revenue' | 'credit';
+  econ?: 'revenue' | 'credit' | 'popularity' | 'anger' | 'party' | 'weak';
 }
 
 export interface OrderLevel { label: string; word: string; scale: number; pc?: number; naira?: number }
@@ -409,7 +409,7 @@ const subsidised: Cond = { not: { flag: 'policy.subsidy', is: 'removed' } };
 
 export const STANDING: Order[] = [
   {
-    id: 'country', group: 'capital', name: 'Go over their heads to the country', pc: 0, naira: 0, cooldown: 5,
+    id: 'country', group: 'capital', name: 'Go over their heads to the country', pc: 0, naira: 0, cooldown: 5, econ: 'popularity',
     when: { v: ['approval', '>=', 47] }, lockedText: 'You need approval of 47% or better. An unpopular President who appeals to the public is simply reminded.',
     blurb: 'Town halls, radio, a week on the road. Turn public support into leverage over the politicians. It spends a little of the goodwill it uses.',
     result: 'You spend a week telling the country what you want and who is in the way. Senators\' phones ring. Several of them call yours.',
@@ -419,19 +419,21 @@ export const STANDING: Order[] = [
   },
   {
     id: 'projects', group: 'capital', name: 'Fund the districts', pc: 0, naira: 0.3, cooldown: 5,
+    levels: [{ label: 'Half the districts', word: '235', scale: 0.5, naira: 0.15 }, { label: 'Every district', word: '469', scale: 1 }],
     blurb: 'A road, a clinic or a transformer for every legislator to commission, built to specification and published. Capital bought with money.',
-    result: 'Four hundred and sixty-nine projects are approved. Each has a plaque, and each plaque has a legislator\'s name above yours.',
+    result: '{AMT} projects are approved. Each has a plaque, and each plaque has a legislator\'s name above yours.',
     fx: [['pc', 11], ['bloc.party', 4], ['nation.jobs', 1]],
-    news: ['FG APPROVES 469 CONSTITUENCY PROJECTS', 'EVERY SENATOR GET PROJECT TO COMMISSION'],
-    archive: 'Funded a project in every legislative district.',
+    news: ['FG APPROVES {AMT} CONSTITUENCY PROJECTS', 'EVERY SENATOR GET PROJECT TO COMMISSION'],
+    archive: 'Funded {AMT} constituency projects.',
   },
   {
     id: 'boards', group: 'capital', name: 'Hand out the boards', pc: 0, naira: 0, cooldown: 8,
+    levels: [{ label: 'A hundred seats', word: '100', scale: 0.35 }, { label: 'Four hundred seats', word: '400', scale: 1 }],
     blurb: 'Four hundred board seats, to whoever the party names. The fastest capital there is, paid for in the quality of your own agencies.',
     result: 'The list is published on a Friday evening. Several appointees are surprised to learn which agency they now chair, and where it is.',
     fx: [['pc', 12], ['bloc.party', 6], ['nation.integrity', -3], ['nation.capacity', -1.5]],
-    news: ['PRESIDENT NAMES 400 TO FEDERAL BOARDS', 'BOARD APPOINTMENT DON LAND. PARTY PEOPLE DEY JUBILATE'],
-    archive: 'Distributed four hundred board seats to the party.',
+    news: ['PRESIDENT NAMES {AMT} TO FEDERAL BOARDS', 'BOARD APPOINTMENT DON LAND. PARTY PEOPLE DEY JUBILATE'],
+    archive: 'Distributed {AMT} board seats to the party.',
   },
   {
     id: 'subsidy_end', group: 'economy', name: 'End the petrol subsidy', pc: 15, naira: 0, cooldown: 0,
@@ -490,8 +492,9 @@ export const STANDING: Order[] = [
   },
   {
     id: 'duties', group: 'relief', name: 'Suspend import duties on staple foods', pc: 8, naira: 0.2, cooldown: 0,
+    levels: [{ label: 'For six months', word: 'six months', scale: 0.5, pc: 5 }, { label: 'Indefinitely', word: 'the foreseeable future', scale: 1 }],
     blurb: 'Rice, wheat and maize come in duty-free. Prices fall. Local millers and licence-holders will be at the Villa by Friday.',
-    result: 'Duties are suspended for 180 days and then, quietly, indefinitely. A bag of rice falls by a fifth.',
+    result: 'Duties on rice, wheat and maize are suspended for {AMT}. The price of a bag of rice falls the same week.',
     fx: [['bonus.inflation', -2.5], ['approval', 2], ['bloc.street', 4], ['bloc.party', -4], ['bloc.establishment', -3]],
     news: ['FG SUSPENDS DUTIES ON RICE, WHEAT, MAIZE', 'RICE GO CHEAP: PRESIDENT REMOVE IMPORT DUTY'],
     archive: 'Suspended import duties on staple foods.', sig: 2,

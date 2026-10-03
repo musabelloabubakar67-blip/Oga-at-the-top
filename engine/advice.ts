@@ -83,7 +83,7 @@ export function seedAdvisers(s: GameState): void {
 
 /** Who is still available to bring in. */
 export function poolFor(s: GameState): typeof ADVISER_POOL {
-  const taken = new Set(Object.values(s.chars).map((c) => c.name));
+  const taken = new Set([...Object.values(s.chars).map((c) => c.name), ...(s.institutions ?? []).map((i) => i.head.name)]);
   return ADVISER_POOL.filter((c) => !taken.has(c.name) && !s.flags[`pool.gone.${c.short}`]);
 }
 

@@ -33,13 +33,18 @@ export const SITUATIONAL: Order[] = [
     archive: 'Published your asset declaration in your first months.', sig: 2,
   },
   {
-    ...moment, id: 'convoy', name: 'Cut your own convoy, salary and travel', pc: 0, naira: 0, cooldown: 0, window: 5,
-    when: { turn: [1, 8] },
-    blurb: 'Symbolic. The savings are trivial. The symbolism is not, and your ministers will have to follow.',
-    result: 'The convoy goes from forty vehicles to nine. Ministers are told the same applies to them. Several find this harder than any reform.',
-    fx: [['approval', 3], ['bloc.street', 4], ['bloc.villa', -5], ['nation.fiscalSpace', 0.05]],
-    news: ['PRESIDENT SLASHES CONVOY, PAY', 'PRESIDENT CONVOY NA NINE MOTOR NOW'],
-    archive: 'Cut the presidential convoy, salary and travel budget.',
+    ...moment, id: 'convoy', name: 'Austerity at the top', pc: 0, naira: 0, cooldown: 0, window: 6,
+    when: { turn: [1, 10] },
+    levels: [
+      { label: 'Your convoy and travel', word: 'the convoy', scale: 0.6 },
+      { label: 'And half the air fleet', word: 'the convoy and half the air fleet', scale: 1 },
+      { label: 'And halve political pay', word: 'the convoy, the air fleet and political pay', scale: 1.6, pc: 10 },
+    ],
+    blurb: 'The savings are small. The symbolism is not, and everyone beneath you will be expected to follow. The further it goes, the more of them object.',
+    result: 'The cuts go through: {AMT}. Ministers are told the same applies to them. The Assembly is "invited to follow", and forms a committee to consider the invitation.',
+    fx: [['approval', 3], ['bloc.street', 4], ['bloc.villa', -5], ['nation.fiscalSpace', 0.1], ['bloc.party', -4]],
+    news: ['PRESIDENT ORDERS AUSTERITY AT THE TOP', 'PRESIDENT DON CUT HIM OWN BELLE FIRST'],
+    archive: 'Ordered austerity at the top: {AMT}.', sig: 2,
   },
   {
     ...moment, id: 'merge', name: 'Merge the ministries: 48 down to 24', pc: 14, naira: 0, cooldown: 0, window: 6,
@@ -74,24 +79,17 @@ export const SITUATIONAL: Order[] = [
   },
   {
     ...moment, id: 'vouchers', name: 'Transport vouchers for workers and students', pc: 0, naira: 0.35, cooldown: 18,
+    levels: [{ label: 'Four million', word: 'four million', scale: 0.5, naira: 0.18 }, { label: 'Eight million', word: 'eight million', scale: 1 }, { label: 'Twelve million', word: 'twelve million', scale: 1.4, naira: 0.5 }],
     when: all({ flag: 'policy.subsidy', is: 'removed' }, v('hardship', '>', 55)),
     blurb: 'Targets the people the pump price hurts most, without bringing the subsidy back.',
-    result: 'Eight million vouchers go out through employers and schools. Fares are still high. Getting to work is no longer the first thing people mention.',
+    result: 'Vouchers go out to {AMT} workers and students through employers and schools. Fares are still high. Getting to work is no longer the first thing people mention.',
     fx: [['bloc.street', 7], ['approval', 3], ['pressure.wageGrievance', -14]],
-    news: ['FG ISSUES TRANSPORT VOUCHERS TO EIGHT MILLION', 'TRANSPORT VOUCHER DON LAND FOR WORKERS'],
+    news: ['FG ISSUES TRANSPORT VOUCHERS TO {AMT}', 'TRANSPORT VOUCHER DON LAND FOR WORKERS'],
     archive: 'Issued transport vouchers to workers and students.',
   },
   {
-    ...moment, id: 'public_works', name: 'Hire a million young people on public works', pc: 0, naira: 0.7, cooldown: 24,
-    when: v('nation.jobs', '<', 36),
-    blurb: 'Drains, feeder roads, school repairs. Not careers. A wage, for two years, for a million people who have never had one.',
-    result: 'Recruitment centres open in every local government. The queues are orderly and go around the block twice.',
-    fx: [['nation.jobs', 6], ['bloc.street', 7], ['approval', 3], ['bonus.fiscal', -0.015]],
-    news: ['ONE MILLION YOUTHS RECRUITED FOR PUBLIC WORKS', 'ONE MILLION YOUTH DON GET WORK'],
-    archive: 'Hired a million young people on public works.', sig: 2,
-  },
-  {
     ...moment, id: 'xmas', name: 'A thirteenth-month salary for civil servants', pc: 0, naira: 0.25, cooldown: 11, window: 2,
+    levels: [{ label: 'Half a month', word: 'half a month\'s', scale: 0.5, naira: 0.13 }, { label: 'A full month', word: 'a full month\'s', scale: 1 }],
     when: { month: [11, 12] },
     blurb: 'It is December. Everyone remembers who paid and who did not.',
     result: 'The alert arrives on the nineteenth. For one week the civil service is the most contented institution in the country.',
@@ -151,15 +149,6 @@ export const SITUATIONAL: Order[] = [
 
   // ---------------------------------------------------------------- emergencies
   {
-    ...moment, id: 'power_emergency', name: 'Declare an emergency in the power sector', pc: 10, naira: 0.6, cooldown: 0,
-    when: all(v('nation.power', '<', 30), v('agenda.p2', '==', 0)),
-    blurb: 'Suspend procurement rules, import mobile turbines, put an engineer in charge with a deadline. Fast, expensive, and it bypasses everyone.',
-    result: 'Forty mobile turbines arrive in ninety days. Supply improves where they are parked. The procurement was not, strictly, lawful.',
-    fx: [['nation.power', 9], ['approval', 3], ['nation.integrity', -2], ['bloc.establishment', 3]],
-    news: ['PRESIDENT DECLARES POWER EMERGENCY', 'EMERGENCY! PRESIDENT DON CARRY TURBINE COME'],
-    archive: 'Declared an emergency in the power sector.', sig: 3,
-  },
-  {
     ...moment, id: 'emergency_rule', name: 'Declare a state of emergency in three states', pc: 12, naira: 0.3, cooldown: 0,
     when: all(v('nation.security', '<', 33), v('senate', '>=', 48)),
     blurb: 'Federal control of security in the worst-hit states. Needs the Senate. The governors lose their security votes and say so.',
@@ -211,26 +200,6 @@ export const SITUATIONAL: Order[] = [
 
   // ---------------------------------------------------------------- integrity
   {
-    ...moment, id: 'fearless', name: 'Appoint a fearless anti-corruption chief', pc: 10, naira: 0, cooldown: 0,
-    when: all(v('pressure.scandalHeat', '>', 40), v('exposure.total', '<', 10)),
-    blurb: 'Someone who cannot be called. She will go after your friends first, to prove a point.',
-    result: 'She is sworn in on Monday. By Friday two of your own party\'s governors have been invited for questioning.',
-    fx: [['nation.integrity', 6], ['bonus.integrity', 0.05], ['bloc.party', -8], ['bloc.press', 5], ['pressure.scandalHeat', -20]],
-    flags: { 'efcc.fearless': true },
-    news: ['NEW ANTI-GRAFT CHIEF SUMMONS TWO RULING-PARTY GOVERNORS', 'NEW ANTI-GRAFT OGA NO DEY LOOK FACE'],
-    archive: 'Appointed an independent-minded anti-corruption chief.', sig: 3,
-  },
-  {
-    ...moment, id: 'tame', name: 'Put a reliable man in charge of the anti-corruption agency', pc: 6, naira: 0, cooldown: 0,
-    when: all(v('pressure.scandalHeat', '>', 45), v('exposure.count', '>=', 2)),
-    blurb: 'The files on your desk drawer are a matter of time. A friendly chairman changes the time.',
-    result: 'The new chairman announces a "strategic review of all pending investigations". Pending is the important word.',
-    fx: [['pressure.scandalHeat', -30], ['nation.integrity', -6], ['bloc.press', -6], ['bloc.party', 5]],
-    exposure: { kind: 'tolerated', amount: 0, witnesses: ['chairman'], trail: 1 },
-    news: ['NEW ANTI-GRAFT CHAIRMAN ORDERS REVIEW OF ALL CASES', 'ALL THE CASE FILE DON GO "REVIEW"'],
-    archive: 'Installed a compliant anti-corruption chairman.', sig: 3,
-  },
-  {
     ...moment, id: 'inquiry', name: 'A public inquiry into what went wrong', pc: 6, naira: 0, cooldown: 0,
     when: { any: [v('venture.steel', '==', -1), v('venture.rail', '==', -1), v('venture.crypto', '==', -1), v('venture.charter', '==', -1)] },
     blurb: 'Your big bet failed. Say so, in public, with the documents. It costs pride and buys back some trust.',
@@ -242,7 +211,7 @@ export const SITUATIONAL: Order[] = [
 
   // ---------------------------------------------------------------- the street and the press
   {
-    ...moment, id: 'dialogue', name: 'A national dialogue with the young', pc: 4, naira: 0, cooldown: 0,
+    ...moment, id: 'dialogue', name: 'A national dialogue with the young', pc: 4, naira: 0, cooldown: 0, econ: 'anger',
     when: v('bloc.street', '<', 35),
     blurb: 'Not a summit. Town halls, unscripted, in six cities, with you in the chair and no screening of questions.',
     result: 'The first one lasts four hours. You are shouted at for three. In the fourth, somebody says thank you for coming, and means it.',
@@ -273,7 +242,7 @@ export const SITUATIONAL: Order[] = [
 
   // ---------------------------------------------------------------- the party and the rivals
   {
-    ...moment, id: 'convention', name: 'Call an emergency party convention', pc: 8, naira: 0, cooldown: 30,
+    ...moment, id: 'convention', name: 'Call an emergency party convention', pc: 8, naira: 0, cooldown: 30, econ: 'party',
     when: v('bloc.party', '<', 38),
     blurb: 'Put the leadership to a vote before they put you to one. You might lose control of your own party in public.',
     result: 'Three thousand delegates fill Eagle Square. You speak for an hour. The chairman survives; his faction does not get the secretariat.',
@@ -321,7 +290,7 @@ export const SITUATIONAL: Order[] = [
 
   // ---------------------------------------------------------------- popularity, spent or lost
   {
-    ...moment, id: 'cash_in', name: 'Spend your popularity on the party', pc: 0, naira: 0, cooldown: 30,
+    ...moment, id: 'cash_in', name: 'Spend your popularity on the party', pc: 0, naira: 0, cooldown: 30, econ: 'popularity',
     when: v('approval', '>', 62),
     blurb: 'You are popular enough that nobody in the party dares refuse you. That does not last. Use it.',
     result: 'You call in every senator and governor in a week and tell each what you expect. Nobody argues. Several take notes.',
@@ -363,11 +332,12 @@ export const SITUATIONAL: Order[] = [
   // ---------------------------------------------------------------- the electoral calendar
   {
     ...moment, id: 'wage_decree', name: 'An election-year pay rise for civil servants', pc: 0, naira: 0.5, cooldown: 0, window: 6,
+    levels: [{ label: '15%', word: '15%', scale: 0.5, naira: 0.25 }, { label: '30%', word: '30%', scale: 1 }, { label: '50%', word: '50%', scale: 1.6, naira: 0.8 }],
     when: all({ term: 1 }, { termTurn: [34, 44] }),
     blurb: 'The election is months away. Two million federal workers and their families vote.',
-    result: 'A 30% rise takes effect from January. The opposition calls it a bribe, and promises to keep it.',
+    result: 'A {AMT} rise takes effect from January. The opposition calls it a bribe, and promises to keep it.',
     fx: [['approval', 3], ['bloc.street', 6], ['pressure.wageGrievance', -18], ['bonus.fiscal', -0.03], ['bloc.establishment', -3]],
-    news: ['FG APPROVES 30% PAY RISE FOR CIVIL SERVANTS', 'ELECTION DON NEAR: SALARY DON INCREASE'],
+    news: ['FG APPROVES {AMT} PAY RISE FOR CIVIL SERVANTS', 'ELECTION DON NEAR: SALARY DON INCREASE'],
     archive: 'Raised civil service pay months before the election.', sig: 2,
   },
   {
@@ -426,15 +396,6 @@ export const SITUATIONAL: Order[] = [
   // Not responses to anything. Things a President might simply decide to do,
   // each once, each with someone who loses.
   {
-    ...moment, id: 'jets', name: 'Sell half the presidential air fleet', pc: 0, naira: 0, cooldown: 0, window: 5,
-    when: { turn: [3] },
-    blurb: 'Ten aircraft, for one President. Five would be generous.',
-    result: 'Five aircraft are auctioned. One is bought by a governor, which becomes its own story.',
-    fx: [['approval', 3], ['nation.fiscalSpace', 0.1], ['bloc.villa', -4], ['bloc.press', 3]],
-    news: ['PRESIDENCY SELLS FIVE AIRCRAFT', 'PRESIDENT DON SELL FIVE JET'],
-    archive: 'Sold half the presidential air fleet.',
-  },
-  {
     ...moment, id: 'vip_police', name: 'Take the police off VIP escort duty', pc: 6, naira: 0, cooldown: 0, window: 5,
     when: { turn: [5] },
     blurb: 'A third of the police force guards politicians and their wives. Put them back on the street. Every one of those politicians has your number.',
@@ -444,32 +405,23 @@ export const SITUATIONAL: Order[] = [
     archive: 'Withdrew the police from VIP escort duty.', sig: 2,
   },
   {
-    ...moment, id: 'medical', name: 'Ban officials from medical treatment abroad', pc: 5, naira: 0, cooldown: 0, window: 5,
-    when: { turn: [4] },
-    blurb: 'Including you. If the people who run the hospitals have to use them, the hospitals change.',
-    result: 'The ban takes effect. Within the month three teaching hospitals have new equipment and a waiting list of ministers.',
-    fx: [['approval', 3], ['bloc.street', 4], ['bloc.villa', -6], ['bloc.party', -3]],
-    later: [{ after: [8, 12], fx: [['nation.capacity', 2], ['approval', 1.5]], label: 'Hospitals improve once officials have to use them.' }],
-    news: ['OFFICIALS BARRED FROM FOREIGN MEDICAL TRIPS', 'NO MORE LONDON HOSPITAL FOR BIG MEN'],
-    archive: 'Banned officials, yourself included, from medical treatment abroad.', sig: 2,
-  },
-  {
     ...moment, id: 'open_data', name: 'Publish every statistic the government holds', pc: 4, naira: 0, cooldown: 0, window: 5,
     when: { turn: [6] },
     blurb: 'Budget releases, oil volumes, school enrolment, all of it, monthly. Some of the numbers are bad and will be news.',
     result: 'The portal goes live. Journalists find eleven stories in the first week. Nine are unflattering. All are true.',
-    fx: [['nation.capacity', 2], ['nation.integrity', 3], ['bloc.press', 5], ['approval', -1]],
+    fx: [['nation.capacity', 2], ['nation.integrity', 3], ['bloc.press', 5], ['approval', -1], ['bonus.integrity', 0.02]],
     news: ['FG OPENS ALL OFFICIAL STATISTICS TO PUBLIC', 'GOVERNMENT DON PUT ALL THE NUMBER FOR INTERNET'],
     archive: 'Published all government statistics monthly.',
   },
   {
     ...moment, id: 'exam_fees', name: 'Abolish examination fees', pc: 0, naira: 0.15, cooldown: 0, window: 5,
+    levels: [{ label: 'Secondary exams', word: 'secondary school', scale: 1 }, { label: 'And university entrance', word: 'secondary and university entrance', scale: 1.5, naira: 0.25 }],
     when: { turn: [7] },
     blurb: 'Two million children a year do not sit their final exams because of a ₦27,000 fee.',
     result: 'Fees are abolished from this session. Registrations rise by a third.',
     fx: [['bloc.street', 5], ['approval', 2], ['bonus.fiscal', -0.008]],
     news: ['FG SCRAPS SECONDARY EXAM FEES', 'EXAM DON FREE'],
-    archive: 'Abolished secondary school examination fees.',
+    archive: 'Abolished {AMT} examination fees.',
   },
   {
     ...moment, id: 'lg_autonomy', name: 'Pay local governments directly', pc: 12, naira: 0, cooldown: 0, window: 5,
@@ -501,16 +453,7 @@ export const SITUATIONAL: Order[] = [
     archive: 'Held the first census in two decades.', sig: 2,
   },
   {
-    ...moment, id: 'paycut', name: 'Halve the pay of political office holders', pc: 10, naira: 0, cooldown: 0, window: 5,
-    when: { turn: [12] },
-    blurb: 'Legislators here are among the best paid in the world. They also vote on your bills.',
-    result: 'The order covers the executive at once. The Assembly is "invited to follow". It forms a committee to consider the invitation.',
-    fx: [['approval', 4], ['bloc.street', 5], ['bloc.party', -8], ['person.sen_pres', -10], ['person.sen_approp', -10], ['person.sen_rebel', 8], ['nation.fiscalSpace', 0.1]],
-    news: ['PRESIDENT HALVES PAY OF POLITICAL APPOINTEES', 'PRESIDENT CUT POLITICIAN SALARY. SENATORS DEY VEX'],
-    archive: 'Halved the pay of political office holders.', sig: 2,
-  },
-  {
-    ...moment, id: 'currency', name: 'Redesign the currency to flush out hoarded cash', pc: 6, naira: 0.1, cooldown: 0, window: 5,
+    ...moment, id: 'currency', name: 'Redesign the currency to flush out hoarded cash', pc: 6, naira: 0.1, cooldown: 0, econ: 'weak', window: 5,
     when: all({ turn: [12] }, v('nation.integrity', '<', 45)),
     blurb: 'Old notes expire in ninety days. Billions held in vaults and soakaways must surface or die. So must every market trader\'s savings.',
     result: 'The old notes expire before the new ones arrive. People sleep at cash machines. A man in Kano pays a transfer fee to buy bread. The hoarders changed theirs in bulk, quietly, in the first week.',
@@ -537,22 +480,13 @@ export const SITUATIONAL: Order[] = [
     archive: 'Opened tariff-free trade under the continental pact.', sig: 2,
   },
   {
-    ...moment, id: 'homecoming', name: 'A year of return for the diaspora', pc: 0, naira: 0.1, cooldown: 0, window: 5,
+    ...moment, id: 'homecoming', name: 'A year of return for the diaspora', pc: 0, naira: 0.1, cooldown: 0, econ: 'revenue', window: 5,
     when: { turn: [18] },
     blurb: 'Visa on arrival, a property guarantee, a festival. Seventeen million people with foreign salaries and aging parents.',
     result: 'December flights are full from October. The money spent in a month exceeds a quarter of oil revenue.',
     fx: [['nation.fiscalSpace', 0.5], ['nation.jobs', 2], ['bloc.street', 2], ['approval', 1]],
     news: ['RECORD DIASPORA ARRIVALS FOR "YEAR OF RETURN"', 'ABROAD PEOPLE FULL EVERYWHERE THIS DECEMBER'],
     archive: 'Declared a year of return for the diaspora.',
-  },
-  {
-    ...moment, id: 'timetable', name: 'Publish an honest power-rationing timetable', pc: 0, naira: 0, cooldown: 0, window: 5,
-    when: all({ turn: [5] }, v('nation.power', '<', 44)),
-    blurb: 'There is not enough to go round. Say so, and tell people when theirs is coming, so they can plan.',
-    result: 'The timetable is published by district. It is kept to, mostly. People iron on Tuesdays.',
-    fx: [['approval', 2], ['bloc.press', 3], ['bloc.street', 2], ['nation.jobs', 1]],
-    news: ['POWER RATIONING TIMETABLE PUBLISHED BY DISTRICT', 'NOW WE KNOW WHEN LIGHT GO COME'],
-    archive: 'Published an honest power-rationing timetable.',
   },
   {
     ...moment, id: 'summit', name: 'Host an investment summit', pc: 0, naira: 0.1, cooldown: 26, window: 4,

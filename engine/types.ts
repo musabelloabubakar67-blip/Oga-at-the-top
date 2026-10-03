@@ -448,6 +448,8 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** What orders have built that keeps running, and who heads each. */
+  institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
   /** Every adviser's forecasts, checked against what happened. */
   advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
   /** What is happening to the country from outside, and what already has. */
@@ -534,6 +536,9 @@ export type Action =
   | { type: 'REPEAL'; id: string }
   | { type: 'SECOND_OPINION'; eventId: string }
   | { type: 'REPLACE_ADVISER'; role: string; name: string }
+  | { type: 'ESTABLISH'; id: string; head: string }
+  | { type: 'REPLACE_HEAD'; id: string; head: string }
+  | { type: 'ABOLISH'; id: string }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

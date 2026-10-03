@@ -24,6 +24,8 @@ import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
 import { adviserFor, canReplaceAdviser, forecast, poolFor, recommend, secondFor, trackRecord } from '../engine/advice';
 import { REPLACEABLE } from '../content/names';
+import { built, canEstablish, canReplaceHead, headsFor } from '../engine/institutions';
+import { INSTITUTION_BY_ID } from '../content/institutions';
 import { fiscalFlow } from '../engine/treasury';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
@@ -270,6 +272,26 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     for (const id of bot.bets ?? []) {
       const v = VENTURE_BY_ID[id];
       if (canVenture(s, v).ok && s.nation.fiscalSpace > v.naira + 1 && s.pc > v.pc + 15) s = applyAction(s, { type: 'VENTURE', id });
+    }
+    // What each kind of President builds, and whom they put in charge.
+    const builds: Record<string, [string[], 'rep' | 'party' | 'civil']> = {
+      Reformer: [['delivery', 'power', 'tax', 'zone', 'fund'], 'rep'], Institutionalist: [['graft', 'delivery', 'policing'], 'rep'],
+      Machine: [['jobs', 'policing'], 'party'], Populist: [['jobs', 'reserve'], 'civil'], Kleptocrat: [['reserve', 'zone', 'jobs'], 'party'],
+    };
+    const plan = builds[bot.name.startsWith('Reformer') ? 'Reformer' : bot.name];
+    if (plan && s.pc > 25 && movesLeft(s) > 1) {
+      const heads = headsFor(s);
+      const head = plan[1] === 'party' ? 'A party nominee' : plan[1] === 'civil' ? 'A career civil servant'
+        : [...heads].sort((x, y) => (y.rep.competence + y.rep.loyalty) - (x.rep.competence + x.rep.loyalty))[0]?.name;
+      const next = plan[0].find((id) => !built(s).some((i) => i.id === id));
+      if (next && head && canEstablish(s, next, head, movesLeft(s)).ok && (INSTITUTION_BY_ID[next].naira <= s.nation.fiscalSpace)) s = applyAction(s, { type: 'ESTABLISH', id: next, head });
+    }
+    if (bot.advice === 'check') {
+      for (const i of built(s)) {
+        if (!i.seen) continue;
+        const pick = headsFor(s).filter((h) => h.name !== i.head.name).sort((x, y) => (y.rep.competence + y.rep.loyalty) - (x.rep.competence + x.rep.loyalty))[0];
+        if (pick && canReplaceHead(s, i.id, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_HEAD', id: i.id, head: pick.name });
+      }
     }
     // A President who reads the record replaces an adviser whose advice keeps helping someone else, choosing by reputation.
     if (bot.advice === 'check') {

@@ -6,6 +6,7 @@ import { oppositionTick } from './opposition';
 import { peopleTick } from './people';
 import { foodInflation, securityTick } from './security';
 import { policyGoodwill, policyInflationLines, policyTick } from './policies';
+import { institutionInflationLines, institutionTick } from './institutions';
 import { budgetInflation, printedInflation, treasuryTick } from './treasury';
 import type { GameState, Nation } from './types';
 import { BLOCS, ZONES, applyFx, approval, clamp, hardship, petrolShock, test, zoneSecurity } from './vars';
@@ -47,6 +48,7 @@ export function inflationTarget(s: GameState): { lines: { label: string; value: 
     { label: 'The importers', value: tycoonInflation(s) },
     { label: 'A nervous establishment', value: Math.max(0, 30 - s.blocs.establishment) * 0.25 },
     ...policyInflationLines(s),
+    ...institutionInflationLines(s),
   ].filter((l) => Math.abs(l.value) >= 0.05);
   return { lines, total: lines.reduce((a, l) => a + l.value, 0) };
 }
@@ -78,6 +80,8 @@ export function economyTick(s: GameState): void {
   securityTick(s);
   // What the standing policies do this month, worked out against the economy as it is.
   policyTick(s);
+  // What has been built keeps running.
+  institutionTick(s);
 
   // The example is followed: exposure erodes integrity slowly.
   const recent = s.exposures.filter((x) => s.turn - x.turn <= 12).length;
