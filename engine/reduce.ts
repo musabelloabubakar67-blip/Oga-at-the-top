@@ -887,6 +887,8 @@ function agendaTick(s: GameState): void {
   for (const a of s.agenda.active) {
     const entry = MILESTONE_BY_ID[a.id];
     if (!entry) continue;
+    // Some reforms hurt before they pay: the tariff rises before the light improves.
+    for (const f of entry.m.during ?? []) applyFx(s, f);
     const building = drawsOnInfra(entry.track.id) ? buildSpeed(s) : 1;
     a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building;
     if (a.progress < 100) { still.push(a); continue; }

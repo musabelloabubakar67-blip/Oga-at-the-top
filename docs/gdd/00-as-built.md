@@ -160,6 +160,8 @@ Corruption is available throughout: the security vote, logistics for the Assembl
 
 Any of them can be repealed for capital and a named political cost. Old saves have the fixed costs these reforms used to carry removed once.
 
+**Pain before payoff.** Fourteen reforms hurt the public every month while they are under way, before they pay: the tariff (bills rise before the light improves), transmission corridors (planned outages), one tax ID, ending the waivers, the payroll audit, merit recruitment, opening the borders to staples, forty-eight-hour ports, resource control, the ranching law, selling the joint-venture shares, the procurement audit, payments and identity rails, and the rail backbone. The card shows the total over the build and why (`during`, `duringText`; the lint requires the reason), and a reform under way says what it is costing. Timing is the skill: launched early in a term, or after re-election, one at a time, the pain is over before the vote; stacked late, it lands on it.
+
 **Lasting effects.** Every reform now changes something for as long as it stands. Eight that had nothing lasting change how the country works, described on the card as *For as long as it stands*: clearing the gas debt halves the growth of gas arrears until the tariff; the electricity market law halves the monthly loss of power; open contracting settles scandal 5 points lower; anti-corruption courts keep a person leaned on cooperative for 14 months instead of 8; asset declarations raise integrity monthly while nothing is taken personally, and make personal taking 50% more visible; digital government makes reforms 8% faster; the delivery unit halves the capital cost of replacing a minister; results transmitted from the polling unit cut the party machine's weight at elections by 40% and narrow a petitionable win from 7 points to 4.
 
 **Big bets** (`content/ventures.ts`, `engine/bets.ts`): 32 risky initiatives. Each lists the conditions it depends on (a capable minister, paid contractors, reliable power, a quiet theatre, a delivered reform, a businessman as partner). Each unmet condition costs a stated share of the odds. Part-way through, the site reports what is not in place and what would fix it. The President can fix the cause, send a task team, or postpone the opening. The outcome names the condition that failed. If every condition was met and it still failed, the report says it was bad luck.
@@ -230,11 +232,16 @@ Simulator results at the time of writing (40 presidencies each):
 |---|---|---|
 | Random | 0–2% | |
 | Do-nothing | about 2% | |
-| Populist | about 23% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
-| Machine politician | about 55% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
-| Clean institutionalist | about 32% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
-| Kleptocrat | about 43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% aimed for; the owner's rule is that corruption works |
-| Reformer (flawless play) | about 88% | Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
+| Populist | about 20% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
+| Machine politician | about 57% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
+| Clean institutionalist | about 42% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
+| Kleptocrat | about 38–43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% first aimed for; the owner chose to leave it, because corruption works |
+| Reformer (flawless play) | about 88% | Times its painful reforms (early in a term or after re-election, one at a time). Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
+| Reformer, any order | about 62% | The same script without the timing: painful reforms land on the election |
+| Reformer, keeps subsidy | about 87% | Keeping the subsidy costs a flawless reformer nothing at the ballot |
+| Reformer, ignores debts | about 82% | Leaving debts unpaid costs a flawless reformer little |
+
+The three imperfect reformers measure how narrow the reformer's path is. Timing is now worth about 26 points; the subsidy and the debts are not yet decisions that change who wins. The populist, machine, reformer and institutionalist bots all time their painful reforms; only the "any order" reformer does not.
 
 The balance pass of 3 October (60 presidencies each) set these. Aims were reformer 75–85%, machine 55–70%, institutionalist 30–40%, populist 25–35%, kleptocrat 20–30%. The bots now value each choice by the chance-weighted average of its outcomes rather than its last one, so they see gambles as the engine plays them; before this the kleptocrat never noticed that a bribe could break the merger. The probe prints margin percentiles (p10, p50, p90), opposition unity and integrity. By scenario (12 each) the reformer ranges from 42% (The Morning After) to 100% (The Long Emergency), the populist from 0% (The Morning After, The Long Emergency) to 83% (The Reformer's Handover).
 

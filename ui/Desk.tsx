@@ -537,6 +537,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
                 <div className="mt-1.5">
                   <div className="h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, active.progress)}%` }} /></div>
                   <p className="label mt-1 text-honour">Under way · {Math.round(Math.min(99, active.progress))}%</p>
+                  {m.duringText && <p className="mt-0.5 text-[12.5px] leading-snug text-alarm/90">Hurting while it lasts: {m.duringText}</p>}
                 </div>
               )}
               {st === 'next' && (
@@ -544,6 +545,12 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
                   <p className="text-sm leading-snug text-ivory/65">{m.blurb}</p>
                   <div className="mt-1.5 space-y-0.5">
                     {m.start && <Expected items={describe(m.start)} dark />}
+                    {m.during && (
+                      <>
+                        <Expected items={describe(m.during.map(([t, v]) => [t, v * m.months] as Fx))} dark label={`While it is under way, ${m.months} months`} />
+                        <p className="text-[12.5px] leading-snug text-alarm/90">{m.duringText} Launch it early enough to be through it before an election.</p>
+                      </>
+                    )}
                     <Expected items={describe(m.done)} later dark />
                     <PolicyPreview s={s} id={m.id} />
                     {m.lasting && <p className="text-[12.5px] leading-snug text-ivory/70"><span className="label mr-1 text-mute">For as long as it stands</span>{m.lasting}</p>}

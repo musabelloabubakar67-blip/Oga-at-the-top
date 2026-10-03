@@ -27,6 +27,7 @@ const RAW: Track[] = [
       },
       {
         id: 'p2', name: 'Rebuild the weakest transmission corridors', pc: 4, naira: 0.7, months: 9,
+        during: [['approval', -0.5]], duringText: 'Planned outages while the old lines come down.',
         blurb: 'Forty-year-old lines are why the grid collapses. Replace the worst six.',
         done: [['nation.power', 12], ['approval', 2], ['bonus.power', 0.06]],
         news: ['GRID COLLAPSES END AS SIX CORRIDORS ARE REBUILT', 'NEPA NO DEY TAKE LIGHT ANYHOW AGAIN'],
@@ -34,6 +35,7 @@ const RAW: Track[] = [
       },
       {
         id: 'p3', name: 'Cost-reflective tariff with a lifeline band', pc: 12, naira: 0, months: 2,
+        during: [['approval', -2.0], ['pressure.wageGrievance', 5.0]], duringText: 'Bills rise before the light improves.',
         blurb: 'Those who get twenty hours pay what it costs. The poorest are protected. The loudest are not.',
         start: [['approval', -2], ['bloc.press', -4]],
         done: [['nation.power', 7], ['bonus.fiscal', 0.02], ['bonus.power', 0.05]],
@@ -70,6 +72,7 @@ const RAW: Track[] = [
       },
       {
         id: 's3', name: 'Audit the defence procurement account', pc: 14, naira: 0, months: 4,
+        during: [['theatre.NE', 1.0]], duringText: 'Procurement freezes while the books are open, and operations stall.',
         blurb: 'Find out where the equipment budget has been going. Some senior people already know.',
         start: [['bloc.establishment', -6], ['bloc.villa', -2]],
         done: [['theatre.NE', -4], ['drift.all', -0.03], ['sec.strike', 0.5], ['nation.integrity', 4], ['bonus.fiscal', 0.015]],
@@ -91,6 +94,7 @@ const RAW: Track[] = [
     milestones: [
       {
         id: 't1', name: 'One tax ID, automated collection', pc: 5, naira: 0.15, months: 6,
+        during: [['approval', -0.5], ['bloc.street', -0.75]], duringText: 'Small traders who never paid tax are found by the system first.',
         blurb: 'Six agencies keep six lists. Merge them and collect what is already owed.',
         done: [['nation.fiscalSpace', 0.5], ['bonus.fiscal', 0.03], ['nation.capacity', 2]],
         news: ['TAX COLLECTION UP 30% UNDER UNIFIED ID', 'TAX PEOPLE DON SABI EVERYBODY NOW'],
@@ -106,6 +110,7 @@ const RAW: Track[] = [
       },
       {
         id: 't3', name: 'End the waivers and duty loopholes', pc: 12, naira: 0, months: 4,
+        during: [['nation.inflation', 0.75], ['tycoon.ty_trade', -2.5]], duringText: 'Imported goods cost more the day the waivers end.',
         blurb: '₦1.6tn a year in import waivers, mostly to people who fund parties.',
         start: [['bloc.party', -6]],
         done: [['nation.fiscalSpace', 0.5], ['bonus.fiscal', 0.025], ['bloc.establishment', -2]],
@@ -168,6 +173,7 @@ const RAW: Track[] = [
     milestones: [
       {
         id: 'v1', name: 'Payroll audit', pc: 8, naira: 0, months: 4,
+        during: [['pressure.wageGrievance', 5.0], ['approval', -0.5]], duringText: 'Real workers are struck off with the ghosts, and wait months to be restored.',
         blurb: 'Biometric verification of every federal worker. Estimates of ghost workers start at 60,000.',
         start: [['bloc.villa', -3], ['bloc.establishment', -3]],
         done: [['nation.capacity', 5], ['nation.fiscalSpace', 0.3], ['bonus.fiscal', 0.01]],
@@ -176,6 +182,7 @@ const RAW: Track[] = [
       },
       {
         id: 'v2', name: 'Merit recruitment and pay reform', pc: 8, naira: 0.3, months: 8,
+        during: [['bloc.party', -1.0], ['pressure.wageGrievance', 2.0]], duringText: 'Party loyalists lose the jobs they were promised.',
         blurb: 'Hire by examination. Pay the core service enough that the best stop leaving.',
         done: [['nation.capacity', 9], ['bonus.capacity', 0.05]],
         news: ['CIVIL SERVICE HIRES BY EXAM FOR FIRST TIME IN 30 YEARS', 'NO CONNECTION, NO PROBLEM: DEM HIRE BY EXAM'],
@@ -226,6 +233,7 @@ const RAW: Track[] = [
       },
       {
         id: 'f4', name: 'Open the borders to staples when prices spike', pc: 12, naira: 0, months: 2,
+        during: [['zone.NC.approval', -2.5], ['zone.NW.approval', -2.5]], duringText: 'Farm-gate prices collapse while imported grain floods in.',
         blurb: 'An automatic rule. The licence-holders who profit from scarcity fund the party.',
         start: [['bloc.party', -5], ['bloc.establishment', -3]],
         done: [['bonus.inflation', -2], ['bloc.street', 5], ['approval', 2]],
@@ -337,6 +345,7 @@ const CAPSTONES: Record<string, Track['milestones'][number]> = {
   },
   works: {
     id: 'w5', name: 'A rail backbone linking all six zones', pc: 8, naira: 1.5, months: 20,
+    during: [['bloc.street', -0.375]], duringText: 'Land is taken and homes demolished along the route.',
     blurb: 'Standard gauge, north to south and east to west. The thing every government since independence has announced.',
     done: [['nation.jobs', 12], ['approval', 5], ['bonus.jobs', 0.05], ['bonus.fiscal', -0.02], ['bonus.inflation', -1]],
     news: ['RAIL NOW LINKS ALL SIX GEOPOLITICAL ZONES', 'TRAIN DON REACH EVERYWHERE. E SHOCK US'],

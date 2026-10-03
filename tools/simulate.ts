@@ -23,7 +23,7 @@ import { applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canV
 import { canFocus } from '../engine/security';
 import { fiscalFlow } from '../engine/treasury';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
-import { ORDER_BY_ID } from '../content/agenda';
+import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
 import type { Choice, Fx, GameState, ZoneId } from '../engine/types';
 import { ZONES, approval, delegates, hardship, test } from '../engine/vars';
 import { traceFor } from '../engine/view';
@@ -33,6 +33,8 @@ interface Bot {
   /** Imperfect reformers: priorities and reform order drawn at random. */
   shuffle?: boolean;
   /** Imperfect reformers: never ends the petrol subsidy. */
+  /** Times the reforms that hurt while under way: early in a term or after re-election, one at a time. */
+  paces?: boolean;
   keepsSubsidy?: boolean;
   name: string;
   finance: number;
@@ -59,13 +61,13 @@ const campaigning = (s: GameState) => canAct(s, 'rally').ok;
 const BOTS: Bot[] = [
   { name: 'Random', finance: 2, w: {}, purse: true, pcAversion: 0, act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : ['tour', lowestZone(s)]) },
   {
-    name: 'Populist', finance: 1, purse: false, pcAversion: 0.4, tracks: ['power', 'food', 'security', 'people'], reforms: 'free',
+    name: 'Populist', paces: true, finance: 1, purse: false, pcAversion: 0.4, tracks: ['power', 'food', 'security', 'people'], reforms: 'free',
     budget: [80, 2, 2, 4, 2, 0, 2], pays: ['pensions'], courts: true,
     w: { approval: 3, 'bloc.street': 1.5, 'bloc.party': 0.6, 'pressure.wageGrievance': -0.3, 'nation.petrolPrice': -0.02, 'pressure.scandalHeat': -0.4, 'nation.integrity': 0.5 },
     act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : ['tour', lowestZone(s)]),
   },
   {
-    name: 'Reformer', finance: 0, purse: false, pcAversion: 0.05, tracks: ['treasury', 'power', 'service', 'industry'], reforms: 'all', bets: ['diaspora', 'creative', 'cng', 'export_power', 'hub', 'buyback'],
+    name: 'Reformer', paces: true, finance: 0, purse: false, pcAversion: 0.05, tracks: ['treasury', 'power', 'service', 'industry'], reforms: 'all', bets: ['diaspora', 'creative', 'cng', 'export_power', 'hub', 'buyback'],
     budget: [70, 2, 3, 2, 1, 0, 2], pays: ['gas', 'pensions', 'contractors', 'ways', 'eurobond'], saves: true,
     w: {
       'nation.integrity': 1.5, 'nation.capacity': 2, 'nation.power': 1.5, 'nation.security': 1.5, 'nation.fiscalSpace': 8,
@@ -74,14 +76,14 @@ const BOTS: Bot[] = [
     act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : s.blocs.party < 48 ? ['convene'] : s.pc > 45 && s.pressures.scandalHeat > 35 && canAct(s, 'audit').ok ? ['audit'] : ['tour', lowestZone(s)]),
   },
   {
-    name: 'Institutionalist', finance: 0, purse: false, pcAversion: 0.05, tracks: ['clean', 'service', 'security', 'people'], reforms: 'all', bets: ['loot', 'census', 'borders'],
+    name: 'Institutionalist', paces: true, finance: 0, purse: false, pcAversion: 0.05, tracks: ['clean', 'service', 'security', 'people'], reforms: 'all', bets: ['loot', 'census', 'borders'],
     budget: [60, 3, 2, 2, 1, 0, 0], pays: ['pensions', 'contractors', 'gas', 'ways'], saves: true,
     w: { 'nation.integrity': 3, 'nation.capacity': 3, 'bloc.press': 0.3, approval: 1, 'counter.committees': -3 },
     // Clean, but not naive: in the year before the primary the party comes first.
     act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : termTurnOf(s.turn) >= 24 && termTurnOf(s.turn) <= 38 && s.blocs.party < 55 ? ['convene'] : s.pc > 30 && canAct(s, 'audit').ok ? ['audit'] : s.blocs.party < 48 ? ['convene'] : ['tour', lowestZone(s)]),
   },
   {
-    name: 'Machine', finance: 1, purse: false, pcAversion: 0.2, tracks: ['power', 'security', 'food', 'works'], reforms: 'free',
+    name: 'Machine', paces: true, finance: 1, purse: false, pcAversion: 0.2, tracks: ['power', 'security', 'food', 'works'], reforms: 'free',
     budget: [80, 2, 2, 2, 1, 0, 5], pays: ['gas'], courts: true,
     w: { 'bloc.party': 2, 'bloc.establishment': 1, 'bloc.villa': 1, pc: 1, approval: 0.5 },
     act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : s.pressures.scandalHeat > 55 && canAct(s, 'audit').ok ? ['audit'] : ['convene']),
@@ -103,7 +105,7 @@ const BOTS: Bot[] = [
 {
   const flawless = BOTS.find((b) => b.name === 'Reformer')!;
   BOTS.push(
-    { ...flawless, name: 'Reformer, any order', shuffle: true },
+    { ...flawless, name: 'Reformer, any order', shuffle: true, paces: false },
     { ...flawless, name: 'Reformer, keeps subsidy', keepsSubsidy: true },
     { ...flawless, name: 'Reformer, ignores debts', pays: [], saves: false },
   );
@@ -207,6 +209,11 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       for (const id of order) {
         const next = TRACKS.find((t) => t.id === id)!.milestones.find((m) => !s.agenda.done.includes(m.id) && !s.agenda.active.some((x) => x.id === m.id) && !(bot.reforms === 'all' && m.popular));
         if (!next) continue;
+        if (bot.paces && next.during) {
+          const early = s.term > 1 || termTurnOf(s.turn) <= 14;
+          const hurting = s.agenda.active.filter((a) => MILESTONE_BY_ID[a.id]?.m.during).length;
+          if (!early || hurting >= 1) continue;
+        }
         const chk = canLaunch(s, next.id);
         if (bot.reforms === 'grease' && !chk.ok && chk.grease) { s = applyAction(s, { type: 'LAUNCH', id: next.id, grease: true }); continue; }
         if (!chk.ok) continue;

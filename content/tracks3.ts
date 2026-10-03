@@ -28,6 +28,7 @@ export const LOOSE_TRACKS: Track[] = [
       },
       {
         id: 'r3', name: 'Resource control: producing states keep a quarter', pc: 12, naira: 0, months: 7, ...SENATE,
+        during: [['zone.NW.approval', -0.75], ['zone.NE.approval', -0.75]], duringText: 'The north reads it as oil money leaving.',
         blurb: 'Derivation rises from 13% to 25%. It may be the only thing that quiets the creeks for good. It comes out of the centre\'s share and the North\'s, and the North will say so.',
         start: [['zone.NW.approval', -3], ['zone.NE.approval', -3]],
         done: [['theatre.SS', -12], ['zone.SS.approval', 10], ['person.gov_ss', 15], ['bonus.fiscal', -0.035], ['zone.NW.approval', -4], ['zone.NE.approval', -4], ['person.gov_nw', -8]],
@@ -115,6 +116,7 @@ export const LOOSE_TRACKS: Track[] = [
       },
       {
         id: 'o3', name: 'Ranching law and grazing reserves', pc: 12, naira: 0.6, months: 10, ...SENATE,
+        during: [['theatre.NC', 0.5], ['theatre.NW', 0.5]], duringText: 'Herders are moved off routes they have used for generations, and some of them fight.',
         blurb: 'Open grazing ends; ranches are built and paid for. It goes to the root of the killing in the farm belt. Herders\' leaders and half the northern caucus will call it an attack on a way of life.',
         start: [['zone.NW.approval', -4], ['person.gov_nw', -8]],
         done: [['theatre.NC', -14], ['zone.NC.approval', 8], ['person.gov_nc', 12], ['bonus.inflation', -1], ['zone.NW.approval', -3], ['nation.jobs', 3]],
@@ -166,6 +168,7 @@ export const LOOSE_TRACKS: Track[] = [
       },
       {
         id: 'g4', name: 'Sell the state\'s shares in the oil joint ventures', pc: 8, naira: 0, months: 6,
+        during: [['bloc.street', -0.75], ['bloc.press', -0.75]], duringText: '"Selling the family silver" runs every week.',
         blurb: 'About ₦3.5tn, in cash, in your term. In exchange the Treasury gives up that share of oil revenue in every term after it. Whether this is prudence or pawning depends entirely on what you do with the money.',
         start: [['bloc.street', -3]],
         done: [['nation.fiscalSpace', 3.5], ['bonus.fiscal', -0.045], ['bloc.establishment', 6], ['bloc.street', -4], ['tycoon.ty_bank', 5]],

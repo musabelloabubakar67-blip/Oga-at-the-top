@@ -153,7 +153,8 @@ for (const o of ORDERS) {
 const milestones = new Set(TRACKS.flatMap((t) => t.milestones.map((m) => m.id)));
 for (const t of TRACKS) for (const m of t.milestones) {
   const ref = { id: `reform.${m.id}` };
-  checkCond(ref, m.needs); checkFx(ref, m.start); checkFx(ref, m.done);
+  checkCond(ref, m.needs); checkFx(ref, m.start); checkFx(ref, m.done); checkFx(ref, m.during);
+  if (m.during?.length && !m.duringText) err(ref, 'a reform that hurts while under way must say why (duringText)');
 }
 for (const v of VENTURES) {
   const ref = { id: `bet.${v.id}` };

@@ -320,6 +320,10 @@ export interface Milestone {
   popular?: boolean;
   /** Political cost paid when the reform is launched. */
   start?: Fx[];
+  /** What people feel every month while it is under way, before it pays. Shown before launching. */
+  during?: Fx[];
+  /** Why it hurts while under way, in a line. */
+  duringText?: string;
   /** What it delivers when it is finished. */
   done: Fx[];
   /** Facts about the world that become true when it is delivered. */
