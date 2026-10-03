@@ -30,6 +30,10 @@ import { traceFor } from '../engine/view';
 
 type Weights = Record<string, number>;
 interface Bot {
+  /** Imperfect reformers: priorities and reform order drawn at random. */
+  shuffle?: boolean;
+  /** Imperfect reformers: never ends the petrol subsidy. */
+  keepsSubsidy?: boolean;
   name: string;
   finance: number;
   w: Weights;
@@ -95,6 +99,17 @@ const BOTS: Bot[] = [
   },
 ];
 
+// The flawless reformer's script with one thing done badly, to measure how narrow the reformer's path is.
+{
+  const flawless = BOTS.find((b) => b.name === 'Reformer')!;
+  BOTS.push(
+    { ...flawless, name: 'Reformer, any order', shuffle: true },
+    { ...flawless, name: 'Reformer, keeps subsidy', keepsSubsidy: true },
+    { ...flawless, name: 'Reformer, ignores debts', pays: [], saves: false },
+  );
+}
+const shuffled = <T,>(xs: T[]): T[] => xs.map((x) => [Math.random(), x] as const).sort((a, b) => a[0] - b[0]).map(([, x]) => x);
+
 function score(bot: Bot, c: Choice, s: GameState): number {
   // Each outcome weighted by how likely it is, in the order the engine tries them.
   let left = 1;
@@ -112,6 +127,8 @@ function score(bot: Bot, c: Choice, s: GameState): number {
   }
   // When nothing is picked, the engine falls back to the last outcome.
   if (left > 0) value(c.outcomes[c.outcomes.length - 1], left);
+  // The reformer who keeps the subsidy refuses every file that would end it.
+  if (bot.keepsSubsidy && c.outcomes.some((x) => x.flags?.['policy.subsidy'] === 'removed')) v -= 500;
   v -= (c.pc ?? 0) * bot.pcAversion;
   if (c.purse && bot.name === 'Kleptocrat') v += 12;
   if (c.naira) v += (bot.w['nation.fiscalSpace'] ?? 0) * -c.naira;
@@ -127,7 +144,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
   let s = newGame({
     seed, name: 'Tester', party: 'Progressive Stakeholders Congress', partyShort: 'PSC', home: 'KN',
     background: 'governor', address: 'sir', finance: FINANCE_CANDIDATES[bot.finance].name,
-    priorities: bot.tracks ?? ['power', 'security', 'food', 'works'], scenario: opts.scenario,
+    priorities: bot.shuffle ? shuffled(TRACKS.filter((t) => !t.loose).map((t) => t.id)).slice(0, 4) : bot.tracks ?? ['power', 'security', 'food', 'works'], scenario: opts.scenario,
   }, opts.prev);
   let guard = 0;
   while (s.phase !== 'verdict' && guard++ < 2000) {
@@ -185,7 +202,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       }
     }
     if (bot.reforms) {
-      const order = bot.reforms === 'all' ? [...s.agenda.tracks, ...TRACKS.map((t) => t.id).filter((id) => !s.agenda.tracks.includes(id))] : s.agenda.tracks;
+      const ranked = bot.reforms === 'all' ? [...s.agenda.tracks, ...TRACKS.map((t) => t.id).filter((id) => !s.agenda.tracks.includes(id))] : s.agenda.tracks;
+      const order = bot.shuffle ? shuffled(ranked) : ranked;
       for (const id of order) {
         const next = TRACKS.find((t) => t.id === id)!.milestones.find((m) => !s.agenda.done.includes(m.id) && !s.agenda.active.some((x) => x.id === m.id) && !(bot.reforms === 'all' && m.popular));
         if (!next) continue;
@@ -213,7 +231,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       }
     }
     // The careful ones undo a standing policy that is costing the country, when they can afford the politics.
-    if (!skip('rep') && (bot.name === 'Institutionalist' || bot.name === 'Reformer')) {
+    if (!skip('rep') && (bot.name === 'Institutionalist' || bot.name.startsWith('Reformer'))) {
       for (const id of activePolicies(s)) {
         const p = policyNow(s, id)!;
         const hurts = p.fiscal < -0.015 || p.inflation > 1 || p.fx.some(([t, v]) => t === 'nation.jobs' && v < 0);
@@ -225,7 +243,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     if (!skip('relief') && bot.name === 'Machine' && termTurnOf(s.turn) >= 36 && orderOk(s, 'relief') && s.nation.fiscalSpace > 0.6) s = applyAction(s, { type: 'ORDER', id: 'relief', level: 1 });
     if (!skip('bond') && (bot.name === 'Kleptocrat' || bot.name === 'Machine') && s.nation.fiscalSpace < 0.3 && s.nation.debt < 80 && termTurnOf(s.turn) >= 30 && orderOk(s, 'bond')) s = applyAction(s, { type: 'ORDER', id: 'bond', level: 1 });
     if (!skip('vat') && bot.name === 'Institutionalist' && termTurnOf(s.turn) <= 20 && fiscalFlow(s).total < 0 && orderOk(s, 'tax')) s = applyAction(s, { type: 'ORDER', id: 'tax', level: 0 });
-    if (bot.name === 'Reformer' && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
+    if (bot.name.startsWith('Reformer') && !bot.keepsSubsidy && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
     if (bot.reforms === 'all' && s.nation.fiscalSpace > 4) s = applyAction(s, { type: 'ORDER', id: 'paydown' });
     // Anyone governing watches the worst theatre: forces go there, and an offensive when one is available.
     if (bot.name !== 'Do-nothing' && bot.name !== 'Random') {
@@ -253,7 +271,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         approval: approval(s), hardship: hardship(s), party: s.blocs.party, street: s.blocs.street, chest: s.campaign.chest, scandal: s.pressures.scandalHeat,
         rival: Math.max(...Object.values(s.opposition)), governors: ZONES.reduce((a, z) => a + governorEffect(s, z), 0) / 6, money: moneyEffect(s),
         treasury: s.nation.fiscalSpace, debt: s.nation.debt, arrears: s.debts.gas + s.debts.contractors + s.debts.pensions, inflation: s.nation.inflation,
-        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, united: s.flags['opposition.united'] ? 1 : 0, broad: s.flags['opposition.broad'] ? 1 : 0, integrity: s.nation.integrity, merger: s.fired['opposition.unites'] ? 1 : 0, delegates: delegates(s), security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
+        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, united: s.flags['opposition.united'] ? 1 : 0, broad: s.flags['opposition.broad'] ? 1 : 0, subsidyGone: s.flags['policy.subsidy'] === 'removed' ? 1 : 0, integrity: s.nation.integrity, merger: s.fired['opposition.unites'] ? 1 : 0, delegates: delegates(s), security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
       });
     }
     s = applyAction(s, { type: 'END_MONTH' });
