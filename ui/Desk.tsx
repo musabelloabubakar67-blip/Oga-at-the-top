@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { Inline, Overlay, Preview, usePreview } from './shell';
 import { EVENTS } from '../content';
 import { ORDER_BY_ID, TRACKS, type Order } from '../content/agenda';
 import { THEATRES } from '../content/theatres';
@@ -19,6 +20,9 @@ import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } f
 import { forecastChallenge } from '../engine/courts';
 import { assetFiscal, assetFx, assetPerformance, assets, canSetManager, local } from '../engine/places';
 import { runElection } from '../engine/election';
+import { upcoming } from '../engine/upcoming';
+import { bench } from '../engine/courts';
+import { StateMap } from './StateMap';
 import { grievances, recentUses, targetName, targetsFor, wearFactor, type TargetKind } from '../engine/targets';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -26,6 +30,7 @@ import { capitalIncome, movesTotal } from '../engine/capital';
 import { describe } from '../engine/effects';
 import { verdict } from '../engine/legacy';
 import {
+  applyAction,
   ACTION_COST, DRAWER_COST, agendaSlots, aidedFx, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
   favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderEcon, orderLevel, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
   standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
@@ -57,13 +62,7 @@ function nextFixture(s: GameState): string {
 }
 
 function Modal({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
-  return (
-    <div className="fade-in fixed inset-0 z-30 overflow-y-auto bg-pit/80 px-3 py-6 sm:py-10" onClick={onClose} role="dialog">
-      <div className={`slide-in mx-auto ${wide ? 'max-w-3xl' : 'max-w-xl'}`} onClick={(e) => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  );
+  return <Overlay onClose={onClose} width={wide ? 'max-w-3xl' : 'max-w-xl'}>{children}</Overlay>;
 }
 
 function Chip({ children, tone }: { children: React.ReactNode; tone?: 'alarm' }) {
@@ -385,10 +384,11 @@ function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (targe
   const now: Fx[] = [...(out.fx ?? [])];
   if (lv.naira) now.push(['nation.fiscalSpace', -lv.naira]);
   const uses = o.hostile ? recentUses(s, o.id) : 0;
-  const remembers = o.hostile && target && o.target !== 'paper' && o.target !== 'zone' && o.target !== 'theatre';
+  const remembers = o.hostile && target && o.target !== 'paper' && o.target !== 'zone' && o.target !== 'theatre' && o.target !== 'state';
+  const hover = usePreview({ type: 'ORDER', id: o.id, target, level: o.levels ? lv.index : undefined }, can.ok);
   const card = (
     <button
-      disabled={!can.ok} onClick={() => onUse(target, o.levels ? lv.index : undefined)}
+      disabled={!can.ok} onClick={() => onUse(target, o.levels ? lv.index : undefined)} {...hover}
       className={`w-full border px-4 py-3 text-left ${can.ok ? 'border-ink/25 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-50'}`}
     >
       <span className="flex flex-wrap items-baseline justify-between gap-x-3">
@@ -535,6 +535,10 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
   const [pick, setPick] = useState<ActionId | null>(null);
   const left = movesLeft(s);
   const done = (a: Action) => { dispatch(a); onClose(); };
+  const inline = useContext(Inline);
+  const [only, setOnly] = useState<'all' | 'aimed' | 'now'>('all');
+  const keep = (o: Order) => only === 'all' || (only === 'aimed' ? !!o.target : canOrder(s, o).ok);
+  const list = inline ? 'mt-2 grid items-start gap-2 xl:grid-cols-2' : 'mt-2 space-y-2';
 
   return (
     <Modal onClose={onClose} wide>
@@ -547,16 +551,23 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
           <p className="label text-ink-soft">{left} of {movesTotal(s)} moves left this month</p>
         </div>
 
-        <Institutions s={s} dispatch={dispatch} left={left} />
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="label text-ink-soft">Show</span>
+          {([['all', 'Everything'], ['aimed', 'Aimed at someone'], ['now', 'What I can do now']] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setOnly(k)} className={`border px-2 py-0.5 ${only === k ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>{label}</button>
+          ))}
+          <span className="text-ink-soft">Orders aimed at a person are also on their card under Power.</span>
+        </div>
+
 
         <section className="mt-6">
           <h3 className="label border-b border-honour pb-1 text-state">Open to you now · these pass</h3>
           <p className="mt-1 text-sm text-ink-soft">Options that exist because of the moment: the season, the state of the country, the calendar, your rivals. Each lapses when its moment does.</p>
           {s.offers.length === 0 && <p className="mt-2 font-serif italic text-ink-soft">Nothing unusual is open this month.</p>}
-          <ul className="mt-2 space-y-2">
+          <ul className={list}>
             {s.offers.map((x) => {
               const o = ORDER_BY_ID[x.id];
-              if (!o) return null;
+              if (!o || !keep(o)) return null;
               const months = x.until - s.turn;
               return (
                 <li key={x.id}>
@@ -572,11 +583,11 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
         {GROUPS.map(([group, title]) => (
           <section key={group} className="mt-3">
             <h3 className="label border-b rule pb-1 text-ink-soft">{title}</h3>
-            <ul className="mt-2 space-y-2">
-              {standingOrders(s).filter((o) => o.group === group).map((o) => (
+            <ul className={list}>
+              {standingOrders(s).filter((o) => o.group === group && keep(o)).map((o) => (
                 <li key={o.id}><OrderCard s={s} o={o} onUse={(t, l) => done({ type: 'ORDER', id: o.id, target: t, level: l })} /></li>
               ))}
-              {group === 'politics' && financeAlternatives(s).map((c) => {
+              {group === 'politics' && only === 'all' && financeAlternatives(s).map((c) => {
                 const ok = left > 0 && s.pc >= 10;
                 return (
                   <li key={c.name}>
@@ -628,6 +639,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
             })}
           </ul>
         </section>
+        {only === 'all' && <Institutions s={s} dispatch={dispatch} left={left} />}
       </div>
     </Modal>
   );
@@ -1076,299 +1088,339 @@ function Delta({ d, upIsGood, unit }: { d: number; upIsGood: boolean; unit: stri
   return <span className={isGood ? good(true) : bad(true)}>{d > 0 ? '▲' : '▼'} {n}</span>;
 }
 
+type View = 'desk' | 'orders' | 'reforms' | 'power' | 'country' | 'treasury';
+
+const NAV: [View, string, string][] = [
+  ['desk', 'The desk', 'What happened, what needs deciding'],
+  ['orders', 'Orders', 'The powers of the office'],
+  ['reforms', 'Reforms and bets', 'The agenda and big bets'],
+  ['power', 'Power', 'People, money, courts, rivals'],
+  ['country', 'The country', 'Map, states, security, scorecard'],
+  ['treasury', 'The Treasury', 'What is owed and saved'],
+];
+
 export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch; onQuit: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
-  const [panel, setPanel] = useState<'powers' | 'people' | 'drawer' | 'archive' | 'paper' | 'nation' | 'treasury' | 'owed' | 'budget' | 'favours' | null>(null);
+  const [view, setView] = useState<View>('desk');
+  const [powerTab, setPowerTab] = useState<string | undefined>(undefined);
+  const [panel, setPanel] = useState<'drawer' | 'archive' | 'paper' | 'budget' | null>(null);
+  const [preview, setPreview] = useState<Action | null>(null);
 
   const lead = s.desk.lead;
   const leadEvent = eventOf(s, lead) ?? null;
   const stop = blocked(s);
-  const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
-  const owedToYou = s.favours.filter((f) => f.dir === 'owed').length;
-  const youOwe = s.favours.filter((f) => f.dir === 'owing').length;
-  const gap = oilGap(s);
-  const tt = termTurnOf(s.turn);
-  const app = Math.round(approval(s));
-  const appDelta = app - Math.round(s.approvalPrev);
   const canEnd = !stop;
-  const unanswered = s.desk.minors.filter((m) => !m.resolved).length;
+  const unanswered = s.desk.minors.filter((m) => !m.resolved).length + (lead && !lead.resolved ? 1 : 0);
   const drawerVisible = !!s.flags['drawer.open'] && !s.flags['drawer.sealed'];
   const left = movesLeft(s);
-  const out = outlook(s);
-  const showOutlook = s.term === 1 && !s.flags['ticket.lost'] && !s.election;
-
   const openItem = [lead, ...s.desk.minors].find((i) => i && i.eventId === open) ?? null;
   const openEvent = eventOf(s, openItem) ?? null;
+  // Where the action being pointed at would leave things. Orders and people moves are deterministic enough to show.
+  let next: GameState | null = null;
+  try { next = preview ? applyAction(s, preview) : null; } catch { next = null; }
+  if (next && next.lastAction === s.lastAction) next = null;
+  const coming = upcoming(s);
+  const go = (v: View, tab?: string) => { setView(v); if (v === 'power') setPowerTab(tab); setPreview(null); window.scrollTo({ top: 0 }); };
+  const badge: Partial<Record<View, number>> = {
+    desk: unanswered,
+    orders: s.offers.filter((x) => x.since === s.turn).length,
+    power: bench(s).seats.filter((j) => !j).length,
+    treasury: s.budget.due ? 1 : 0,
+  };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ivory/10 pb-4">
-        <div>
-          <p className="label text-honour">The Presidency · President {s.president.name}</p>
-          <h1 className="mt-1 font-serif text-3xl text-ivory sm:text-4xl">{dateLabel(s.turn, s.startYear)}</h1>
-        </div>
-        <div className="text-right">
-          <p className="label text-mute">Month {tt} of 48 · {s.term === 1 ? 'First' : 'Second'} term</p>
-          <p className="label mt-1 text-ivory/80">{nextFixture(s)}</p>
-        </div>
-      </header>
-
-      <div className="mt-3 grid grid-cols-4 gap-2 border-b border-ivory/10 pb-3 lg:hidden">
-        {[
-          ['Approval', `${app}%`],
-          ['Capital', `${Math.round(s.pc)}`],
-          ['Treasury', s.nation.fiscalSpace <= 0.01 ? 'Empty' : `₦${s.nation.fiscalSpace.toFixed(1)}tn`],
-          ['Moves', `${left}`],
-        ].map(([k, v]) => (
-          <div key={k}><p className="label text-mute">{k}</p><p className="font-serif text-xl text-ivory">{v}</p></div>
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_310px]">
-        <div className="min-w-0 space-y-6">
-          <section className="border-l-2 border-honour/60 pl-4">
-            <p className="font-serif text-lg italic leading-snug text-ivory/90">“{s.desk.note}”</p>
-            <p className="label mt-1.5 text-mute">{s.chars.cos?.name}, Chief of Staff</p>
-          </section>
-
-          {s.report.length > 0 && (
-            <section>
-              <p className="label text-mute">Since last month</p>
-              <ul className="mt-2 space-y-2">
-                {s.report.map((r, i) => (
-                  <li key={i} className={`border-l-2 bg-[#1a1d20] px-4 py-3 ${r.kind === 'reform' ? 'border-state-lit' : r.kind === 'failure' ? 'border-alarm' : 'border-honour'}`}>
-                    <p className="font-serif text-lg leading-snug text-ivory">{r.title}</p>
-                    {r.cause && <p className="text-sm text-mute">{r.kind === 'consequence' ? `Because you: ${r.cause}` : r.cause}</p>}
-                    {r.text && <p className="mt-1 font-serif leading-snug text-ivory/80">{r.text}</p>}
-                    <div className="mt-1.5"><Changes changes={r.changes} dark /></div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section>
-            <p className="label text-mute">On the desk</p>
-            {lead && leadEvent ? (
-              <button onClick={() => setOpen(lead.eventId)} className="paper slide-in mt-2 block w-full p-5 text-left transition-transform hover:-translate-y-0.5 sm:p-6">
-                <span className="flex items-start justify-between gap-4">
-                  <span className="label text-state">{fill(s, leadEvent.office)}</span>
-                  {leadEvent.stamp && <span className={`stamp text-[10px] ${leadEvent.stamp === 'ROUTINE' ? 'text-ink-soft' : 'text-alarm'}`}>{leadEvent.stamp}</span>}
-                </span>
-                <span className="mt-3 block font-serif text-2xl leading-tight">{fill(s, leadEvent.title)}</span>
-                <span className="label mt-3 block text-ink-soft">
-                  {lead.resolved ? `Decided · ${lead.resolved.label}` : 'Open the file →'}
-                </span>
-              </button>
-            ) : (
-              <p className="mt-2 border border-dashed border-ivory/15 p-5 font-serif text-lg italic text-ivory/70">
-                No crisis this month. The time is yours: use it.
-              </p>
-            )}
-          </section>
-
-          {s.budget.due && (
-            <button onClick={() => setPanel('budget')} className="paper slide-in block w-full p-5 text-left transition-transform hover:-translate-y-0.5 sm:p-6">
-              <span className="flex items-start justify-between gap-4">
-                <span className="label text-state">Budget Office of the Federation</span>
-                <span className="stamp text-[10px] text-alarm">FOR ASSENT</span>
-              </span>
-              <span className="mt-3 block font-serif text-2xl leading-tight">The Appropriation Bill, {yearOf(s.turn, s.startYear) + 1}</span>
-              <span className="mt-1 block text-sm text-ink-soft">What will oil sell for next year, and where does the money go? Nothing is released until you sign.</span>
-              <span className="label mt-3 block text-ink-soft">Open the bill →</span>
-            </button>
-          )}
-
-          {s.desk.minors.length > 0 && (
-            <section>
-              <p className="label text-mute">The phone</p>
-              <ul className="mt-2 space-y-2">
-                {s.desk.minors.map((m) => {
-                  const e = eventOf(s, m);
-                  if (!e) return null;
-                  return (
-                    <li key={m.eventId}>
-                      <button onClick={() => setOpen(m.eventId)} className="flex w-full items-center gap-3 rounded-2xl border border-ivory/10 bg-[#1c1f22] px-4 py-3 text-left hover:border-ivory/30">
-                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${m.resolved ? 'bg-ivory/20' : 'bg-state-lit'}`} />
-                        <span className="min-w-0">
-                          <span className="label block text-mute">{fill(s, e.from ?? 'Message')}</span>
-                          <span className="block truncate font-serif text-ivory">{fill(s, e.title)}</span>
-                        </span>
-                        <span className="label ml-auto shrink-0 text-mute">{m.resolved ? 'Replied' : 'Unread'}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {activeShocks(s).map((x) => (
-            <section key={x.def.id} className={`border p-4 ${x.def.good ? 'border-state-lit/40 bg-state/5' : 'border-alarm/40 bg-alarm/5'}`}>
-              <p className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-serif text-xl text-ivory">{x.def.name}</span>
-                <span className="label text-mute">{x.left <= 1 ? 'Last month' : `${x.left} months left`}</span>
-              </p>
-              <p className={`mt-1 text-sm ${x.def.good ? 'text-state-lit' : 'text-alarm'}`}>
-                {x.def.good ? `${Math.round(x.factor * 100)}% of it is being caught.` : `${Math.round(x.factor * 100)}% of it is being felt.`}
-              </p>
-              <span className="mt-1 block"><Expected items={describe(x.fx)} dark label="Each month" /></span>
-              <ul className="mt-1.5 space-y-0.5 text-[13px]">
-                {x.met.map((g) => <li key={g.label} className="text-state-lit">✓ {g.label}</li>)}
-                {x.missing.map((g) => <li key={g.label} className="text-ivory/50">✗ {g.label}</li>)}
-              </ul>
-            </section>
-          ))}
-
-          <section>
-            <p className="label text-mute">Executive powers</p>
-            <button onClick={() => setPanel('powers')} className="mt-2 flex w-full items-center justify-between gap-4 border border-honour/40 bg-honour/5 p-4 text-left hover:bg-honour/10">
-              <span>
-                <span className="block font-serif text-xl text-ivory">Use the powers of the office</span>
-                <span className="mt-0.5 block text-sm text-mute">
-                  {s.offers.length} open this moment{s.offers.some((x) => x.since === s.turn) ? `, ${s.offers.filter((x) => x.since === s.turn).length} new` : ''}: {s.offers.slice(0, 2).map((x) => ORDER_BY_ID[x.id]?.name).filter(Boolean).join('; ')}{s.offers.length > 2 ? '…' : ''}
-                </span>
-              </span>
-              <span className="shrink-0 text-right">
-                <span className="block font-serif text-2xl text-honour">{'●'.repeat(left)}<span className="text-ivory/20">{'●'.repeat(Math.max(0, movesTotal(s) - left))}</span></span>
-                <span className="label text-mute">{left} {left === 1 ? 'move' : 'moves'} left</span>
-              </span>
-            </button>
-            <button onClick={() => setPanel('people')} className="mt-2 flex w-full items-center justify-between gap-4 border border-ivory/15 p-4 text-left hover:border-honour/60">
-              <span>
-                <span className="block font-serif text-xl text-ivory">Your people, the money and the opposition</span>
-                <span className="mt-0.5 block text-sm text-mute">
-                  {PEOPLE.filter((p) => p.group === 'governor' && standing(s, p.id) >= 58).length} of 6 governors with you · Senate: {senateLine(s).toLowerCase()} · likely challenger: {RIVAL_BY_ID[strongestRival(s).id].name}
-                </span>
-                <span className="mt-0.5 block text-sm">
-                  <span className={owedToYou ? 'text-[#7fc4a0]' : 'text-mute'}>{owedToYou} {owedToYou === 1 ? 'favour' : 'favours'} owed to you</span>
-                  <span className="text-mute"> · </span>
-                  <span className={youOwe ? 'text-[#e08a7c]' : 'text-mute'}>you owe {youOwe}</span>
-                </span>
-              </span>
-              <span className="label shrink-0 text-honour">Politics →</span>
-            </button>
-            <button onClick={() => setPanel('treasury')} className="mt-2 flex w-full items-center justify-between gap-4 border border-ivory/15 p-4 text-left hover:border-honour/60">
-              <span>
-                <span className="block font-serif text-xl text-ivory">The Treasury: what is owed and what is saved</span>
-                <span className="mt-0.5 block text-sm text-mute">
-                  {s.nation.fiscalSpace <= 0.01 ? 'Empty' : naira(s.nation.fiscalSpace)} in the account · debt service {Math.round(s.nation.debt)}% · <span className={arrears > 1 ? 'text-[#e08a7c]' : ''}>{naira(arrears)} unpaid</span> · {naira(s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth)} saved
-                </span>
-                <span className="mt-0.5 block text-sm text-mute">
-                  Oil ${Math.round(s.oil.price)} against a budget of ${s.budget.benchmark}: <span className={gap >= 0 ? 'text-[#7fc4a0]' : 'text-[#e08a7c]'}>{gap >= 0 ? 'the surplus is being saved' : 'the gap comes out of the treasury'}</span>
-                </span>
-              </span>
-              <span className="label shrink-0 text-honour">The books →</span>
-            </button>
-            {s.lastAction && (
-              <div className="fade-in mt-2 border border-ivory/10 p-4">
-                <p className="font-serif leading-relaxed text-ivory/85">{s.lastAction.text}</p>
-                <div className="mt-2"><Changes changes={s.lastAction.changes} dark /></div>
-              </div>
-            )}
-          </section>
-
-          <Agenda s={s} dispatch={dispatch} />
-        </div>
-
-        <aside className="space-y-5 lg:border-l lg:border-ivory/10 lg:pl-6">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-            <div>
-              <p className="label text-mute">Approve of the President</p>
-              <p className="font-serif text-5xl text-ivory">{app}%
-                <span className="ml-2 align-middle text-sm"><Delta d={appDelta} upIsGood unit="" /></span>
-              </p>
-              {showOutlook && <p className="label mt-1 text-ivory/75" title="An estimate of the margin today. The mood on polling day can move it by up to twelve points, usually by fewer than five.">Re-election: {out.word}</p>}
-            </div>
-            <div>
-              <p className="label text-mute">Political capital</p>
-              <p className="font-serif text-3xl text-ivory">{Math.round(s.pc)}
-                <span className="ml-2 align-middle text-sm"><Delta d={s.pc - (s.prev.pc ?? s.pc)} upIsGood unit="" /></span>
-              </p>
-              <div className="mt-1 h-1 bg-ivory/10"><div className="h-1 bg-honour transition-all duration-500" style={{ width: `${s.pc}%` }} /></div>
-              <CapitalIncome s={s} />
-            </div>
+    <Preview.Provider value={{ action: preview, set: setPreview }}>
+      <div className="flex min-h-screen">
+        <nav className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-ivory/10 bg-pit/60 px-4 py-5 lg:flex">
+          <p className="label text-honour">The Presidency</p>
+          <p className="mt-1 font-serif text-xl leading-tight text-ivory">President {s.president.name}</p>
+          <p className="label mt-1 text-mute">{s.president.partyShort} · {s.term === 1 ? 'First' : 'Second'} term</p>
+          <ul className="mt-6 space-y-1">
+            {NAV.map(([id, name, hint]) => (
+              <li key={id}>
+                <button onClick={() => go(id)} className={`w-full border-l-2 px-3 py-2 text-left ${view === id ? 'border-honour bg-ivory/5' : 'border-transparent hover:bg-ivory/5'}`}>
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className={`font-serif text-lg ${view === id ? 'text-ivory' : 'text-ivory/75'}`}>{name}</span>
+                    {badge[id] ? <span className="label rounded-full bg-alarm px-1.5 text-ivory">{badge[id]}</span> : null}
+                  </span>
+                  <span className="label block text-mute">{hint}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-auto space-y-1.5">
+            <button onClick={() => setPanel('paper')} className="label block text-ivory/75 hover:text-ivory">This month&apos;s papers</button>
+            <button onClick={() => setPanel('archive')} className="label block text-ivory/75 hover:text-ivory">The archive</button>
+            {drawerVisible && <button onClick={() => setPanel('drawer')} className="label block text-honour/80 hover:text-honour">The drawer</button>}
+            <button onClick={onQuit} className="label block text-mute hover:text-ivory">Leave the desk</button>
           </div>
+        </nav>
 
-          <div>
-            <div className="flex items-baseline justify-between">
-              <p className="label text-mute">The country</p>
-              <button onClick={() => setPanel('nation')} className="label text-honour/90 hover:text-honour">Scorecard and security →</button>
+        <div className="min-w-0 flex-1">
+          <StatusBar s={s} next={next} stop={stop} canEnd={canEnd} left={left} unanswered={unanswered}
+            onEnd={() => { setOpen(null); setPreview(null); dispatch({ type: 'END_MONTH' }); }} />
+          {/* Narrow screens keep a simple section switcher. */}
+          <div className="flex gap-3 overflow-x-auto border-b border-ivory/10 px-4 py-2 lg:hidden">
+            {NAV.map(([id, name]) => <button key={id} onClick={() => go(id)} className={`label shrink-0 ${view === id ? 'text-honour' : 'text-mute'}`}>{name}</button>)}
+            <button onClick={() => setPanel('paper')} className="label shrink-0 text-mute">Papers</button>
+            <button onClick={() => setPanel('archive')} className="label shrink-0 text-mute">Archive</button>
+            {drawerVisible && <button onClick={() => setPanel('drawer')} className="label shrink-0 text-honour/80">Drawer</button>}
+          </div>
+          {coming.length > 0 && (
+            <div className="flex flex-wrap gap-2 border-b border-ivory/10 px-6 py-2.5">
+              <span className="label self-center text-mute">Coming up</span>
+              {coming.map((c, i) => (
+                <button key={i} onClick={() => go(c.go, c.tab)}
+                  className={`border px-2.5 py-1 text-left text-[13px] ${c.tone === 'bad' ? 'border-alarm/50 text-[#e8a597]' : c.tone === 'good' ? 'border-state-lit/50 text-[#9fd3b6]' : 'border-ivory/20 text-ivory/80'} hover:bg-ivory/5`}>
+                  <span className="label mr-1.5 text-mute">{c.months <= 0 ? 'now' : `${c.months} mo`}</span>{c.text}
+                </button>
+              ))}
             </div>
-            <ul className="mt-2 space-y-2">
-              {gauges(s).map((g) => (
-                <li key={g.label}>
-                  <p className="flex items-baseline justify-between gap-2">
-                    <span className="text-sm text-ivory/75">{g.label}</span>
-                    <span className="font-serif text-ivory">{g.value} <span className="ml-1 text-xs"><Delta d={g.delta} upIsGood={g.upIsGood} unit={g.unit} /></span></span>
-                  </p>
-                  {g.bar !== undefined && (
-                    <div className="mt-0.5 h-1 bg-ivory/10">
-                      <div className={`h-1 transition-all duration-700 ${g.upIsGood ? 'bg-state-lit' : 'bg-alarm'}`} style={{ width: `${Math.max(2, Math.min(100, g.bar))}%` }} />
+          )}
+
+          <main className="mx-auto max-w-[1500px] px-6 pb-16 pt-6">
+            {view === 'desk' && (
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_300px] lg:grid-cols-2">
+                <section className="min-w-0 space-y-5">
+                  <h2 className="label text-mute">The brief</h2>
+                  <div className="border-l-2 border-honour/60 pl-4">
+                    <p className="font-serif text-lg italic leading-snug text-ivory/90">“{s.desk.note}”</p>
+                    <p className="label mt-1.5 text-mute">{s.chars.cos?.name}, Chief of Staff</p>
+                  </div>
+                  {s.lastAction && (
+                    <div className="fade-in border border-ivory/10 p-4">
+                      <p className="label text-mute">Just done</p>
+                      <p className="mt-1 font-serif leading-relaxed text-ivory/85">{s.lastAction.text}</p>
+                      <div className="mt-2"><Changes changes={s.lastAction.changes} dark /></div>
                     </div>
                   )}
-                </li>
-              ))}
-            </ul>
-          </div>
+                  {s.report.length > 0 ? (
+                    <div>
+                      <p className="label text-mute">Since last month</p>
+                      <ul className="mt-2 space-y-2">
+                        {s.report.map((r, i) => (
+                          <li key={i} className={`border-l-2 bg-[#1a1d20] px-4 py-3 ${r.kind === 'reform' ? 'border-state-lit' : r.kind === 'failure' ? 'border-alarm' : 'border-honour'}`}>
+                            <p className="font-serif text-lg leading-snug text-ivory">{r.title}</p>
+                            {r.cause && <p className="text-sm text-mute">{r.kind === 'consequence' ? `Because of: ${r.cause}` : r.cause}</p>}
+                            {r.text && <p className="mt-1 font-serif leading-snug text-ivory/80">{r.text}</p>}
+                            <div className="mt-1.5"><Changes changes={r.changes} dark /></div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : <p className="font-serif italic text-ivory/60">Nothing you did last month has come back yet.</p>}
+                </section>
 
-          <div>
-            <p className="label text-mute">Who is with you</p>
-            <ul className="mt-2 space-y-2">
-              {blocView(s).map((b) => (
-                <li key={b.id}>
-                  <p className="flex items-baseline justify-between">
-                    <span className="text-sm text-ivory/75">{b.name}</span>
-                    <span className={`font-serif ${b.mood === 'Breaking' ? 'text-[#e08a7c]' : 'text-ivory'}`}>{b.mood} <span className="text-mute">{b.trend}</span></span>
-                  </p>
-                  <div className="mt-0.5 h-1 bg-ivory/10">
-                    <div className={`h-1 transition-all duration-700 ${s.blocs[b.id] < 20 ? 'bg-alarm' : 'bg-honour'}`} style={{ width: `${Math.max(2, s.blocs[b.id])}%` }} />
+                <section className="min-w-0 space-y-4">
+                  <h2 className="label text-mute">To decide</h2>
+                  {lead && leadEvent ? (
+                    <button onClick={() => setOpen(lead.eventId)} className="paper slide-in block w-full p-5 text-left transition-transform hover:-translate-y-0.5 sm:p-6">
+                      <span className="flex items-start justify-between gap-4">
+                        <span className="label text-state">{fill(s, leadEvent.office)}</span>
+                        {leadEvent.stamp && <span className={`stamp text-[10px] ${leadEvent.stamp === 'ROUTINE' ? 'text-ink-soft' : 'text-alarm'}`}>{leadEvent.stamp}</span>}
+                      </span>
+                      <span className="mt-3 block font-serif text-2xl leading-tight">{fill(s, leadEvent.title)}</span>
+                      <span className="label mt-3 block text-ink-soft">{lead.resolved ? `Decided · ${lead.resolved.label}` : 'Open the file →'}</span>
+                    </button>
+                  ) : (
+                    <p className="border border-dashed border-ivory/15 p-5 font-serif text-lg italic text-ivory/70">No crisis this month. The time is yours: use it.</p>
+                  )}
+                  {s.budget.due && (
+                    <button onClick={() => setPanel('budget')} className="paper slide-in block w-full p-5 text-left transition-transform hover:-translate-y-0.5">
+                      <span className="flex items-start justify-between gap-4">
+                        <span className="label text-state">Budget Office of the Federation</span>
+                        <span className="stamp text-[10px] text-alarm">FOR ASSENT</span>
+                      </span>
+                      <span className="mt-3 block font-serif text-2xl leading-tight">The Appropriation Bill, {yearOf(s.turn, s.startYear) + 1}</span>
+                      <span className="mt-1 block text-sm text-ink-soft">What will oil sell for next year, and where does the money go? Nothing is released until you sign.</span>
+                    </button>
+                  )}
+                  {s.desk.minors.length > 0 && (
+                    <div>
+                      <p className="label text-mute">The phone</p>
+                      <ul className="mt-2 space-y-2">
+                        {s.desk.minors.map((m) => {
+                          const e = eventOf(s, m);
+                          if (!e) return null;
+                          return (
+                            <li key={m.eventId}>
+                              <button onClick={() => setOpen(m.eventId)} className="flex w-full items-center gap-3 rounded-2xl border border-ivory/10 bg-[#1c1f22] px-4 py-3 text-left hover:border-ivory/30">
+                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${m.resolved ? 'bg-ivory/20' : 'bg-state-lit'}`} />
+                                <span className="min-w-0">
+                                  <span className="label block text-mute">{fill(s, e.from ?? 'Message')}</span>
+                                  <span className="block truncate font-serif text-ivory">{fill(s, e.title)}</span>
+                                </span>
+                                <span className="label ml-auto shrink-0 text-mute">{m.resolved ? 'Replied' : 'Unread'}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {activeShocks(s).map((x) => (
+                    <div key={x.def.id} className={`border p-4 ${x.def.good ? 'border-state-lit/40 bg-state/5' : 'border-alarm/40 bg-alarm/5'}`}>
+                      <p className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="font-serif text-xl text-ivory">{x.def.name}</span>
+                        <span className="label text-mute">{x.left <= 1 ? 'Last month' : `${x.left} months left`}</span>
+                      </p>
+                      <p className={`mt-1 text-sm ${x.def.good ? 'text-state-lit' : 'text-alarm'}`}>{x.def.good ? `${Math.round(x.factor * 100)}% of it is being caught.` : `${Math.round(x.factor * 100)}% of it is being felt.`}</p>
+                      <span className="mt-1 block"><Expected items={describe(x.fx)} dark label="Each month" /></span>
+                      <ul className="mt-1.5 space-y-0.5 text-[13px]">
+                        {x.met.map((g) => <li key={g.label} className="text-state-lit">✓ {g.label}</li>)}
+                        {x.missing.map((g) => <li key={g.label} className="text-ivory/50">✗ {g.label}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button onClick={() => go('orders')} className="border border-honour/40 bg-honour/5 p-4 text-left hover:bg-honour/10">
+                      <span className="block font-serif text-lg text-ivory">Give an order</span>
+                      <span className="block text-sm text-mute">{s.offers.length} open this moment{badge.orders ? `, ${badge.orders} new` : ''}</span>
+                    </button>
+                    <button onClick={() => go('power')} className="border border-ivory/15 p-4 text-left hover:border-honour/60">
+                      <span className="block font-serif text-lg text-ivory">Work on someone</span>
+                      <span className="block text-sm text-mute">{PEOPLE.filter((p) => p.group === 'governor' && standing(s, p.id) >= 58).length} of 6 governors with you · Senate {senateLine(s).toLowerCase()}</span>
+                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+                </section>
 
-          <RecordPanel s={s} />
-        </aside>
-      </div>
-
-      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-ivory/10 bg-pit/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 pl-14 sm:px-6 sm:pl-16">
-          <button onClick={() => setPanel('paper')} className="label text-ivory/75 hover:text-ivory">Papers</button>
-          <button onClick={() => setPanel('archive')} className="label text-ivory/75 hover:text-ivory">Archive</button>
-          {drawerVisible && <button onClick={() => setPanel('drawer')} className="label text-honour/80 hover:text-honour">Drawer</button>}
-          <button onClick={onQuit} className="label text-mute hover:text-ivory">Leave the desk</button>
-          <span className="ml-auto flex items-center gap-4">
-            {canEnd && (unanswered > 0 || left > 0) && (
-              <span className="label hidden text-mute sm:inline">
-                {[left > 0 ? `${left} ${left === 1 ? 'move' : 'moves'} unused` : null, unanswered > 0 ? `${unanswered} unanswered` : null].filter(Boolean).join(' · ')}
-              </span>
+                <aside className="min-w-0 space-y-5 lg:col-span-2 xl:col-span-1 xl:border-l xl:border-ivory/10 xl:pl-6">
+                  <CountryColumn s={s} next={next} onCountry={() => go('country')} />
+                </aside>
+              </div>
             )}
-            <button
-              disabled={!canEnd}
-              onClick={() => { setOpen(null); dispatch({ type: 'END_MONTH' }); }}
-              className={`px-5 py-2.5 font-serif text-lg ${canEnd ? 'bg-state text-ivory hover:bg-state-lit' : 'bg-ivory/10 text-ivory/40'}`}
-            >
-              {stop ?? 'End the month'}
-            </button>
-          </span>
+
+            {view === 'orders' && <Inline.Provider value={true}><PowersModal s={s} dispatch={dispatch} onClose={() => {}} /></Inline.Provider>}
+            {view === 'reforms' && <Agenda s={s} dispatch={dispatch} />}
+            {view === 'power' && <Inline.Provider value={true}><PeopleModal key={powerTab ?? 'default'} s={s} dispatch={dispatch} onClose={() => {}} start={powerTab as never} /></Inline.Provider>}
+            {view === 'country' && (
+              <div className="space-y-6">
+                <div className="paper p-6 xl:p-8">
+                  <p className="label text-state">The country · {dateLabel(s.turn, s.startYear)}</p>
+                  <h2 className="mt-1 mb-4 font-serif text-3xl">Where the votes are, and where the danger is</h2>
+                  <StateMap s={s} />
+                </div>
+                <Inline.Provider value={true}><NationModal s={s} dispatch={dispatch} onClose={() => {}} /></Inline.Provider>
+              </div>
+            )}
+            {view === 'treasury' && <Inline.Provider value={true}><TreasuryModal s={s} dispatch={dispatch} start="books" onClose={() => {}} onBudget={() => setPanel('budget')} /></Inline.Provider>}
+          </main>
         </div>
-      </footer>
+      </div>
 
       {openItem && openEvent && (openEvent.slot === 'lead'
         ? <FileModal key={openItem.eventId} s={s} e={openEvent} item={openItem} dispatch={dispatch} onClose={() => setOpen(null)} />
         : <PhoneModal s={s} e={openEvent} item={openItem} dispatch={dispatch} onClose={() => setOpen(null)} />)}
-      {panel === 'powers' && <PowersModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
-      {panel === 'people' && <PeopleModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
-      {panel === 'favours' && <PeopleModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} start="owed" />}
-      {(panel === 'treasury' || panel === 'owed') && <TreasuryModal s={s} dispatch={dispatch} start={panel === 'owed' ? 'owed' : 'books'} onClose={() => setPanel(null)} onBudget={() => setPanel('budget')} />}
       {panel === 'budget' && s.budget.due && <BudgetModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'drawer' && <DrawerModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'archive' && <ArchiveModal s={s} onClose={() => setPanel(null)} />}
-      {panel === 'nation' && <NationModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'paper' && s.papers.length > 0 && s.phase === 'desk' && <Papers pages={s.papers} onDismiss={() => setPanel(null)} />}
-    </main>
+    </Preview.Provider>
+  );
+}
+
+/** Across the top of every section: the date, the four numbers that decide each month, and the month's end. Shows where a hovered action would leave them. */
+function StatusBar({ s, next, stop, canEnd, left, unanswered, onEnd }: { s: GameState; next: GameState | null; stop: string | null; canEnd: boolean; left: number; unanswered: number; onEnd: () => void }) {
+  const tt = termTurnOf(s.turn);
+  const app = approval(s);
+  const out = outlook(s);
+  const showOutlook = s.term === 1 && !s.flags['ticket.lost'] && !s.election;
+  const cell = (label: string, now: string, then: string | null, good: boolean | null, title?: string) => (
+    <div title={title}>
+      <p className="label text-mute">{label}</p>
+      <p className="font-serif text-2xl leading-tight text-ivory">
+        {now}
+        {then !== null && then !== now && <span className={`ml-2 text-base ${good ? 'text-[#9fd3b6]' : 'text-[#e8a597]'}`}>→ {then}</span>}
+      </p>
+    </div>
+  );
+  const fs = (x: GameState) => (x.nation.fiscalSpace <= 0.01 ? 'Empty' : `₦${x.nation.fiscalSpace.toFixed(1)}tn`);
+  return (
+    <header className="sticky top-0 z-20 border-b border-ivory/10 bg-pit/95 backdrop-blur">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3">
+        <div className="mr-2">
+          <p className="font-serif text-2xl leading-tight text-ivory">{dateLabel(s.turn, s.startYear)}</p>
+          <p className="label text-mute">Month {tt} of 48 · {nextFixture(s)}</p>
+        </div>
+        {cell('Approval', `${Math.round(app)}%`, next ? `${Math.round(approval(next))}%` : null, next ? approval(next) >= app : null, 'Approval of the President')}
+        {cell('Capital', `${Math.round(s.pc)}`, next ? `${Math.round(next.pc)}` : null, next ? next.pc >= s.pc : null, 'Political capital')}
+        {cell('Treasury', fs(s), next ? fs(next) : null, next ? next.nation.fiscalSpace >= s.nation.fiscalSpace : null)}
+        {cell('Moves', `${left} of ${movesTotal(s)}`, null, null)}
+        {showOutlook && cell('Re-election', out.word, null, null, 'An estimate of the margin today. The mood on polling day can move it.')}
+        <div className="ml-auto flex items-center gap-4">
+          {canEnd && (unanswered > 0 || left > 0) && (
+            <span className="label hidden text-mute xl:inline">{[left > 0 ? `${left} ${left === 1 ? 'move' : 'moves'} unused` : null, unanswered > 0 ? `${unanswered} unanswered` : null].filter(Boolean).join(' · ')}</span>
+          )}
+          <button disabled={!canEnd} onClick={onEnd} className={`px-5 py-2.5 font-serif text-lg ${canEnd ? 'bg-state text-ivory hover:bg-state-lit' : 'bg-ivory/10 text-ivory/40'}`}>
+            {stop ?? 'End the month'}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/** The country at a glance, on the desk: the gauges and the blocs, with where a hovered action would move them. */
+function CountryColumn({ s, next, onCountry }: { s: GameState; next: GameState | null; onCountry: () => void }) {
+  const g = gauges(s);
+  const gn = next ? gauges(next) : null;
+  const bn = next ? next.blocs : null;
+  return (
+    <>
+      <div>
+        <p className="label text-mute">Political capital</p>
+        <div className="mt-1 h-1 bg-ivory/10"><div className="h-1 bg-honour transition-all duration-500" style={{ width: `${s.pc}%` }} /></div>
+        <CapitalIncome s={s} />
+      </div>
+      <div>
+        <div className="flex items-baseline justify-between">
+          <p className="label text-mute">The country</p>
+          <button onClick={onCountry} className="label text-honour/90 hover:text-honour">Map and states →</button>
+        </div>
+        <ul className="mt-2 space-y-2">
+          {g.map((x, i) => {
+            const n = gn?.[i];
+            const moved = n && n.value !== x.value;
+            return (
+              <li key={x.label}>
+                <p className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-ivory/75">{x.label}</span>
+                  <span className="font-serif text-ivory">{x.value}{moved && <span className="ml-1.5 text-honour">→ {n!.value}</span>} <span className="ml-1 text-xs"><Delta d={x.delta} upIsGood={x.upIsGood} unit={x.unit} /></span></span>
+                </p>
+                {x.bar !== undefined && (
+                  <div className="relative mt-0.5 h-1 bg-ivory/10">
+                    <div className={`h-1 transition-all duration-700 ${x.upIsGood ? 'bg-state-lit' : 'bg-alarm'}`} style={{ width: `${Math.max(2, Math.min(100, x.bar))}%` }} />
+                    {moved && n!.bar !== undefined && <div className="absolute top-[-2px] h-2 w-0.5 bg-honour" style={{ left: `${Math.max(0, Math.min(100, n!.bar))}%` }} />}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <div>
+        <p className="label text-mute">Who is with you</p>
+        <ul className="mt-2 space-y-2">
+          {blocView(s).map((b) => {
+            const after = bn?.[b.id];
+            const moved = after !== undefined && Math.round(after) !== Math.round(s.blocs[b.id]);
+            return (
+              <li key={b.id}>
+                <p className="flex items-baseline justify-between">
+                  <span className="text-sm text-ivory/75">{b.name}</span>
+                  <span className={`font-serif ${b.mood === 'Breaking' ? 'text-[#e08a7c]' : 'text-ivory'}`}>{b.mood} <span className="text-mute">{b.trend}</span>{moved && <span className={`ml-1.5 text-sm ${after! > s.blocs[b.id] ? 'text-[#9fd3b6]' : 'text-[#e8a597]'}`}>{after! > s.blocs[b.id] ? '+' : ''}{Math.round(after! - s.blocs[b.id])}</span>}</span>
+                </p>
+                <div className="relative mt-0.5 h-1 bg-ivory/10">
+                  <div className={`h-1 transition-all duration-700 ${s.blocs[b.id] < 20 ? 'bg-alarm' : 'bg-honour'}`} style={{ width: `${Math.max(2, s.blocs[b.id])}%` }} />
+                  {moved && <div className="absolute top-[-2px] h-2 w-0.5 bg-ivory" style={{ left: `${Math.max(0, Math.min(100, after!))}%` }} />}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <RecordPanel s={s} />
+    </>
   );
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Overlay } from './shell';
 import { useState } from 'react';
 import { BENCHMARKS, DEBTS, FUNDS, SECTORS } from '../content/treasury';
 import { dateLabel, yearOf } from '../engine/config';
@@ -20,11 +21,7 @@ type Tab = 'books' | 'owed' | 'saved' | 'policies';
 const signed = (v: number) => `${v >= 0 ? '+' : '−'}₦${Math.round(Math.abs(v) * 1000)}bn`;
 
 function Shell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="fade-in fixed inset-0 z-30 overflow-y-auto bg-pit/80 px-3 py-6 sm:py-10" onClick={onClose} role="dialog">
-      <div className="slide-in paper mx-auto max-w-3xl p-5 sm:p-8" onClick={(e) => e.stopPropagation()}>{children}</div>
-    </div>
-  );
+  return <Overlay onClose={onClose} paper>{children}</Overlay>;
 }
 
 // ---------------------------------------------------------------- the budget

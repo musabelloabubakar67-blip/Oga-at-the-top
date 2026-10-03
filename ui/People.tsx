@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Inline, Overlay } from './shell';
+import { Aimed } from './Aimed';
+import { useContext, useState } from 'react';
 import { PEOPLE, PERSON_BY_ID, RIVALS, type Group } from '../content/people';
 import { TYCOONS } from '../content/tycoons';
 import { dateLabel } from '../engine/config';
@@ -112,6 +114,8 @@ function Bar({ v, bad }: { v: number; bad?: boolean }) {
 const GRADE: Record<string, string> = { A: 'text-state', B: 'text-state', C: 'text-ink', D: 'text-alarm', F: 'text-alarm' };
 
 export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dispatch: Dispatch; onClose: () => void; start?: Tab }) {
+  const wide = useContext(Inline);
+  const cards = wide ? 'grid items-start gap-3 xl:grid-cols-2' : 'space-y-3';
   const [tab, setTab] = useState<Tab>(start ?? 'governor');
   const [swap, setSwap] = useState<string | null>(null);
   const [before] = useState(s.lastAction?.text);
@@ -127,8 +131,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   ];
 
   return (
-    <div className="fade-in fixed inset-0 z-30 overflow-y-auto bg-pit/80 px-3 py-6 sm:py-10" onClick={onClose} role="dialog">
-      <div className="slide-in paper mx-auto max-w-3xl p-5 sm:p-8" onClick={(e) => e.stopPropagation()}>
+    <Overlay onClose={onClose} paper>
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <p className="label text-state">Politics</p>
@@ -215,7 +218,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
             <p className={`mt-3 text-sm ${money >= 0 ? 'text-state' : 'text-alarm'}`}>
               On election day the money is worth {money >= 0 ? '+' : ''}{money.toFixed(1)} points of vote share to you.
             </p>
-            <ul className="mt-3 space-y-3">
+            <ul className={`mt-3 ${cards}`}>
               {TYCOONS.map((t) => {
                 const st = s.tycoons[t.id];
                 const grant = canTycoon(s, t.id, 'grant', left);
@@ -236,6 +239,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       <p className="mt-1.5 text-[13px] leading-snug text-ink-soft"><span className="label mr-1">Why</span>{st.reasons.join(' ')}</p>
                     )}
                     <Wronged s={s} id={t.id} />
+                    <Aimed s={s} kind="tycoon" id={t.id} dispatch={dispatch} />
                     <FavoursOf s={s} id={t.id} dispatch={dispatch} left={left} />
 
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
@@ -269,7 +273,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 
         {tab === 'opposition' && (
           <>
-            <ul className="mt-4 space-y-3">
+            <ul className={`mt-4 ${cards}`}>
               {RIVALS.map((r) => {
                 const v = s.opposition[r.id] ?? 0;
                 const inside = !!s.flags[`rival.${r.id}.in`];
@@ -286,6 +290,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     </p>
                     <p className="label text-ink-soft">{r.party} · strength {Math.round(v)}</p>
                     <Wronged s={s} id={r.id} />
+                    {!inside && <Aimed s={s} kind="rival" id={r.id} dispatch={dispatch} />}
                     <Bar v={v} bad />
                     <p className="mt-2 text-sm leading-snug">{r.style}</p>
                     <p className="mt-1 text-sm italic leading-snug text-ink-soft">{r.feeds}</p>
@@ -336,7 +341,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         )}
 
         {(tab === 'governor' || tab === 'senator' || tab === 'minister') && (
-          <ul className="mt-4 space-y-3">
+          <ul className={`mt-4 ${cards}`}>
             {PEOPLE.filter((p) => p.group === tab).map((base) => {
               const p = personView(s, base.id);
               const st = s.people[base.id];
@@ -458,6 +463,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       Time warms them a little, less each visit. Giving them what they want wins them properly and leaves them owing you a favour. Leaning on them buys eight months of obedience and a lasting grudge.
                     </p>
                   )}
+                  {(tab === 'governor' || tab === 'senator') && !st.gone && <Aimed s={s} kind={tab} id={p.id} dispatch={dispatch} />}
                   {base.group === 'minister' && (
                     <p className="mt-2 text-[13px] leading-snug text-ink-soft">
                       A technocrat is highly competent and clean, and the party will resent it{sponsor ? `; ${sponsor.short} will take it personally` : ''}. A party nominee pleases the governors, slows every reform in the brief, and is not to be trusted with money.
@@ -470,8 +476,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         )}
 
         <div className="mt-6 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
-      </div>
-    </div>
+    </Overlay>
   );
 }
 

@@ -18,6 +18,14 @@ Each month:
 
 Everything the player can do shows its expected effects before, and its measured effects after. Reforms, orders, policies and bets show their effects exactly. On a file, the effects shown before the decision are a named adviser's forecast, which can be wrong (owner's rule, 3 October: forecasts before, what actually happened after, with the cause). Nothing important is hidden for long: every number that moves has a screen that says why, and every adviser has a record.
 
+**The screen** (desktop first; `ui/Desk.tsx`, `ui/shell.tsx`, `ui/StateMap.tsx`, `ui/Aimed.tsx`, `engine/upcoming.ts`). A rail on the left switches between six sections: the desk, orders, reforms and bets, power, the country and the Treasury, with a count on each that needs attention (unanswered files, new orders, empty seats on the court, the budget). A bar across the top shows the date, approval, capital, the treasury, moves and the re-election outlook, and holds the button that ends the month. Below it, a coming-up strip lists what will bite soon (the election, the succession, the budget, retirements and vacancies on the court, reforms that could be frozen, orders about to be challenged, grudges ending, shocks ending, reforms about to land, bets about to open); each item opens the section it concerns.
+- **The desk** has three columns: the brief (the Chief of Staff's note, what was just done, the consequences report), what needs deciding (the lead file, the budget, the phone, shocks under way) and the country (capital, gauges, blocs, the record).
+- **Previews.** Pointing at an order shows where it would leave approval, capital and the treasury in the top bar, and the gauges and blocs on the desk (the order is applied to a copy of the state; files with chance outcomes are not previewed).
+- **Orders** can be filtered to those aimed at someone or those possible now; institutions come last.
+- **Power** shows people two to a card row. Each governor, senator, businessman and rival card lists every order that can be aimed at them and is open now, with its effect on them and on you, whether they will remember it, wear-out, and how the court would rule.
+- **The country** opens on a tile map of the 37 states, placed roughly as on the map, coloured by how each would vote today, with a dashed border where the theatre is dangerous, a dot for an asset and a square for an abandoned site; clicking a state shows its figures. The scorecard, the states table and security follow.
+- Files, the phone, the budget, the drawer, the archive and the papers still open as windows.
+
 ## 0.2 The country
 
 Nine national figures: inflation, pump price, the treasury, debt service, security, power, state capacity, integrity, jobs and industry. Three pressures that build towards crises: fuel scarcity, labour anger, scandal. A derived cost-of-living pressure drives approval.
