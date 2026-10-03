@@ -448,6 +448,8 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** The Supreme Court. Seeded on first use. */
+  bench?: { seats: ({ name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string } | null)[]; packed: number; spent: string[] };
   /** Every order given, for wear-out. */
   orderLog?: { id: string; turn: number; target?: string }[];
   /** Who has been hit by a hostile order, and until when they will not forget. */
@@ -540,6 +542,7 @@ export type Action =
   | { type: 'REPEAL'; id: string }
   | { type: 'SECOND_OPINION'; eventId: string }
   | { type: 'REPLACE_ADVISER'; role: string; name: string }
+  | { type: 'NOMINATE'; seat: number; name: string }
   | { type: 'ESTABLISH'; id: string; head: string }
   | { type: 'REPLACE_HEAD'; id: string; head: string }
   | { type: 'ABOLISH'; id: string }

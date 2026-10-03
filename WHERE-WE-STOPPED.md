@@ -84,11 +84,11 @@ This replaces the list under "What to do next" below, which is kept for its deta
 | 1 | Security theatre by theatre; offensive aimed at a theatre | Done |
 | 2 | Effects calculated from the state (with their reasons); standing policies charged monthly against the economy; dials on national orders; a lasting effect for the 11 reforms that have none | Done |
 | 3 | Done. People who change: wants drawn from situation and loyalty (about 12 templates by role plus each person's signature want), appetite that grows, refusals that become grudges; ministers whose true character surfaces, who build a following; three files for the first Finance pick | |
-| 4 | 4a done (institutions; every order given a dial, context or lasting effect, or marked for a target). 4b next: targets, the wronged ledger, wear-out, and judges (a named bench, appointments the Senate confirms, rulings on petitions, injunctions and challenges to orders). Orders aimed at a person, state, businessman, theatre, paper or rival (28 existing orders convert, about 8 new); a ledger of people wronged; levers that wear out with repeated use | |
+| 4 | Done. 4a: institutions; every order given a dial, context or lasting effect. 4b: sixteen orders aimed at a governor, senator, businessman, rival, paper or zone (ten converted, seven new); hostile ones wear out and are remembered for two years; a Supreme Court of seven named justices with vacancies, Senate confirmation, challenges to hostile orders, injunctions against contested reforms, and the election petition decided by the bench | |
 | 5 | Backing a successor from the named cast; life after office as a real ending (prison, exile and others); delivered reforms attacked by courts, the Senate and businessmen; a tension curve in the director | |
 | 6 | Each state's figures from its zone plus what is placed there, shown as a table; big bets as located assets with returns, upkeep and capture | |
 
-Parked: the Vice President, the courts as people, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
+Parked: the Vice President, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
 
 Owner decisions, 3 October: the flat security bonus comes off the security reforms; life after office can end the game badly; wants use role templates plus one signature want each.
 

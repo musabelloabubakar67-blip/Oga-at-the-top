@@ -26,6 +26,7 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
+import { canNominate, courtTick, nominate } from './courts';
 import { aimFx, aimText, targetsFor, wearFactor, wrong, wrongedTick, type TargetKind } from './targets';
 import { abolish, canAbolish, canEstablish, canReplaceHead, establish, replaceHead } from './institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
@@ -683,6 +684,7 @@ function advance(s: GameState): void {
   politicsTick(s);
   midterm(s);
   wrongedTick(s);
+  courtTick(s);
   shockTick(s);
 
   const tt = termTurnOf(s.turn);
@@ -789,6 +791,13 @@ export function applyAction(state: GameState, action: Action): GameState {
       const b = snapshot(s);
       const t = abolish(s, action.id);
       record(s, `institution.${action.id}`, 'abolish', 'action', t, 2);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'NOMINATE': if (canNominate(s, action.seat, action.name, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = nominate(s, action.seat, action.name);
+      record(s, 'bench.nominate', 'nominate', 'politics', t, 2);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
     case 'REPLACE_ADVISER': if (canReplaceAdviser(s, action.role, action.name, movesLeft(s)).ok) {

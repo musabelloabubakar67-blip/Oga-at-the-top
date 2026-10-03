@@ -7,6 +7,9 @@ import type { BlocId, Cond, DebtId, Favour, Fx, FundId, GameState, Nation, Press
 // The projected margin lives in election.ts, which reads this module; it registers itself here.
 let outlookOf: (s: GameState) => number = () => 0;
 export function registerOutlook(fn: (s: GameState) => number): void { outlookOf = fn; }
+let benchOf: (s: GameState) => Record<string, number> = () => ({});
+/** The Supreme Court registers how it reads, to keep the imports one-way. */
+export function registerBench(fn: (s: GameState) => Record<string, number>): void { benchOf = fn; }
 
 export const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
 export const BLOCS: BlocId[] = ['villa', 'party', 'street', 'establishment', 'press'];
@@ -174,6 +177,7 @@ export function getVar(s: GameState, path: string): number {
     case 'margin': return s.election?.margin ?? 0;
     // Where a re-election would stand today, as the desk's outlook reads it.
     case 'outlook': return outlookOf(s);
+    case 'bench': return benchOf(s)[p[1]] ?? 0;
     case 'era': return s.era;
     case 'pred': return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
     case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;

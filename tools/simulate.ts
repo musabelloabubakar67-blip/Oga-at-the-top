@@ -19,6 +19,7 @@ import { VENTURE_BY_ID } from '../content/ventures';
 import { canDeal } from '../engine/people';
 import { movesLeft } from '../engine/reduce';
 import { standing } from '../engine/vars';
+import { bench, canNominate, nominees } from '../engine/courts';
 import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
@@ -324,6 +325,15 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     if (!skip('vat') && bot.name === 'Institutionalist' && termTurnOf(s.turn) <= 20 && fiscalFlow(s).total < 0 && orderOk(s, 'tax')) s = applyAction(s, { type: 'ORDER', id: 'tax', level: 0 });
     if (bot.name.startsWith('Reformer') && !bot.keepsSubsidy && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
     if (bot.reforms === 'all' && s.nation.fiscalSpace > 4) s = applyAction(s, { type: 'ORDER', id: 'paydown' });
+    // A vacancy on the Supreme Court: the machine and the kleptocrat appoint loyalists the Senate will take; the rest appoint the Bar's choice.
+    if (!skip('bench') && bot.name !== 'Do-nothing' && bot.name !== 'Random' && movesLeft(s) > 0) {
+      const seat = bench(s).seats.findIndex((j) => !j);
+      if (seat >= 0) {
+        const loyal = bot.name === 'Machine' || bot.name === 'Kleptocrat';
+        const pick = nominees(s).filter((n) => n.confirms).sort((a, b) => (loyal ? Number(b.lean === 'you') - Number(a.lean === 'you') : b.integrity - a.integrity))[0];
+        if (pick && canNominate(s, seat, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'NOMINATE', seat, name: pick.name });
+      }
+    }
     // Aimed orders: each style reaches for its own weapons, at whoever is least friendly (the default target).
     if (!skip('aim')) {
       const uses: Record<string, string[]> = {

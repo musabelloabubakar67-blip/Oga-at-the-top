@@ -14,6 +14,7 @@ import { REHEAD_PC, available as availableInstitutions, built, canAbolish, canEs
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
+import { forecastChallenge } from '../engine/courts';
 import { grievances, recentUses, targetName, targetsFor, wearFactor, type TargetKind } from '../engine/targets';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -406,6 +407,7 @@ function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (targe
           </span>
         )}
         {uses > 0 && <span className="block text-[13px] text-ink-soft">Used {uses === 1 ? 'once' : `${uses} times`} in the last two years. Everyone has seen it coming: it works at {Math.round(wearFactor(s, o.id) * 100)}%.</span>}
+        {(o.hostile ?? 0) >= 3 && (() => { const f = forecastChallenge(s); return <span className="block text-[13px] text-ink-soft">They will go to court. The Supreme Court as it sits: {f.against} against you, {f.for} for you{f.unsure ? `, ${f.unsure} for sale` : ''}. Lose and half of it is undone, and it costs you 3 capital.</span>; })()}
         {remembers && <span className="block text-[13px] text-ink-soft">{targetName(s, o.target as TargetKind, target!).name} will remember this for two years, and will not warm to you past a point until then.</span>}
         {!can.ok && can.reason && <span className="block text-[13px] text-alarm">{can.reason}</span>}
       </span>
