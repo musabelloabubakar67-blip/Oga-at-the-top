@@ -12,7 +12,7 @@ import { eventOf } from './cast';
 import { SCENARIO_BY_ID } from '../content/scenarios';
 import { CFG, dateLabel, termTurnOf } from './config';
 import { syncDebt } from './ledger';
-import { buildDesk } from './director';
+import { buildDesk, chiefOfStaffNote } from './director';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
 import { callFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
@@ -847,6 +847,8 @@ export function applyAction(state: GameState, action: Action): GameState {
     } break;
     case 'END_MONTH': endMonth(s); break;
   }
+  // The Chief of Staff's note is written at the start of the month; rewrite it once what it was about has been dealt with.
+  if (action.type === 'BUDGET' || action.type === 'BUDGET_RESOLVE' || action.type === 'CHOOSE') s.desk.note = chiefOfStaffNote(s);
   return s;
 }
 

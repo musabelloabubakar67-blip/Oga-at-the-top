@@ -114,6 +114,8 @@ export function establish(s: GameState, id: string, headName: string): { text: s
   // A party nominee pleases the party the day they are named.
   if (head.name === 'A party nominee') applyFx(s, ['bloc.party', 3]);
   (s.institutions ??= []).push({ id, head, since: s.turn });
+  // Files can ask whether an institution exists.
+  s.flags[`inst.${id}`] = true;
   return { text: `${d.name} is set up, headed by ${head.name.replace(/^A /, 'a ')}.`, changes: diff(before, snapshot(s)) };
 }
 
@@ -153,6 +155,7 @@ export function abolish(s: GameState, id: string): string {
   s.pc = clamp(s.pc - d.abolishPc, 0, 100);
   for (const f of d.abolish) applyFx(s, f);
   s.institutions = built(s).filter((i) => i.id !== id);
+  delete s.flags[`inst.${id}`];
   return `${d.name} is wound up. Its staff are redeployed; its files are not.`;
 }
 

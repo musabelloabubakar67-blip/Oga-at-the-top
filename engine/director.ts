@@ -106,7 +106,7 @@ function takeQueued(s: GameState, slot: 'lead' | 'minor'): GameEvent | null {
   return null;
 }
 
-function chiefOfStaffNote(s: GameState): string {
+export function chiefOfStaffNote(s: GameState): string {
   const cos = s.chars.cos;
   const notes: [number, string][] = [];
   const h = hardship(s);

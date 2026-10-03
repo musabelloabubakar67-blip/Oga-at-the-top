@@ -95,6 +95,8 @@ export function migrate(raw: unknown): GameState | null {
     if (!s.counters['rules.policies']) policyRules(s);
     // Saves from before advisers had reputations and patrons.
     if (s.chars.cos && !s.chars.cos.rep) seedAdvisers(s);
+    // Institutions set up before files could ask about them.
+    for (const i of s.institutions ?? []) s.flags[`inst.${i.id}`] = true;
     // A file that no longer exists cannot be decided.
     if (s.desk?.lead && !EVENTS[s.desk.lead.eventId]) s.desk.lead = null;
     s.desk.minors = (s.desk?.minors ?? []).filter((m) => EVENTS[m.eventId]);

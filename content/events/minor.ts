@@ -471,13 +471,15 @@ export const MINOR: GameEvent[] = [
   },
   {
     ...phone, id: 'minor.refinery', kind: 'recurring', category: 'infrastructure', tone: 'farce',
-    when: { all: [{ turn: [5] }, { not: { flag: 'refinery.sold' } }] }, weight: 8, cooldown: 30, max: 2,
+    when: { all: [{ turn: [5] }, { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'refinery.audit' } }] }, weight: 8, cooldown: 14, max: 4,
     from: 'Minister of State, Petroleum',
     title: 'Refinery: good news',
     body: [
       'Your Excellency, I am pleased to report that the rehabilitation of the refinery has reached mechanical completion and will commence production by the end of the quarter.',
-      'A further $290m is required to complete the completion.',
-      { when: { v: ['count.minor.refinery', '>=', 2] }, text: 'This message is identical to the one he sent last time, including the amount.' },
+      { when: { v: ['counter.refpaid', '==', 0] }, text: 'A further $290m is required to complete the completion.' },
+      { when: { v: ['counter.refpaid', '==', 1] }, text: 'The $290m released last time has been fully absorbed by the completion. A further $410m is required to complete it.' },
+      { when: { v: ['counter.refpaid', '>=', 2] }, text: 'Owing to unforeseen foreseeable circumstances, a further $600m is required. This is the final tranche, as were the previous ones.' },
+      { when: { v: ['count.minor.refinery', '>=', 2] }, text: 'Apart from the amount, this message is identical to the last one.' },
       { when: { v: ['tycoon.ty_fuel', '>=', 30] }, text: 'Chief Tonye Amangala, who imports what the refinery does not make, has called its rehabilitation "a matter of national pride" and hopes it continues.' },
     ],
     choices: [
@@ -485,7 +487,8 @@ export const MINOR: GameEvent[] = [
         id: 'pay', label: 'Release the funds', naira: 0.35,
         outcomes: [{
           result: 'The funds are released. A ceremony is held. A tanker is filmed leaving the gate. It is later established that the tanker had also been filmed entering.',
-          fx: [['nation.integrity', -1], ['bloc.press', -2], ['tycoon.ty_fuel', 3]],
+          fx: [['nation.integrity', -1], ['bloc.press', -2], ['tycoon.ty_fuel', 3], ['counter.refpaid', 1]],
+          follow: [{ event: 'refinery.scandal', after: [6, 10], when: { v: ['counter.refpaid', '>=', 2] } }],
           news: ['REFINERY "RESUMES PRODUCTION" — MINISTER', 'REFINERY DON START? THE TANKER ENTER WITH THE FUEL'],
           archive: 'Released further funds for the refinery rehabilitation.',
         }],
@@ -506,13 +509,15 @@ export const MINOR: GameEvent[] = [
         outcomes: [{
           result: 'You arrive at 9am. The control room has no power. A goat is asleep by the distillation unit. The Minister of State is "indisposed".',
           fx: [['nation.integrity', 1.5], ['bloc.press', 3], ['approval', 1]],
+          flags: { 'refinery.exposed': true },
+          follow: [{ event: 'refinery.exposed', after: 1 }],
           news: ['PRESIDENT PAYS SURPRISE VISIT TO REFINERY', 'PRESIDENT REACH REFINERY, MEET GOAT'],
-          archive: 'Made an unannounced visit to the refinery.',
+          archive: 'Made an unannounced visit to the refinery and found it idle.',
         }],
       },
     ],
     ignored: {
-      result: 'He sends a reminder. The completion remains incomplete.',
+      result: 'A reminder arrives. The completion remains incomplete.',
       archive: 'Did not reply to a request for more refinery funds.',
     },
   },
