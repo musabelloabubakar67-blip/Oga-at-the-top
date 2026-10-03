@@ -1,6 +1,7 @@
 'use client';
 
 import { Overlay } from './shell';
+import { oilForecast } from '../engine/oilforecast';
 import { useState } from 'react';
 import { BENCHMARKS, DEBTS, FUNDS, SECTORS } from '../content/treasury';
 import { dateLabel, yearOf } from '../engine/config';
@@ -70,6 +71,16 @@ export function BudgetModal({ s, dispatch, onClose }: { s: GameState; dispatch: 
         Oil is at <span className="font-semibold text-ink">${Math.round(s.oil.price)}</span> and the country produces {s.oil.output.toFixed(2)}m barrels a day. Above your figure, the difference is saved; below it, it comes out of the treasury every month.
         {eroded > 0 && <span className="text-alarm"> With inflation at {Math.round(s.nation.inflation)}%, every budget buys {eroded} {eroded === 1 ? 'point' : 'points'} less than its headline.</span>}
       </p>
+      {(() => {
+        const f = oilForecast(s);
+        return (
+          <div className="mt-2 border-l-2 border-state bg-state/5 px-3 py-2">
+            <p className="label text-ink-soft">The forecast · {f.by}{f.title ? `, ${f.title}` : ''}</p>
+            <p className="font-serif text-lg leading-snug">Oil should average about ${f.mid} next year: most likely between ${f.low} and ${f.high}.</p>
+            <p className="text-[13px] text-ink-soft">{f.note} {f.record ? `The record: ${f.record}.` : 'No forecast of theirs has been tested yet.'} A forecaster who serves someone else tends to see oil higher than it is: more on paper means more to spend.</p>
+          </div>
+        );
+      })()}
       <div className="mt-2 grid gap-2 sm:grid-cols-4">
         {BENCHMARKS.map((b) => (
           <button key={b.price} onClick={() => setBenchmark(b.price)}

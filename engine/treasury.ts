@@ -10,6 +10,7 @@ import { policyFiscalLines } from './policies';
 import { institutionFiscalLines } from './institutions';
 import { assetFiscalLines } from './places';
 import { personView } from './people';
+import { logOilForecast, oilForecastTick } from './oilforecast';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -56,6 +57,7 @@ function oilTick(s: GameState): void {
   }
   s.oil.price = clamp(p, 35, 125);
   s.oil.output = oilOutput(s);
+  oilForecastTick(s);
 }
 
 // ---------------------------------------------------------------- the monthly flow
@@ -326,6 +328,7 @@ function enact(s: GameState, benchmark: number, alloc: Record<SectorId, number>,
     prevAlloc: prev, sites: sites ? fitSites(sites, alloc.power ?? 0) : evenSites(alloc.power ?? 0), points, release: {}, supplementary,
   };
   s.counters.budgetTurn = s.turn;
+  logOilForecast(s);
   const cuts: string[] = [];
   for (const x of SECTORS) {
     const was = prev[x.id] ?? x.usual;

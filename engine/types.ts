@@ -468,6 +468,8 @@ export interface GameState {
   assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
   /** Other things put in a state: abandoned sites, monuments. */
   placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
+  /** Each budget's oil forecast, checked against what oil did over the year. */
+  oilForecasts?: { turn: number; said: number; by: string; sum: number; n: number }[];
   /** The Supreme Court. Seeded on first use. */
   bench?: { seats: ({ name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string } | null)[]; packed: number; spent: string[] };
   /** Every order given, for wear-out. */
