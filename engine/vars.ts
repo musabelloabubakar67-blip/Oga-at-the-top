@@ -179,6 +179,18 @@ export function getVar(s: GameState, path: string): number {
     // Where a re-election would stand today, as the desk's outlook reads it.
     case 'outlook': return outlookOf(s);
     case 'bench': return benchOf(s)[p[1]] ?? 0;
+    case 'grieve': return (s.wronged ?? []).filter((w) => w.who === p[1] && w.until > s.turn).length;
+    case 'wronged': return (s.wronged ?? []).filter((w) => w.until > s.turn).length;
+    case 'fx': {
+      const f = s.fx;
+      if (!f) return 0;
+      if (p[1] === 'premium') return Math.round((f.parallel / f.rate - 1) * 100);
+      if (p[1] === 'reserves') return f.reserves;
+      if (p[1] === 'peg') return f.stance === 'peg' ? 1 : 0;
+      if (p[1] === 'float') return f.stance === 'float' ? 1 : 0;
+      if (p[1] === 'fall') return Math.round(((f.rate / (f.hist[0] ?? f.base)) - 1) * 100);
+      return f.rate;
+    }
     case 'era': return s.era;
     case 'pred': return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
     case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;
@@ -293,6 +305,10 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
     case 'debt': if (s.debts[p[1] as DebtId] !== undefined) addOwed(s, p[1] as DebtId, delta); return note();
     case 'fund': { const k = p[1] as FundId; if (s.funds[k] !== undefined) s.funds[k] = Math.max(0, s.funds[k] + delta); return note(); }
     case 'tycoon': { const t = s.tycoons[p[1]]; if (t) t.rel = clamp(t.rel + delta, 0, 100); return note(); }
+    case 'fx': if (s.fx) {
+      if (p[1] === 'reserves') s.fx.reserves = clamp(s.fx.reserves + delta, 0, 120);
+      if (p[1] === 'rate') { s.fx.rate *= 1 + delta / 100; s.fx.parallel = Math.max(s.fx.parallel, s.fx.rate * 1.03); }
+    } return note();
     case 'theatre': if (s.theatres[p[1] as ZoneId] !== undefined) { shiftThreat(s, p[1] as ZoneId, delta); syncSecurity(s); } return note();
     case 'oil': s.oil.price = clamp(s.oil.price + delta, 30, 130); return note();
   }

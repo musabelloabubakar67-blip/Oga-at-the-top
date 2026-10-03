@@ -65,6 +65,8 @@ export const SELECTORS: Record<string, Selector> = {
   succA: (s) => shortlist(s)[0]?.id ?? null,
   succB: (s) => shortlist(s)[1]?.id ?? null,
   succC: (s) => shortlist(s)[2]?.id ?? null,
+  /** Someone holding a grievance from one of your orders. */
+  wrongedPerson: (s) => (s.wronged ?? []).filter((w) => w.until > s.turn && s.people[w.who] && !s.people[w.who].gone).sort((a, b) => b.turn - a.turn)[0]?.who ?? null,
   /** A delivered reform someone is coming for, and who. */
   attackedReform: (s) => attackedReform(s),
   reformLoser: (s) => reformLoser(s),

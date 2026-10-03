@@ -468,6 +468,8 @@ export interface GameState {
   assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
   /** Other things put in a state: abandoned sites, monuments. */
   placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
+  /** The naira: official and street rates, reserves ($bn), the central bank's stance, the last year of rates. */
+  fx?: { rate: number; fair: number; parallel: number; reserves: number; stance: 'peg' | 'managed' | 'float'; hist: number[]; base: number };
   /** Each budget's oil forecast, checked against what oil did over the year. */
   oilForecasts?: { turn: number; said: number; by: string; sum: number; n: number }[];
   /** The Supreme Court. Seeded on first use. */

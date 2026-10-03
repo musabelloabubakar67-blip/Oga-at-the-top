@@ -11,6 +11,7 @@ import { institutionFiscalLines } from './institutions';
 import { assetFiscalLines } from './places';
 import { personView } from './people';
 import { logOilForecast, oilForecastTick } from './oilforecast';
+import { fxScale } from './currency';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -75,8 +76,10 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   add('Running the government', e.fiscalBase, 'Salaries and overheads, against ordinary revenue.');
   // The gap between the pump price and the cost of fuel moves with the price of crude.
   const crude = s.oil.price / 72;
-  add(subsidy === 'removed' ? 'No petrol subsidy to pay' : 'The petrol subsidy', (e.subsidyDrift[subsidy] ?? 0) * crude,
+  const subsidyNow = (e.subsidyDrift[subsidy] ?? 0) * crude * (subsidy === 'removed' ? 1 : fxScale(s));
+  add(subsidy === 'removed' ? 'No petrol subsidy to pay' : 'The petrol subsidy', subsidyNow,
     subsidy === 'removed' ? `What ending the subsidy freed, at $${Math.round(s.oil.price)} oil.` : `The gap between the pump price and the cost, paid monthly. Dearer as crude rises: $${Math.round(s.oil.price)} now.`);
+  add('Oil revenue at this year\'s exchange rate', (fxScale(s) - 1) * 0.08, 'Oil is sold in dollars. A naira that has fallen further than inflation explains turns each dollar into more naira; one that has held does the opposite.');
   add('Debt service', -(n.debt - 66) * e.debtToFiscal, 'Against the 66% of revenue you inherited. Each point retired is worth about ₦36bn a year.');
   add('Tax collection', (n.capacity - 34) * e.capacityToFiscal, 'A state that works collects what it is owed. Rises with state capacity.');
   add('Leakage', (n.integrity - 28) * e.integrityToFiscal, 'Less is stolen as integrity rises.');
@@ -328,6 +331,7 @@ function enact(s: GameState, benchmark: number, alloc: Record<SectorId, number>,
     prevAlloc: prev, sites: sites ? fitSites(sites, alloc.power ?? 0) : evenSites(alloc.power ?? 0), points, release: {}, supplementary,
   };
   s.counters.budgetTurn = s.turn;
+  s.flags['budget.how'] = how;
   logOilForecast(s);
   const cuts: string[] = [];
   for (const x of SECTORS) {

@@ -20,6 +20,7 @@ export interface AssetDef {
 }
 
 export const ASSETS: Record<string, AssetDef> = {
+  refinery: { name: 'The rehabilitated refinery', sites: ['RI', 'DE', 'KD'], fiscal: 0.012, fx: [['pressure.fuelSupplyStress', -0.4], ['nation.jobs', 0.01]] },
   steel: { name: 'The steel complex', sites: ['KO', 'DE', 'ED'], fiscal: 0.01, fx: [['nation.jobs', 0.03]] },
   charter: { name: 'The charter city', sites: ['LA', 'OG', 'AK', 'CR', 'DE'], fiscal: 0.012, fx: [['nation.jobs', 0.04]] },
   cannabis: { name: 'The licensed cannabis farms', sites: ['ON', 'ED', 'OS', 'EK'], fiscal: 0.008, fx: [['nation.jobs', 0.01]] },

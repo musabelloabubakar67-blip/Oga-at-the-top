@@ -127,7 +127,18 @@ export function chiefOfStaffNote(s: GameState): string {
   if (s.debts.gas > 0.9) notes.push([12, 'The gas suppliers are owed again, {SIR}. The plants will go idle before they go unpaid much longer.']);
   if (s.debts.contractors > 1.5) notes.push([10, 'The contractors have stopped coming to site, {SIR}. Everything we are building is slower for it.']);
   if (s.debts.pensions > 0.8) notes.push([11, 'The pensioners are outside the gate again, {SIR}. There are more of them each week.']);
-  if (s.budget.due) notes.push([40, 'The Appropriation Bill is on your desk, {SIR}. Nothing is released until you sign it.']);
+  if (s.budget.due && !s.budget.pending) notes.push([40, 'The Appropriation Bill is on your desk, {SIR}. Nothing is released until you sign it.']);
+  if (s.budget.pending) notes.push([40, `The Assembly has sent the budget back with ${s.budget.pending.insert} more ${s.budget.pending.insert === 1 ? 'point' : 'points'} for members' projects, {SIR}. Sign it, split it or veto it, but it has to be one of the three.`]);
+  // The naira.
+  if (s.fx?.stance === 'peg' && s.fx.reserves < 14) notes.push([34, `The central bank tells me the reserves are down to $${s.fx.reserves.toFixed(1)}bn, {SIR}. Below five, the peg goes whether we like it or not.`]);
+  if (s.fx && s.fx.parallel / s.fx.rate - 1 >= 0.25) notes.push([17, `The street is paying ${Math.round((s.fx.parallel / s.fx.rate - 1) * 100)}% over the official rate, {SIR}. Everyone who can get official dollars is getting rich, and everyone else knows who they are.`]);
+  // The court, the people we have hurt, and what is coming.
+  if (s.bench && s.bench.seats.some((j) => !j)) notes.push([19, 'There is a seat on the Supreme Court to fill, {SIR}. Whoever sits in it will be ruling on us long after we have gone.']);
+  const grudges = (s.wronged ?? []).filter((w) => w.until > s.turn).length;
+  if (grudges >= 3) notes.push([14, `${grudges} people are carrying grievances against us, {SIR}. Each one is a door that will not open when we knock.`]);
+  if ((s.orderLog ?? []).some((o) => o.turn === s.turn - 1 && o.target)) notes.push([8, 'Whoever we moved against last month has lawyers, {SIR}. Expect to hear from them, or from the court.']);
+  if (s.term === 2 && termTurnOf(s.turn) >= 20 && termTurnOf(s.turn) < 34 && !s.flags['succession.backed']) notes.push([15, 'The party will want a name within the year, {SIR}. Whoever you have in mind, it is time to be seen with them.']);
+  if (s.flags['refinery.covered']) notes.push([7, 'The refinery engineers you reassigned have started talking to each other, {SIR}. Engineers who talk to each other eventually talk to a journalist.']);
   const owing = s.favours.filter((f) => f.dir === 'owing' && s.turn - f.turn > 14).length;
   if (owing) notes.push([9, owing === 1 ? 'Somebody we owe has been patient for over a year, {SIR}. That patience is not a gift.' : 'We owe several people who have been patient for over a year, {SIR}. They will not ask twice.']);
   const hot = (['NW', 'NE', 'NC', 'SW', 'SE', 'SS'] as const).filter((z) => s.theatres[z] >= 76);

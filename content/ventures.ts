@@ -123,6 +123,35 @@ const lenders = (n: number, cost = 0.2): Risk => ({
 });
 
 export const VENTURES: Venture[] = [
+  {
+    id: 'refinery', name: 'Rehabilitate the state refineries, properly', pc: 8, naira: 1.1, months: 18, top: 0.82, infra: true,
+    when: { not: { flag: 'refinery.sold' } },
+    blurb: 'Every government has paid for this and none has got a barrel out. Done honestly, with an engineering contractor that is paid on output and a site the militants leave alone, it would end petrol imports from one plant and the dollars they cost.',
+    start: [['tycoon.ty_fuel', -8]],
+    risks: [
+      { id: 'audit', label: 'You know the real state of the plant (the Minister of State has been caught and the engineers\' report is out)', ok: { flag: 'refinery.audit' }, cost: 0.25,
+        warn: 'The contractor is working from the old "mechanical completion" reports. Nobody has opened the units they say are finished.',
+        fail: 'It was built on lies about what was already there. Half the "rehabilitated" units had never been touched.',
+        fix: 'Catch out the Minister of State\'s refinery reports and publish the engineers\' findings first.' },
+      contractors(0.18),
+      integrity(36, 0.18),
+      { id: 'delta', label: 'The South South theatre is calm enough (threat under 60)', ok: v('theatre.SS', '<', 60), cost: 0.2,
+        warn: 'The pipeline that feeds the refinery has been tapped three times this quarter. Crude is not arriving.',
+        fail: 'There was nothing to refine. The pipeline feeding it was cut faster than it could be repaired.',
+        fix: 'Bring the South South theatre under 60: the amnesty, the navy, or the security effort.' },
+      { id: 'importers', label: 'Amangala is not working against it (35 or better)', ok: v('tycoon.ty_fuel', '>=', 35), cost: 0.15,
+        warn: 'The fuel importers\' association has filed four lawsuits and the contractor\'s staff are being offered jobs elsewhere.',
+        fail: 'The importers who profit from the refinery being dead kept it dead: lawsuits, poached engineers and a convenient fire.',
+        fix: 'Win Amangala round, or at least keep him from open war (Politics, The money).' },
+    ],
+    win: [['pressure.fuelSupplyStress', -30], ['nation.jobs', 3], ['bonus.fiscal', 0.015], ['bonus.inflation', -0.5], ['approval', 3], ['tycoon.ty_fuel', -10]],
+    lose: [['nation.integrity', -3], ['bloc.press', -5], ['approval', -2]],
+    winText: 'Petrol leaves the refinery gate in tankers that were filmed entering empty. The country buys less petrol abroad, and fewer dollars leave every month.',
+    loseText: 'The refinery is declared "ready for commissioning" at a ceremony with no crude in the pipes. The ribbon is cut. Nothing else is.',
+    luck: 'A fire in the crude distillation unit, three weeks before start-up, destroyed what eighteen months had rebuilt. The investigators found no one to blame.',
+    winNews: ['STATE REFINERY PRODUCES PETROL FOR FIRST TIME IN YEARS', 'REFINERY DON DEY WORK. FOR REAL THIS TIME'],
+    loseNews: ['REFINERY REHABILITATION FAILS AGAIN', 'REFINERY: ANOTHER MONEY DON WASTE'],
+  },
   // ---------------------------------------------------------------- open from the start
   {
     id: 'steel', name: 'Revive the steel complex', pc: 6, naira: 1.2, months: 18, top: 0.85, brief: 'min_works', infra: true, partner: 'ty_maker',

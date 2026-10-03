@@ -144,6 +144,7 @@ export function gauges(s: GameState): Gauge[] {
     g('Cost-of-living pressure', Math.round(h).toString(), h, p.hardship, b.hardship, false, '', h),
     g('Inflation', `${n.inflation.toFixed(1)}%`, n.inflation, p['nation.inflation'], b.inflation, false, ' pts'),
     g('Treasury', n.fiscalSpace <= 0.01 ? 'Empty' : `₦${n.fiscalSpace.toFixed(1)}tn`, n.fiscalSpace, p['nation.fiscalSpace'], b.fiscalSpace, true, 'tn'),
+    ...(s.fx ? [g('The naira', `₦${Math.round(s.fx.rate).toLocaleString('en-GB')} · street ₦${Math.round(s.fx.parallel).toLocaleString('en-GB')}`, s.fx.rate, p['fx.naira'], s.fx.base, false, '')] : []),
     g('Debt service', `${Math.round(n.debt)}% of revenue`, n.debt, p['nation.debt'], b.debt, false, ' pts'),
     g('Unpaid bills', arrears <= 0.01 ? 'None' : `₦${arrears.toFixed(1)}tn`, arrears, p['debt.arrears'], 2.5, false, 'tn'),
     g('Saved', saved <= 0.01 ? 'Nothing' : `₦${saved.toFixed(1)}tn`, saved, p['fund.total'], 0.3, true, 'tn'),

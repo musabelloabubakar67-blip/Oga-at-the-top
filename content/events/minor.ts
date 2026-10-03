@@ -521,4 +521,171 @@ export const MINOR: GameEvent[] = [
       archive: 'Did not reply to a request for more refinery funds.',
     },
   },
+  // ---------------------------------------------------------------- the naira, the budget, the people you have hurt
+  {
+    ...phone, id: 'minor.cbn', kind: 'recurring', category: 'economy', tone: 'dry',
+    when: { all: [{ v: ['fx.peg', '==', 1] }, { v: ['fx.reserves', '<', 18] }] }, weight: 14, cooldown: 6, max: 3,
+    from: 'Governor, Central Bank',
+    title: 'The reserves',
+    body: [
+      'Your Excellency, at the present rate of intervention the reserves will not see the year out. I can continue to defend the rate as instructed. I would be failing in my duty if I did not say that the market has already decided where it is going.',
+    ],
+    choices: [
+      {
+        id: 'move', label: 'Let it move to a managed rate',
+        outcomes: [{
+          result: 'The central bank stops selling at the old rate. The naira slides for a week, then steadies. The queues at the banks disappear, and so do certain businessmen\'s margins.',
+          fx: [['bloc.establishment', 3], ['tycoon.ty_trade', -6]],
+          flags: { 'fx.stance': 'managed' },
+          news: ['CBN EASES DEFENCE OF NAIRA', 'CBN DON STOP TO SELL DOLLAR CHEAP'],
+          archive: 'Let the central bank stop defending the naira.',
+        }],
+      },
+      {
+        id: 'hold', label: 'Hold the line',
+        outcomes: [{
+          result: 'The Governor acknowledges the instruction in writing, which is how central bankers say they disagree.',
+          fx: [['bloc.establishment', -2]],
+          news: ['CBN REAFFIRMS NAIRA DEFENCE', 'CBN SAY DEM GO HOLD NAIRA'],
+          archive: 'Ordered the central bank to keep defending the naira.',
+        }],
+      },
+      {
+        id: 'forward', label: 'Ask the oil traders to bring forward this year\'s cargo payments', pc: 3,
+        outcomes: [{
+          result: 'Three months of oil money arrives in one. The reserves look healthier. They will look correspondingly worse in the spring.',
+          fx: [['fx.reserves', 4], ['bloc.establishment', -1]],
+          later: [{ after: [4, 6], fx: [['fx.reserves', -4]], label: 'The oil payments brought forward are missed in the months they were due.' }],
+          news: ['RESERVES RISE ON EARLY OIL RECEIPTS', 'RESERVE DON RISE. NA BORROW FROM TOMORROW'],
+          archive: 'Brought forward oil receipts to prop up the reserves.',
+        }],
+      },
+    ],
+    ignored: {
+      result: 'The Governor keeps defending the rate. The reserves keep falling.',
+      archive: 'Did not reply to the central bank about the reserves.',
+    },
+  },
+  {
+    ...phone, id: 'minor.bdc', kind: 'recurring', category: 'economy', tone: 'farce',
+    when: { v: ['fx.premium', '>=', 20] }, weight: 9, cooldown: 12, max: 2,
+    from: 'Chairman, Association of Bureau de Change Operators',
+    title: 'We are not the problem',
+    body: [
+      'Your Excellency, our members are being blamed on television for the price of the dollar. We only sell what the market will pay. If the central bank sold dollars to the public at its own rate, we would have nothing to sell. We would like this to be said by someone in government.',
+    ],
+    choices: [
+      {
+        id: 'raid', label: 'Have the police raid the bureaux de change',
+        outcomes: [{
+          result: 'Forty kiosks are closed on live television. The street rate rises the next morning, because there are now fewer places to buy dollars.',
+          fx: [['bloc.street', 1], ['nation.integrity', -1], ['bloc.establishment', -2]],
+          news: ['POLICE RAID BUREAU DE CHANGE OPERATORS', 'POLICE DON CLOSE BDC. DOLLAR DON COST PASS'],
+          archive: 'Had the police raid the bureaux de change.',
+        }],
+      },
+      {
+        id: 'agree', label: 'Say it: the official rate is the problem',
+        outcomes: [{
+          result: 'The Minister of Finance says, carefully, that the official rate "does not reflect market conditions". Importers with allocations are furious. Economists are relieved.',
+          fx: [['bloc.establishment', 2], ['bloc.press', 2], ['tycoon.ty_trade', -4]],
+          news: ['FG CONCEDES OFFICIAL RATE "OUT OF STEP"', 'GOVERNMENT DON AGREE SAY THEIR RATE NO REAL'],
+          archive: 'Conceded publicly that the official exchange rate was unrealistic.',
+        }],
+      },
+    ],
+    ignored: { result: 'The operators keep selling dollars at the price the market pays, and keep being blamed for it.', archive: 'Ignored the bureau de change operators.' },
+  },
+  {
+    ...phone, id: 'minor.zango', kind: 'recurring', category: 'politics', tone: 'dry',
+    when: { any: [{ flag: 'budget.how', is: 'veto' }, { flag: 'budget.how', is: 'stalled' }] }, weight: 12, cooldown: 10, max: 2,
+    from: '{SENPRES}\'s office, on behalf of Senator Dauda Zango',
+    title: 'A word about the next budget',
+    body: [
+      'Senator Zango asks me to convey that the Committee on Appropriations harbours no ill will over the recent budget. The Senator merely observes that next year\'s will also pass through the committee, as will every bill the Presidency hopes to see enacted.',
+    ],
+    choices: [
+      {
+        id: 'mend', label: 'Invite the Senator to dinner, with a constituency project on the menu', naira: 0.1,
+        outcomes: [{
+          result: 'The dinner goes well. A borehole programme is announced for the Senator\'s district. The committee\'s ill will, which did not exist, is no longer an issue.',
+          fx: [['person.sen_approp', 12], ['nation.integrity', -1]],
+          news: ['FG FLAGS OFF BOREHOLE PROJECT IN ZANGO\'S DISTRICT', 'ZANGO DON GET HIM PROJECT'],
+          archive: 'Made peace with the Appropriations chairman with a constituency project.',
+        }],
+      },
+      {
+        id: 'stand', label: 'Reply that the Presidency looks forward to working with the committee',
+        outcomes: [{
+          result: 'The reply is polite and changes nothing, which the Senator correctly reads as a refusal.',
+          fx: [['person.sen_approp', -4], ['bloc.press', 1]],
+          news: ['PRESIDENCY, SENATE COMMITTEE IN COLD WAR OVER BUDGET', 'PRESIDENT AND ZANGO NO DEY TALK'],
+          archive: 'Declined to make peace with the Appropriations chairman.',
+        }],
+      },
+    ],
+    ignored: { result: 'The Senator files the silence alongside the veto.', archive: 'Did not reply to the Appropriations chairman.' },
+  },
+  {
+    ...phone, id: 'minor.amangala', kind: 'standalone', category: 'economy', tone: 'dry',
+    when: { v: ['active.refinery', '==', 1] }, weight: 14, max: 1,
+    from: 'Chief Tonye Amangala',
+    title: 'A consultancy',
+    body: [
+      'Your Excellency, I have followed the refinery rehabilitation with patriotic interest. My companies have long experience of the petroleum supply chain and would be honoured to advise on the project, on terms that would of course reflect the national interest and some of yours.',
+    ],
+    choices: [
+      {
+        id: 'refuse', label: 'Decline the consultancy',
+        outcomes: [{
+          result: 'He thanks you for your time. His lawyers file a suit against the contractor the following week.',
+          fx: [['tycoon.ty_fuel', -8], ['nation.integrity', 1]],
+          news: ['FUEL IMPORTERS CHALLENGE REFINERY CONTRACT IN COURT', 'AMANGALA DON CARRY REFINERY GO COURT'],
+          archive: 'Turned down Chief Amangala\'s offer to "advise" the refinery project.',
+        }],
+      },
+      {
+        id: 'take', label: 'Accept, and let something come back',
+        outcomes: [{
+          result: 'His company is engaged as consultant. Its advice is that the project should proceed more slowly. Something arrives in the drawer.',
+          fx: [['tycoon.ty_fuel', 15], ['purse', 15], ['nation.integrity', -2]],
+          exposure: { kind: 'personal', amount: 15, witnesses: ['fin'], trail: 2 },
+          news: ['AMANGALA FIRM HIRED AS REFINERY CONSULTANT', 'THE FUEL IMPORTER DON BECOME REFINERY ADVISER'],
+          archive: 'Hired the fuel importer whose business depends on the refinery failing as its consultant, for a consideration.',
+        }],
+      },
+    ],
+    ignored: { result: 'He takes the silence as a no, and acts accordingly.', archive: 'Ignored Chief Amangala\'s approach about the refinery.' },
+  },
+  {
+    ...phone, id: 'minor.clearair', kind: 'recurring', category: 'politics', tone: 'dry',
+    cast: { WHO: 'wrongedPerson' }, weight: 10, cooldown: 8, max: 3,
+    from: '{WHO}',
+    title: 'Clearing the air',
+    body: [
+      '{WHO} would like a meeting, "to clear the air". The aide who called was careful to say that nothing has been forgotten, and equally careful to say that everything can be discussed.',
+    ],
+    choices: [
+      {
+        id: 'meet', label: 'Meet, and make amends', pc: 3,
+        outcomes: [{
+          result: 'The meeting runs long. Nothing is admitted on either side. Something is settled anyway.',
+          fx: [['person.$WHO', 8]],
+          ops: [['forgive', '$WHO']],
+          news: ['PRESIDENT, {WHO_SHORT} MEET BEHIND CLOSED DOORS', 'PRESIDENT AND {WHO_SHORT} DON SETTLE?'],
+          archive: 'Made amends with {WHO}.',
+        }],
+      },
+      {
+        id: 'no', label: 'Send word that the President\'s diary is full',
+        outcomes: [{
+          result: 'The aide thanks you for your time. The message has been received, on both sides.',
+          fx: [['person.$WHO', -4]],
+          news: ['{WHO_SHORT} SNUBBED BY PRESIDENCY, AIDES SAY', 'PRESIDENT NO GREE SEE {WHO_SHORT}'],
+          archive: 'Refused to meet {WHO}.',
+        }],
+      },
+    ],
+    ignored: { result: 'No reply is sent. None is needed.', archive: 'Did not answer {WHO}\'s request to meet.' },
+  },
 ];

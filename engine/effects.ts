@@ -32,6 +32,9 @@ const META: Record<string, Meta> = {
   approval: { label: 'Approval', upIsGood: true, steps: [2, 4], fmt: (d) => `${pts(d)} pts` },
   pc: { label: 'Political capital', upIsGood: true, steps: [5, 10], fmt: pts },
   purse: { label: 'The drawer', upIsGood: true, steps: [10, 50], fmt: (d) => `${d > 0 ? '+' : '−'}₦${Math.abs(Math.round(d))}bn` },
+  'fx.reserves': { label: 'Foreign reserves', upIsGood: true, steps: [1, 3], fmt: (d) => `${d > 0 ? '+' : '−'}$${Math.abs(d).toFixed(1)}bn` },
+  'fx.naira': { label: 'The naira (₦ to $1)', upIsGood: false, steps: [60, 150], fmt: (d) => `${d > 0 ? '+' : '−'}₦${Math.abs(Math.round(d))}` },
+  'fx.rate': { label: 'The naira, weaker by', upIsGood: false, steps: [5, 15], fmt: (d) => `${d > 0 ? '+' : '−'}${Math.abs(Math.round(d))}%` },
   'pressure.fuelSupplyStress': { label: 'Fuel scarcity risk', upIsGood: false, steps: [8, 15], fmt: pts },
   'pressure.wageGrievance': { label: 'Labour anger', upIsGood: false, steps: [8, 15], fmt: pts },
   'pressure.scandalHeat': { label: 'Scandal risk', upIsGood: false, steps: [6, 12], fmt: pts },
@@ -107,6 +110,7 @@ export function snapshot(s: GameState): Snapshot {
   for (const b of BLOCS) out[`bloc.${b}`] = s.blocs[b];
   for (const k of ['eurobond', 'bonds', 'ways', 'gas', 'contractors', 'pensions'] as const) out[`debt.${k}`] = s.debts[k];
   for (const k of ['abroad', 'buffer', 'infra', 'growth'] as const) out[`fund.${k}`] = s.funds[k];
+  if (s.fx) { out['fx.reserves'] = s.fx.reserves; out['fx.naira'] = s.fx.rate; }
   out['debt.arrears'] = s.debts.gas + s.debts.contractors + s.debts.pensions;
   out['fund.total'] = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
   return out;

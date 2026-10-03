@@ -25,6 +25,10 @@ export function upcoming(s: GameState): Coming[] {
   if (s.budget.due) out.push({ months: 0, text: s.budget.pending ? 'The Assembly has sent back its version of the budget' : 'The budget is waiting to be signed', tone: 'bad', go: 'treasury' });
   if (canSupplementary(s).ok) out.push({ months: 0, text: `Oil is $${Math.round(Math.abs(s.oil.price - s.budget.benchmark))} ${s.oil.price > s.budget.benchmark ? 'above' : 'below'} the budget: a supplementary budget is possible`, tone: 'neutral', go: 'treasury' });
 
+  // The naira.
+  if (s.fx && s.fx.stance === 'peg' && s.fx.reserves < 14) out.push({ months: 1, text: `Reserves at $${s.fx.reserves.toFixed(1)}bn: the peg breaks below $5bn`, tone: 'bad', go: 'treasury' });
+  if (s.fx && s.fx.parallel / s.fx.rate - 1 > 0.25) out.push({ months: 0, text: `The street pays ${Math.round((s.fx.parallel / s.fx.rate - 1) * 100)}% over the official rate`, tone: 'bad', go: 'treasury' });
+
   // The bench.
   const b = bench(s);
   b.seats.forEach((j) => {

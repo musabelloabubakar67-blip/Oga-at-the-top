@@ -3,7 +3,7 @@
 // is about and whether it is good or bad for the government.
 
 import { MILESTONE_BY_ID } from '../content/agenda';
-import { COOL_LINES, LOYAL_LINES, PEOPLE, PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
+import { COOL_LINES, GRUDGE_LINES, LOYAL_LINES, PEOPLE, PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
 import {
   COMMENT, EDITORIALS, FILLERS, HOSTILE_BAD, HOSTILE_GOOD, LOYAL_BAD, LOYAL_GOOD, MINISTER_EXCUSE, MINISTER_PROUD,
   OUTLETS, SIDEBARS, STORIES, STORY_BY_ID, STRAPS, VILLA_LEAK,
@@ -243,13 +243,17 @@ function quotesFor(s: GameState, seed: NewsSeed, stance: Stance): FrontPage['quo
   if (about && (kind === 'governor' || kind === 'senator') && stance !== 'street') {
     const p = personView(s, about);
     const warm = p.standing >= 55;
-    const line = pick(s, warm ? 'q.loyal' : 'q.cool', warm ? LOYAL_LINES : COOL_LINES);
+    // Someone the President has used the state against says so.
+    const hurt = (s.wronged ?? []).some((w) => w.who === about && w.until > s.turn);
+    const line = hurt ? pick(s, 'q.grudge', GRUDGE_LINES, 10) ?? pick(s, 'q.cool', COOL_LINES) : pick(s, warm ? 'q.loyal' : 'q.cool', warm ? LOYAL_LINES : COOL_LINES);
     if (line) out.push({ who: p.name, role: `${p.title} · ${relWord(p.standing)}`, line: fill(s, line) });
   }
   // The broadsheet gives the opposition its say on bad news. The hostile paper has already made it the headline.
   if (stance === 'record' && !good && seed.valence) {
     const r = RIVAL_BY_ID[strongestRival(s).id];
-    const line = pick(s, `q.${r.id}`, r.lines);
+    // What the President has actually done comes first; the stock lines fill the gaps.
+    const apt = (r.situational ?? []).filter((x) => test(s, x.when)).map((x) => x.text);
+    const line = pick(s, `q.${r.id}.sit`, apt, 18) ?? pick(s, `q.${r.id}`, r.lines);
     if (line) out.push({ who: r.name, role: r.party, line });
   }
   // A hostile paper with a source inside a Villa that is coming apart.

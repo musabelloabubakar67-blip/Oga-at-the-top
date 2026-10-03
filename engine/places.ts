@@ -73,7 +73,9 @@ export function settleSite(s: GameState, id: string, won: boolean): void {
   if (won) {
     const head = headsFor(s).find((h) => h.name === 'A career civil servant')!;
     (s.assets ??= []).push({ id, state, head, since: s.turn });
+    s.flags[`asset.${id}`] = true;
   } else {
+    s.flags['site.abandoned'] = true;
     (s.placed ??= []).push({ state, kind: 'abandoned', label: `The abandoned site of ${VENTURE_BY_ID[id]?.name.toLowerCase() ?? id}`, turn: s.turn });
   }
 }

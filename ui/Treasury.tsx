@@ -2,6 +2,7 @@
 
 import { Overlay } from './shell';
 import { oilForecast } from '../engine/oilforecast';
+import { STANCE_NAME, fxFlow, fxInflation, fxScale, premium, realFall, yearFall } from '../engine/currency';
 import { useState } from 'react';
 import { BENCHMARKS, DEBTS, FUNDS, SECTORS } from '../content/treasury';
 import { dateLabel, yearOf } from '../engine/config';
@@ -17,7 +18,7 @@ import type { Action, DebtId, FundId, GameState, SectorId, ZoneId } from '../eng
 import { ZONES, ZONE_NAME, senate } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = 'books' | 'year' | 'owed' | 'saved' | 'policies';
+type Tab = 'books' | 'year' | 'naira' | 'owed' | 'saved' | 'policies';
 
 const signed = (v: number) => `${v >= 0 ? '+' : '−'}₦${Math.round(Math.abs(v) * 1000)}bn`;
 
@@ -482,7 +483,7 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
   const said = s.lastAction && s.lastAction.text !== before ? s.lastAction.text : null;
   const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
   const standing = activePolicies(s).length;
-  const tabs: [Tab, string][] = [['books', 'The books'], ['year', `The ${s.budget.year} budget`], ['owed', `What is owed · ${Math.round(s.nation.debt)}% and ${naira(arrears)} unpaid`], ['saved', 'What is saved'], ['policies', `Standing policies${standing ? ` · ${standing}` : ''}`]];
+  const tabs: [Tab, string][] = [['books', 'The books'], ['year', `The ${s.budget.year} budget`], ['naira', 'The naira'], ['owed', `What is owed · ${Math.round(s.nation.debt)}% and ${naira(arrears)} unpaid`], ['saved', 'What is saved'], ['policies', `Standing policies${standing ? ` · ${standing}` : ''}`]];
   const used = SECTORS.reduce((a, x) => a + (s.budget.alloc[x.id] ?? 0), 0);
   return (
     <Shell onClose={onClose}>
@@ -505,10 +506,53 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
       {tab === 'saved' && <Saved s={s} dispatch={dispatch} />}
       {tab === 'policies' && <Policies s={s} dispatch={dispatch} />}
       {tab === 'year' && <ThisYear s={s} dispatch={dispatch} />}
+      {tab === 'naira' && <Naira s={s} />}
       {said && tab !== 'books' && (
         <p className="fade-in mt-4 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>
       )}
       <div className="mt-6 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
     </Shell>
+  );
+}
+
+/** The naira: the official and street rates, the reserves, the dollars coming and going, and what the rate is doing to prices and the books. */
+function Naira({ s }: { s: GameState }) {
+  const f = s.fx;
+  if (!f) return null;
+  const flow = fxFlow(s);
+  const prem = premium(s);
+  const fmt = (v: number) => `₦${Math.round(v).toLocaleString('en-GB')}`;
+  const months = f.reserves > 0 && flow.total < 0 && f.stance === 'peg' ? Math.round(f.reserves / Math.max(0.1, -flow.total + Math.max(0, f.fair / f.rate - 1) * 4)) : null;
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        {[['Official rate', `${fmt(f.rate)} to $1`], ['Street rate', `${fmt(f.parallel)}`], ['Black-market premium', `${Math.round(prem * 100)}%`], ['Foreign reserves', `$${f.reserves.toFixed(1)}bn`]].map(([k, v]) => (
+          <div key={k} className="border border-ink/15 p-3"><p className="label text-ink-soft">{k}</p><p className="font-serif text-2xl">{v}</p></div>
+        ))}
+      </div>
+      <p className="text-sm leading-snug text-ink-soft">
+        The central bank&apos;s stance: <span className="font-semibold text-ink">{STANCE_NAME[f.stance]}</span>. {f.stance === 'peg'
+          ? `The official rate is held with the reserves. The market thinks the naira is worth about ${fmt(f.fair)}; every dollar it wants at the official rate comes out of the reserves.${months !== null ? ` At this rate they last about ${months} months. When they fall below $5bn, the peg breaks overnight.` : ''}`
+          : f.stance === 'float' ? 'The market sets the rate. There is no black market to speak of, and the reserves are left alone.' : 'The rate moves towards what the market thinks, a fifth of the way each month, with reserves spent to smooth it.'}
+        {' '}Change it under Orders, in the economy section.
+      </p>
+      <div>
+        <p className="label border-b rule pb-1 text-ink-soft">Dollars in and out each month</p>
+        <ul className="mt-1 divide-y divide-ink/10 text-sm">
+          {flow.lines.map((l) => <li key={l.label} className="flex justify-between py-1"><span>{l.label}</span><span className={l.value >= 0 ? 'text-state' : 'text-alarm'}>{l.value >= 0 ? '+' : '−'}${Math.abs(l.value).toFixed(2)}bn</span></li>)}
+          <li className="flex justify-between py-1 font-semibold"><span>Net</span><span className={flow.total >= 0 ? 'text-state' : 'text-alarm'}>{flow.total >= 0 ? '+' : '−'}${Math.abs(flow.total).toFixed(2)}bn</span></li>
+        </ul>
+        <p className="mt-1 text-[13px] text-ink-soft">Dollars short push the naira&apos;s value down; prices rising faster than abroad do the same, month after month.</p>
+      </div>
+      <div>
+        <p className="label border-b rule pb-1 text-ink-soft">What the naira is doing to you</p>
+        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
+          <li>Over the last year it has moved {Math.round(yearFall(s) * 100)}%, {realFall(s) > 0.01 ? `${Math.round(realFall(s) * 100)}% more than inflation explains` : realFall(s) < -0.01 ? `${Math.round(-realFall(s) * 100)}% less than inflation explains` : 'about what inflation explains'}. It adds {fxInflation(s).toFixed(1)} points to inflation{prem > 0.15 ? ', partly because importers price at the street rate' : ''}.</li>
+          <li>The petrol subsidy, if there is one, costs {Math.round((fxScale(s) - 1) * 100)}% {fxScale(s) >= 1 ? 'more' : 'less'} than a year ago because of the rate; oil revenue in naira moves the same way, which is why a falling naira helps the treasury.</li>
+          <li>A real fall raises the cost of foreign debt; a real rise lowers it.</li>
+          <li>{f.stance === 'peg' ? 'Importers with access to official dollars are doing very well. Manufacturers are not.' : f.stance === 'float' ? 'Importers have lost their margin. Manufacturers, protected by a weaker naira, are pleased.' : 'Importers and manufacturers are both waiting to see which way it goes.'}</li>
+        </ul>
+      </div>
+    </div>
   );
 }

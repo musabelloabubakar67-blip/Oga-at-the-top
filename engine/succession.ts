@@ -98,6 +98,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   s.assets = (prev.assets ?? []).map((a) => ({ ...a, head: { ...a.head } }));
   s.placed = (prev.placed ?? []).map((p) => ({ ...p }));
   s.sites = { ...(prev.sites ?? {}) };
+  if (prev.fx) s.fx = { ...prev.fx, hist: [...prev.fx.hist] };
   if (prev.bench) {
     // The calendar restarts at month one. Justices loyal to the last President are loyal to their party.
     const shift = prev.turn - 1;

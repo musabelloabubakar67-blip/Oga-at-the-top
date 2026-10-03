@@ -107,6 +107,7 @@ export function runOp(s: GameState, op: Op2): string {
       s.flags['fin.replaced'] = true;
       return '';
     }
+    case 'forgive': s.wronged = (s.wronged ?? []).filter((w) => w.who !== String(a)); return '';
     case 'weaken': return weaken(s, String(a), Number(b ?? 0.5));
     case 'backsucc': return backSuccessor(s, String(a));
     case 'succadj': s.flags['succession.strength'] = Number(s.flags['succession.strength'] ?? 0) + Number(a); return '';
@@ -175,6 +176,7 @@ export function opText(s: GameState, op: Op2): string | null {
     case 'betdelay': return 'The opening is put back, giving you time to fix what is wrong';
     case 'sack': return `${who(s, String(a)).name} is replaced by a ${b === 'party' ? 'party nominee' : 'technocrat'}`;
     case 'finleave': return 'The Finance Minister leaves the government';
+    case 'forgive': return `${who(s, String(a)).short} lets the grievance go`;
     case 'weaken': { const m = MILESTONE_BY_ID[String(a)]?.m; return m ? (Number(b) <= 0 ? `The reform stands: ${m.name}` : Number(b) >= 1 ? `Repeals the reform: ${m.name}. Part of what it delivered is lost and it can be passed again` : `Weakens the reform: ${m.name}. ${Math.round(Number(b) * 100)}% of what it delivered is lost`) : null; }
     case 'backsucc': { const c = candidate(s, String(a)); return `${c.name} becomes your candidate: ${c.strength >= 0 ? '+' : ''}${c.strength} to the party's share; loyalty to you ${c.loyalty}`; }
     case 'succadj': return `Your candidate's standing ${Number(a) >= 0 ? 'rises' : 'falls'} by ${Math.abs(Number(a))}`;

@@ -8,6 +8,7 @@ import { foodInflation, securityTick } from './security';
 import { policyGoodwill, policyInflationLines, policyTick } from './policies';
 import { institutionInflationLines, institutionTick } from './institutions';
 import { assetTick } from './places';
+import { currencyTick, fxInflation } from './currency';
 import { budgetInflation, printedInflation, treasuryTick } from './treasury';
 import type { GameState, Nation } from './types';
 import { BLOCS, ZONES, applyFx, approval, clamp, hardship, petrolShock, test, zoneSecurity } from './vars';
@@ -47,6 +48,7 @@ export function inflationTarget(s: GameState): { lines: { label: string; value: 
     { label: 'Your reforms and orders', value: s.counters['bonus.inflation'] ?? 0 },
     { label: 'Farming in the budget', value: budgetInflation(s) },
     { label: 'The importers', value: tycoonInflation(s) },
+    { label: 'The naira', value: fxInflation(s) },
     { label: 'A nervous establishment', value: Math.max(0, 30 - s.blocs.establishment) * 0.25 },
     ...policyInflationLines(s),
     ...institutionInflationLines(s),
@@ -67,6 +69,7 @@ export function economyTick(s: GameState): void {
 
   // The books: oil, the monthly flow, the budget, the unpaid bills and the funds.
   treasuryTick(s);
+  currencyTick(s);
 
   // Past the cliff with nothing in the account, capital spending stops.
   const austerity = n.debt > e.debtCliff && n.fiscalSpace <= 0.05;

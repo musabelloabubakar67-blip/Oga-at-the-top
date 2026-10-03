@@ -27,6 +27,7 @@ import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
 import { canGroom, groom } from './successor';
+import { floatNow, initCurrency } from './currency';
 import { canSetManager, setManager } from './places';
 import { canNominate, courtTick, nominate } from './courts';
 import { aimFx, aimText, targetsFor, wearFactor, wrong, wrongedTick, type TargetKind } from './targets';
@@ -138,6 +139,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   initPeople(s);
   initSecurity(s);
   initTreasury(s);
+  initCurrency(s);
   initTycoons(s);
 
   for (const z of ZONES) {

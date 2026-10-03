@@ -354,6 +354,13 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     if (!skip('bond') && (bot.name === 'Kleptocrat' || bot.name === 'Machine') && s.nation.fiscalSpace < 0.3 && s.nation.debt < 80 && termTurnOf(s.turn) >= 30 && orderOk(s, 'bond')) s = applyAction(s, { type: 'ORDER', id: 'bond', level: 1 });
     if (!skip('vat') && bot.name === 'Institutionalist' && termTurnOf(s.turn) <= 20 && fiscalFlow(s).total < 0 && orderOk(s, 'tax')) s = applyAction(s, { type: 'ORDER', id: 'tax', level: 0 });
     if (bot.name.startsWith('Reformer') && !bot.keepsSubsidy && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
+    // The naira: reformers unify the rate early; the kleptocrat defends it and sells the difference.
+    if (!skip('fx')) {
+      if (bot.name.startsWith('Reformer') && s.turn >= 4 && s.turn <= 8 && orderOk(s, 'fx_float')) s = applyAction(s, { type: 'ORDER', id: 'fx_float' });
+      if (bot.name === 'Kleptocrat' && s.turn >= 3 && orderOk(s, 'fx_peg') && (s.fx?.reserves ?? 0) > 15) s = applyAction(s, { type: 'ORDER', id: 'fx_peg' });
+      if (bot.name === 'Kleptocrat' && orderOk(s, 'fx_allocation')) s = applyAction(s, { type: 'ORDER', id: 'fx_allocation' });
+      if (s.fx?.stance === 'peg' && s.fx.reserves < 8 && orderOk(s, 'fx_managed')) s = applyAction(s, { type: 'ORDER', id: 'fx_managed' });
+    }
     if (bot.reforms === 'all' && s.nation.fiscalSpace > 4) s = applyAction(s, { type: 'ORDER', id: 'paydown' });
     // A vacancy on the Supreme Court: the machine and the kleptocrat appoint loyalists the Senate will take; the rest appoint the Bar's choice.
     if (!skip('bench') && bot.name !== 'Do-nothing' && bot.name !== 'Random' && movesLeft(s) > 0) {

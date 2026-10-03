@@ -126,6 +126,7 @@ export function courtTick(s: GameState): void {
       for (const f of undo) applyFx(s, f);
       applyFx(s, ['pc', -3]);
       applyFx(s, ['bloc.press', 2]);
+      s.counters.struck = (s.counters.struck ?? 0) + 1;
       s.news.push({ chronicle: `SUPREME COURT VOIDS ORDER AGAINST ${who.toUpperCase()}, ${against}–${forYou}`, street: `COURT SAY WETIN PRESIDENT DO ${who.toUpperCase()} NO LEGAL`, weight: 6, valence: -1, topic: 'politics', body: `${who} challenged the order and won. The court\'s judgment calls it "an exercise of power in search of a law".` });
       s.report.push({ kind: 'consequence', title: `Struck down: ${def.name}`, cause: 'The Supreme Court', text: `${who} went to court and won, ${against} to ${forYou}. Half the damage is undone and you look like a President who loses in court.`, changes: diff(before, snapshot(s)) });
     } else {
@@ -139,6 +140,7 @@ export function courtTick(s: GameState): void {
     if (!contested(a.id) || s.counters[`injunct.${a.id}`] !== undefined) continue;
     if (rand(s) >= 0.03 * reachable) continue;
     s.counters[`injunct.${a.id}`] = s.turn;
+    s.counters.injunctions = (s.counters.injunctions ?? 0) + 1;
     const m = MILESTONE_BY_ID[a.id].m;
     a.progress = Math.max(0, a.progress - (100 / m.months) * 3);
     s.news.push({ chronicle: `COURT FREEZES ${m.name.toUpperCase()}`, street: 'COURT DON STOP THE REFORM FOR NOW', weight: 5, valence: -1, topic: 'reform', body: 'An interim injunction, granted on an application filed by people who stand to lose from it, halts the work for three months.' });
