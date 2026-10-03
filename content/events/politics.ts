@@ -213,8 +213,9 @@ export const POLITICS: GameEvent[] = [
     ],
   },
   {
-    id: 'opposition.unites', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3,
-    when: { all: [{ term: 1 }, { termTurn: [26, 38] }] }, weight: 22,
+    // Every first term meets it once, in month 34. Against a President projected to win by six or more, the merger is broad.
+    id: 'opposition.unites', kind: 'threshold', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3, max: 1,
+    when: { all: [{ term: 1 }, { termTurn: [34, 38] }] },
     office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
     title: 'The opposition is discussing a merger',
     body: [
@@ -223,7 +224,8 @@ export const POLITICS: GameEvent[] = [
       { when: { flag: 'rival.alt.in' }, text: 'Dr Malumfashi, who now chairs your economic council, is not at the table.' },
       { when: { v: ['debts', '>', 0] }, text: 'The businessmen who are against you are paying for the hotel.' },
       'The talks are being held in a hotel in Abuja. They have so far failed to agree on a name, a logo, a chairman or a venue for the next meeting.',
-      'A united opposition would cost you an estimated four points nationally.',
+      { when: { v: ['outlook', '>=', 6] }, text: 'You are far enough ahead that none of them can win alone, and every one of them knows it. They will not fall out this time unless somebody makes them.' },
+      'A united opposition would cost you an estimated six points nationally.',
     ],
     reads: [
       { role: 'sap', good: 'They will fall out on their own if left alone, {SIR}. Probably. One of the small parties\' chairmen has let it be known he is open to conversation.' },
@@ -233,11 +235,19 @@ export const POLITICS: GameEvent[] = [
         id: 'leave', label: 'Leave them to it',
         outcomes: [
           {
-            chance: 0.5,
+            chance: 0.5, when: { v: ['outlook', '<', 6] },
             result: 'The talks collapse over the vice-presidential slot. Two of the parties announce their own candidates the same afternoon.',
             flags: { 'opposition.split': true },
             news: ['OPPOSITION MERGER TALKS COLLAPSE', 'OPPOSITION SCATTER OVER WHO GO BE VICE'],
             archive: 'Left the opposition merger talks alone. They collapsed.',
+          },
+          {
+            when: { v: ['outlook', '>=', 6] },
+            result: 'They agree within a day. Against a President this far ahead, every one of them would rather share a ticket than lose alone. {OPP} is the joint candidate, and the merger draws in everyone who wants a change, whoever they are.',
+            fx: [['approval', -2], ['bloc.party', -4], ['rival.alt', 4], ['rival.fire', 4], ['rival.strong', 4]],
+            flags: { 'opposition.united': true, 'opposition.broad': true },
+            news: ['OPPOSITION PARTIES MERGE AGAINST PRESIDENT', 'EVERYBODY DON GATHER AGAINST ONE MAN'],
+            archive: 'Left the opposition merger talks alone. Against a President so far ahead, they united at once.',
           },
           {
             result: 'Against expectation, they agree. {OPP} is unveiled as the joint candidate under a logo that took eleven hours to negotiate.',
@@ -251,6 +261,13 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'record', label: 'Answer them with the record: a national tour', pc: 6,
         outcomes: [{
+          when: { v: ['outlook', '>=', 6] },
+          result: 'You spend three weeks commissioning things. The merger goes ahead anyway, and broad: against a President this far ahead, everyone who wants a change has somewhere to go.',
+          fx: [['approval', 1.5], ['bloc.party', 3]],
+          flags: { 'opposition.united': true, 'opposition.broad': true },
+          news: ['PRESIDENT BEGINS NATIONWIDE PROJECT TOUR', 'PRESIDENT DEY COMMISSION EVERYTHING WEY GET RIBBON'],
+          archive: 'Answered the opposition merger with a national tour. It went ahead regardless.',
+        }, {
           result: 'You spend three weeks commissioning things. The merger goes ahead, into more of a headwind than it expected.',
           fx: [['approval', 1.5], ['bloc.party', 3]],
           flags: { 'opposition.united': true },
@@ -259,14 +276,22 @@ export const POLITICS: GameEvent[] = [
         }],
       },
       {
-        id: 'chairman', label: 'Have a conversation with the open-minded chairman', purse: 8,
+        id: 'chairman', label: 'Have a conversation with the open-minded chairman', purse: 20,
         outcomes: [{
+          chance: 0.6,
           result: 'The chairman withdraws his party from the talks, citing "irreconcilable ideological differences" with people he met last week.',
           fx: [['nation.integrity', -2], ['approval', 1]],
           flags: { 'opposition.split': true },
           exposure: { kind: 'political', amount: 8, witnesses: ['opposition'], trail: 2 },
           news: ['PARTY PULLS OUT OF OPPOSITION MERGER', 'ONE CHAIRMAN DON COLLECT. MERGER SCATTER'],
           archive: 'Paid a party chairman to wreck the opposition merger.', sig: 2,
+        }, {
+          result: 'The chairman takes the money and stays in the talks. The merger is announced a week later. So, by someone who was in the room, is the offer.',
+          fx: [['nation.integrity', -3], ['approval', -2], ['bloc.press', -4]],
+          flags: { 'opposition.united': true },
+          exposure: { kind: 'political', amount: 20, witnesses: ['opposition'], trail: 3 },
+          news: ['OPPOSITION: PRESIDENCY TRIED TO BUY OUR CHAIRMAN', 'DEM TRY BUY CHAIRMAN. E COLLECT, E NO GO'],
+          archive: 'Paid a party chairman to wreck the opposition merger. He took the money and the merger went ahead.', sig: 2,
         }],
       },
     ],
@@ -347,7 +372,7 @@ export const POLITICS: GameEvent[] = [
       { when: { v: ['delegates', '>=', 62] }, text: 'No other aspirant has purchased a form. {CHAIR} proposes affirmation by voice vote.' },
       { when: { all: [{ v: ['delegates', '>=', 47] }, { v: ['delegates', '<', 62] }] }, text: 'A challenger backed by several governors has purchased a form. You are ahead, though by less than the Special Adviser would like.' },
       { when: { v: ['delegates', '<', 47] }, text: 'A challenger backed by governors you neglected has purchased a form. The count has you behind. It is too late to win them now; it was not too late last year.' },
-      { when: { all: [{ v: ['delegates', '<', 47] }, { v: ['approval', '>=', 58] }, { v: ['delegates', '>=', 36] }] }, text: 'You are popular enough in the country that some delegates will defy their governors. It may be enough.' },
+      { when: { all: [{ v: ['delegates', '<', 47] }, { v: ['approval', '>=', 55] }, { v: ['delegates', '>=', 36] }] }, text: 'You are popular enough in the country that some delegates will defy their governors. It may be enough.' },
     ],
     trace: [['bloc.party', -1]],
     reads: [
@@ -365,7 +390,7 @@ export const POLITICS: GameEvent[] = [
             archive: 'Won the party ticket by affirmation.', sig: 3,
           },
           {
-            when: { any: [{ v: ['delegates', '>=', 47] }, { all: [{ v: ['approval', '>=', 58] }, { v: ['delegates', '>=', 36] }] }] },
+            when: { any: [{ v: ['delegates', '>=', 47] }, { all: [{ v: ['approval', '>=', 55] }, { v: ['delegates', '>=', 36] }] }] },
             result: 'Counting ends at 4am. You win with 58% of delegates. The challenger pledges loyalty through visibly clenched teeth.',
             fx: [['pc', 5], ['bloc.party', -3]],
             news: ['PRESIDENT WINS PARTY PRIMARY', 'PRESIDENT SURVIVE PRIMARY. E NO EASY'],

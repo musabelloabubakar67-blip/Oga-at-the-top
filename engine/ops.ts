@@ -1,7 +1,11 @@
 // Operations an outcome can run when a number is not enough: paying a named
 // debt, granting what someone wants, moving a fund, rescuing a bet.
 
+import { weaken } from './attacks';
+import { backSuccessor, candidate } from './successor';
 import { MILESTONE_BY_ID } from '../content/agenda';
+import { FINANCE_CANDIDATES } from '../content/names';
+import { currentWant } from './wants';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { DEBT_BY_ID, FUND_BY_ID } from '../content/treasury';
 import { TYCOON_BY_ID } from '../content/tycoons';
@@ -40,7 +44,7 @@ export function runOp(s: GameState, op: Op2): string {
     case 'grant': {
       const id = String(a);
       if (TYCOON_BY_ID[id]) return s.tycoons[id]?.granted ? '' : tycoonDeal(s, id, 'grant').text;
-      if (PERSON_BY_ID[id] && !s.people[id]?.granted && PERSON_BY_ID[id].want) {
+      if (PERSON_BY_ID[id] && currentWant(s, id)) {
         const out = deal(s, id, 'grant').text;
         // What was given settles what was owed.
         const debt = favoursOwing(s, id)[0];
@@ -92,6 +96,21 @@ export function runOp(s: GameState, op: Op2): string {
     case 'betdelay': s.counters[`trouble.${a}`] = s.turn; return delay(s, String(a));
     case 'betseen': s.counters[`trouble.${a}`] = s.turn; return '';
     case 'sack': return replaceMinister(s, String(a), b === 'party' ? 'party' : 'technocrat').text;
+    case 'finleave': {
+      // The Finance Minister goes. The next is whichever of the other candidates is still available.
+      const old = s.chars.fin;
+      const next = FINANCE_CANDIDATES.find((c) => c.name !== old?.name);
+      if (!next) return '';
+      s.chars.fin = { ...next, rel: 40, notes: [] };
+      s.chars.fin.patron = next.patron ?? 'president';
+      s.chars.fin.rep = next.rep ?? { competence: next.competence, loyalty: next.loyalty };
+      s.flags['fin.replaced'] = true;
+      return '';
+    }
+    case 'forgive': s.wronged = (s.wronged ?? []).filter((w) => w.who !== String(a)); return '';
+    case 'weaken': return weaken(s, String(a), Number(b ?? 0.5));
+    case 'backsucc': return backSuccessor(s, String(a));
+    case 'succadj': s.flags['succession.strength'] = Number(s.flags['succession.strength'] ?? 0) + Number(a); return '';
     case 'mark': addMark(s, String(a), Number(b), String(c ?? '')); return '';
     case 'seen': s.flags[`dirty.${a}.${s.people[String(a)]?.name ?? ''}`] = true; return '';
     case 'lean': {
@@ -128,7 +147,7 @@ export function opText(s: GameState, op: Op2): string | null {
     case 'grant': {
       const id = String(a);
       const w = who(s, id);
-      const want = TYCOON_BY_ID[id]?.want ?? PERSON_BY_ID[id]?.want;
+      const want = TYCOON_BY_ID[id]?.want ?? currentWant(s, id) ?? PERSON_BY_ID[id]?.want;
       if (!want) return null;
       const cost = [want.pc ? `${want.pc} capital` : '', want.naira ? naira(want.naira) : ''].filter(Boolean).join(', ');
       return `${w.short} gets what was asked${cost ? ` (${cost})` : ''}: ${want.text.replace(/\.$/, '').toLowerCase()}`;
@@ -156,6 +175,11 @@ export function opText(s: GameState, op: Op2): string | null {
     }
     case 'betdelay': return 'The opening is put back, giving you time to fix what is wrong';
     case 'sack': return `${who(s, String(a)).name} is replaced by a ${b === 'party' ? 'party nominee' : 'technocrat'}`;
+    case 'finleave': return 'The Finance Minister leaves the government';
+    case 'forgive': return `${who(s, String(a)).short} lets the grievance go`;
+    case 'weaken': { const m = MILESTONE_BY_ID[String(a)]?.m; return m ? (Number(b) <= 0 ? `The reform stands: ${m.name}` : Number(b) >= 1 ? `Repeals the reform: ${m.name}. Part of what it delivered is lost and it can be passed again` : `Weakens the reform: ${m.name}. ${Math.round(Number(b) * 100)}% of what it delivered is lost`) : null; }
+    case 'backsucc': { const c = candidate(s, String(a)); return `${c.name} becomes your candidate: ${c.strength >= 0 ? '+' : ''}${c.strength} to the party's share; loyalty to you ${c.loyalty}`; }
+    case 'succadj': return `Your candidate's standing ${Number(a) >= 0 ? 'rises' : 'falls'} by ${Math.abs(Number(a))}`;
     case 'lean': return `${who(s, String(a)).short} obeys for eight months and resents it for longer`;
     case 'storyend': return 'The newspaper series against you ends';
     case 'defect': return `${who(s, String(a)).short} leaves your party`;

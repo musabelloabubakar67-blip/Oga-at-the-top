@@ -1,0 +1,114 @@
+// Where things are. Big bets are built in a state the President chooses; the ones
+// that work become assets that run every month under a manager, and the ones
+// that fail leave a site behind. Each state's figures are its zone's, plus
+// what has been put there. What is put in a state shows in how it votes.
+
+import { ASSETS } from '../content/assets';
+import { STATES, STATE_BY_ID } from '../content/states';
+import { VENTURE_BY_ID } from '../content/ventures';
+import { REHEAD_PC, headsFor, type Head } from './institutions';
+import type { Fx, GameState } from './types';
+import { applyFx, clamp } from './vars';
+
+export function assets(s: GameState): NonNullable<GameState['assets']> {
+  return s.assets ?? [];
+}
+
+const leans = (h: Head) => h.patron !== 'president' && h.loyalty <= 3;
+
+/** How well an asset is running, and why. */
+export function assetPerformance(s: GameState, id: string): { k: number; why: string[]; captured: boolean } {
+  const a = assets(s).find((x) => x.id === id);
+  if (!a) return { k: 0, why: [], captured: false };
+  const why: string[] = [];
+  let k = 0.5 + 0.15 * a.head.competence;
+  const zone = STATE_BY_ID[a.state]?.zone;
+  if (zone && s.theatres[zone] >= 65) { k *= 0.6; why.push(`The ${zone} theatre is dangerous: it runs at 60%`); }
+  const captured = leans(a.head);
+  if (captured) { k *= 0.6; why.push(`${a.head.name} runs it for someone else`); }
+  if (a.head.integrity <= 2) { k *= 0.85; why.push('Its manager takes a cut'); }
+  return { k, why, captured };
+}
+
+export function assetFx(s: GameState, id: string): Fx[] {
+  const d = ASSETS[id];
+  if (!d) return [];
+  const { k } = assetPerformance(s, id);
+  return d.fx.map(([t, v]) => [t, Math.round(v * k * 1000) / 1000]);
+}
+
+export function assetFiscal(s: GameState, id: string): number {
+  const d = ASSETS[id];
+  if (!d) return 0;
+  return d.fiscal > 0 ? d.fiscal * assetPerformance(s, id).k : d.fiscal;
+}
+
+export function assetFiscalLines(s: GameState): { label: string; value: number; hint: string }[] {
+  return assets(s).map((a) => {
+    const value = assetFiscal(s, a.id);
+    return { label: `${ASSETS[a.id].name}, ${STATE_BY_ID[a.state]?.name}`, value, hint: value >= 0 ? `What it earns, under ${a.head.name.replace(/^A /, 'a ')}.` : 'What it costs to keep running.' };
+  });
+}
+
+export function assetTick(s: GameState): void {
+  for (const a of assets(s)) {
+    for (const f of assetFx(s, a.id)) applyFx(s, f);
+    if (!leans(a.head)) continue;
+    const p = a.head.patron;
+    if (s.tycoons[p]) s.tycoons[p].rel = clamp(s.tycoons[p].rel + 0.5, 0, 100);
+    else if (s.people[p]) s.people[p].rel = clamp(s.people[p].rel + 0.5, 0, 100);
+    if (!a.seen && s.turn - a.since >= 6) {
+      a.seen = true;
+      const name = ASSETS[a.id].name;
+      s.news.push({ chronicle: `WHO REALLY RUNS ${name.replace(/^The /, '').toUpperCase()}?`, street: 'DEM SAY NA ANOTHER PERSON DEY CHOP AM', weight: 5, valence: -1, topic: 'scandal', body: `Contracts and jobs at ${name.toLowerCase()} have followed one interest for six months.` });
+      s.report.push({ kind: 'consequence', title: `${name}: captured`, cause: a.head.name, text: 'It has been run for someone other than the country. Output is cut and the patron is the better for it. Replace the manager, or live with it.', changes: [] });
+    }
+  }
+}
+
+/** On the day a bet is decided: a working asset or an abandoned site, in the state it was built in. */
+export function settleSite(s: GameState, id: string, won: boolean): void {
+  const state = s.sites?.[id];
+  if (!state || !ASSETS[id]) return;
+  if (won) {
+    const head = headsFor(s).find((h) => h.name === 'A career civil servant')!;
+    (s.assets ??= []).push({ id, state, head, since: s.turn });
+    s.flags[`asset.${id}`] = true;
+  } else {
+    s.flags['site.abandoned'] = true;
+    (s.placed ??= []).push({ state, kind: 'abandoned', label: `The abandoned site of ${VENTURE_BY_ID[id]?.name.toLowerCase() ?? id}`, turn: s.turn });
+  }
+}
+
+export function canSetManager(s: GameState, id: string, head: string, movesLeft: number): { ok: boolean; reason?: string } {
+  const a = assets(s).find((x) => x.id === id);
+  if (!a) return { ok: false };
+  if (a.head.name === head || !headsFor(s).some((h) => h.name === head)) return { ok: false, reason: 'Not available.' };
+  if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
+  if (s.pc < REHEAD_PC) return { ok: false, reason: `Needs ${REHEAD_PC} political capital.` };
+  return { ok: true };
+}
+
+export function setManager(s: GameState, id: string, headName: string): string {
+  const a = assets(s).find((x) => x.id === id)!;
+  const old = a.head;
+  a.head = headsFor(s).find((h) => h.name === headName)!;
+  a.since = s.turn;
+  a.seen = false;
+  s.pc = clamp(s.pc - REHEAD_PC, 0, 100);
+  if (leans(old) && s.tycoons[old.patron]) s.tycoons[old.patron].rel = clamp(s.tycoons[old.patron].rel - 8, 0, 100);
+  if (leans(old) && s.people[old.patron]) s.people[old.patron].rel = clamp(s.people[old.patron].rel - 8, 0, 100);
+  return `${a.head.name} takes over ${ASSETS[id].name.toLowerCase()}.`;
+}
+
+/** What has been put in a state, and what it does for the President there, in points of approval. */
+export function local(s: GameState, stateId: string): { v: number; items: { label: string; v: number }[] } {
+  const items: { label: string; v: number }[] = [];
+  for (const a of assets(s)) if (a.state === stateId) items.push({ label: `${ASSETS[a.id].name}${assetPerformance(s, a.id).captured ? ' (captured)' : ''}`, v: assetPerformance(s, a.id).captured ? 1.5 : 3 });
+  for (const v of s.ventures.active) if (s.sites?.[v.id] === stateId) items.push({ label: `Building: ${VENTURE_BY_ID[v.id]?.name}`, v: 1 });
+  for (const p of s.placed ?? []) if (p.state === stateId) items.push({ label: p.label, v: p.kind === 'abandoned' ? -2 : 2 });
+  const v = clamp(items.reduce((a, x) => a + x.v, 0), -6, 6);
+  return { v, items };
+}
+
+export const STATE_IDS = STATES.map((x) => x.id);

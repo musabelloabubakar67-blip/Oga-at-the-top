@@ -175,6 +175,10 @@ export interface Character {
   clout: number;
   loyalty: number;
   integrity: number;
+  /** Who they really serve: 'president', 'self', or a businessman's, governor's or senator's id. Hidden; it shows in their record. */
+  patron?: string;
+  /** What the files say about them, which is not always the truth. */
+  rep?: { competence: number; loyalty: number };
   rel: number; // -100..100
   zone?: ZoneId;
   blurb?: string;
@@ -270,6 +274,14 @@ export interface PersonState {
   integrity?: number;
   ambition?: number;
   bio?: string;
+  /** What they have been given and refused: each grant makes the next ask bigger; two refusals make a grudge. */
+  grants?: number;
+  grantedAt?: number;
+  refusals?: number;
+  refusedAt?: number;
+  grudge?: boolean;
+  /** Ministers: what the files say their competence is, when it differs from the truth. The truth shows after ten months, or with published scorecards. */
+  repCompetence?: number;
   /** Ministers: when they took the brief, and what their numbers were then. */
   since?: number;
   base?: number;
@@ -289,6 +301,20 @@ export interface Budget {
   /** A new bill is on the desk and must be signed. */
   due: boolean;
   late?: boolean;
+  /** Last year's allocation: what people now expect. */
+  prevAlloc?: Record<SectorId, number>;
+  /** Where the works money is spent, in points by zone. */
+  sites?: Partial<Record<ZoneId, number>>;
+  /** Points the budget held when signed, after inflation. */
+  points?: number;
+  /** Your instruction on releasing each sector's increase. */
+  release?: Partial<Record<SectorId, 'normal' | 'full' | 'hold'>>;
+  /** The Assembly's version, waiting for your answer. */
+  pending?: { benchmark: number; alloc: Record<SectorId, number>; amended: Record<SectorId, number>; insert: number; sites?: Partial<Record<ZoneId, number>>; points: number };
+  /** The year a supplementary budget was passed. */
+  supplementary?: number;
+  /** This bill reopens the current year's budget. */
+  reopened?: boolean;
 }
 
 export interface Story { id: string; about?: string; /** Who held the job when the series began. */ name?: string; stage: number; next: number }
@@ -304,6 +330,8 @@ export interface DeskItem {
   eventId: string;
   /** Who and what this file is about: token -> id. */
   cast?: Record<string, string>;
+  /** A second adviser asked for their forecast, at the cost of a move. */
+  second?: string;
   resolved?: { choiceId: string; label: string; result: string; signed?: boolean; changes?: Change[] };
 }
 
@@ -320,10 +348,16 @@ export interface Milestone {
   popular?: boolean;
   /** Political cost paid when the reform is launched. */
   start?: Fx[];
+  /** What people feel every month while it is under way, before it pays. Shown before launching. */
+  during?: Fx[];
+  /** Why it hurts while under way, in a line. */
+  duringText?: string;
   /** What it delivers when it is finished. */
   done: Fx[];
   /** Facts about the world that become true when it is delivered. */
   flags?: Record<string, FlagValue>;
+  /** What it changes in how the country works, for as long as it stands. Shown before signing. */
+  lasting?: string;
   news: [string, string];
   archive: string;
 }
@@ -375,6 +409,8 @@ export interface ElectionResult {
   approval: number;
   margin: number; // percentage points, two-party
   won: boolean;
+  /** How far the national mood on the day moved the vote, in points of share; positive is towards the President's side. */
+  swing?: number;
 }
 
 export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned' | 'annulled';
@@ -426,6 +462,28 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** Where each big bet is being built: venture id to state id. */
+  sites?: Record<string, string>;
+  /** Big bets that worked and now run every month. */
+  assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
+  /** Other things put in a state: abandoned sites, monuments. */
+  placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
+  /** The naira: official and street rates, reserves ($bn), the central bank's stance, the last year of rates. */
+  fx?: { rate: number; fair: number; parallel: number; reserves: number; stance: 'peg' | 'managed' | 'float'; hist: number[]; base: number };
+  /** Each budget's oil forecast, checked against what oil did over the year. */
+  oilForecasts?: { turn: number; said: number; by: string; sum: number; n: number }[];
+  /** The Supreme Court. Seeded on first use. */
+  bench?: { seats: ({ name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string } | null)[]; packed: number; spent: string[] };
+  /** Every order given, for wear-out. */
+  orderLog?: { id: string; turn: number; target?: string }[];
+  /** Who has been hit by a hostile order, and until when they will not forget. */
+  wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
+  /** What orders have built that keeps running, and who heads each. */
+  institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
+  /** Every adviser's forecasts, checked against what happened. */
+  advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
+  /** What is happening to the country from outside, and what already has. */
+  shocks: { active: { id: string; since: number; until: number }[]; seen: string[]; last: number };
   report: ReportItem[];
   prev: Record<string, number>;
   /** Powers of the moment currently on offer. */
@@ -491,20 +549,32 @@ export type Action =
   | { type: 'ACT'; action: ActionId; zone?: ZoneId }
   | { type: 'DRAWER'; op: DrawerOp }
   | { type: 'LAUNCH'; id: string; grease?: boolean }
-  | { type: 'VENTURE'; id: string }
+  | { type: 'VENTURE'; id: string; site?: string }
+  | { type: 'SET_MANAGER'; id: string; name: string }
   | { type: 'VENTURE_DELAY'; id: string }
   | { type: 'VENTURE_RESCUE'; id: string }
-  | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' }
+  | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }
   | { type: 'FUND'; id: FundId; amount: number }
-  | { type: 'BUDGET'; benchmark: number; alloc: Record<SectorId, number> }
+  | { type: 'BUDGET'; benchmark: number; alloc: Record<SectorId, number>; sites?: Partial<Record<ZoneId, number>> }
+  | { type: 'BUDGET_RESOLVE'; choice: 'accept' | 'veto' | 'split' }
+  | { type: 'BUDGET_RELEASE'; sector: SectorId; mode: 'normal' | 'full' | 'hold' }
+  | { type: 'SUPPLEMENTARY' }
   | { type: 'FAVOUR'; id: number; use: string }
   | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' }
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
-  | { type: 'ORDER'; id: string }
+  | { type: 'ORDER'; id: string; target?: string; level?: number }
+  | { type: 'REPEAL'; id: string }
+  | { type: 'SECOND_OPINION'; eventId: string }
+  | { type: 'REPLACE_ADVISER'; role: string; name: string }
+  | { type: 'NOMINATE'; seat: number; name: string }
+  | { type: 'GROOM'; id: string }
+  | { type: 'ESTABLISH'; id: string; head: string }
+  | { type: 'REPLACE_HEAD'; id: string; head: string }
+  | { type: 'ABOLISH'; id: string }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

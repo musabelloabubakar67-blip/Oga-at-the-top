@@ -4,6 +4,13 @@ import { addOwed, shiftPoints } from './ledger';
 import { rand } from './rng';
 import type { BlocId, Cond, DebtId, Favour, Fx, FundId, GameState, Nation, Pressures, SectorId, ZoneId } from './types';
 
+// The projected margin lives in election.ts, which reads this module; it registers itself here.
+let outlookOf: (s: GameState) => number = () => 0;
+export function registerOutlook(fn: (s: GameState) => number): void { outlookOf = fn; }
+let benchOf: (s: GameState) => Record<string, number> = () => ({});
+/** The Supreme Court registers how it reads, to keep the imports one-way. */
+export function registerBench(fn: (s: GameState) => Record<string, number>): void { benchOf = fn; }
+
 export const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
 export const BLOCS: BlocId[] = ['villa', 'party', 'street', 'establishment', 'press'];
 
@@ -70,7 +77,8 @@ export function delegates(s: GameState): number {
     if (standing(s, p.id) >= 50 || owes) mine += p.clout;
     else if (standing(s, p.id) >= 40) mine += p.clout * 0.4;
   }
-  return clamp((all ? (mine / all) * 100 : 50) * 0.65 + s.blocs.party * 0.35, 0, 100);
+  // A popular President finds that delegates will defy their governors.
+  return clamp((all ? (mine / all) * 100 : 50) * 0.65 + s.blocs.party * 0.35 + Math.max(0, approval(s) - 50) * 1.5, 0, 100);
 }
 
 // ---------------------------------------------------------------- favours
@@ -131,6 +139,7 @@ export function getVar(s: GameState, path: string): number {
     case 'turn': return s.turn;
     case 'termTurn': return termTurnOf(s.turn);
     case 'exposure':
+      if (p[1] === 'kept') return s.purseTaken.personal;
       if (p[1] === 'political') return s.exposures.filter((e) => e.kind === 'political').reduce((a, e) => a + e.amount, 0);
       return p[1] === 'total' ? s.exposures.reduce((a, e) => a + e.amount, 0) : s.exposures.length;
     case 'rel': return s.chars[p[1]]?.rel ?? 0;
@@ -148,6 +157,7 @@ export function getVar(s: GameState, path: string): number {
     case 'bets': return p[1] === 'won' ? s.ventures.won.length : p[1] === 'lost' ? s.ventures.lost.length : s.ventures.active.length;
     case 'venture': return s.ventures.won.includes(p[1]) ? 1 : s.ventures.lost.includes(p[1]) ? -1 : 0;
     case 'bonus': return s.counters[path] ?? 0;
+    case 'drift': case 'sec': return s.counters[path] ?? 0;
     case 'debt': return p[1] === 'arrears' ? s.debts.gas + s.debts.contractors + s.debts.pensions : s.debts[p[1] as DebtId] ?? 0;
     case 'fund': return p[1] === 'total' ? s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth : s.funds[p[1] as FundId] ?? 0;
     case 'oil': return p[1] === 'gap' ? s.oil.price - s.budget.benchmark : p[1] === 'output' ? s.oil.output : s.oil.price;
@@ -166,6 +176,21 @@ export function getVar(s: GameState, path: string): number {
     case 'govs': return PEOPLE.filter((x) => x.group === 'governor' && standing(s, x.id) >= 58).length;
     case 'delegates': return delegates(s);
     case 'margin': return s.election?.margin ?? 0;
+    // Where a re-election would stand today, as the desk's outlook reads it.
+    case 'outlook': return outlookOf(s);
+    case 'bench': return benchOf(s)[p[1]] ?? 0;
+    case 'grieve': return (s.wronged ?? []).filter((w) => w.who === p[1] && w.until > s.turn).length;
+    case 'wronged': return (s.wronged ?? []).filter((w) => w.until > s.turn).length;
+    case 'fx': {
+      const f = s.fx;
+      if (!f) return 0;
+      if (p[1] === 'premium') return Math.round((f.parallel / f.rate - 1) * 100);
+      if (p[1] === 'reserves') return f.reserves;
+      if (p[1] === 'peg') return f.stance === 'peg' ? 1 : 0;
+      if (p[1] === 'float') return f.stance === 'float' ? 1 : 0;
+      if (p[1] === 'fall') return Math.round(((f.rate / (f.hist[0] ?? f.base)) - 1) * 100);
+      return f.rate;
+    }
     case 'era': return s.era;
     case 'pred': return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
     case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;
@@ -271,10 +296,19 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
     case 'person': { const who = s.people[p[1]]; if (who) who.rel = clamp(who.rel + delta, 0, 100); return note(); }
     // Permanent structural shifts earned by reform: bonus.fiscal, bonus.inflation, bonus.power
     case 'bonus': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
+    // Lasting security measures: drift.<zone> moves a theatre every month, sec.* changes how theatres behave.
+    case 'drift':
+      for (const z of p[1] === 'all' ? ZONES : [p[1] as ZoneId]) s.counters[`drift.${z}`] = (s.counters[`drift.${z}`] ?? 0) + delta;
+      return note();
+    case 'sec': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
     case 'campaign': s.campaign.chest = Math.max(0, s.campaign.chest + delta); return;
     case 'debt': if (s.debts[p[1] as DebtId] !== undefined) addOwed(s, p[1] as DebtId, delta); return note();
     case 'fund': { const k = p[1] as FundId; if (s.funds[k] !== undefined) s.funds[k] = Math.max(0, s.funds[k] + delta); return note(); }
     case 'tycoon': { const t = s.tycoons[p[1]]; if (t) t.rel = clamp(t.rel + delta, 0, 100); return note(); }
+    case 'fx': if (s.fx) {
+      if (p[1] === 'reserves') s.fx.reserves = clamp(s.fx.reserves + delta, 0, 120);
+      if (p[1] === 'rate') { s.fx.rate *= 1 + delta / 100; s.fx.parallel = Math.max(s.fx.parallel, s.fx.rate * 1.03); }
+    } return note();
     case 'theatre': if (s.theatres[p[1] as ZoneId] !== undefined) { shiftThreat(s, p[1] as ZoneId, delta); syncSecurity(s); } return note();
     case 'oil': s.oil.price = clamp(s.oil.price + delta, 30, 130); return note();
   }

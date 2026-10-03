@@ -7,6 +7,7 @@ import { PEOPLE, PERSON_BY_ID, RIVALS } from '../content/people';
 import { EDITORIALS, FILLERS, SIDEBARS, STORIES } from '../content/press';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES } from '../content/ventures';
+import { SHOCKS } from '../content/shocks';
 import { SELECTORS } from '../engine/cast';
 import type { Cond, Fx, GameEvent, Op2, Outcome } from '../engine/types';
 
@@ -15,11 +16,11 @@ const warn: string[] = [];
 type Ref = { id: string };
 const err = (e: Ref, m: string) => errors.push(`${e.id}: ${m}`);
 
-const TARGET = /^(nation\.(inflation|petrolPrice|fiscalSpace|debt|security|power|capacity|integrity|jobs)|pressure\.(fuelSupplyStress|wageGrievance|scandalHeat)|bloc\.(villa|party|street|establishment|press)|zone\.(NW|NE|NC|SW|SE|SS)\.(approval|security)|approval|pc|purse|rel\.\w+|counter\.\w+|campaign|bonus\.(fiscal|inflation|power|security|capacity|integrity|jobs)|rival\.(alt|fire|strong)|person\.\w+|debt\.(eurobond|bonds|ways|gas|contractors|pensions)|fund\.(abroad|buffer|infra|growth)|tycoon\.\w+|theatre\.(NW|NE|NC|SW|SE|SS)|oil\.price)$/;
-const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|bets|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates|margin|era|pred)(\.|$)/;
+const TARGET = /^(nation\.(inflation|petrolPrice|fiscalSpace|debt|security|power|capacity|integrity|jobs)|pressure\.(fuelSupplyStress|wageGrievance|scandalHeat)|bloc\.(villa|party|street|establishment|press)|zone\.(NW|NE|NC|SW|SE|SS)\.(approval|security)|approval|pc|purse|rel\.\w+|counter\.\w+|campaign|bonus\.(fiscal|inflation|power|security|capacity|integrity|jobs)|rival\.(alt|fire|strong)|person\.\w+|debt\.(eurobond|bonds|ways|gas|contractors|pensions)|fund\.(abroad|buffer|infra|growth)|tycoon\.\w+|theatre\.(NW|NE|NC|SW|SE|SS)|drift\.(NW|NE|NC|SW|SE|SS|all)|sec\.(strike|shield|hold)|oil\.price|fx\.(reserves|rate))$/;
+const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|bets|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|drift|sec|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates|margin|outlook|era|pred|bench|fx|wronged|grieve)(\.|$)/;
 const BASE_TOKENS = ['PRES', 'NAME', 'SIR', 'MRP', 'PARTY', 'PSHORT', 'HOME', 'YEAR', 'FIN', 'FINSHORT', 'COS', 'SAP', 'REFINERY', 'DONE', 'OIL', 'BENCH', 'OUTPUT', 'BUDGETYEAR', 'DELEGATES', 'PRED', 'PREDPARTY', 'BACKER', 'BACKER_SHORT', 'SENATE', ...Object.keys(NAMES)];
 const ROLES = new Set([...CAST.map((c) => c.id), 'fin']);
-const OPS = new Set(['backer', 'spendall', 'deliver', 'paydebt', 'notes', 'grant', 'settle', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect']);
+const OPS = new Set(['backer', 'spendall', 'deliver', 'paydebt', 'notes', 'grant', 'settle', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect', 'finleave', 'backsucc', 'succadj', 'weaken', 'forgive']);
 const KNOWN = new Set([...PEOPLE.map((p) => p.id), ...TYCOONS.map((t) => t.id), ...RIVALS.map((r) => r.id)]);
 
 const seen = new Set<string>();
@@ -140,11 +141,20 @@ for (const e of EVENT_LIST) {
   }
 }
 
+// An aimed order is checked as if it were aimed at a sample target of its kind.
+const SAMPLE: Record<string, [string, string]> = { governor: ['gov_nw', 'NW'], politician: ['gov_nw', 'NW'], tycoon: ['ty_trade', 'NW'], rival: ['alt', 'NW'], zone: ['NW', 'NW'], paper: ['chronicle', 'NW'], theatre: ['NW', 'NW'], state: ['KN', 'NW'] };
 for (const o of ORDERS) {
   const ref = { id: `order.${o.id}` };
+  const [tid, tz] = o.target ? SAMPLE[o.target] : ['', ''];
+  const aim = (fx: Fx[] | undefined) => fx?.filter((f) => !(o.target === 'paper' && f[0] === 'paper')).map(([t, ...rest]) => [t.replace('$T', tid).replace('$Z', tz), ...rest] as Fx);
+  const texts = [o.result, o.archive, ...o.news, ...(o.later ?? []).flatMap((l) => [l.label, ...(l.note ?? [])])];
+  const fxKeys = [...(o.fx ?? []), ...(o.later ?? []).flatMap((l) => l.fx)].map((f) => f[0]);
+  if (!o.target && (texts.some((x) => /\{T(_SHORT|_ZONE)?\}/.test(x)) || fxKeys.some((k) => k.includes('$')))) err(ref, 'names a target but the order is not aimed at anyone');
+  if (o.hostile && (!o.target || o.target === 'theatre')) err(ref, 'hostile, but not aimed at anyone');
+  if ((o.target === 'zone' || o.target === 'paper' || o.target === 'state') && fxKeys.some((k) => k.includes('$T'))) err(ref, `$T means nothing for an order aimed at a ${o.target}`);
   checkCond(ref, o.when);
-  checkFx(ref, o.fx);
-  for (const l of o.later ?? []) { checkFx(ref, l.fx); checkCond(ref, l.when); }
+  checkFx(ref, aim(o.fx));
+  for (const l of o.later ?? []) { checkFx(ref, aim(l.fx)); checkCond(ref, l.when); }
   for (const f of o.follow ?? []) if (!EVENTS[f.event]) err(ref, `follow-up to unknown event ${f.event}`);
   if (o.event && !EVENTS[o.event[0]]?.choices.some((c) => c.id === o.event![1])) err(ref, 'points at an unknown event choice');
 }
@@ -153,7 +163,8 @@ for (const o of ORDERS) {
 const milestones = new Set(TRACKS.flatMap((t) => t.milestones.map((m) => m.id)));
 for (const t of TRACKS) for (const m of t.milestones) {
   const ref = { id: `reform.${m.id}` };
-  checkCond(ref, m.needs); checkFx(ref, m.start); checkFx(ref, m.done);
+  checkCond(ref, m.needs); checkFx(ref, m.start); checkFx(ref, m.done); checkFx(ref, m.during);
+  if (m.during?.length && !m.duringText) err(ref, 'a reform that hurts while under way must say why (duringText)');
 }
 for (const v of VENTURES) {
   const ref = { id: `bet.${v.id}` };
@@ -192,6 +203,7 @@ for (const e of EVENT_LIST) for (const c of e.choices) for (const o of c.outcome
 followed.add('removal.notice');
 followed.add('opp.woo');
 followed.add('tribunal.petition');
+for (const d of SHOCKS) followed.add(d.file);
 for (const e of EVENT_LIST) if (e.ignored) for (const f of e.ignored.follow ?? []) followed.add(f.event);
 for (const e of chains) if (!followed.has(e.id)) err(e, 'chain event is never queued by anything');
 
@@ -200,6 +212,16 @@ console.log(`${EVENT_LIST.length} events: ${leads} lead files, ${minors} minor m
 console.log(`${ORDERS.length} executive powers, ${ORDERS.filter((o) => o.situational).length} of them situational. ${TRACKS.length} reform tracks, ${milestones.size} reforms.`);
 console.log(`${VENTURES.length} big bets, ${opened} opened by reforms. ${TYCOONS.length} businessmen. ${SIDEBARS.length + FILLERS.length + EDITORIALS.length} conditioned press lines, ${STORIES.length} running stories.`);
 for (const w of warn) console.log(`  warn  ${w}`);
+// Shocks: effects, cushions and files must all resolve.
+for (const d of SHOCKS) {
+  const ref = { id: `shock.${d.id}` };
+  checkFx(ref, d.hit);
+  checkCond(ref, d.when);
+  for (const g of d.guards) checkCond(ref, g.when);
+  if (!EVENTS[d.file]) err(ref, `file ${d.file} does not exist`);
+  if (!d.good && d.guards.filter((g) => !('flag' in g.when)).length === 0) err(ref, 'a bad shock needs at least one thing the President could have built to cushion it');
+}
+
 if (errors.length) {
   for (const m of errors) console.error(`  ERROR ${m}`);
   process.exit(1);

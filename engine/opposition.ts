@@ -19,8 +19,10 @@ const bump = (s: GameState, id: string, d: number) => { s.opposition[id] = clamp
 
 /** The governor or senator most open to an approach. */
 export function wooTarget(s: GameState): string | null {
-  const open = PEOPLE.filter((p) => p.group !== 'minister' && !s.people[p.id]?.gone && standing(s, p.id) < 48)
-    .sort((a, b) => standing(s, a.id) - standing(s, b.id));
+  // A grudge is an opening: someone refused twice is courted first, and from higher up.
+  const reach = (id: string) => standing(s, id) - (s.people[id]?.grudge ? 15 : 0);
+  const open = PEOPLE.filter((p) => p.group !== 'minister' && !s.people[p.id]?.gone && reach(p.id) < 48)
+    .sort((a, b) => reach(a.id) - reach(b.id));
   return open[0]?.id ?? null;
 }
 

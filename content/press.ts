@@ -237,6 +237,22 @@ export const VILLA_LEAK = [
 
 /** Editorial lines, chosen by what the country looks like and who is writing. */
 export const EDITORIALS: { when?: Cond; chronicle?: string; street?: string; stakeholder?: string; rejoinder?: string }[] = [
+  { when: { all: [v('fx.peg', '==', 1), v('fx.premium', '>=', 20)] }, chronicle: 'A currency with two prices is a currency with a queue. Somebody is at the front of it, and it is not the public.', street: 'Dollar get two price: the one for dem and the one for us.', stakeholder: 'Stability of the naira is a patriotic achievement and should not be talked down.', rejoinder: 'Ask the central bank for the list of who bought dollars at the official rate. Then ask why it will not publish it.' },
+  { when: v('fx.fall', '>=', 25), chronicle: 'The naira has lost a quarter of its value in a year. Every import, every fuel cargo and every foreign loan is now dearer by the same amount.', street: 'Naira dey fall like person wey drink. Wetin we go buy?', rejoinder: 'The government has devalued the savings of every Nigerian and called it reform.' },
+  { when: { flag: 'fx.stance', is: 'float' }, chronicle: 'One exchange rate is the end of an industry: the one that bought dollars cheap and sold them dear. It will not go quietly.', stakeholder: 'Unifying the exchange rate was overdue. The pain is real and so is the alternative.' },
+  { when: v('fx.reserves', '<', 12), chronicle: 'The reserves are being spent faster than they are earned. When a central bank runs out of dollars, it does not announce it. The market does.', street: 'Dollar for CBN don dey finish. Wetin dem go use defend am?' },
+  { when: v('bench.loyal', '>=', 3), chronicle: 'A court is only as independent as the last appointment. This one has had several.', rejoinder: 'The President has not filled the Supreme Court. The President has furnished it.' },
+  { when: v('counter.struck', '>=', 1), chronicle: 'The Supreme Court has struck down an order of the President. It is the system working, which is not the same as the government working.', street: 'Court don tell President say no. E sweet us small.' },
+  { when: v('counter.injunctions', '>=', 1), chronicle: 'Reforms are now frozen by interim injunction, granted on Friday afternoons. The applicants are always the people who lose from them. This is not a coincidence.', street: 'Every time reform start, one judge go stop am. Who dey pay the judge?' },
+  { when: { flag: 'budget.how', is: 'accepted' }, chronicle: 'The President signed the budget the Assembly wrote. The constituency projects are in it. Whether the hospitals are is a separate question.', street: 'Na Assembly budget President sign. Their own project full am.' },
+  { when: { flag: 'budget.how', is: 'stalled' }, chronicle: 'The budget is stuck in committee because the President would not pay the committee. Nothing above last year is being released. That is a principle with a cost.', rejoinder: 'A President at war with the Assembly over projects is a President who has run out of friends.' },
+  { when: { flag: 'budget.how', is: 'veto' }, chronicle: 'The President vetoed the Assembly\'s insertions and the veto held. It will be remembered at the next budget, by both sides.' },
+  { when: v('wronged', '>=', 3), chronicle: 'Governors, senators and businessmen who have felt the weight of the state now outnumber those who have felt its favour. A government can survive enemies. It struggles with grievances.', rejoinder: 'Every governor this President has humiliated is a vote this party will not get.' },
+  { when: { flag: 'site.abandoned' }, chronicle: 'The abandoned site is the true monument of Nigerian government: announced in ink, built in part, finished by grass.', street: 'Another project don abandon. Goat dey happy.' },
+  { when: { flag: 'asset.refinery' }, chronicle: 'The refinery works. It should not be news. That it is news is the story of the last thirty years.', street: 'Refinery dey work! Who we go thank? The engineers.', stakeholder: 'A national refinery producing petrol is a milestone that critics said would never come.' },
+  { when: { flag: 'refinery.covered' }, chronicle: 'The Presidency says the refinery is on course. It has not said which course, or where to.' },
+  { when: { flag: 'exit.immunity' }, chronicle: 'A law that places one office above the law should be read as what it is: a plan for the day after.', street: 'Dem don pass law say President no go jail. Na wetin dem dey plan?', rejoinder: 'Only a man expecting to be charged writes himself a pardon in advance.' },
+  { when: { flag: 'succession.backed' }, chronicle: 'The President has anointed a successor. The anointed will now discover how many of the President\'s friends were only ever the office\'s.' },
   { when: v('hardship', '>', 62), chronicle: 'The government asks for patience. Patience is a currency, and it is being spent faster than the naira.', street: 'Dem say make we manage. We don manage reach where manage sef don finish.', rejoinder: 'A government that cannot bring down the price of garri should stop holding summits about it.' },
   { when: v('hardship', '<', 38), chronicle: 'The numbers are, for once, moving in the right direction. The test of a government is what it does when they stop.', street: 'E don better small. We no go lie. But make dem no relax.', stakeholder: 'Those who predicted disaster owe the President an apology. We are not holding our breath.' },
   { when: v('nation.debt', '>', 85), chronicle: 'A country that spends most of its revenue on interest is not governing. It is renting time.', street: 'All the money wey Nigeria dey make, na debt e dey pay. Na our pikin go suffer am.', rejoinder: 'They have mortgaged the country and are arguing about the curtains.' },
@@ -261,6 +277,12 @@ export const EDITORIALS: { when?: Cond; chronicle?: string; street?: string; sta
 // ---------------------------------------------------------------- the small box
 
 export const SIDEBARS: { kicker: string; text: string; when?: Cond }[] = [
+  { kicker: 'BY THE NUMBERS', text: 'The dollar at the official rate and the dollar at the bureau de change: two prices, one country, and a queue at the central bank that never seems to move.', when: v('fx.premium', '>=', 20) },
+  { kicker: 'VOX POP', text: '"I don\'t follow the exchange rate. The exchange rate follows me, to the market." — a mother of four, Onitsha.', when: v('fx.fall', '>=', 15) },
+  { kicker: 'OVERHEARD', text: '"Is the judge on our list or theirs?" — a lawyer, in the Supreme Court car park.', when: v('bench.loyal', '>=', 3) },
+  { kicker: 'CORRECTION', text: 'We reported that the budget was signed as presented. It was signed as amended. We regret any impression that these are the same.', when: { flag: 'budget.how', is: 'accepted' } },
+  { kicker: 'QUOTE OF THE WEEK', text: '"It is ready for commissioning." — an official, at a site with no roof.', when: { flag: 'site.abandoned' } },
+  { kicker: 'VOX POP', text: '"Petrol from our own refinery. I filled my tank twice to be sure." — a taxi driver, Port Harcourt.', when: { flag: 'asset.refinery' } },
   { kicker: 'VOX POP', text: '"I am not angry. I am just calculating." — a tailor in Mushin, on the price of everything.', when: v('hardship', '>', 55) },
   { kicker: 'VOX POP', text: '"Small small, it is getting better. I will not say it loud so they do not relax." — a spare-parts trader, Nnewi.', when: v('hardship', '<', 42) },
   { kicker: 'QUOTE OF THE WEEK', text: '"The situation is under control." — the Minister of Information, shortly before the situation.', when: v('approval', '<', 46) },
@@ -305,7 +327,11 @@ export const SIDEBARS: { kicker: string; text: string; when?: Cond }[] = [
 
 export const FILLERS: { h: [string, string]; when?: Cond }[] = [
   { h: ['FG REITERATES COMMITMENT TO DELIVERING DIVIDENDS OF DEMOCRACY', 'GOVERNMENT SAY DIVIDEND DEY COME. WE STILL DEY WAIT'], when: v('tracks.', '<', 3) },
-  { h: ['REFINERY NOW {REFINERY}% COMPLETE — MINISTER', 'REFINERY DON REACH {REFINERY}%. SINCE WHEN?'], when: { all: [v('agenda.i5', '==', 0), { not: { flag: 'refinery.sold' } }] } },
+  { h: ['REFINERY NOW {REFINERY}% COMPLETE — MINISTER', 'REFINERY DON REACH {REFINERY}%. SINCE WHEN?'], when: { all: [v('agenda.i5', '==', 0), { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'asset.refinery' } }] } },
+  { h: ['CBN INTERVENES TO "STABILISE" NAIRA', 'CBN DON SELL DOLLAR AGAIN. NAIRA STILL DEY FALL'], when: v('fx.peg', '==', 1) },
+  { h: ['BUREAU DE CHANGE OPERATORS PROTEST NEW RULES', 'BDC PEOPLE DEY VEX FOR CBN'], when: v('fx.premium', '>=', 20) },
+  { h: ['SUPREME COURT RESERVES JUDGMENT', 'COURT SAY DEM GO TALK LATER'], when: v('bench.vacant', '==', 0) },
+  { h: ['APPROPRIATIONS COMMITTEE DEFENDS CONSTITUENCY PROJECTS', 'SENATORS SAY THEIR PROJECT NA FOR PEOPLE'], when: v('turn', '>', 6) },
   { h: ['COMMITTEE REQUESTS MORE TIME TO SUBMIT REPORT', 'COMMITTEE WAN MORE TIME. SHOCKER'], when: v('counter.committees', '>=', 1) },
   { h: ['STAKEHOLDERS\' SUMMIT ENDS WITH 14-POINT COMMUNIQUÉ', 'ANOTHER SUMMIT, ANOTHER COMMUNIQUÉ, ANOTHER BUFFET'], when: v('counter.stakeholders', '>=', 1) },
   { h: ['SENATE ADJOURNS PLENARY FOR TWO WEEKS', 'SENATORS DON GO HOLIDAY AGAIN'] },

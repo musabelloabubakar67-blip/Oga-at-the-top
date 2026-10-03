@@ -10,7 +10,11 @@ import { VENTURE_BY_ID } from '../content/ventures';
 import { shakyBet, worstRisk } from './bets';
 import { dueCreditor, who } from './favours';
 import { wooTarget } from './opposition';
-import { personView, scorecard } from './people';
+import { following, personView, scorecard } from './people';
+import { currentWant } from './wants';
+import { shortlist } from './successor';
+import { attackedReform, reformLoser, reformLoserGovernor, reformLoserTycoon } from './attacks';
+import { MILESTONE_BY_ID } from '../content/agenda';
 import type { DeskItem, GameEvent, GameState, ZoneId } from './types';
 import { ZONES, ZONE_NAME, favoursOwed, standing } from './vars';
 
@@ -32,6 +36,14 @@ export const SELECTORS: Record<string, Selector> = {
     const list = ministers().filter((p) => (personView(s, p.id).ambition ?? 0) >= 2).map((p) => scorecard(s, p.id)).filter((c) => c.months >= 10 && c.score >= 58);
     return list[0]?.id ?? null;
   },
+  /** An ambitious minister with a following, unhappy with you, ready to walk out and run. */
+  leavingMinister: (s) => {
+    const list = ministers().filter((p) => {
+      const st = s.people[p.id];
+      return st && !st.gone && (personView(s, p.id).ambition ?? 0) >= 2 && following(s, p.id) >= 2 && s.turn - (st.since ?? 1) >= 18 && standing(s, p.id) < 55;
+    });
+    return list[0]?.id ?? null;
+  },
   /** A minister whose hands are not clean, in a brief with money in it. */
   dirtyMinister: (s) => {
     const list = ministers().filter((p) => (personView(s, p.id).integrity ?? 3) <= 2 && s.turn - (s.people[p.id]?.since ?? 1) >= 7 && !s.flags[`dirty.${p.id}.${s.people[p.id]?.name ?? ''}`]);
@@ -49,6 +61,17 @@ export const SELECTORS: Record<string, Selector> = {
       .sort((a, b) => s.tycoons[b.id].rel - s.tycoons[a.id].rel);
     return list[0]?.id ?? null;
   },
+  /** The three the party is talking about for the succession, groomed first. */
+  succA: (s) => shortlist(s)[0]?.id ?? null,
+  succB: (s) => shortlist(s)[1]?.id ?? null,
+  succC: (s) => shortlist(s)[2]?.id ?? null,
+  /** Someone holding a grievance from one of your orders. */
+  wrongedPerson: (s) => (s.wronged ?? []).filter((w) => w.until > s.turn && s.people[w.who] && !s.people[w.who].gone).sort((a, b) => b.turn - a.turn)[0]?.who ?? null,
+  /** A delivered reform someone is coming for, and who. */
+  attackedReform: (s) => attackedReform(s),
+  reformLoser: (s) => reformLoser(s),
+  reformLoserTycoon: (s) => reformLoserTycoon(s),
+  reformLoserGovernor: (s) => reformLoserGovernor(s),
   /** A governor with something to hide and nobody yet holding it over him. */
   troubledGovernor: (s) => {
     const list = PEOPLE.filter((p) => p.group === 'governor' && p.temper !== 'principled' && !s.people[p.id]?.gone && favoursOwed(s, p.id).length === 0 && standing(s, p.id) < 72)
@@ -79,12 +102,17 @@ function tokens(s: GameState, key: string, id: string): [string, string][] {
     out.push([`{${key}}`, v.name], [`{${key}_RISK}`, risk?.warn ?? 'The site reports that all is well.'], [`{${key}_FIX}`, risk?.fix ?? '']);
     return out;
   }
+  const ms = MILESTONE_BY_ID[id];
+  if (ms) {
+    out.push([`{${key}}`, ms.m.name], [`{${key}_TRACK}`, ms.track.name]);
+    return out;
+  }
   if ((ZONES as string[]).includes(id)) {
     out.push([`{${key}}`, ZONE_NAME[id as ZoneId]], [`{${key}_THREAT}`, THEATRE_BY_ZONE[id as ZoneId].name.toLowerCase()]);
     return out;
   }
   const w = who(s, id);
-  const want = PERSON_BY_ID[id]?.want?.text ?? TYCOON_BY_ID[id]?.want.text ?? '';
+  const want = currentWant(s, id)?.text ?? PERSON_BY_ID[id]?.want?.text ?? TYCOON_BY_ID[id]?.want.text ?? '';
   out.push([`{${key}}`, w.name], [`{${key}_SHORT}`, w.short], [`{${key}_TITLE}`, w.title], [`{${key}_WANT}`, want]);
   return out;
 }

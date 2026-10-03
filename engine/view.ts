@@ -59,17 +59,20 @@ function hash(t: string): number {
   return Math.abs(h);
 }
 
+import { adviser } from './advice';
+
 export function resolveRead(s: GameState, e: GameEvent, r: Read): ReadView | null {
-  const c = s.chars[r.role];
+  const c = adviser(s, r.role);
   if (!c) return null;
+  // The line follows what they really are; the confidence, what their reputation claims.
   const weak = c.competence <= 2;
   const pool = WEAK_LINES[r.role] ?? WEAK_LINES.default;
   const line = weak ? (r.weak ?? pool[hash(e.id + r.role) % pool.length]) : r.good;
-  const confidence = c.competence >= 4
+  const confidence = c.rep.competence >= 4
     ? (s.nation.capacity >= 40 ? 'High confidence' : 'Moderate confidence')
-    : c.competence === 3 ? 'Moderate confidence' : 'Low confidence';
+    : c.rep.competence === 3 ? 'Moderate confidence' : 'Low confidence';
   const on = r.on ? e.choices.find((x) => x.id === r.on)?.label : undefined;
-  return { name: c.name, role: c.role, line: fill(s, line), confidence, on: on ? fill(s, on) : undefined };
+  return { name: c.name, role: c.title, line: fill(s, line), confidence, on: on ? fill(s, on) : undefined };
 }
 
 /** "How did we get here?" — the archived decisions that pushed this problem along. */
@@ -141,6 +144,7 @@ export function gauges(s: GameState): Gauge[] {
     g('Cost-of-living pressure', Math.round(h).toString(), h, p.hardship, b.hardship, false, '', h),
     g('Inflation', `${n.inflation.toFixed(1)}%`, n.inflation, p['nation.inflation'], b.inflation, false, ' pts'),
     g('Treasury', n.fiscalSpace <= 0.01 ? 'Empty' : `₦${n.fiscalSpace.toFixed(1)}tn`, n.fiscalSpace, p['nation.fiscalSpace'], b.fiscalSpace, true, 'tn'),
+    ...(s.fx ? [g('The naira', `₦${Math.round(s.fx.rate).toLocaleString('en-GB')} · street ₦${Math.round(s.fx.parallel).toLocaleString('en-GB')}`, s.fx.rate, p['fx.naira'], s.fx.base, false, '')] : []),
     g('Debt service', `${Math.round(n.debt)}% of revenue`, n.debt, p['nation.debt'], b.debt, false, ' pts'),
     g('Unpaid bills', arrears <= 0.01 ? 'None' : `₦${arrears.toFixed(1)}tn`, arrears, p['debt.arrears'], 2.5, false, 'tn'),
     g('Saved', saved <= 0.01 ? 'Nothing' : `₦${saved.toFixed(1)}tn`, saved, p['fund.total'], 0.3, true, 'tn'),

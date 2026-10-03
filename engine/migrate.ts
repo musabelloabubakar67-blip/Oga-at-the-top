@@ -4,6 +4,8 @@
 // field to the state does not strand anybody's presidency.
 
 import { EVENTS } from '../content';
+import { MILESTONE_BY_ID } from '../content/agenda';
+import { seedAdvisers } from './advice';
 import { DEBTS } from '../content/treasury';
 import { initTycoons } from './favours';
 import { syncDebt } from './ledger';
@@ -89,6 +91,12 @@ export function migrate(raw: unknown): GameState | null {
       }
     }
     const s = r as GameState;
+    if (!s.counters['rules.theatres']) theatreRules(s);
+    if (!s.counters['rules.policies']) policyRules(s);
+    // Saves from before advisers had reputations and patrons.
+    if (s.chars.cos && !s.chars.cos.rep) seedAdvisers(s);
+    // Institutions set up before files could ask about them.
+    for (const i of s.institutions ?? []) s.flags[`inst.${i.id}`] = true;
     // A file that no longer exists cannot be decided.
     if (s.desk?.lead && !EVENTS[s.desk.lead.eventId]) s.desk.lead = null;
     s.desk.minors = (s.desk?.minors ?? []).filter((m) => EVENTS[m.eventId]);
@@ -97,6 +105,30 @@ export function migrate(raw: unknown): GameState | null {
   } catch {
     return null;
   }
+}
+
+/** Security reforms delivered before they worked theatre by theatre get their lasting measures now. */
+function theatreRules(s: GameState): void {
+  for (const id of s.agenda.done) {
+    for (const [t, v] of MILESTONE_BY_ID[id]?.m.done ?? []) {
+      if (t === 'drift.all') for (const z of ZONES) s.counters[`drift.${z}`] = (s.counters[`drift.${z}`] ?? 0) + v;
+      else if (t.startsWith('drift.') || t.startsWith('sec.')) s.counters[t] = (s.counters[t] ?? 0) + v;
+    }
+    // The old forward bases and police posts paid a flat national bonus instead.
+    if (id === 's2' || id === 's5') s.counters['bonus.security'] = Math.max(0, (s.counters['bonus.security'] ?? 0) - 0.05);
+  }
+  s.counters['rules.theatres'] = 1;
+}
+
+/** The fixed permanent costs the tempting reforms used to carry. Their standing policies now cost them monthly. */
+const OLD_POLICY_BONUS: Record<string, [string, number][]> = {
+  h1: [['bonus.inflation', 1.5]], h2: [['bonus.fiscal', -0.05]], h4: [['bonus.inflation', 1], ['bonus.fiscal', -0.025]],
+  o2: [['bonus.inflation', 2]], o4: [['bonus.fiscal', -0.03]], r2: [['bonus.fiscal', -0.04]], g3: [['bonus.fiscal', -0.025]],
+};
+
+function policyRules(s: GameState): void {
+  for (const id of s.agenda.done) for (const [k, v] of OLD_POLICY_BONUS[id] ?? []) s.counters[k] = (s.counters[k] ?? 0) - v;
+  s.counters['rules.policies'] = 1;
 }
 
 /** Parts of the state whose keys are created by playing, not by the game's content. */

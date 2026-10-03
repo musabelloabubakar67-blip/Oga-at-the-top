@@ -545,6 +545,8 @@ export const SYSTEM: GameEvent[] = [
       'The price of a bag of rice has risen by a third in three weeks. There has been no change in the harvest, the exchange rate or the duty.',
       'Customs reports that the warehouses of Chief (Dr) Obinna Ezeudu are full to the roof. Nothing has left them since the month you and he fell out.',
       { when: v('agenda.f4', '==', 1), text: 'The automatic import rule you put in place has begun to bring in grain from outside. It will take six weeks to reach the markets.' },
+      { when: { flag: 'grain.reserve' }, text: 'The strategic grain reserve you filled is full. Released into the markets, it would undercut him within a fortnight.' },
+      { when: { flag: 'inst.reserve' }, text: 'The grain reserve agency has stock in its silos and the authority to sell it.' },
     ],
     trace: [['tycoon.ty_trade', -1]],
     reads: [
@@ -572,6 +574,16 @@ export const SYSTEM: GameEvent[] = [
         }],
       },
       {
+        id: 'release', label: 'Release the grain reserve into the markets', requires: { any: [{ flag: 'grain.reserve' }, { flag: 'inst.reserve' }] }, locked: 'There is no reserve to release. Fill one in a good harvest, or set up a reserve agency.',
+        outcomes: [{
+          result: 'Reserve grain reaches the markets in ten days, at last month\'s price. His warehouses are full of rice that is suddenly worth less than he paid for it. The reserve will need refilling.',
+          fx: [['nation.inflation', -2], ['bloc.street', 4], ['approval', 1.5], ['tycoon.ty_trade', -8]],
+          flags: { 'grain.reserve': false },
+          news: ['FG RELEASES GRAIN RESERVE; RICE PRICES FALL', 'GOVERNMENT DON OPEN THE RESERVE. RICE DON CHEAP'],
+          archive: 'Broke a rice shortage by releasing the grain reserve.', sig: 2,
+        }],
+      },
+      {
         id: 'open', label: 'Open the borders to rice for ninety days', requires: v('agenda.f4', '==', 0),
         outcomes: [{
           result: 'Rice comes in over every land border. The price falls in a month. His stock is suddenly worth a good deal less than he paid for it.',
@@ -583,6 +595,12 @@ export const SYSTEM: GameEvent[] = [
       {
         id: 'wait', label: 'Wait for the harvest',
         outcomes: [{
+          when: { flag: 'inst.reserve' },
+          result: 'The reserve agency sells from its silos on its own authority. It takes the edge off; it does not end it.',
+          fx: [['nation.inflation', 0.8], ['approval', -1], ['bloc.street', -1]],
+          news: ['RESERVE AGENCY SELLS GRAIN AS RICE PRICES CLIMB', 'RESERVE AGENCY DEY SELL. E HELP SMALL'],
+          archive: 'Left a rice shortage to the grain reserve agency.',
+        }, {
           result: 'The harvest is three months off. People notice every one of them.',
           fx: [['nation.inflation', 2], ['approval', -3], ['bloc.street', -4]],
           news: ['RICE HITS RECORD AS FG URGES CALM', 'RICE DON COST PASS. GOVERNMENT SAY MAKE WE WAIT'],

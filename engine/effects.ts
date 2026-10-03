@@ -32,9 +32,15 @@ const META: Record<string, Meta> = {
   approval: { label: 'Approval', upIsGood: true, steps: [2, 4], fmt: (d) => `${pts(d)} pts` },
   pc: { label: 'Political capital', upIsGood: true, steps: [5, 10], fmt: pts },
   purse: { label: 'The drawer', upIsGood: true, steps: [10, 50], fmt: (d) => `${d > 0 ? '+' : '−'}₦${Math.abs(Math.round(d))}bn` },
+  'fx.reserves': { label: 'Foreign reserves', upIsGood: true, steps: [1, 3], fmt: (d) => `${d > 0 ? '+' : '−'}$${Math.abs(d).toFixed(1)}bn` },
+  'fx.naira': { label: 'The naira (₦ to $1)', upIsGood: false, steps: [60, 150], fmt: (d) => `${d > 0 ? '+' : '−'}₦${Math.abs(Math.round(d))}` },
+  'fx.rate': { label: 'The naira, weaker by', upIsGood: false, steps: [5, 15], fmt: (d) => `${d > 0 ? '+' : '−'}${Math.abs(Math.round(d))}%` },
   'pressure.fuelSupplyStress': { label: 'Fuel scarcity risk', upIsGood: false, steps: [8, 15], fmt: pts },
   'pressure.wageGrievance': { label: 'Labour anger', upIsGood: false, steps: [8, 15], fmt: pts },
   'pressure.scandalHeat': { label: 'Scandal risk', upIsGood: false, steps: [6, 12], fmt: pts },
+  'sec.strike': { label: 'Offensives hit harder', upIsGood: true, steps: [0.4, 0.8], fmt: (d) => `${d > 0 ? '+' : '−'}${Math.round(Math.abs(d) * 100)}%` },
+  'sec.shield': { label: 'Violence feeds less on hardship', upIsGood: true, steps: [0.3, 0.6], fmt: (d) => `${Math.round(d * 100)}%` },
+  'sec.hold': { label: 'Cleared ground stays cleared', upIsGood: true, steps: [0.3, 0.6], fmt: (d) => `${Math.round(d * 100)}%` },
   'bonus.fiscal': { label: 'Revenue, permanently', upIsGood: true, steps: [0.02, 0.04], fmt: (d) => `${d > 0 ? '+' : '−'}₦${Math.round(Math.abs(d) * 12 * 1000)}bn a year` },
   'bonus.inflation': { label: 'Inflation, permanently', upIsGood: false, steps: [1.5, 3], fmt: (d) => `${pts(d)} pts` },
   ...Object.fromEntries(([['power', 'Power'], ['security', 'Security'], ['capacity', 'State capacity'], ['integrity', 'Integrity'], ['jobs', 'Jobs and industry']] as const).map(([k, label]) =>
@@ -50,6 +56,8 @@ function metaFor(target: string): Meta | null {
   if (p[0] === 'debt' && DEBT_BY_ID[p[1] as DebtId]) return { label: `Owed: ${DEBT_BY_ID[p[1] as DebtId].name.toLowerCase()}`, upIsGood: false, steps: [0.5, 1.2], fmt: money };
   if (p[0] === 'fund' && FUND_BY_ID[p[1] as FundId]) return { label: FUND_BY_ID[p[1] as FundId].name, upIsGood: true, steps: [0.5, 1.2], fmt: money };
   if (p[0] === 'tycoon' && TYCOON_BY_ID[p[1]]) return { label: TYCOON_BY_ID[p[1]].short, upIsGood: true, steps: [8, 16], fmt: pts };
+  // A lasting monthly change to a theatre, shown as a year of it.
+  if (p[0] === 'drift') return { label: `Threat, ${p[1] === 'all' ? 'every theatre' : ZONE_NAME[p[1] as ZoneId]}, every year`, upIsGood: false, steps: [1.2, 2.4], fmt: (d) => pts(Math.round(d * 12 * 10) / 10) };
   if (p[0] === 'theatre') return { label: `Threat, ${ZONE_NAME[p[1] as ZoneId]}`, upIsGood: false, steps: [4, 8], fmt: pts };
   if (p[0] === 'zone') {
     const name = ZONE_NAME[p[1] as ZoneId];
@@ -102,6 +110,7 @@ export function snapshot(s: GameState): Snapshot {
   for (const b of BLOCS) out[`bloc.${b}`] = s.blocs[b];
   for (const k of ['eurobond', 'bonds', 'ways', 'gas', 'contractors', 'pensions'] as const) out[`debt.${k}`] = s.debts[k];
   for (const k of ['abroad', 'buffer', 'infra', 'growth'] as const) out[`fund.${k}`] = s.funds[k];
+  if (s.fx) { out['fx.reserves'] = s.fx.reserves; out['fx.naira'] = s.fx.rate; }
   out['debt.arrears'] = s.debts.gas + s.debts.contractors + s.debts.pensions;
   out['fund.total'] = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
   return out;

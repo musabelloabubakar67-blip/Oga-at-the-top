@@ -61,6 +61,18 @@ export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: 
           </section>
         )}
 
+        <section className={`mt-10 border-l-4 p-5 ${v.after.bad ? 'border-alarm bg-alarm/5' : 'border-state bg-state/5'}`}>
+          <p className="label text-ink-soft">After noon on the last day</p>
+          <h2 className={`mt-1 font-serif text-3xl ${v.after.bad ? 'text-alarm' : 'text-state'}`}>{v.after.title}</h2>
+          <p className="mt-2 font-serif text-lg leading-snug">{v.after.text}</p>
+          {(v.after.risk.length > 0 || v.after.shield.length > 0) && (
+            <div className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
+              <div><p className="label text-alarm">Against you</p><ul className="mt-1 list-disc pl-5">{v.after.risk.map((x) => <li key={x}>{x}</li>)}{!v.after.risk.length && <li>Nothing</li>}</ul></div>
+              <div><p className="label text-state">Protecting you</p><ul className="mt-1 list-disc pl-5">{v.after.shield.map((x) => <li key={x}>{x}</li>)}{!v.after.shield.length && <li>Nobody</li>}</ul></div>
+            </div>
+          )}
+        </section>
+
         <section className="mt-10 border-t rule pt-6">
           <h2 className="label text-ink-soft">What happens next</h2>
           <p className="mt-2 font-serif text-lg leading-snug">{w.how}</p>

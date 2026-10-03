@@ -5,6 +5,7 @@ import { PEOPLE, PERSON_BY_ID, REPLACEMENTS, RIVALS, type Person } from '../cont
 import { VENTURES } from '../content/ventures';
 import { CFG } from './config';
 import type { GameState, Mark, PersonState, ZoneId } from './types';
+import { canRefuse, currentWant, refuse } from './wants';
 import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing } from './vars';
 
 export { senate, standing };
@@ -139,7 +140,7 @@ export function peopleTick(s: GameState): void {
 
 // ---------------------------------------------------------------- dealings
 
-export type PersonOp = 'court' | 'grant' | 'pressure';
+export type PersonOp = 'court' | 'grant' | 'pressure' | 'refuse';
 
 export function canDeal(s: GameState, id: string, op: PersonOp, movesLeft: number): { ok: boolean; reason?: string } {
   const p = PERSON_BY_ID[id];
@@ -147,12 +148,12 @@ export function canDeal(s: GameState, id: string, op: PersonOp, movesLeft: numbe
   if (!p || !st) return { ok: false };
   if (st.gone) return { ok: false, reason: 'Has crossed to the opposition.' };
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
+  if (op === 'refuse') return canRefuse(s, id);
   if (op === 'grant') {
-    if (!p.want) return { ok: false };
-    if (st.granted) return { ok: false, reason: 'Already granted.' };
-    if (st.name) return { ok: false, reason: 'New in the job. Has not asked for anything yet.' };
-    if (p.want.pc && s.pc < p.want.pc) return { ok: false, reason: `Needs ${p.want.pc} political capital.` };
-    if (p.want.naira && p.want.naira > s.nation.fiscalSpace && s.nation.debt >= 100) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
+    const w = currentWant(s, id);
+    if (!w) return { ok: false, reason: st.name ? 'New in the job. Has not asked for anything yet.' : 'Has nothing to ask for just now.' };
+    if (w.pc && s.pc < w.pc) return { ok: false, reason: `Needs ${w.pc} political capital.` };
+    if (w.naira && w.naira > s.nation.fiscalSpace && s.nation.debt >= 100) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
   }
   if (op === 'pressure') {
     if (p.group === 'minister') return { ok: false };
@@ -178,20 +179,29 @@ export function deal(s: GameState, id: string, op: PersonOp): { text: string; ar
       archive: `Spent time with ${p.name}.`,
     };
   }
-  if (op === 'grant' && p.want) {
-    if (p.want.pc) s.pc = clamp(s.pc - p.want.pc, 0, 100);
-    if (p.want.naira) applyFx(s, ['nation.fiscalSpace', -p.want.naira]);
-    for (const fx of p.want.fx) applyFx(s, fx);
+  if (op === 'refuse') return { text: refuse(s, id), archive: `Refused ${p.name} what was asked.` };
+  const w = op === 'grant' ? currentWant(s, id) : null;
+  if (op === 'grant' && w) {
+    if (w.pc) s.pc = clamp(s.pc - w.pc, 0, 100);
+    if (w.naira) applyFx(s, ['nation.fiscalSpace', -w.naira]);
+    for (const fx of w.fx) applyFx(s, fx);
     st.rel = clamp(st.rel + 26, 0, 100);
     st.granted = true;
+    // Every grant makes the next ask bigger.
+    st.grants = (st.grants ?? 0) + 1;
+    st.grantedAt = s.turn;
+    // Being given something settles old refusals.
+    st.refusals = 0;
+    st.grudge = false;
     // They owe you now, and everyone watching knows it.
     applyFx(s, ['pc', CFG.agenda.grantPc]);
-    addFavour(s, id, 'owed', p.clout >= 5 ? 3 : 2, `You gave ${p.short} what was asked: ${p.want.text.replace(/\.$/, '').toLowerCase()}.`);
-    return { text: `${p.want.done} ${p.short} owes you, and knows it.`, archive: `Gave ${p.name} what was asked: ${p.want.text.replace(/\.$/, '').toLowerCase()}.` };
+    addFavour(s, id, 'owed', p.clout >= 5 ? 3 : 2, `You gave ${p.short} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.`);
+    return { text: `${w.done} ${p.short} owes you, and knows it.${st.grants > 1 ? ' The next request will be bigger; they always are.' : ''}`, archive: `Gave ${p.name} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.` };
   }
   // pressure
   s.pc = clamp(s.pc - 4, 0, 100);
-  st.compliantUntil = s.turn + 8;
+  // With anti-corruption courts that sit, the file is a real case, and it keeps them cooperative longer.
+  st.compliantUntil = s.turn + (s.agenda.done.includes('c2') ? 14 : 8);
   st.rel = clamp(st.rel - 18, 0, 100);
   applyFx(s, ['nation.integrity', -1.5]);
   return {
@@ -317,3 +327,41 @@ export function ministerForEvent(category: string, eventId: string): string | nu
   if (category === 'labour') return 'min_service';
   return null;
 }
+
+// ---------------------------------------------------------------- ministers' arcs
+
+/** Whether a minister's real competence has shown: ten months in the job, or published scorecards. */
+export function competenceShown(s: GameState, id: string): boolean {
+  const st = s.people[id];
+  return s.agenda.done.includes('v4') || s.turn - (st?.since ?? 1) >= 10 || st?.repCompetence === undefined;
+}
+
+/** The competence the President sees: the reputation until the record shows the truth. */
+export function seenCompetence(s: GameState, id: string): number {
+  const p = personView(s, id);
+  return competenceShown(s, id) ? p.competence ?? 3 : s.people[id]?.repCompetence ?? p.competence ?? 3;
+}
+
+/** A minister's following, 0 to 5: time in the job, what they have delivered, and their own weight. */
+export function following(s: GameState, id: string): number {
+  const p = personView(s, id);
+  const st = s.people[id];
+  const months = s.turn - (st?.since ?? s.turn);
+  const delivered = (st?.marks ?? []).filter((m) => m.d > 0).length;
+  return clamp(Math.floor(months / 12) + Math.floor(delivered / 2) + Math.floor((p.clout ?? 2) / 2), 0, 5);
+}
+
+/** At the start: one or two ministers are not what their files say. */
+export function seedMinisters(s: GameState, roll: () => number): void {
+  const list = PEOPLE.filter((p) => p.group === 'minister');
+  const n = 1 + (roll() < 0.5 ? 1 : 0);
+  for (let i = 0; i < n; i++) {
+    const p = list.splice(Math.floor(roll() * list.length), 1)[0];
+    const st = s.people[p.id];
+    const real = p.competence ?? 3;
+    // Overrated or underrated by a point; never off the scale.
+    const off = real >= 5 || (real > 1 && roll() < 0.5) ? -1 : 1;
+    if (st) st.repCompetence = real + off;
+  }
+}
+

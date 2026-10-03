@@ -5,6 +5,10 @@ import { tycoonInflation, tycoonTick } from './favours';
 import { oppositionTick } from './opposition';
 import { peopleTick } from './people';
 import { foodInflation, securityTick } from './security';
+import { policyGoodwill, policyInflationLines, policyTick } from './policies';
+import { institutionInflationLines, institutionTick } from './institutions';
+import { assetTick } from './places';
+import { currencyTick, fxInflation } from './currency';
 import { budgetInflation, printedInflation, treasuryTick } from './treasury';
 import type { GameState, Nation } from './types';
 import { BLOCS, ZONES, applyFx, approval, clamp, hardship, petrolShock, test, zoneSecurity } from './vars';
@@ -44,7 +48,10 @@ export function inflationTarget(s: GameState): { lines: { label: string; value: 
     { label: 'Your reforms and orders', value: s.counters['bonus.inflation'] ?? 0 },
     { label: 'Farming in the budget', value: budgetInflation(s) },
     { label: 'The importers', value: tycoonInflation(s) },
+    { label: 'The naira', value: fxInflation(s) },
     { label: 'A nervous establishment', value: Math.max(0, 30 - s.blocs.establishment) * 0.25 },
+    ...policyInflationLines(s),
+    ...institutionInflationLines(s),
   ].filter((l) => Math.abs(l.value) >= 0.05);
   return { lines, total: lines.reduce((a, l) => a + l.value, 0) };
 }
@@ -62,10 +69,12 @@ export function economyTick(s: GameState): void {
 
   // The books: oil, the monthly flow, the budget, the unpaid bills and the funds.
   treasuryTick(s);
+  currencyTick(s);
 
   // Past the cliff with nothing in the account, capital spending stops.
   const austerity = n.debt > e.debtCliff && n.fiscalSpace <= 0.05;
-  n.power = clamp(n.power - e.powerDecay - (austerity ? e.austerityPower : 0), 0, 100);
+  // Under the electricity market law, states and private firms keep generation going.
+  n.power = clamp(n.power - e.powerDecay * (s.agenda.done.includes('p4') ? 0.5 : 1) - (austerity ? e.austerityPower : 0), 0, 100);
   n.jobs = clamp(n.jobs - e.jobsDecay, 0, 100);
   // What reform built keeps paying, every month.
   for (const k of ['security', 'power', 'capacity', 'integrity', 'jobs'] as const) {
@@ -73,6 +82,11 @@ export function economyTick(s: GameState): void {
     if (b) applyFx(s, [`nation.${k}`, b]);
   }
   securityTick(s);
+  // What the standing policies do this month, worked out against the economy as it is.
+  policyTick(s);
+  // What has been built keeps running.
+  institutionTick(s);
+  assetTick(s);
 
   // The example is followed: exposure erodes integrity slowly.
   const recent = s.exposures.filter((x) => s.turn - x.turn <= 12).length;
@@ -84,9 +98,13 @@ export function economyTick(s: GameState): void {
   p.wageGrievance = clamp(p.wageGrievance + (hardship(s) - 45) * 0.08, 0, 100);
   const finRisk = Math.max(0, 3 - (s.chars.fin?.integrity ?? 3)) * 0.2;
   // Looking away is noticed less than taking. Taking for yourself is noticed most.
-  const heat = s.exposures.filter((x) => s.turn - x.turn <= 12).reduce((a, x) => a + (x.kind === 'tolerated' ? 0.15 : x.kind === 'political' ? 0.4 : 0.5), 0);
+  // Asset declarations make taking for yourself easier to see.
+  const declared = s.agenda.done.includes('c3');
+  const heat = s.exposures.filter((x) => s.turn - x.turn <= 12).reduce((a, x) => a + (x.kind === 'tolerated' ? 0.15 : x.kind === 'political' ? 0.4 : declared ? 0.75 : 0.5), 0);
+  if (declared && !s.exposures.some((x) => x.kind === 'personal' && s.turn - x.turn <= 12)) n.integrity = clamp(n.integrity + 0.03, 0, 100);
   // Scandal settles at a level set by how the government behaves. Revelations push it up; it comes back down if nothing feeds it.
-  const settles = clamp(18 + (40 - n.integrity) * 1.1 + heat * 9 + finRisk * 12, 0, 100);
+  // With contracts published, there is less to find.
+  const settles = clamp(18 + (40 - n.integrity) * 1.1 + heat * 9 + finRisk * 12 - (s.agenda.done.includes('c1') ? 5 : 0), 0, 100);
   p.scandalHeat = clamp(toward(p.scandalHeat, settles, 0.08), 0, 100);
 
   s.hist.push({ ...n } as Nation);
@@ -114,13 +132,16 @@ export function politicsTick(s: GameState): void {
 
   s.counters.scar = (s.counters.scar ?? 0) * CFG.scar.decay + Math.max(0, h - CFG.scar.above) * CFG.scar.gain;
   const a = CFG.approval;
+  // The crowd-pleasers stay popular for as long as they stand.
+  const goodwill = policyGoodwill(s);
   for (const z of ZONES) {
     const zone = s.zones[z];
     // Voters punish hardship more than they reward its absence.
     const target = a.base + zone.lean - (h - 45) * (h > 45 ? a.hardship : a.relief) - (45 - zoneSecurity(s, z)) * (zoneSecurity(s, z) > 45 ? a.security * 0.5 : a.security)
       + (s.blocs.press - 50) * a.press - s.counters.scar * a.scar
       - Math.max(0, s.pressures.scandalHeat - a.scandalAbove) * a.scandal
-      - Math.max(0, s.turn - a.fatigueAfter) * a.fatigue;
+      - Math.max(0, s.turn - a.fatigueAfter) * a.fatigue
+      + goodwill;
     zone.approval = clamp(toward(zone.approval, target, a.rate), 5, 95);
   }
 

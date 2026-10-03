@@ -8,6 +8,7 @@ export const MORE_TRACKS: Track[] = [
     milestones: [
       {
         id: 'i1', name: 'Forty-eight-hour ports', pc: 6, naira: 0.3, months: 6,
+        during: [['nation.inflation', 0.375], ['bloc.establishment', -0.5]], duringText: 'The ports jam while they are reorganised.',
         blurb: 'A container takes three weeks to clear and passes fourteen agencies. Cut it to two days and five.',
         start: [['bloc.establishment', -3]],
         done: [['nation.jobs', 6], ['bonus.fiscal', 0.015], ['bonus.jobs', 0.03]],
@@ -66,6 +67,7 @@ export const MORE_TRACKS: Track[] = [
       },
       {
         id: 'd4', name: 'Payments and identity as public rails', pc: 6, naira: 0.3, months: 10,
+        during: [['approval', -0.375], ['bloc.street', -0.5]], duringText: 'Enrolment queues, and SIM cards blocked until people enrol.',
         blurb: 'One identity, instant payments, open to every bank and app. The tax office will be able to see everything.',
         done: [['nation.jobs', 7], ['nation.capacity', 4], ['bonus.fiscal', 0.02]],
         news: ['INFORMAL ECONOMY GOES DIGITAL AS PUBLIC PAYMENT RAIL LAUNCHES', 'EVEN MAMA PUT DEY COLLECT TRANSFER NOW'],

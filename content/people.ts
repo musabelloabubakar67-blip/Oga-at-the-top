@@ -169,6 +169,8 @@ export interface Rival {
   deal: { name: string; text: string; pc: number; naira?: number; done: string };
   /** Quotes for the papers when there is nothing specific to say. */
   lines: string[];
+  /** Quotes about what the President has actually done; preferred when they apply. */
+  situational?: { when: Cond; text: string }[];
 }
 
 export const RIVALS: Rival[] = [
@@ -177,6 +179,17 @@ export const RIVALS: Rival[] = [
     deal: { name: 'Offer him the chair of your economic council', text: 'He joins the government he has been attacking. The establishment relaxes. Your party asks what he did to deserve it.', pc: 10, done: 'He accepts within the hour and resigns from his own party by press release. His shadow cabinet learns of it from the radio.' },
     style: 'The government-in-waiting. A former minister with a shadow cabinet and a costed manifesto nobody has read.',
     feeds: 'Grows on scandal, a nervous establishment and rising debt.',
+    situational: [
+      { when: { v: ['fx.premium', '>=', 25] }, text: 'There are two prices for a dollar in this country: the one the government quotes and the one Nigerians pay. Ask who gets the first one.' },
+      { when: { flag: 'fx.stance', is: 'float' }, text: 'They floated the naira without a plan for the week after. We would have floated it with one.' },
+      { when: { v: ['bench.loyal', '>=', 3] }, text: 'The President has appointed judges the way other men appoint caterers: for the occasion.' },
+      { when: { v: ['grieve.alt', '>=', 1] }, text: 'They have used the state against me. I take it as a compliment. Governments do not persecute people they are not afraid of.' },
+      { when: { flag: 'budget.how', is: 'accepted' }, text: 'The President signed the Assembly\'s budget, insertions and all. Read the projects list. Then read who is from where.' },
+      { when: { flag: 'budget.how', is: 'stalled' }, text: 'A government that cannot pass its own budget on time should not be asking for four more years.' },
+      { when: { flag: 'site.abandoned' }, text: 'Go and see the abandoned sites. Take a camera. Take a goat, for company.' },
+      { when: { v: ['counter.struck', '>=', 1] }, text: 'The Supreme Court has now told this government what the Constitution says. It should not have needed telling.' },
+      { when: { flag: 'refinery.covered' }, text: 'They knew the refinery was dead and they kept paying for the funeral.' },
+    ],
     lines: [
       'This government confuses announcements with achievements.',
       'We have a costed alternative. It is forty pages. I invite the President to read any one of them.',
@@ -189,6 +202,16 @@ export const RIVALS: Rival[] = [
     deal: { name: 'Adopt her youth jobs bill as your own', text: 'She cannot be bought, and would publish the offer. Her programme can be taken. It costs money, and she will say you stole it.', pc: 6, naira: 0.4, done: 'You send her bill to the Assembly with your name on it. She says you stole it. Her followers notice that it passed.' },
     style: 'A thirty-nine-year-old lawyer with two million followers and no structure in a single ward.',
     feeds: 'Grows on hardship and an angry street.',
+    situational: [
+      { when: { v: ['fx.premium', '>=', 25] }, text: 'The naira is official in Abuja and imaginary in the market. My mother shops in the market.' },
+      { when: { v: ['fx.fall', '>=', 25] }, text: 'They say the naira has "found its level". It found it on my plate.' },
+      { when: { v: ['grieve.fire', '>=', 1] }, text: 'They banned my rallies, so we held them in car parks. They should ban car parks next.' },
+      { when: { v: ['counter.injunctions', '>=', 1] }, text: 'A reform frozen by a judge on a Friday afternoon. Somebody paid for that Friday.' },
+      { when: { flag: 'budget.how', is: 'accepted' }, text: 'Constituency projects: the only part of the budget that is always released in full.' },
+      { when: { flag: 'grain.reserve', is: false }, text: 'They emptied the grain reserve to beat one businessman. Good. Now fill it before the lean season, or I will be at the market with a microphone.' },
+      { when: { flag: 'exit.immunity' }, text: 'A law so that no President can ever be prosecuted. Passed at eleven at night. The time tells you everything.' },
+      { when: { flag: 'asset.refinery' }, text: 'The refinery works. Credit where it is due: to the engineers. The ministers were busy elsewhere.' },
+    ],
     lines: [
       'Go to any market and ask the woman selling pepper whether she has felt this "reform".',
       'They are not suffering with us. They are suffering us.',
@@ -201,6 +224,15 @@ export const RIVALS: Rival[] = [
     deal: { name: 'Bring him home: a ministry and his delegates restored', text: 'He returns to your party with his people. The governors who took his place will not thank you, and you will owe him.', pc: 10, done: 'He decamps back, to drums, at a rally in his home state. He describes it as "returning to the house I built". You now owe him.' },
     style: 'A former governor of your own party who left with his delegates. Knows where everything is buried because he helped bury it.',
     feeds: 'Grows when your party is divided and your governors are unhappy.',
+    situational: [
+      { when: { v: ['grieve.strong', '>=', 1] }, text: 'They sent the police to my rallies. I was a governor for eight years. I know which police and who sent them.' },
+      { when: { flag: 'fx.stance', is: 'peg' }, text: 'Defending the naira with reserves is like defending a house with its own furniture. It works until you have nothing to sit on.' },
+      { when: { v: ['bench.packed', '>=', 3] }, text: 'Packing the court is an old trick. I know, because I was in the room the last time.' },
+      { when: { v: ['wronged', '>=', 3] }, text: 'Half the governors in that party now have a grievance. Grievances are what I collect.' },
+      { when: { flag: 'succession.backed' }, text: 'The President has chosen a successor. The party has not. We shall see who the delegates belong to.' },
+      { when: { flag: 'budget.how', is: 'veto' }, text: 'The President vetoed the Assembly and won. Every senator who voted to sustain it has a price, and I have the list.' },
+      { when: { flag: 'refinery.audit' }, text: 'So the refinery never worked. Some of us said so years ago and were called unpatriotic.' },
+    ],
     lines: [
       'I built that party. I know exactly what it is worth.',
       'The President does not pick calls. In politics, that is all you need to know about a leader.',
@@ -232,6 +264,16 @@ export const COOL_LINES = [
   'My constituents are asking questions I am not yet able to answer.',
   'I wish the President well. I wish the President had asked.',
   'We shall cross that bridge when the Presidency tells us where it is.',
+];
+
+/** What someone the President has used the state against tells the papers. */
+export const GRUDGE_LINES = [
+  'I have not forgotten, and I will not pretend I have.',
+  'My security was withdrawn on a Friday. I drove home on Saturday. I am still here.',
+  'They can take my contracts. They cannot take my people.',
+  'I am a loyal party member. Loyalty runs both ways, or it runs nowhere.',
+  'When the time comes, the Presidency will find I have a long memory and a short temper.',
+  'I was sent a message. I have received it. I will reply in my own time.',
 ];
 
 export type { Cond };

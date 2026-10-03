@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Inline, Overlay, CloseButton } from './shell';
+import { Aimed } from './Aimed';
+import { useContext, useState } from 'react';
 import { PEOPLE, PERSON_BY_ID, RIVALS, type Group } from '../content/people';
 import { TYCOONS } from '../content/tycoons';
 import { dateLabel } from '../engine/config';
@@ -11,21 +13,31 @@ import { canRival } from '../engine/opposition';
 import {
   canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
 } from '../engine/people';
-import { movesLeft } from '../engine/reduce';
+import { movesLeft, sackCost } from '../engine/reduce';
+import { competenceShown, following, seenCompetence } from '../engine/people';
+import { currentWant, grudgeLine } from '../engine/wants';
+import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord } from '../engine/advice';
+import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
+import { grievances } from '../engine/targets';
+import { GROOM_MAX, GROOM_PC, canGroom, candidate, candidateIds, shortlist } from '../engine/successor';
+import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees } from '../engine/courts';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'money' | 'opposition' | 'owed';
+type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed';
 
 const INTRO: Record<Tab, string> = {
-  governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on his hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
+  governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on their hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
   senator: 'Reforms that need a law are voted on in the Senate, and your own senators decide whether they pass. Bills pass when the Senate stands at 50 or better; constitutional changes need more. The budget goes through them every December.',
   minister: 'A minister\'s competence sets how fast the reforms in the brief move, and whether the big bets in it can work. Each is judged from the day they took the job.',
   money: 'Five people who hold parts of the economy. Each can help or hurt in ways no minister can, and each wants something specific. Money that is with you campaigns for you. Money that is against you funds your rivals.',
   opposition: 'Three rivals, each feeding on a different failure, and each with moves of their own. Whoever is strongest on election day is who you face.',
+  advisers: 'Every forecast on your desk comes from one of these people. Reputation is what the files say about them. The record is what actually happened: how often their forecasts were close, and whom their advice turned out to serve. Read it before you trust them.',
   owed: 'Nothing here is written down anywhere else. What people owe you can be spent, once, on the politics screen or on a file on your desk. What you owe will be called in.',
+  succession: 'Anyone in your government can be built up to succeed you. What they bring to the election is their structure, their record and how long you have spent on them. What they bring you afterwards is their loyalty, which remembers how you treated them, and their integrity, which decides whether loyalty is enough to protect what you did.',
+  courts: 'Seven justices who will outlast you. They decide your election petition on appeal, whether your harshest orders stand, and whether someone who loses from a reform can freeze it. When a seat falls vacant you choose who fills it, and the Senate decides whether to let you.',
 };
 
 export function senateLine(s: GameState): string {
@@ -102,7 +114,10 @@ function Bar({ v, bad }: { v: number; bad?: boolean }) {
 const GRADE: Record<string, string> = { A: 'text-state', B: 'text-state', C: 'text-ink', D: 'text-alarm', F: 'text-alarm' };
 
 export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dispatch: Dispatch; onClose: () => void; start?: Tab }) {
+  const wide = useContext(Inline);
+  const cards = wide ? 'grid items-start gap-3 xl:grid-cols-2' : 'space-y-3';
   const [tab, setTab] = useState<Tab>(start ?? 'governor');
+  const [swap, setSwap] = useState<string | null>(null);
   const [before] = useState(s.lastAction?.text);
   const said = s.lastAction && s.lastAction.text !== before ? s.lastAction.text : null;
   const left = movesLeft(s);
@@ -111,13 +126,12 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const owing = favoursOwing(s);
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
-    ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
-    ['money', 'The money'], ['opposition', 'The opposition'], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
+    ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
+    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ...(s.term === 2 ? [['succession', 'The succession'] as [Tab, string]] : []), ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
   ];
 
   return (
-    <div className="fade-in fixed inset-0 z-30 overflow-y-auto bg-pit/80 px-3 py-6 sm:py-10" onClick={onClose} role="dialog">
-      <div className="slide-in paper mx-auto max-w-3xl p-5 sm:p-8" onClick={(e) => e.stopPropagation()}>
+    <Overlay onClose={onClose} paper>
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <p className="label text-state">Politics</p>
@@ -133,6 +147,60 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         </div>
         <p className="mt-3 text-sm leading-snug text-ink-soft">{INTRO[tab]}</p>
         {said && <p className="fade-in mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>}
+
+        {tab === 'advisers' && (
+          <ul className="mt-4 space-y-3">
+            {Object.keys(s.chars).map((role) => {
+              const a = adviser(s, role);
+              if (!a) return null;
+              const r = trackRecord(s, role);
+              return (
+                <li key={role} className="border border-ink/20 p-3">
+                  <p className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-serif text-lg">{a.name}</span>
+                    <span className="label text-ink-soft">{a.title}</span>
+                  </p>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    Reputation: {a.rep.competence >= 4 ? 'able' : a.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {a.rep.loyalty >= 4 ? 'loyal' : a.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
+                  </p>
+                  <p className="mt-1 text-sm">
+                    {r.checked === 0 ? 'No forecasts checked yet.' : `Forecasts checked: ${r.checked}. Close to what happened: ${r.close} (${Math.round((r.close / r.checked) * 100)}%). You followed their recommendation ${r.followed} ${r.followed === 1 ? 'time' : 'times'}.`}
+                  </p>
+                  {r.served.map(([who, n]) => (
+                    <p key={who} className="mt-1 text-sm text-alarm">Their recommendations have helped {patronName(who)} {n} {n === 1 ? 'time' : 'times'}.</p>
+                  ))}
+                  {REPLACEABLE.includes(role) && (
+                    <button onClick={() => setSwap(swap === role ? null : role)} className="mt-2 border border-ink/30 px-3 py-1 font-serif text-sm hover:border-state">
+                      {swap === role ? 'Keep them' : 'Replace…'}
+                    </button>
+                  )}
+                  {swap === role && (
+                    <ul className="mt-2 space-y-2">
+                      {poolFor(s).map((c) => {
+                        const can = canReplaceAdviser(s, role, c.name, left);
+                        const rp = c.rep ?? { competence: c.competence, loyalty: c.loyalty };
+                        return (
+                          <li key={c.name} className="border-l-2 border-honour pl-3">
+                            <p className="font-serif">{c.name}</p>
+                            <p className="text-[13px] leading-snug text-ink-soft">{c.blurb} By reputation: {rp.competence >= 4 ? 'able' : rp.competence <= 2 ? 'out of their depth' : 'adequate'}, {rp.loyalty >= 4 ? 'loyal' : rp.loyalty <= 2 ? 'their own person' : 'reliable enough'}.</p>
+                            <button disabled={!can.ok} title={can.reason} onClick={() => { dispatch({ type: 'REPLACE_ADVISER', role, name: c.name }); setSwap(null); }}
+                              className={`mt-1 border px-3 py-1 text-sm ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>
+                              Bring in as {a.title} · {REPLACE_PC} capital · 1 move
+                            </button>
+                          </li>
+                        );
+                      })}
+                      {poolFor(s).length === 0 && <li className="text-sm italic text-ink-soft">Nobody else is willing to take the job.</li>}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {tab === 'succession' && <Succession s={s} dispatch={dispatch} left={left} />}
+        {tab === 'courts' && <Courts s={s} dispatch={dispatch} left={left} />}
 
         {tab === 'owed' && (
           <div className="mt-4">
@@ -150,7 +218,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
             <p className={`mt-3 text-sm ${money >= 0 ? 'text-state' : 'text-alarm'}`}>
               On election day the money is worth {money >= 0 ? '+' : ''}{money.toFixed(1)} points of vote share to you.
             </p>
-            <ul className="mt-3 space-y-3">
+            <ul className={`mt-3 ${cards}`}>
               {TYCOONS.map((t) => {
                 const st = s.tycoons[t.id];
                 const grant = canTycoon(s, t.id, 'grant', left);
@@ -170,6 +238,8 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     {st.reasons.length > 0 && (
                       <p className="mt-1.5 text-[13px] leading-snug text-ink-soft"><span className="label mr-1">Why</span>{st.reasons.join(' ')}</p>
                     )}
+                    <Wronged s={s} id={t.id} />
+                    <Aimed s={s} kind="tycoon" id={t.id} dispatch={dispatch} />
                     <FavoursOf s={s} id={t.id} dispatch={dispatch} left={left} />
 
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
@@ -203,7 +273,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 
         {tab === 'opposition' && (
           <>
-            <ul className="mt-4 space-y-3">
+            <ul className={`mt-4 ${cards}`}>
               {RIVALS.map((r) => {
                 const v = s.opposition[r.id] ?? 0;
                 const inside = !!s.flags[`rival.${r.id}.in`];
@@ -219,6 +289,8 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                         : top.id === r.id && <span className="label border border-alarm/50 px-1.5 py-0.5 text-alarm">Your likely challenger</span>}
                     </p>
                     <p className="label text-ink-soft">{r.party} · strength {Math.round(v)}</p>
+                    <Wronged s={s} id={r.id} />
+                    {!inside && <Aimed s={s} kind="rival" id={r.id} dispatch={dispatch} />}
                     <Bar v={v} bad />
                     <p className="mt-2 text-sm leading-snug">{r.style}</p>
                     <p className="mt-1 text-sm italic leading-snug text-ink-soft">{r.feeds}</p>
@@ -269,7 +341,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         )}
 
         {(tab === 'governor' || tab === 'senator' || tab === 'minister') && (
-          <ul className="mt-4 space-y-3">
+          <ul className={`mt-4 ${cards}`}>
             {PEOPLE.filter((p) => p.group === tab).map((base) => {
               const p = personView(s, base.id);
               const st = s.people[base.id];
@@ -280,6 +352,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
               const eff = p.zone ? governorEffect(s, p.zone) : 0;
               const card = base.group === 'minister' ? scorecard(s, base.id) : null;
               const original = !st.name;
+              const want = currentWant(s, p.id);
               const sponsor = base.sponsor && original ? PERSON_BY_ID[base.sponsor] : null;
               return (
                 <li key={p.id} className={`border p-4 ${st.gone ? 'border-alarm/40 opacity-70' : 'border-ink/20'}`}>
@@ -307,7 +380,14 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       </p>
                       <p className="font-serif leading-snug">{card.read}</p>
                       <ul className="mt-2 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
-                        <li className="flex justify-between gap-2"><span className="text-ink-soft">Competence</span><span>{'●'.repeat(p.competence ?? 3)}{'○'.repeat(5 - (p.competence ?? 3))}</span></li>
+                        <li className="flex justify-between gap-2">
+                          <span className="text-ink-soft">{competenceShown(s, p.id) ? 'Competence, proven in office' : 'Competence, by reputation'}</span>
+                          <span>{'●'.repeat(seenCompetence(s, p.id))}{'○'.repeat(5 - seenCompetence(s, p.id))}</span>
+                        </li>
+                        {competenceShown(s, p.id) && st.repCompetence !== undefined && st.repCompetence !== p.competence && (
+                          <li className="col-span-full text-[13px] text-ink-soft">{(p.competence ?? 3) > st.repCompetence ? 'Better than the files said.' : 'Not as able as the files said.'}</li>
+                        )}
+                        <li className="flex justify-between gap-2"><span className="text-ink-soft">Following</span><span>{['None', 'A few', 'Some', 'Considerable', 'Large', 'A faction'][following(s, p.id)]}</span></li>
                         {card.lines.map((l) => (
                           <li key={l.label} className="flex justify-between gap-2">
                             <span className="text-ink-soft">{l.label}</span>
@@ -333,34 +413,46 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 
                   <FavoursOf s={s} id={p.id} dispatch={dispatch} left={left} />
 
-                  {base.want && original && !st.gone && (
+                  {want && !st.gone && (
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
-                      <p className="label text-ink-soft">{p.granted ? 'You gave them' : 'Wants'}</p>
-                      <p className="font-serif leading-snug">{base.want.text}</p>
-                      {!p.granted && <Fx fx={base.want.fx} />}
+                      <p className="label text-ink-soft">Wants{(st.grants ?? 0) > 0 ? ` · given ${st.grants} ${st.grants === 1 ? 'thing' : 'things'} before, and the asks grow` : ''}</p>
+                      <p className="font-serif leading-snug">{want.text}</p>
+                      <Fx fx={want.fx} />
                     </div>
                   )}
+                  {!want && !st.gone && (st.grants ?? 0) > 0 && <p className="mt-2 text-[13px] text-ink-soft">Satisfied for now. They will ask again.</p>}
+                  <Wronged s={s} id={p.id} />
+                  {grudgeLine(s, p.id) && <p className={`mt-1 text-[13px] ${st.grudge ? 'text-alarm' : 'text-ink-soft'}`}>{grudgeLine(s, p.id)}</p>}
 
                   {!st.gone && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button disabled={!court.ok} title={court.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'court' })} className={btn(court.ok)}>
                         Give them your time
                       </button>
-                      {base.want && original && !p.granted && (
+                      {want && (
                         <button disabled={!grant.ok} title={grant.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'grant' })} className={btn(grant.ok, 'good')}>
-                          Give them what they want{[base.want.pc && ` · ${base.want.pc} capital`, base.want.naira && ` · ${naira(base.want.naira)}`].filter(Boolean).join('')}
+                          Give them what they want{[want.pc && ` · ${want.pc} capital`, want.naira && ` · ${naira(want.naira)}`].filter(Boolean).join('')}
                         </button>
                       )}
+                      {want && (() => {
+                        const no = canDeal(s, p.id, 'refuse', left);
+                        return (
+                          <button disabled={!no.ok} title={no.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'refuse' })} className={btn(no.ok, 'bad')}>
+                            Refuse · no move
+                          </button>
+                        );
+                      })()}
                       {base.group !== 'minister' && (
                         <button disabled={!press.ok} title={press.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'pressure' })} className={btn(press.ok, 'bad')}>
                           Lean on them · 4 capital
                         </button>
                       )}
                       {base.group === 'minister' && (['technocrat', 'party'] as const).map((kind) => {
-                        const ok = left > 0 && s.pc >= 6;
+                        const cost = sackCost(s, p.id);
+                        const ok = left > 0 && s.pc >= cost;
                         return (
                           <button key={kind} disabled={!ok} onClick={() => dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind })} className={btn(ok)}>
-                            {kind === 'technocrat' ? 'Replace with a technocrat' : 'Replace with a party nominee'} · 6 capital
+                            {kind === 'technocrat' ? 'Replace with a technocrat' : 'Replace with a party nominee'} · {cost} capital
                           </button>
                         );
                       })}
@@ -371,6 +463,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       Time warms them a little, less each visit. Giving them what they want wins them properly and leaves them owing you a favour. Leaning on them buys eight months of obedience and a lasting grudge.
                     </p>
                   )}
+                  {(tab === 'governor' || tab === 'senator') && !st.gone && <Aimed s={s} kind={tab} id={p.id} dispatch={dispatch} />}
                   {base.group === 'minister' && (
                     <p className="mt-2 text-[13px] leading-snug text-ink-soft">
                       A technocrat is highly competent and clean, and the party will resent it{sponsor ? `; ${sponsor.short} will take it personally` : ''}. A party nominee pleases the governors, slows every reform in the brief, and is not to be trusted with money.
@@ -382,10 +475,130 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </ul>
         )}
 
-        <div className="mt-6 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
-      </div>
-    </div>
+        <CloseButton onClose={onClose} className="mt-6" />
+    </Overlay>
   );
 }
 
 export { kindOf, regard };
+
+/** What your orders have done to them, and how long they will remember it. */
+function Wronged({ s, id }: { s: GameState; id: string }) {
+  const g = grievances(s, id);
+  if (!g.length) return null;
+  return (
+    <p className="mt-1 text-[13px] leading-snug text-alarm">
+      <span className="label mr-1">Remembers</span>
+      {g.map((w) => `${w.what} (${dateLabel(w.turn)}; for ${w.until - s.turn} more months)`).join(' ')}
+    </p>
+  );
+}
+
+const LEAN: Record<string, string> = { you: 'With you', free: 'Independent', them: 'Against you' };
+
+/** The Supreme Court: who sits, how they lean, who retires when, and whom you could put there. */
+function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const b = bench(s);
+  const v = benchVars(s);
+  const f = forecastChallenge(s);
+  const pool = nominees(s);
+  const [seat, setSeat] = useState<number | null>(null);
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-ink-soft">
+        The Supreme Court hears the election petition on appeal, challenges to orders that hit someone hard, and applications to freeze reforms.
+        {' '}A challenge decided today would go {f.against} against you, {f.for} for you{f.unsure ? `, ${f.unsure} for whoever reaches them first` : ''}.
+        {' '}{v.loyal >= 4 ? 'Four or more owe you their seats: the petition cannot be lost.' : v.honest >= 4 ? 'Four or more cannot be reached: a dirty campaign can be annulled.' : 'Neither side has four.'}
+        {' '}{v.bought + v.hostile > 0 ? `${new Set(b.seats.filter((j) => j && j.lean !== 'you' && (j.lean === 'them' || j.integrity <= 2)).map((j) => j!.name)).size} can be reached by people who want a reform stopped.` : 'Nobody on the bench will freeze a reform for a fee.'}
+        {b.packed > 0 ? ` You have appointed ${b.packed} loyalist${b.packed === 1 ? '' : 's'}${b.packed >= 3 ? ', and the country has noticed' : ''}.` : ''}
+      </p>
+      <ul className="mt-3 space-y-2">
+        {b.seats.map((j, i) => (
+          <li key={i} className="border border-ink/20 p-3">
+            {j ? (
+              <>
+                <p className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-serif text-lg">{j.name}{j.chief ? ' · Chief Justice' : ''}</span>
+                  <span className={`label ${j.lean === 'you' ? 'text-state' : j.lean === 'them' ? 'text-alarm' : 'text-ink-soft'}`}>{LEAN[j.lean]} · integrity {j.integrity}</span>
+                </p>
+                <p className="mt-1 text-sm leading-snug text-ink-soft">{j.blurb}{j.mine ? ' Appointed by you.' : ''} {j.retires - s.turn <= 96 ? `Retires in ${j.retires - s.turn} months.` : ''}</p>
+              </>
+            ) : (
+              <>
+                <p className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-serif text-lg italic">Vacant</span>
+                  <button onClick={() => setSeat(seat === i ? null : i)} className="label border border-ink/25 px-2 py-0.5 hover:border-state">{seat === i ? 'Close' : `Nominate · ${NOMINATE_PC} capital`}</button>
+                </p>
+                {seat === i && (
+                  <ul className="mt-2 space-y-2">
+                    {pool.map((n) => {
+                      const can = canNominate(s, i, n.name, left);
+                      return (
+                        <li key={n.name}>
+                          <button disabled={!can.ok} onClick={() => { dispatch({ type: 'NOMINATE', seat: i, name: n.name }); setSeat(null); }}
+                            className={`w-full border px-3 py-2 text-left ${can.ok ? 'border-ink/25 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-50'}`}>
+                            <span className="flex flex-wrap items-baseline justify-between gap-2">
+                              <span className="font-serif">{n.name}</span>
+                              <span className={`label ${n.lean === 'you' ? 'text-state' : 'text-ink-soft'}`}>{LEAN[n.lean]} · integrity {n.integrity}</span>
+                            </span>
+                            <span className="block text-sm leading-snug text-ink-soft">{n.blurb}</span>
+                            <Fx fx={n.fx as never} />
+                            <span className={`block text-[13px] ${n.confirms ? 'text-ink-soft' : 'text-alarm'}`}>{n.why}{n.confirms ? '' : ' The Senate would reject them today, and the nominee would not be offered again.'}</span>
+                            {n.lean === 'you' && b.packed === 2 && <span className="block text-[13px] text-alarm">A third loyalist and the bench is called packed: integrity −4, press −5, and it is remembered.</span>}
+                            {!can.ok && can.reason && <span className="block text-[13px] text-alarm">{can.reason}</span>}
+                          </button>
+                        </li>
+                      );
+                    })}
+                    {pool.length === 0 && <li className="text-sm italic text-ink-soft">Nobody left to nominate. The seat stays empty.</li>}
+                  </ul>
+                )}
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Who could succeed you, what each would bring, and grooming them. */
+function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const backed = s.flags['succession.backed'];
+  const list = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => b.groomed - a.groomed || b.strength - a.strength);
+  const top = new Set(shortlist(s).map((c) => c.id));
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-ink-soft">
+        {backed ? `You have backed ${String(s.flags['successor.name'] ?? 'a successor')}.` : 'The party chooses its candidate in month 37. The three names it is talking about are marked; grooming someone puts them on the list.'}
+        {' '}Strength is points of share at the election, before the usual cost of not being you (−3). Loyalty above 75 protects you whatever you did; an honest successor (integrity 4 or 5) will not protect much theft on loyalty alone.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {list.map((c) => {
+          const can = canGroom(s, c.id, left);
+          return (
+            <li key={c.id} className={`border p-3 ${top.has(c.id) ? 'border-state/50' : 'border-ink/15'}`}>
+              <p className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-serif text-lg">{c.name}{top.has(c.id) && <span className="label ml-2 text-state">on the list</span>}</span>
+                <span className="label text-ink-soft">
+                  strength <span className={c.strength >= 0 ? 'text-state' : 'text-alarm'}>{c.strength >= 0 ? '+' : ''}{c.strength}</span>
+                  {' · '}loyalty <span className={c.loyalty >= 60 ? 'text-state' : c.loyalty < 40 ? 'text-alarm' : ''}>{c.loyalty}</span>
+                  {' · '}integrity {c.integrity}
+                </span>
+              </p>
+              <p className="label text-ink-soft">{c.title}</p>
+              {c.why.length > 0 && <p className="mt-1 text-[13px] leading-snug text-ink-soft">{c.why.join('. ')}.</p>}
+              {!backed && (
+                <button disabled={!can.ok} onClick={() => dispatch({ type: 'GROOM', id: c.id })}
+                  className={`mt-2 border px-3 py-1 text-sm ${can.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>
+                  Groom · {GROOM_PC} capital · strength +0.5, loyalty +5{c.groomed ? ` (${c.groomed}/${GROOM_MAX})` : ''}
+                </button>
+              )}
+              {!backed && !can.ok && can.reason && <span className="ml-2 text-[13px] text-ink-soft">{can.reason}</span>}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}

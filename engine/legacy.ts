@@ -1,3 +1,4 @@
+import { afterOffice, type After } from './afterlife';
 import { yearOf } from './config';
 import { fill } from './text';
 import type { EndingKind, GameState } from './types';
@@ -20,6 +21,8 @@ export interface Verdict {
   };
   left: string[];
   defining: string[];
+  /** What happens to you after noon on the last day. */
+  after: After;
 }
 
 function grade(delta: number, steps: [number, number, number, number]): [Grade, number] {
@@ -78,8 +81,11 @@ export function verdict(s: GameState): Verdict {
   const inst = dims[5].score;
   const fiscal = dims[1].score;
 
+  const after = afterOffice(s);
   let epithet: string;
-  if (ending === 'removed') epithet = 'The Cautionary Tale';
+  if (after.kind === 'prison') epithet = 'The Convicted President';
+  else if (after.kind === 'exile') epithet = 'The President in Exile';
+  else if (ending === 'removed') epithet = 'The Cautionary Tale';
   else if (ending === 'resigned') epithet = 'The One Who Walked Away';
   else if (ending === 'annulled') epithet = 'The Annulled';
   else if (personal >= 40 && perf < 0) epithet = 'The Looter';
@@ -123,11 +129,6 @@ export function verdict(s: GameState): Verdict {
   } else {
     p3Parts.push('History is kinder to those who leave than to those who are carried out. Slightly.');
   }
-  if (personal >= 10) {
-    p3Parts.push(allyWon
-      ? 'The new administration has shown no interest in the files. For now.'
-      : 'Your immunity ended at noon. The new administration has announced a review of "certain transactions."');
-  }
   const closing = perf >= 0.8
     ? 'It was difficult. It was not impossible.'
     : perf <= -0.6
@@ -163,11 +164,10 @@ export function verdict(s: GameState): Verdict {
       tolerated, political, personal, witnesses,
       trail: trail >= 8 ? 'substantial' : trail >= 3 ? 'findable' : 'thin',
       bought: personal >= 2 ? `What you kept would have built about ${Math.round(personal / 2)} km of federal road.` : '',
-      aftermath: personal >= 10
-        ? (ending === 'term_limit' && allyWon ? 'Immunity ended today. Nobody has called.' : 'Immunity ended today.')
-        : 'You took nothing for yourself.',
+      aftermath: personal >= 10 ? 'Immunity ended today.' : 'You took nothing for yourself.',
     } : null,
     left,
+    after,
     defining: s.archive.filter((a) => a.sig === 3 && a.turn > 0 && !a.sealed).map((a) => a.headline).slice(-8),
   };
 }

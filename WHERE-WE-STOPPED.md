@@ -1,6 +1,6 @@
 # Where we stopped
 
-Written 2 October 2026, at commit `cebfcfe` on `main`. Read this first when picking the project up in a new session, then read [docs/gdd/00-as-built.md](docs/gdd/00-as-built.md), which describes the game as it is in the code.
+Written 2 October 2026, at commit `cebfcfe` on `main`; the plan below added 3 October 2026. Read this first when picking the project up in a new session, then read [docs/gdd/00-as-built.md](docs/gdd/00-as-built.md), which describes the game as it is in the code.
 
 ## What this is
 
@@ -73,6 +73,38 @@ Other simulator modes: `-- 12 --scenarios`, `-- 4 --world`, `-- --trace`. Run th
 | Random, do-nothing | 0% |
 
 Open questions: the flawless reformer never loses outside one scenario; the populist may now be too weak; the institutionalist dropped after the new tracks were added. No hand-played balance pass has been done.
+
+## Plan agreed on 3 October 2026
+
+This replaces the list under "What to do next" below, which is kept for its detail. Phases run in order; each ends with type-check, content lint, a simulator pass compared with the last, chapter 0 updated, and a commit.
+
+| Phase | What | State |
+|---|---|---|
+| 0 | Baseline: build, lint, simulator table | Done |
+| 1 | Security theatre by theatre; offensive aimed at a theatre | Done |
+| 2 | Effects calculated from the state (with their reasons); standing policies charged monthly against the economy; dials on national orders; a lasting effect for the 11 reforms that have none | Done |
+| 3 | Done. People who change: wants drawn from situation and loyalty (about 12 templates by role plus each person's signature want), appetite that grows, refusals that become grudges; ministers whose true character surfaces, who build a following; three files for the first Finance pick | |
+| 4 | Done. 4a: institutions; every order given a dial, context or lasting effect. 4b: sixteen orders aimed at a governor, senator, businessman, rival, paper or zone (ten converted, seven new); hostile ones wear out and are remembered for two years; a Supreme Court of seven named justices with vacancies, Senate confirmation, challenges to hostile orders, injunctions against contested reforms, and the election petition decided by the bench | |
+| 5 | Done. Any of the named cast can be groomed and backed, with strength, loyalty and integrity shown; life after office from elder statesman to prison or exile, decided by what can be found and who protects you; delivered reforms attacked by businessmen, governors, the Senate and the courts; a tension curve in the director | |
+| 6 | Done. A table of all 37 states with how each would vote today and what has been put there; seventeen big bets built in a chosen state, running as assets under a manager with returns, upkeep, capture and an effect on the state's vote, or leaving an abandoned site | |
+
+The UI redesign for desktop is done (owner, 3 October): six sections behind a rail, a top bar with previews, a coming-up strip, aimed orders on people cards, a tile map. Chapter 0, section 0.1, describes it.
+
+Added after the budget (owner, 3 October): the rice reserve fix, the refinery minister chain and the honest refinery bet, the Finance Minister's oil forecast, the naira (rates, reserves, three central bank stances, a strong economy strengthening it), and the talking-points audit (rivals, your people, editorials, the Chief of Staff and five phone messages now speak to the new systems). Balance after all of it (100 each): flawless reformer 75%, any-order reformer 54%, Machine 63%, Institutionalist 46%, Populist 34%, Kleptocrat 14%. Open: the Institutionalist and Kleptocrat have fallen (60% and 23% before the naira); the currency alone accounts for 3 to 5 points of that, the rest is unexplained and needs a closer look. No human has yet played a full term on the new screen.
+
+The budget was rebuilt (owner, 3 October): inflation shrinks it, points have diminishing returns and are worth more where the problem is worse, ministries spend only part of each increase (by the minister's competence and the cash in hand) and lines can be rushed or held, works money is sited by zone, the Assembly sends back its own version with insertions (sign, split or veto), cuts below last year are felt, and a supplementary budget can be passed when oil moves $12. Chapter 0, Oil and the budget. Balance after it (100 each): flawless reformer 82%, any-order reformer 52%, populist 36%, institutionalist 60%, machine 63%, kleptocrat 23%.
+
+Balance after phases 4b to 6 (100 each): flawless reformer 80%, any-order reformer 67%, institutionalist 64%, machine 63%, kleptocrat 29%, populist 28%. Machine was 67% before rival attacks drew sympathy back. The populist moves between 23% and 35% with small changes (noise at 100 runs is about ±5); it loses on hardship (73 to 79), which may be the right lesson or may be too harsh: the owner's call. After office: reformers end as elder statesmen, the machine mostly on trial or investigated, the kleptocrat in exile (it moves money abroad), the populist investigated about half the time.
+
+Parked: the Vice President, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
+
+Owner decisions, 3 October: the flat security bonus comes off the security reforms; life after office can end the game badly; wants use role templates plus one signature want each.
+
+Balance pass done on 3 October (60 each): reformer 88%, machine 55%, kleptocrat 43%, institutionalist 32%, populist 23%. The owner chose to leave the kleptocrat where it is. Reformers then got pain before payoff on fourteen reforms: a flawless reformer that times them wins 88%, one that takes reforms in any order 62%. Keeping the subsidy or ignoring debts still costs a flawless reformer almost nothing; that is open. Shocks were then added (the owner asked not to be told what they are; see `content/shocks.ts`): flawless reformer 77%, any-order reformer 63%, machine 73%, institutionalist 40%, kleptocrat 33%, populist 30%. Chapter 0, section 0.7 and the tools table, has the mechanics and the numbers.
+
+Phase 3 added advice that can mislead (owner's rule change: forecasts before, what happened after), wants that change, ministers' arcs and the first Finance Minister's files. Balance after it (100 each): reformer 79%, any-order reformer 53%, trusts advisers 73%, checks the record 84%, institutionalist 45%, machine 55%, populist 34%, kleptocrat 30%. Owner decisions: forecasts on files only; a pool of six replacement advisers (built; each name searched on 3 October); judges in phase 4.
+
+Every phase must teach the simulator bots its new actions, or the balance table stops meaning anything. Do the full balance pass after phase 2, not before.
 
 ## What to do next
 
