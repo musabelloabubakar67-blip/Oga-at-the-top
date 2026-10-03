@@ -19,7 +19,7 @@ import { callFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, t
 import { canRival, rivalDeal, type RivalOp } from './opposition';
 import { runOp } from './ops';
 import {
-  addMark, canDeal, deal, governorEffect, governorOf, initPeople, ministerFor, ministerForEvent, ministerSpeed,
+  addMark, canDeal, deal, following, governorEffect, governorOf, initPeople, seedMinisters, ministerFor, ministerForEvent, ministerSpeed,
   personView, relWord, replaceMinister, stampMinisters, strongestRival, type PersonOp,
 } from './people';
 import { buildPapers } from './press';
@@ -144,6 +144,9 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   const fin = FINANCE_CANDIDATES.find((c) => c.name === setup.finance) ?? FINANCE_CANDIDATES[0];
   s.chars.fin = { ...fin, rel: 40, notes: [] };
   seedAdvisers(s);
+  seedMinisters(s, () => rand(s));
+  // Which Finance Minister was chosen on the certificate: that choice has its own files.
+  s.flags['fin.pick'] = ['gwarzo', 'ekpenyong', 'lohor'][Math.max(0, FINANCE_CANDIDATES.indexOf(fin))];
 
   const bump = (fx: Fx[]) => fx.forEach((f) => applyFx(s, f));
   switch (setup.background) {
@@ -1097,6 +1100,7 @@ function replaceFinance(s: GameState, name: string): void {
   applyFx(s, ['bloc.establishment', (next.competence - old.competence) * 3], entry.touches);
   applyFx(s, ['bloc.villa', -3], entry.touches);
   s.chars.fin = { ...next, rel: 40, notes: [] };
+  s.flags['fin.replaced'] = true;
   s.news.push({ chronicle: `PRESIDENT SACKS FINANCE MINISTER, NAMES ${next.short.toUpperCase()}`, street: `FINANCE MINISTER DON GO. ${next.short.toUpperCase()} DON ENTER`, weight: 5, valence: 0, topic: 'people' });
   s.lastAction = {
     text: `${old.name} is thanked for services rendered. ${next.name} is sworn in before lunch.`,
@@ -1109,19 +1113,21 @@ function replaceFinance(s: GameState, name: string): void {
 function person(s: GameState, id: string, op: PersonOp): void {
   if (!canDeal(s, id, op, movesLeft(s)).ok) return;
   const before = snapshot(s);
-  s.desk.actionsUsed += 1;
+  // Saying no costs nothing but the relationship.
+  if (op !== 'refuse') s.desk.actionsUsed += 1;
   const out = deal(s, id, op);
   record(s, `person.${id}`, op, 'politics', out.archive, op === 'grant' ? 2 : 1, out.sealed);
   s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
 }
 
 /** With published scorecards, the case for a sacking is already made. */
-export function sackCost(s: GameState): number {
-  return s.agenda.done.includes('v4') ? 3 : 6;
+export function sackCost(s: GameState, id?: string): number {
+  // The scorecard makes the case; a following makes it dearer.
+  return (s.agenda.done.includes('v4') ? 3 : 6) + (id ? following(s, id) : 0);
 }
 
 function minister(s: GameState, id: string, kind: 'technocrat' | 'party'): void {
-  const cost = sackCost(s);
+  const cost = sackCost(s, id);
   if (movesLeft(s) <= 0 || s.pc < cost || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
   const before = snapshot(s);
   s.pc -= cost;

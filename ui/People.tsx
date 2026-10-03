@@ -12,6 +12,8 @@ import {
   canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
 } from '../engine/people';
 import { movesLeft, sackCost } from '../engine/reduce';
+import { competenceShown, following, seenCompetence } from '../engine/people';
+import { currentWant, grudgeLine } from '../engine/wants';
 import { adviser, patronName, trackRecord } from '../engine/advice';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
@@ -309,6 +311,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
               const eff = p.zone ? governorEffect(s, p.zone) : 0;
               const card = base.group === 'minister' ? scorecard(s, base.id) : null;
               const original = !st.name;
+              const want = currentWant(s, p.id);
               const sponsor = base.sponsor && original ? PERSON_BY_ID[base.sponsor] : null;
               return (
                 <li key={p.id} className={`border p-4 ${st.gone ? 'border-alarm/40 opacity-70' : 'border-ink/20'}`}>
@@ -336,7 +339,14 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       </p>
                       <p className="font-serif leading-snug">{card.read}</p>
                       <ul className="mt-2 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
-                        <li className="flex justify-between gap-2"><span className="text-ink-soft">Competence</span><span>{'●'.repeat(p.competence ?? 3)}{'○'.repeat(5 - (p.competence ?? 3))}</span></li>
+                        <li className="flex justify-between gap-2">
+                          <span className="text-ink-soft">{competenceShown(s, p.id) ? 'Competence, proven in office' : 'Competence, by reputation'}</span>
+                          <span>{'●'.repeat(seenCompetence(s, p.id))}{'○'.repeat(5 - seenCompetence(s, p.id))}</span>
+                        </li>
+                        {competenceShown(s, p.id) && st.repCompetence !== undefined && st.repCompetence !== p.competence && (
+                          <li className="col-span-full text-[13px] text-ink-soft">{(p.competence ?? 3) > st.repCompetence ? 'Better than the files said.' : 'Not as able as the files said.'}</li>
+                        )}
+                        <li className="flex justify-between gap-2"><span className="text-ink-soft">Following</span><span>{['None', 'A few', 'Some', 'Considerable', 'Large', 'A faction'][following(s, p.id)]}</span></li>
                         {card.lines.map((l) => (
                           <li key={l.label} className="flex justify-between gap-2">
                             <span className="text-ink-soft">{l.label}</span>
@@ -362,31 +372,41 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 
                   <FavoursOf s={s} id={p.id} dispatch={dispatch} left={left} />
 
-                  {base.want && original && !st.gone && (
+                  {want && !st.gone && (
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
-                      <p className="label text-ink-soft">{p.granted ? 'You gave them' : 'Wants'}</p>
-                      <p className="font-serif leading-snug">{base.want.text}</p>
-                      {!p.granted && <Fx fx={base.want.fx} />}
+                      <p className="label text-ink-soft">Wants{(st.grants ?? 0) > 0 ? ` · given ${st.grants} ${st.grants === 1 ? 'thing' : 'things'} before, and the asks grow` : ''}</p>
+                      <p className="font-serif leading-snug">{want.text}</p>
+                      <Fx fx={want.fx} />
                     </div>
                   )}
+                  {!want && !st.gone && (st.grants ?? 0) > 0 && <p className="mt-2 text-[13px] text-ink-soft">Satisfied for now. They will ask again.</p>}
+                  {grudgeLine(s, p.id) && <p className={`mt-1 text-[13px] ${st.grudge ? 'text-alarm' : 'text-ink-soft'}`}>{grudgeLine(s, p.id)}</p>}
 
                   {!st.gone && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button disabled={!court.ok} title={court.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'court' })} className={btn(court.ok)}>
                         Give them your time
                       </button>
-                      {base.want && original && !p.granted && (
+                      {want && (
                         <button disabled={!grant.ok} title={grant.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'grant' })} className={btn(grant.ok, 'good')}>
-                          Give them what they want{[base.want.pc && ` · ${base.want.pc} capital`, base.want.naira && ` · ${naira(base.want.naira)}`].filter(Boolean).join('')}
+                          Give them what they want{[want.pc && ` · ${want.pc} capital`, want.naira && ` · ${naira(want.naira)}`].filter(Boolean).join('')}
                         </button>
                       )}
+                      {want && (() => {
+                        const no = canDeal(s, p.id, 'refuse', left);
+                        return (
+                          <button disabled={!no.ok} title={no.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'refuse' })} className={btn(no.ok, 'bad')}>
+                            Refuse · no move
+                          </button>
+                        );
+                      })()}
                       {base.group !== 'minister' && (
                         <button disabled={!press.ok} title={press.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'pressure' })} className={btn(press.ok, 'bad')}>
                           Lean on them · 4 capital
                         </button>
                       )}
                       {base.group === 'minister' && (['technocrat', 'party'] as const).map((kind) => {
-                        const cost = sackCost(s);
+                        const cost = sackCost(s, p.id);
                         const ok = left > 0 && s.pc >= cost;
                         return (
                           <button key={kind} disabled={!ok} onClick={() => dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind })} className={btn(ok)}>

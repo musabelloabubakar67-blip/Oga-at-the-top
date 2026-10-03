@@ -11,9 +11,10 @@ import { SUBSIDY } from './events/subsidy';
 import { SYSTEM } from './events/system';
 import { TRIBUNAL } from './events/tribunal';
 import { SHOCK_FILES } from './shocks';
+import { CABINET } from './events/cabinet';
 
 export const EVENT_LIST: GameEvent[] = [
-  ...SUBSIDY, ...LABOUR, ...SCANDAL, ...POLITICS, ...RECURRING, ...ABSURD, ...SECOND, ...MINOR, ...REACTIVE, ...SYSTEM, ...TRIBUNAL, ...SHOCK_FILES,
+  ...SUBSIDY, ...LABOUR, ...SCANDAL, ...POLITICS, ...RECURRING, ...ABSURD, ...SECOND, ...MINOR, ...REACTIVE, ...SYSTEM, ...TRIBUNAL, ...SHOCK_FILES, ...CABINET,
 ];
 
 export const EVENTS: Record<string, GameEvent> = Object.fromEntries(EVENT_LIST.map((e) => [e.id, e]));

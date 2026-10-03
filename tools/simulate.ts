@@ -19,12 +19,14 @@ import { VENTURE_BY_ID } from '../content/ventures';
 import { canDeal } from '../engine/people';
 import { movesLeft } from '../engine/reduce';
 import { standing } from '../engine/vars';
-import { applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
+import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
 import { canFocus } from '../engine/security';
+import { currentWant } from '../engine/wants';
+import { adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { fiscalFlow } from '../engine/treasury';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
-import type { Choice, Fx, GameState, ZoneId } from '../engine/types';
+import type { Choice, DeskItem, Fx, GameEvent, GameState, ZoneId } from '../engine/types';
 import { ZONES, approval, delegates, hardship, test } from '../engine/vars';
 import { traceFor } from '../engine/view';
 
@@ -36,6 +38,8 @@ interface Bot {
   /** Times the reforms that hurt while under way: early in a term or after re-election, one at a time. */
   paces?: boolean;
   keepsSubsidy?: boolean;
+  /** How it uses advice on files: by default bots see the truth. 'trust' takes the recommendation; 'check' reads the record and asks for a second opinion when it is poor. */
+  advice?: 'trust' | 'check';
   name: string;
   finance: number;
   w: Weights;
@@ -108,6 +112,8 @@ const BOTS: Bot[] = [
     { ...flawless, name: 'Reformer, any order', shuffle: true, paces: false },
     { ...flawless, name: 'Reformer, keeps subsidy', keepsSubsidy: true },
     { ...flawless, name: 'Reformer, ignores debts', pays: [], saves: false },
+    { ...flawless, name: 'Reformer, trusts advisers', advice: 'trust' },
+    { ...flawless, name: 'Reformer, checks the record', advice: 'check' },
   );
 }
 const shuffled = <T,>(xs: T[]): T[] => xs.map((x) => [Math.random(), x] as const).sort((a, b) => a[0] - b[0]).map(([, x]) => x);
@@ -139,6 +145,33 @@ function score(bot: Bot, c: Choice, s: GameState): number {
   return v + (s.turn % 7) * 1e-6;
 }
 
+/** An adviser who has been wrong, or whose advice keeps helping someone else, gets a second opinion. */
+function wantsSecond(s: GameState, e: GameEvent, item: DeskItem): boolean {
+  const adv = adviserFor(s, e);
+  if (!adv || item.second || movesLeft(s) <= 0 || !secondFor(s, adv.role)) return false;
+  const rec = trackRecord(s, adv.role);
+  return rec.checked >= 3 && (rec.close / rec.checked < 0.6 || rec.served.length > 0);
+}
+
+/** A President who decides on files from advice rather than the truth. */
+function advisedChoice(bot: Bot, s: GameState, e: GameEvent, item: DeskItem, options: Choice[]): Choice | undefined {
+  const adv = adviserFor(s, e);
+  if (!adv) return undefined;
+  const aid = (fx: Fx[] | undefined) => aidedFx(s, fx, {});
+  const usable = (c: Choice) => options.includes(c);
+  if (bot.advice === 'trust') {
+    const r = recommend(s, e, adv.role, aid, usable);
+    return options.find((c) => c.id === r);
+  }
+  // With a second opinion in hand, it is the second adviser's forecast that counts.
+  const role = item.second ?? adv.role;
+  const value = (c: Choice) => {
+    const f = forecast(s, e, c, role, aid);
+    return [...f.now, ...f.later].reduce((v, [t, d]) => v + (bot.w[t] ?? 0) * d, 0) - (c.pc ?? 0) * bot.pcAversion;
+  };
+  return [...options].sort((a, b) => value(b) - value(a))[0];
+}
+
 /** The state of each presidency on the eve of its first election, for --probe. */
 const eve: Record<string, Record<string, number>[]> = {};
 
@@ -160,7 +193,14 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         if (item === s.desk.lead) throw new Error(`No available choice on ${e.id} at turn ${s.turn}`);
         continue;
       }
-      const best = options.map((c) => [score(bot, c, s), c] as const).sort((a, b) => b[0] - a[0])[0][1];
+      let best = options.map((c) => [score(bot, c, s), c] as const).sort((a, b) => b[0] - a[0])[0][1];
+      if (bot.advice === 'check' && wantsSecond(s, e, item)) {
+        s = applyAction(s, { type: 'SECOND_OPINION', eventId: e.id });
+      }
+      if (bot.advice) {
+        const now = [s.desk.lead, ...s.desk.minors].find((x) => x?.eventId === e.id) ?? item;
+        best = advisedChoice(bot, s, e, now, options) ?? best;
+      }
       if (log && item === s.desk.lead) {
         const tr = traceFor(s, e);
         console.log(`\n[${dateLabel(s.turn, s.startYear)}] ${e.title}  → ${best.label}`);
@@ -266,9 +306,14 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         const pool = PEOPLE.filter((p) => p.group !== 'minister').sort((x, y) => standing(s, x.id) - standing(s, y.id));
         const target = pool[0];
         // The clean grant only what costs no integrity: a reconstruction fund, a seaport. Never fertiliser with a photograph on the bag.
-        const clean = bot.name === 'Institutionalist' && !!target.want && !target.want.fx.some(([t, d]) => t === 'nation.integrity' && d < 0);
+        const want = currentWant(s, target.id);
+        const dirty = !!want && want.fx.some(([t, d]) => t === 'nation.integrity' && d < 0);
+        // The clean say no, out loud, to what would cost integrity.
+        // ...but only to people solidly with them; the rest are simply not given it.
+        if (!skip('refuse') && bot.name === 'Institutionalist' && dirty && standing(s, target.id) >= 55 && canDeal(s, target.id, 'refuse', movesLeft(s)).ok) s = applyAction(s, { type: 'PERSON', id: target.id, op: 'refuse' });
+        const clean = bot.name === 'Institutionalist' && !!want && !dirty;
         const generous = bot.name === 'Machine' || bot.name === 'Kleptocrat' || bot.name === 'Populist' || clean;
-        const op = generous && canDeal(s, target.id, 'grant', movesLeft(s)).ok && (target.want?.naira ?? 0) <= s.nation.fiscalSpace + 0.3 ? 'grant' : 'court';
+        const op = generous && canDeal(s, target.id, 'grant', movesLeft(s)).ok && (want?.naira ?? 0) <= s.nation.fiscalSpace + 0.3 ? 'grant' : 'court';
         if (!canDeal(s, target.id, op, movesLeft(s)).ok) break;
         s = applyAction(s, { type: 'PERSON', id: target.id, op });
       }

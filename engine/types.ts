@@ -274,6 +274,14 @@ export interface PersonState {
   integrity?: number;
   ambition?: number;
   bio?: string;
+  /** What they have been given and refused: each grant makes the next ask bigger; two refusals make a grudge. */
+  grants?: number;
+  grantedAt?: number;
+  refusals?: number;
+  refusedAt?: number;
+  grudge?: boolean;
+  /** Ministers: what the files say their competence is, when it differs from the truth. The truth shows after ten months, or with published scorecards. */
+  repCompetence?: number;
   /** Ministers: when they took the brief, and what their numbers were then. */
   since?: number;
   base?: number;
@@ -512,7 +520,7 @@ export type Action =
   | { type: 'VENTURE'; id: string }
   | { type: 'VENTURE_DELAY'; id: string }
   | { type: 'VENTURE_RESCUE'; id: string }
-  | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' }
+  | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }
   | { type: 'FUND'; id: FundId; amount: number }

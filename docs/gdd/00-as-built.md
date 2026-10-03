@@ -16,7 +16,7 @@ Each month:
 4. **Free actions.** Launching reforms and big bets, paying debts, moving money between funds, signing the budget. These cost money or political capital, not moves.
 5. **End the month.** The simulation ticks and the consequences are reported, each with its cause.
 
-Everything the player can do shows its expected effects before, and its measured effects after. Nothing important is hidden: every number that moves has a screen that says why.
+Everything the player can do shows its expected effects before, and its measured effects after. Reforms, orders, policies and bets show their effects exactly. On a file, the effects shown before the decision are a named adviser's forecast, which can be wrong (owner's rule, 3 October: forecasts before, what actually happened after, with the cause). Nothing important is hidden for long: every number that moves has a screen that says why, and every adviser has a record.
 
 ## 0.2 The country
 
@@ -109,9 +109,29 @@ Six governors (one leading each zone), four senators, six ministers.
 - **Senators** decide whether reforms that need a law pass, and whether the budget passes on time.
 - **Ministers** set the speed of reforms in their brief. Each has competence, integrity, ambition, a want and sometimes a sponsor who will resent a sacking. Each has a **scorecard**: reforms delivered, results in the brief since they took it, big bets won and lost, and marks earned from files decided on their watch. The scorecards become public when the delivery-unit reform is delivered.
 
-Each can be given time, given what they want, or leaned on. Giving a governor or senator what they want creates a favour.
+Each can be given time, given what they want, refused, or leaned on. Giving a governor or senator what they want creates a favour.
+
+**What they want changes** (`engine/wants.ts`). Each asks first for the signature want written for them. After that, what they ask for is drawn from templates by role and by situation (federal projects, troops when their zone is violent, a cabinet seat for an ally, the anti-corruption agency kept away when integrity is low, a say on the ticket near the primary; constituency projects, a committee chair or an amendment for senators; a bigger budget, a permanent secretary removed or a bigger portfolio for ministers). A new ask comes every eight months unless the last was granted in that window. Each grant makes the next ask cost 35% more. Refusing costs no move: it costs 5 points of standing, and refusing a crooked ask (one that costs integrity) earns a point of integrity and press goodwill. Two refusals make a grudge: 8 more points, and the opposition courts that person first and from 15 points higher up. Any grant settles old refusals and the grudge.
+
+**Ministers have an arc.** One or two ministers per presidency are a point better or worse than their files say; the card shows their reputation until the truth shows (ten months in the job, or at once with published scorecards), and then says whether they turned out better or worse. Each has a **following** (0–5, from time in the job, what they delivered and their clout), shown on the card; a sacking costs that much more capital. An ambitious minister with a following, eighteen months in the job and unhappy with the President, may resign to run (`min.resigns`): an offer keeps them, letting them go or sacking them first strengthens the opposition.
+
+**The first Finance Minister** chosen on the certificate has three files of their own, different for each candidate, around months 6–10, 16–20 and 28–32 (`content/events/cabinet.ts`); they stop if that minister leaves. A Finance Minister can leave mid-term through those files (`finleave`); the next is the first other candidate.
 
 **The party primary** is decided by delegates. A governor or senator who is with the President, or who owes the President a favour, brings their delegates. 47% wins a contested primary.
+
+### Advisers (`engine/advice.ts`)
+
+The inner circle (Chief of Staff, the political adviser, the security adviser, the Finance Minister and four other ministers) advise on files. The Minister of Power and the security adviser are the same people as the ministers of those briefs.
+
+Each adviser has a true competence, loyalty and integrity, a **patron** (whom they really serve: the President, themselves, or a businessman, governor or senator) and a **reputation** (what the files say). Each presidency quietly turns one or two of them to another patron, lowering their loyalty while their reputation stays the same, and may make one look abler than they are. The Finance candidates carry their own patrons: one serves a governor, one serves himself.
+
+- **Forecasts.** Each option on a file shows the forecast of the adviser whose brief it is. Competence sets the error (none at 4 or 5; up to ±30%, ±60% or ±90% of each effect at 3, 2 and 1), and an adviser of competence 2 or less leaves out the worst risk half the time. An adviser who serves someone else (loyalty 3 or less, patron not the President) talks up the option their patron gains from, by playing down its harms, and talks down the others.
+- **Recommendations.** The adviser recommends one option: the best for the President as they see it, or, if they lean, the one their patron gains from.
+- **What happened** is shown after the decision as before. Each forecast is checked against the outcome (in arrows; within one arrow counts as close) and kept.
+- **The record**, on the advisers tab of the people screen: forecasts checked, how many were close, how often the President followed them, and whom their recommendations helped. The file shows the adviser's reputation and record beside the forecasts.
+- **A second opinion** from the Chief of Staff (or the political adviser, if the Chief of Staff gave the first) costs a move and shows their forecast under each option.
+
+Reforms, orders, policies and bets are not forecast; they show their effects exactly.
 
 ### Favours (`engine/favours.ts`)
 
