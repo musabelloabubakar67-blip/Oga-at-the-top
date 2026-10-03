@@ -1,6 +1,6 @@
 import { EVENTS, EVENT_LIST } from '../content';
 import { materialise, resolveCast } from './cast';
-import { CFG } from './config';
+import { CFG, termTurnOf } from './config';
 import { rand, weighted } from './rng';
 import { fill } from './text';
 import type { DeskItem, GameEvent, GameState } from './types';
@@ -57,6 +57,19 @@ function mark(s: GameState, e: GameEvent): void {
   }
 }
 
+/**
+ * How hot the presidency should feel this month, from 1 to 5. Quiet in the first
+ * months, building through the term to the election, a breath after it, and
+ * building again to the end. The second term starts hotter than the first.
+ */
+export function tension(s: GameState): number {
+  const tt = termTurnOf(s.turn);
+  const base = s.term === 1 ? 2.2 : 2.8;
+  if (s.term === 1 && tt > 48) return base;
+  const rise = tt <= 6 ? 0 : Math.min(1, (tt - 6) / 36);
+  return base + rise * (s.term === 1 ? 1.8 : 1.9);
+}
+
 function drawLead(s: GameState): GameEvent | null {
   const r = s.recent;
   const last2 = r.slice(-2);
@@ -71,6 +84,8 @@ function drawLead(s: GameState): GameEvent | null {
 
   return weighted(s, pool, (e) => {
     let w = weightOf(s, e);
+    // Files near the month's tension are likelier; far from it, rarer, never impossible.
+    w *= Math.exp(-0.35 * Math.abs(e.intensity - tension(s)));
     if (lightDue && (LIGHT.has(e.tone) || e.category === 'fortune')) w *= 1.6;
     return w;
   });

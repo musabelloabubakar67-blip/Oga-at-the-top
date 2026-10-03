@@ -543,6 +543,7 @@ export type Action =
   | { type: 'SECOND_OPINION'; eventId: string }
   | { type: 'REPLACE_ADVISER'; role: string; name: string }
   | { type: 'NOMINATE'; seat: number; name: string }
+  | { type: 'GROOM'; id: string }
   | { type: 'ESTABLISH'; id: string; head: string }
   | { type: 'REPLACE_HEAD'; id: string; head: string }
   | { type: 'ABOLISH'; id: string }

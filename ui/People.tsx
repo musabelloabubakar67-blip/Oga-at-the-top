@@ -19,11 +19,12 @@ import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
 import { grievances } from '../engine/targets';
+import { GROOM_MAX, GROOM_PC, canGroom, candidate, candidateIds, shortlist } from '../engine/successor';
 import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees } from '../engine/courts';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'owed';
+type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed';
 
 const INTRO: Record<Tab, string> = {
   governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on their hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
@@ -33,6 +34,7 @@ const INTRO: Record<Tab, string> = {
   opposition: 'Three rivals, each feeding on a different failure, and each with moves of their own. Whoever is strongest on election day is who you face.',
   advisers: 'Every forecast on your desk comes from one of these people. Reputation is what the files say about them. The record is what actually happened: how often their forecasts were close, and whom their advice turned out to serve. Read it before you trust them.',
   owed: 'Nothing here is written down anywhere else. What people owe you can be spent, once, on the politics screen or on a file on your desk. What you owe will be called in.',
+  succession: 'Anyone in your government can be built up to succeed you. What they bring to the election is their structure, their record and how long you have spent on them. What they bring you afterwards is their loyalty, which remembers how you treated them, and their integrity, which decides whether loyalty is enough to protect what you did.',
   courts: 'Seven justices who will outlast you. They decide your election petition on appeal, whether your harshest orders stand, and whether someone who loses from a reform can freeze it. When a seat falls vacant you choose who fills it, and the Senate decides whether to let you.',
 };
 
@@ -121,7 +123,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
     ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
-    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
+    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ...(s.term === 2 ? [['succession', 'The succession'] as [Tab, string]] : []), ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
   ];
 
   return (
@@ -194,6 +196,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </ul>
         )}
 
+        {tab === 'succession' && <Succession s={s} dispatch={dispatch} left={left} />}
         {tab === 'courts' && <Courts s={s} dispatch={dispatch} left={left} />}
 
         {tab === 'owed' && (
@@ -549,6 +552,47 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
             )}
           </li>
         ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Who could succeed you, what each would bring, and grooming them. */
+function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const backed = s.flags['succession.backed'];
+  const list = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => b.groomed - a.groomed || b.strength - a.strength);
+  const top = new Set(shortlist(s).map((c) => c.id));
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-ink-soft">
+        {backed ? `You have backed ${String(s.flags['successor.name'] ?? 'a successor')}.` : 'The party chooses its candidate in month 37. The three names it is talking about are marked; grooming someone puts them on the list.'}
+        {' '}Strength is points of share at the election, before the usual cost of not being you (−3). Loyalty above 75 protects you whatever you did; an honest successor (integrity 4 or 5) will not protect much theft on loyalty alone.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {list.map((c) => {
+          const can = canGroom(s, c.id, left);
+          return (
+            <li key={c.id} className={`border p-3 ${top.has(c.id) ? 'border-state/50' : 'border-ink/15'}`}>
+              <p className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-serif text-lg">{c.name}{top.has(c.id) && <span className="label ml-2 text-state">on the list</span>}</span>
+                <span className="label text-ink-soft">
+                  strength <span className={c.strength >= 0 ? 'text-state' : 'text-alarm'}>{c.strength >= 0 ? '+' : ''}{c.strength}</span>
+                  {' · '}loyalty <span className={c.loyalty >= 60 ? 'text-state' : c.loyalty < 40 ? 'text-alarm' : ''}>{c.loyalty}</span>
+                  {' · '}integrity {c.integrity}
+                </span>
+              </p>
+              <p className="label text-ink-soft">{c.title}</p>
+              {c.why.length > 0 && <p className="mt-1 text-[13px] leading-snug text-ink-soft">{c.why.join('. ')}.</p>}
+              {!backed && (
+                <button disabled={!can.ok} onClick={() => dispatch({ type: 'GROOM', id: c.id })}
+                  className={`mt-2 border px-3 py-1 text-sm ${can.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>
+                  Groom · {GROOM_PC} capital · strength +0.5, loyalty +5{c.groomed ? ` (${c.groomed}/${GROOM_MAX})` : ''}
+                </button>
+              )}
+              {!backed && !can.ok && can.reason && <span className="ml-2 text-[13px] text-ink-soft">{can.reason}</span>}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

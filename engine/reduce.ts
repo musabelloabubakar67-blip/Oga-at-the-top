@@ -26,6 +26,7 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
+import { canGroom, groom } from './successor';
 import { canNominate, courtTick, nominate } from './courts';
 import { aimFx, aimText, targetsFor, wearFactor, wrong, wrongedTick, type TargetKind } from './targets';
 import { abolish, canAbolish, canEstablish, canReplaceHead, establish, replaceHead } from './institutions';
@@ -793,6 +794,13 @@ export function applyAction(state: GameState, action: Action): GameState {
       record(s, `institution.${action.id}`, 'abolish', 'action', t, 2);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
+    case 'GROOM': if (canGroom(s, action.id, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = groom(s, action.id);
+      record(s, `groom.${action.id}`, 'groom', 'politics', t, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'NOMINATE': if (canNominate(s, action.seat, action.name, movesLeft(s)).ok) {
       const b = snapshot(s);
       s.desk.actionsUsed += 1;
@@ -987,6 +995,7 @@ function agendaTick(s: GameState): void {
     for (const [k, v] of Object.entries(m.flags ?? {})) { s.flags[k] = v; rec.touches[`flag:${k}`] = 1; }
     applyFx(s, ['pc', s.agenda.tracks.includes(track.id) ? CFG.agenda.donePriorityPc : CFG.agenda.donePc]);
     s.agenda.done.push(m.id);
+    s.counters[`done.${m.id}`] = s.turn;
     // Paying the gas suppliers is what this reform is.
     if (m.id === 'p1') { s.debts.gas = 0; }
     if (min) addMark(s, min.id, 2, `Delivered: ${m.name}`);

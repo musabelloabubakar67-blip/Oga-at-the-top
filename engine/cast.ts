@@ -12,6 +12,9 @@ import { dueCreditor, who } from './favours';
 import { wooTarget } from './opposition';
 import { following, personView, scorecard } from './people';
 import { currentWant } from './wants';
+import { shortlist } from './successor';
+import { attackedReform, reformLoser, reformLoserGovernor, reformLoserTycoon } from './attacks';
+import { MILESTONE_BY_ID } from '../content/agenda';
 import type { DeskItem, GameEvent, GameState, ZoneId } from './types';
 import { ZONES, ZONE_NAME, favoursOwed, standing } from './vars';
 
@@ -58,6 +61,15 @@ export const SELECTORS: Record<string, Selector> = {
       .sort((a, b) => s.tycoons[b.id].rel - s.tycoons[a.id].rel);
     return list[0]?.id ?? null;
   },
+  /** The three the party is talking about for the succession, groomed first. */
+  succA: (s) => shortlist(s)[0]?.id ?? null,
+  succB: (s) => shortlist(s)[1]?.id ?? null,
+  succC: (s) => shortlist(s)[2]?.id ?? null,
+  /** A delivered reform someone is coming for, and who. */
+  attackedReform: (s) => attackedReform(s),
+  reformLoser: (s) => reformLoser(s),
+  reformLoserTycoon: (s) => reformLoserTycoon(s),
+  reformLoserGovernor: (s) => reformLoserGovernor(s),
   /** A governor with something to hide and nobody yet holding it over him. */
   troubledGovernor: (s) => {
     const list = PEOPLE.filter((p) => p.group === 'governor' && p.temper !== 'principled' && !s.people[p.id]?.gone && favoursOwed(s, p.id).length === 0 && standing(s, p.id) < 72)
@@ -86,6 +98,11 @@ function tokens(s: GameState, key: string, id: string): [string, string][] {
   if (v) {
     const risk = worstRisk(s, v);
     out.push([`{${key}}`, v.name], [`{${key}_RISK}`, risk?.warn ?? 'The site reports that all is well.'], [`{${key}_FIX}`, risk?.fix ?? '']);
+    return out;
+  }
+  const ms = MILESTONE_BY_ID[id];
+  if (ms) {
+    out.push([`{${key}}`, ms.m.name], [`{${key}_TRACK}`, ms.track.name]);
     return out;
   }
   if ((ZONES as string[]).includes(id)) {

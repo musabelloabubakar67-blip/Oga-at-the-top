@@ -20,6 +20,7 @@ import { canDeal } from '../engine/people';
 import { movesLeft } from '../engine/reduce';
 import { standing } from '../engine/vars';
 import { bench, canNominate, nominees } from '../engine/courts';
+import { canGroom, candidate, candidateIds } from '../engine/successor';
 import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
@@ -303,6 +304,10 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         if (pick && canReplaceAdviser(s, role, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_ADVISER', role, name: pick.name });
       }
     }
+    // The kleptocrat prepares a way out before anything else.
+    if (!skip('exit') && bot.name === 'Kleptocrat') {
+      for (const id of ['exit_abroad', 'exit_immunity']) if (orderOk(s, id)) s = applyAction(s, { type: 'ORDER', id });
+    }
     // Crowd-pleasers: the populist and the machine take what the street or the party wants, from any track.
     if (!skip('pop') && (bot.name === 'Populist' || bot.name === 'Machine')) {
       for (const t of TRACKS) for (const m of t.milestones) {
@@ -334,6 +339,11 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         if (pick && canNominate(s, seat, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'NOMINATE', seat, name: pick.name });
       }
     }
+    // The succession: build up whoever would be strongest and most grateful; the kleptocrat also prepares a way out.
+    if (!skip('succ') && s.term === 2 && bot.name !== 'Do-nothing' && bot.name !== 'Random' && movesLeft(s) > 1) {
+      const pick = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => (b.strength + b.loyalty / 40) - (a.strength + a.loyalty / 40))[0];
+      if (pick && canGroom(s, pick.id, movesLeft(s)).ok && s.pc > 25) s = applyAction(s, { type: 'GROOM', id: pick.id });
+    }
     // Aimed orders: each style reaches for its own weapons, at whoever is least friendly (the default target).
     if (!skip('aim')) {
       const uses: Record<string, string[]> = {
@@ -342,7 +352,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         Populist: ['airlift', 'project', 'monument', 'bank_tax'],
         Institutionalist: ['airlift', 'state_visit', 'monument'],
       };
-      for (const id of uses[bot.name] ?? []) {
+      for (const id of (uses[bot.name] ?? []).filter((x) => !(process.env.DROP ?? '').split(',').includes(x))) {
         if (movesLeft(s) <= 1) break;
         if (s.offers.some((x) => x.id === id) && orderOk(s, id) && s.pc - ORDER_BY_ID[id].pc > 15) s = applyAction(s, { type: 'ORDER', id });
       }
@@ -429,9 +439,10 @@ if (args.includes('--trace')) {
 const everFired = new Set<string>();
 const fireCount: Record<string, number> = {};
 console.log(`${runs} presidencies per strategy\n`);
-for (const bot of BOTS) {
+for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split(",").includes(b.name))) {
   const endings: Record<string, number> = {};
   const epithets: Record<string, number> = {};
+  const afters: Record<string, number> = {};
   const dims: Record<string, number> = {};
   let elApp = 0, elMargin = 0, elN = 0, elParty = 0;
   const margins: number[] = [];
@@ -443,6 +454,8 @@ for (const bot of BOTS) {
     const v = verdict(s);
     endings[v.ending] = (endings[v.ending] ?? 0) + 1;
     epithets[v.epithet] = (epithets[v.epithet] ?? 0) + 1;
+    afters[v.after.title] = (afters[v.after.title] ?? 0) + 1;
+    if (process.env.AFTER) console.log(`     ${v.after.title} | ${s.ending} ally=${!!s.flags['succession.won']} abroad=${!!s.flags['exit.abroad']} imm=${!!s.flags['exit.immunity']} kept=${Math.round(s.purseTaken.personal)} loy=${s.flags['successor.loyalty']} | risk: ${v.after.risk.join('; ')} | shield: ${v.after.shield.join('; ')}`);
     for (const d of v.dims) dims[d.name] = (dims[d.name] ?? 0) + d.score;
     months += Math.min(s.turn, 96);
     if (s.flags['election.won']) reelected++;
@@ -461,6 +474,7 @@ for (const bot of BOTS) {
   console.log(`   at first election: approval ${(elApp / Math.max(1, elN)).toFixed(0)}% · margin ${(elMargin / Math.max(1, elN)).toFixed(1)} pts (p10 ${q(0.1)}, p50 ${q(0.5)}, p90 ${q(0.9)}) · contested ${elN}`);
   console.log(`   endings   ${Object.entries(endings).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   legacy    ${Object.entries(dims).map(([k, n]) => `${k.split(' ')[0]} ${(n / runs).toFixed(1)}`).join(' · ')}`);
+  console.log(`   after     ${Object.entries(afters).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
   console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)} · shocks ${(shocks / runs).toFixed(1)}\n`);
