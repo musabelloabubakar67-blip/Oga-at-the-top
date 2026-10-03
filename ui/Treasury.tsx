@@ -1,6 +1,6 @@
 'use client';
 
-import { Overlay } from './shell';
+import { Overlay, CloseButton } from './shell';
 import { oilForecast } from '../engine/oilforecast';
 import { STANCE_NAME, fxFlow, fxInflation, fxScale, premium, realFall, yearFall } from '../engine/currency';
 import { useState } from 'react';
@@ -510,7 +510,7 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
       {said && tab !== 'books' && (
         <p className="fade-in mt-4 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>
       )}
-      <div className="mt-6 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
+      <CloseButton onClose={onClose} className="mt-6" />
     </Shell>
   );
 }
@@ -547,8 +547,8 @@ function Naira({ s }: { s: GameState }) {
       <div>
         <p className="label border-b rule pb-1 text-ink-soft">What the naira is doing to you</p>
         <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-          <li>Over the last year it has moved {Math.round(yearFall(s) * 100)}%, {realFall(s) > 0.01 ? `${Math.round(realFall(s) * 100)}% more than inflation explains` : realFall(s) < -0.01 ? `${Math.round(-realFall(s) * 100)}% less than inflation explains` : 'about what inflation explains'}. It adds {fxInflation(s).toFixed(1)} points to inflation{prem > 0.15 ? ', partly because importers price at the street rate' : ''}.</li>
-          <li>The petrol subsidy, if there is one, costs {Math.round((fxScale(s) - 1) * 100)}% {fxScale(s) >= 1 ? 'more' : 'less'} than a year ago because of the rate; oil revenue in naira moves the same way, which is why a falling naira helps the treasury.</li>
+          <li>Over the last year it has moved {Math.round(yearFall(s) * 100)}%, {realFall(s) > 0.01 ? `${Math.round(realFall(s) * 100)}% more than inflation explains` : realFall(s) < -0.01 ? `${Math.round(-realFall(s) * 100)}% less than inflation explains` : 'about what inflation explains'}. {fxInflation(s) >= 0.05 ? `It adds ${fxInflation(s).toFixed(1)} points to inflation` : fxInflation(s) <= -0.05 ? `It takes ${Math.abs(fxInflation(s)).toFixed(1)} points off inflation` : 'It is doing nothing to inflation'}{prem > 0.15 ? ', partly because importers price at the street rate' : ''}.</li>
+          <li>{Math.abs(fxScale(s) - 1) < 0.01 ? 'The rate has not changed what the petrol subsidy costs, or what oil earns in naira.' : `Because of the rate, the petrol subsidy (if there is one) costs ${Math.round(Math.abs(fxScale(s) - 1) * 100)}% ${fxScale(s) > 1 ? 'more' : 'less'} than a year ago, and oil earns ${fxScale(s) > 1 ? 'more' : 'less'} in naira by the same share: a falling naira helps the treasury.`}</li>
           <li>A real fall raises the cost of foreign debt; a real rise lowers it.</li>
           <li>{f.stance === 'peg' ? 'Importers with access to official dollars are doing very well. Manufacturers are not.' : f.stance === 'float' ? 'Importers have lost their margin. Manufacturers, protected by a weaker naira, are pleased.' : 'Importers and manufacturers are both waiting to see which way it goes.'}</li>
         </ul>

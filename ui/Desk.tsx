@@ -1,7 +1,7 @@
 'use client';
 
 import { useContext, useState } from 'react';
-import { Inline, Overlay, Preview, usePreview } from './shell';
+import { Inline, Overlay, Preview, usePreview, CloseButton } from './shell';
 import { EVENTS } from '../content';
 import { ORDER_BY_ID, TRACKS, type Order } from '../content/agenda';
 import { THEATRES } from '../content/theatres';
@@ -953,7 +953,7 @@ function NationModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
           const can = canFocus(s, null, left);
           return <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'FOCUS', zone: null })} className={`mt-3 border px-3 py-1.5 font-serif ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>Return forces to their usual stations</button>;
         })()}
-        <div className="mt-8 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
+        <CloseButton onClose={onClose} className="mt-8" />
       </div>
     </Modal>
   );
@@ -1047,7 +1047,7 @@ function ArchiveModal({ s, onClose }: { s: GameState; onClose: () => void }) {
             {inherited.map((a) => <li key={a.id}>{a.headline}</li>)}
           </ul>
         </section>
-        <div className="mt-8 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
+        <CloseButton onClose={onClose} className="mt-8" />
       </div>
     </Modal>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Inline, Overlay } from './shell';
+import { Inline, Overlay, CloseButton } from './shell';
 import { Aimed } from './Aimed';
 import { useContext, useState } from 'react';
 import { PEOPLE, PERSON_BY_ID, RIVALS, type Group } from '../content/people';
@@ -475,7 +475,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </ul>
         )}
 
-        <div className="mt-6 text-right"><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>
+        <CloseButton onClose={onClose} className="mt-6" />
     </Overlay>
   );
 }

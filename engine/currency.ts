@@ -8,7 +8,7 @@
 // standing opportunity for whoever gets dollars at the official rate.
 
 import type { GameState } from './types';
-import { clamp } from './vars';
+import { clamp, hardship } from './vars';
 
 export type Stance = 'peg' | 'managed' | 'float';
 export const STANCE_NAME: Record<Stance, string> = { peg: 'Defend the naira', managed: 'A managed rate', float: 'Let it float' };
@@ -36,6 +36,8 @@ export function fxFlow(s: GameState): { lines: { label: string; value: number }[
     { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 },
     { label: 'Petrol imports', value: national ? -0.05 : plant ? -0.15 : -0.3 },
     { label: 'Foreign debt service', value: -0.12 - Math.max(0, n.debt - 66) * 0.004 },
+    // A country that works attracts dollars; one that is falling apart loses them. What is not already counted above.
+    { label: 'Investors on the economy', value: (n.power - 35) * 0.006 + (n.security - 35) * 0.006 + (n.capacity - 34) * 0.004 + clamp(n.fiscalSpace, -1, 3) * 0.04 + Math.min(20, s.agenda.done.length) * 0.01 - Math.max(0, hardship(s) - 60) * 0.005 },
     { label: 'Capital leaving, or arriving', value: (s.blocs.establishment - 50) * 0.006 + (n.integrity - 35) * 0.003 - Math.max(0, premium(s) - 0.2) * 0.6 },
   ];
   return { lines, total: lines.reduce((a, l) => a + l.value, 0) };

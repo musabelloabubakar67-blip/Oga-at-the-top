@@ -26,3 +26,9 @@ export function usePreview(action: Action | null, enabled = true) {
   if (!enabled || !action) return {};
   return { onMouseEnter: () => p.set(action), onMouseLeave: () => p.set(null), onFocus: () => p.set(action), onBlur: () => p.set(null) };
 }
+
+/** The button that closes a pop-up; a section of the page has nothing to close. */
+export function CloseButton({ onClose, className = 'mt-6' }: { onClose: () => void; className?: string }) {
+  if (useContext(Inline)) return null;
+  return <div className={`${className} text-right`}><button onClick={onClose} className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close</button></div>;
+}
