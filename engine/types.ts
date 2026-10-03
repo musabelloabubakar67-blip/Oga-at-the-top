@@ -301,6 +301,20 @@ export interface Budget {
   /** A new bill is on the desk and must be signed. */
   due: boolean;
   late?: boolean;
+  /** Last year's allocation: what people now expect. */
+  prevAlloc?: Record<SectorId, number>;
+  /** Where the works money is spent, in points by zone. */
+  sites?: Partial<Record<ZoneId, number>>;
+  /** Points the budget held when signed, after inflation. */
+  points?: number;
+  /** Your instruction on releasing each sector's increase. */
+  release?: Partial<Record<SectorId, 'normal' | 'full' | 'hold'>>;
+  /** The Assembly's version, waiting for your answer. */
+  pending?: { benchmark: number; alloc: Record<SectorId, number>; amended: Record<SectorId, number>; insert: number; sites?: Partial<Record<ZoneId, number>>; points: number };
+  /** The year a supplementary budget was passed. */
+  supplementary?: number;
+  /** This bill reopens the current year's budget. */
+  reopened?: boolean;
 }
 
 export interface Story { id: string; about?: string; /** Who held the job when the series began. */ name?: string; stage: number; next: number }
@@ -539,7 +553,10 @@ export type Action =
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }
   | { type: 'FUND'; id: FundId; amount: number }
-  | { type: 'BUDGET'; benchmark: number; alloc: Record<SectorId, number> }
+  | { type: 'BUDGET'; benchmark: number; alloc: Record<SectorId, number>; sites?: Partial<Record<ZoneId, number>> }
+  | { type: 'BUDGET_RESOLVE'; choice: 'accept' | 'veto' | 'split' }
+  | { type: 'BUDGET_RELEASE'; sector: SectorId; mode: 'normal' | 'full' | 'hold' }
+  | { type: 'SUPPLEMENTARY' }
   | { type: 'FAVOUR'; id: number; use: string }
   | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' }
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }

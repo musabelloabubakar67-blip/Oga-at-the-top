@@ -6,7 +6,8 @@ import { SCENARIOS } from '../content/scenarios';
 import { TYCOONS } from '../content/tycoons';
 import { eventOf } from '../engine/cast';
 import { canCall, canTycoon } from '../engine/favours';
-import { canFund, canPay, usualBudget } from '../engine/treasury';
+import { budgetPoints, canFund, canPay, usualBudget, vetoHolds } from '../engine/treasury';
+import { SECTORS } from '../content/treasury';
 import type { DebtId, SectorId } from '../engine/types';
 import { FINANCE_CANDIDATES } from '../content/names';
 import { CFG, dateLabel, termTurnOf } from '../engine/config';
@@ -229,7 +230,19 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       const alloc = b
         ? ({ security: b[1], power: b[2], people: b[3], agric: b[4], debt: b[5], padding: b[6] } as Record<SectorId, number>)
         : usualBudget();
-      s = applyAction(s, { type: 'BUDGET', benchmark: b?.[0] ?? 70, alloc });
+      const benchmark = b?.[0] ?? 70;
+      // Inflation shrinks the budget: trim the largest lines until it fits.
+      while (SECTORS.reduce((a, x) => a + (alloc[x.id] ?? 0), 0) > budgetPoints(benchmark, s)) {
+        const top = SECTORS.filter((x) => x.id !== 'padding').sort((p, q) => (alloc[q.id] ?? 0) - (alloc[p.id] ?? 0))[0];
+        alloc[top.id] -= 1;
+      }
+      s = applyAction(s, { type: 'BUDGET', benchmark, alloc });
+      if (s.budget.pending) {
+        // The careful ones fight the insertions when the veto would hold; the rest take the Assembly's version.
+        const careful = bot.name === 'Institutionalist' || bot.name.startsWith('Reformer');
+        const choice = careful ? (vetoHolds(s) ? 'veto' : s.pc > 20 ? 'split' : 'accept') : 'accept';
+        s = applyAction(s, { type: 'BUDGET_RESOLVE', choice });
+      }
       if (s.budget.due) throw new Error(`${bot.name} could not pass a budget at turn ${s.turn}`);
     }
     // Pay what is owed, in the bot's order of priority, keeping a little in hand.

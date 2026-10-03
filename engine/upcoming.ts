@@ -9,6 +9,7 @@ import { activeShocks } from './shocks';
 import { grievances, targetName, type TargetKind } from './targets';
 import type { GameState } from './types';
 import { who } from './favours';
+import { canSupplementary } from './treasury';
 
 export type Section = 'desk' | 'orders' | 'reforms' | 'power' | 'country' | 'treasury';
 export interface Coming { months: number; text: string; tone: 'bad' | 'good' | 'neutral'; go: Section; tab?: string }
@@ -21,7 +22,8 @@ export function upcoming(s: GameState): Coming[] {
   const toElection = CFG.electionTermTurn - tt;
   if (s.term === 1 && toElection > 0 && toElection <= 12) out.push({ months: toElection, text: `The election in ${toElection} ${toElection === 1 ? 'month' : 'months'}`, tone: 'neutral', go: 'country' });
   if (s.term === 2 && tt >= 12 && tt < 34 && !s.flags['succession.backed']) out.push({ months: 34 - tt, text: `The party picks its candidate in ${34 - tt} months: groom a successor`, tone: 'neutral', go: 'power', tab: 'succession' });
-  if (s.budget.due) out.push({ months: 0, text: 'The budget is waiting to be signed', tone: 'bad', go: 'treasury' });
+  if (s.budget.due) out.push({ months: 0, text: s.budget.pending ? 'The Assembly has sent back its version of the budget' : 'The budget is waiting to be signed', tone: 'bad', go: 'treasury' });
+  if (canSupplementary(s).ok) out.push({ months: 0, text: `Oil is $${Math.round(Math.abs(s.oil.price - s.budget.benchmark))} ${s.oil.price > s.budget.benchmark ? 'above' : 'below'} the budget: a supplementary budget is possible`, tone: 'neutral', go: 'treasury' });
 
   // The bench.
   const b = bench(s);

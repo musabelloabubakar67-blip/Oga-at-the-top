@@ -40,7 +40,7 @@ import { fill } from './text';
 import { applyLedger, economyTick, politicsTick } from './tick';
 import {
   buildCost, buildSpeed, canBudget, canFund, canPay, canSecuritise, drawsOnInfra, initTreasury, moveFund, pay, payBuild,
-  oilOutput, securitise, setBudget,
+  oilOutput, securitise, setBudget, resolveBudget, setRelease, canSupplementary, supplementary,
 } from './treasury';
 import type {
   Action, ActionId, Aid, ArchiveEntry, Category, Choice, DrawerOp, EndingKind, FrontPage, Fx, GameEvent, GameState, Milestone,
@@ -777,7 +777,15 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'PAY_DEBT': payDebt(s, action.id, action.amount); break;
     case 'SECURITISE': if (canSecuritise(s).ok) { const b = snapshot(s); const t = securitise(s); record(s, 'treasury.securitise', '', 'action', 'Converted the central bank overdraft into bonds.', 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; } break;
     case 'FUND': fund(s, action.id, action.amount); break;
-    case 'BUDGET': budget(s, action.benchmark, action.alloc); break;
+    case 'BUDGET': budget(s, action.benchmark, action.alloc, action.sites); break;
+    case 'BUDGET_RESOLVE': if (s.budget.pending) {
+      const b = snapshot(s);
+      const t = resolveBudget(s, action.choice);
+      record(s, 'budget', String(s.budget.year), 'action', `Signed the ${s.budget.year} budget on an oil price of $${s.budget.benchmark}${action.choice === 'accept' ? ', with the Assembly\'s insertions' : action.choice === 'split' ? ', meeting the Assembly halfway' : ', over the Assembly\'s objections'}.`, 2);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'BUDGET_RELEASE': if (!s.budget.due) setRelease(s, action.sector, action.mode); break;
+    case 'SUPPLEMENTARY': if (canSupplementary(s).ok) note(s, supplementary(s)); break;
     case 'FAVOUR': favour(s, action.id, action.use); break;
     case 'TYCOON': tycoon(s, action.id, action.op); break;
     case 'RIVAL': rival(s, action.id, action.op); break;
@@ -866,11 +874,11 @@ function fund(s: GameState, id: keyof GameState['funds'], amount: number): void 
   s.lastAction = { text, changes: diff(before, snapshot(s)) };
 }
 
-function budget(s: GameState, benchmark: number, alloc: GameState['budget']['alloc']): void {
+function budget(s: GameState, benchmark: number, alloc: GameState['budget']['alloc'], sites?: GameState['budget']['sites']): void {
   if (!canBudget(s, benchmark, alloc).ok) return;
   const before = snapshot(s);
-  const text = setBudget(s, benchmark, alloc);
-  record(s, 'budget', String(s.budget.year), 'action', `Signed the ${s.budget.year} budget on an oil price of $${benchmark}.`, 2);
+  const text = setBudget(s, benchmark, alloc, sites);
+  if (!s.budget.pending) record(s, 'budget', String(s.budget.year), 'action', `Signed the ${s.budget.year} budget on an oil price of $${benchmark}.`, 2);
   s.lastAction = { text, changes: diff(before, snapshot(s)) };
 }
 

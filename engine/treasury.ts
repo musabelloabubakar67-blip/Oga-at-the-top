@@ -9,6 +9,7 @@ import { ARREARS, addOwed, rateOf, servicePoints, syncDebt } from './ledger';
 import { policyFiscalLines } from './policies';
 import { institutionFiscalLines } from './institutions';
 import { assetFiscalLines } from './places';
+import { personView } from './people';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -84,9 +85,11 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   for (const l of institutionFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of assetFiscalLines(s)) add(l.label, l.value, l.hint);
   add('The insurgency', -Math.max(0, s.theatres.NE - 50) * 0.0009, 'The war in the North East is paid for every month.');
-  const points = BENCHMARKS.find((b) => b.price === s.budget.benchmark)?.points ?? 10;
+  const points = s.budget.points ?? (BENCHMARKS.find((b) => b.price === s.budget.benchmark)?.points ?? 10);
   const spare = points - SECTORS.reduce((a, x) => a + (s.budget.alloc[x.id] ?? 0), 0);
   add('Unallocated in the budget', spare * 0.02, 'Budget points you chose not to spend.');
+  const rel = releaseFiscal(s);
+  if (Math.abs(rel) >= 0.0005) add('Budget not yet released', rel, 'Increases the ministries have not spent stay in the treasury; money you rushed out cost a premium.');
   const gap = oilGap(s);
   if (gap < 0) add('Oil below the benchmark', gap, `Oil is paying less than the $${s.budget.benchmark} the budget assumed.`);
   // Revenue belongs to the federation, not to Abuja. Once the centre is comfortably in surplus, the states take most of the rest.
@@ -99,14 +102,71 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
 
 // ---------------------------------------------------------------- the budget
 
-/** What each point above or below the usual does, every month, for the year. */
+/** The minister who spends each sector's money, and so decides how much of it is spent. */
+export const SECTOR_MINISTER: Partial<Record<SectorId, string>> = { security: 'min_defence', power: 'min_works', people: 'min_service', agric: 'min_agric' };
+
+const STEP = [1, 0.7, 0.5, 0.35, 0.25, 0.2];
+/** Each point above last year's level does less than the one before. Cuts bite in full. */
+export function effectiveIncrease(d: number): number {
+  if (d <= 0) return d;
+  let v = 0;
+  for (let i = 0; i < d; i++) v += STEP[Math.min(i, STEP.length - 1)];
+  return v;
+}
+
+/** How much a point does this year: money goes further where the problem is worse. */
+export function potency(s: GameState, id: SectorId): { k: number; why: string } {
+  const worst = Math.max(...ZONES.map((z) => s.theatres[z]));
+  const r = (x: number) => Math.round(clamp(x, 0.6, 1.4) * 100) / 100;
+  switch (id) {
+    case 'security': return { k: r(0.6 + worst / 100), why: `The worst theatre is at ${Math.round(worst)}` };
+    case 'power': return { k: r(1.4 - s.nation.power / 100), why: `Power is at ${Math.round(s.nation.power)}` };
+    case 'people': return { k: r(0.7 + s.pressures.wageGrievance / 100), why: `Labour anger is at ${Math.round(s.pressures.wageGrievance)}` };
+    case 'agric': return { k: r(0.6 + s.nation.inflation / 40), why: `Inflation is ${Math.round(s.nation.inflation)}%` };
+    default: return { k: 1, why: '' };
+  }
+}
+
+/** How much of each sector's increase actually leaves the treasury: the minister's competence, the cash in hand, and your instruction. */
+export function releaseRate(s: GameState, id: SectorId): { rate: number; why: string[] } {
+  const why: string[] = [];
+  if (id === 'debt' || id === 'padding') return { rate: 1, why: [id === 'debt' ? 'Debt service is paid by the Debt Office, in full' : 'Members\' projects are always released'] };
+  let rate = 0.85;
+  const min = SECTOR_MINISTER[id];
+  if (min) {
+    const v = personView(s, min);
+    const comp = v.competence ?? 3;
+    rate = clamp(0.45 + 0.12 * comp, 0.4, 1.05);
+    why.push(`${v.name}, competence ${comp}`);
+  }
+  if (s.nation.fiscalSpace < 0.3) { rate *= 0.7; why.push('There is almost no cash: releases are rationed'); }
+  const mode = s.budget.release?.[id] ?? 'normal';
+  if (mode === 'full') { rate = 1; why.push('You ordered it released in full'); }
+  if (mode === 'hold') { rate *= 0.5; why.push('You are holding half of it back'); }
+  return { rate: Math.round(clamp(rate, 0, 1) * 100) / 100, why };
+}
+
+/** Inflation eats the budget: every 8 points of inflation above 18% costs a point to spend, up to three. */
+export function erosion(s: GameState): number {
+  return clamp(Math.ceil((s.nation.inflation - 18) / 8), 0, 3);
+}
+
+export function budgetPoints(benchmark: number, s?: GameState): number {
+  return (BENCHMARKS.find((b) => b.price === benchmark)?.points ?? 10) - (s ? erosion(s) : 0);
+}
+
+/** The monthly effect of a sector's allocation this year, before the instruction on releases changes it. */
+function sectorDelta(s: GameState, id: SectorId, held: boolean): number {
+  const raw = (s.budget.alloc[id] ?? 0) - SECTOR_BY_ID[id].usual;
+  if (raw > 0) return held ? 0 : effectiveIncrease(raw) * potency(s, id).k * releaseRate(s, id).rate;
+  return raw * potency(s, id).k;
+}
+
+/** What each sector does, every month, for the year. */
 function budgetTick(s: GameState): void {
   const months = s.turn - (s.counters.budgetTurn ?? 0);
   const held = !!s.budget.late && months <= 3;
-  const d = (id: SectorId) => {
-    const v = (s.budget.alloc[id] ?? 0) - SECTOR_BY_ID[id].usual;
-    return held && v > 0 ? 0 : v;
-  };
+  const d = (id: SectorId) => sectorDelta(s, id, held);
   for (const z of ZONES) shiftThreat(s, z, -0.07 * d('security'));
   s.nation.power = clamp(s.nation.power + 0.07 * d('power'), 0, 100);
   s.nation.jobs = clamp(s.nation.jobs + 0.025 * d('power'), 0, 100);
@@ -120,25 +180,52 @@ function budgetTick(s: GameState): void {
     if (st && !st.gone) st.rel = clamp(st.rel + 0.2 * pad, 0, 100);
   }
   if (pad > 0) s.nation.integrity = clamp(s.nation.integrity - 0.05 * pad, 0, 100);
+  // Works money is spent somewhere. Where it goes above an even share, the zone notices; where it goes below, so does that one.
+  const sites = s.budget.sites;
+  if (sites && !held) {
+    const total = ZONES.reduce((a, z) => a + (sites[z] ?? 0), 0);
+    const rate = releaseRate(s, 'power').rate;
+    for (const z of ZONES) {
+      const tilt = (sites[z] ?? 0) - total / 6;
+      if (Math.abs(tilt) < 0.01) continue;
+      s.zones[z].approval = clamp(s.zones[z].approval + 0.1 * tilt * rate, 0, 100);
+      const gov = PEOPLE.find((p) => p.group === 'governor' && p.zone === z);
+      if (gov && s.people[gov.id] && !s.people[gov.id].gone) s.people[gov.id].rel = clamp(s.people[gov.id].rel + 0.15 * tilt, 0, 100);
+    }
+  }
+  // Rushing money out the door costs integrity: procurement is skipped.
+  const rushed = SECTORS.filter((x) => s.budget.release?.[x.id] === 'full' && (s.budget.alloc[x.id] ?? 0) > x.usual).length;
+  if (rushed) s.nation.integrity = clamp(s.nation.integrity - 0.02 * rushed, 0, 100);
+}
+
+/** Cash effects of releases: unreleased increases stay in the treasury; rushing them costs a premium. */
+export function releaseFiscal(s: GameState): number {
+  let v = 0;
+  for (const x of SECTORS) {
+    const up = (s.budget.alloc[x.id] ?? 0) - x.usual;
+    if (up <= 0) continue;
+    const r = releaseRate(s, x.id).rate;
+    v += up * (1 - r) * 0.02;
+    if (s.budget.release?.[x.id] === 'full') v -= up * 0.006;
+  }
+  return v;
 }
 
 /** How far farming money moves the inflation the economy is heading for. */
 export function budgetInflation(s: GameState): number {
-  return -0.35 * ((s.budget.alloc.agric ?? 0) - SECTOR_BY_ID.agric.usual);
+  return -0.35 * sectorDelta(s, 'agric', !!s.budget.late && s.turn - (s.counters.budgetTurn ?? 0) <= 3);
 }
 
-export function budgetPoints(benchmark: number): number {
-  return BENCHMARKS.find((b) => b.price === benchmark)?.points ?? 10;
-}
-
-/** What the Appropriations chairman expects for his colleagues. */
+/** What the Appropriations Committee will insert for members' projects: more when the Senate is not yours and the chairman is not your friend. */
 export function paddingDemand(s: GameState): number {
   const chair = s.people.sen_approp;
-  return chair && chair.rel >= 70 ? 2 : 3;
+  const rel = chair?.rel ?? 50;
+  return clamp(2 + (senate(s) < 50 ? 1 : 0) + (rel < 45 ? 1 : 0) - (rel >= 70 ? 1 : 0), 1, 5);
 }
 
 export function canBudget(s: GameState, benchmark: number, alloc: Record<SectorId, number>): { ok: boolean; reason?: string } {
   if (!s.budget.due) return { ok: false, reason: 'There is no bill on the desk.' };
+  if (s.budget.pending) return { ok: false, reason: 'The Assembly has sent back its version.' };
   if (!BENCHMARKS.some((b) => b.price === benchmark)) return { ok: false };
   let sum = 0;
   for (const x of SECTORS) {
@@ -146,39 +233,158 @@ export function canBudget(s: GameState, benchmark: number, alloc: Record<SectorI
     if (v < 0 || v > x.max || !Number.isInteger(v)) return { ok: false, reason: `${x.name}: between 0 and ${x.max}.` };
     sum += v;
   }
-  if (sum > budgetPoints(benchmark)) return { ok: false, reason: 'You have allocated more than the budget holds.' };
+  if (sum > budgetPoints(benchmark, s)) return { ok: false, reason: 'You have allocated more than the budget holds.' };
   return { ok: true };
 }
 
-/** Signs the year's budget. Returns what happened in the Assembly. */
-export function setBudget(s: GameState, benchmark: number, alloc: Record<SectorId, number>): string {
+/** The Assembly's version: your bill, with members' projects raised to what the committee wants, paid for out of your largest lines. */
+export function amend(s: GameState, alloc: Record<SectorId, number>): { amended: Record<SectorId, number>; insert: number; cut: [SectorId, number][] } {
   const demand = paddingDemand(s);
-  const short = Math.max(0, demand - (alloc.padding ?? 0));
-  const chair = s.people.sen_approp;
-  s.budget = { year: yearOf(s.turn, s.startYear) + 1, benchmark, alloc: { ...alloc }, due: false, late: false };
-  s.counters.budgetTurn = s.turn;
-  let text: string;
-  if (short > 0) {
-    if (chair) chair.rel = clamp(chair.rel - 7 * short, 0, 100);
-    if (senate(s) < 54) {
-      s.budget.late = true;
-      applyFx(s, ['nation.capacity', -1.5]);
-      applyFx(s, ['bloc.establishment', -3]);
-      applyFx(s, ['nation.integrity', 1]);
-      text = `The Appropriations Committee wanted ${demand} points for its members' projects and got ${alloc.padding ?? 0}. The bill sits in committee until March. Nothing above last year's level is released for three months.`;
-      s.news.push({ chronicle: 'BUDGET STALLS IN SENATE OVER CONSTITUENCY PROJECTS', street: 'SENATORS HOLD BUDGET: "WHERE OUR OWN?"', weight: 5, valence: -1, topic: 'politics', about: 'sen_approp', body: text });
-    } else {
-      applyFx(s, ['nation.integrity', 1.5]);
-      applyFx(s, ['bloc.press', 3]);
-      text = `The Appropriations Committee wanted ${demand} points for its members' projects and got ${alloc.padding ?? 0}. Your senators passed it anyway. The chairman has made a note.`;
-      s.news.push({ chronicle: 'SENATE PASSES BUDGET WITHOUT THE USUAL INSERTIONS', street: 'BUDGET PASS, PADDING NO DEY. SENATOR ZANGO DEY VEX', weight: 5, valence: 1, topic: 'politics', about: 'sen_approp', body: text });
-    }
-  } else {
-    if (chair) chair.rel = clamp(chair.rel + 4 + 3 * ((alloc.padding ?? 0) - demand), 0, 100);
-    text = `The Appropriation Act for ${s.budget.year} is signed before the cameras. The Assembly's own projects are in it, as agreed.`;
-    s.news.push({ chronicle: `PRESIDENT SIGNS ${s.budget.year} BUDGET; OIL BENCHMARK $${benchmark}`, street: `BUDGET ${s.budget.year} DON LAND. OIL BENCHMARK NA $${benchmark}`, weight: 4.5, valence: 0, topic: 'money', body: text });
+  const insert = Math.max(0, demand - (alloc.padding ?? 0));
+  const amended = { ...alloc };
+  const cut: Record<string, number> = {};
+  let need = insert;
+  amended.padding = (amended.padding ?? 0) + insert;
+  while (need > 0) {
+    const from = SECTORS.filter((x) => x.id !== 'padding' && (amended[x.id] ?? 0) > 0).sort((a, b) => (amended[b.id] ?? 0) - (amended[a.id] ?? 0))[0];
+    if (!from) break;
+    amended[from.id] -= 1;
+    cut[from.id] = (cut[from.id] ?? 0) + 1;
+    need -= 1;
   }
+  return { amended, insert, cut: Object.entries(cut) as [SectorId, number][] };
+}
+
+/** Sending the bill to the Assembly. If it asks for nothing more, it is law; otherwise its version comes back. */
+export function setBudget(s: GameState, benchmark: number, alloc: Record<SectorId, number>, sites?: Partial<Record<ZoneId, number>>): string {
+  const a = amend(s, alloc);
+  const points = budgetPoints(benchmark, s);
+  if (a.insert === 0) return enact(s, benchmark, alloc, sites, points, 'clean');
+  s.budget.pending = { benchmark, alloc: { ...alloc }, amended: a.amended, insert: a.insert, sites: sites ? { ...sites } : undefined, points };
+  return `The Assembly sends the bill back with ${a.insert} more ${a.insert === 1 ? 'point' : 'points'} for members' projects, taken from ${a.cut.map(([id, n]) => `${SECTOR_BY_ID[id].name.toLowerCase()} (${n})`).join(' and ')}. Sign their version, veto it, or split the difference.`;
+}
+
+export type BudgetChoice = 'accept' | 'veto' | 'split';
+
+/** What each answer to the Assembly would do, for display before choosing. */
+export function vetoHolds(s: GameState): boolean { return senate(s) >= 54; }
+
+export function resolveBudget(s: GameState, choice: BudgetChoice): string {
+  const p = s.budget.pending;
+  if (!p) return '';
+  const chair = s.people.sen_approp;
+  if (choice === 'accept') {
+    if (chair) chair.rel = clamp(chair.rel + 4, 0, 100);
+    applyFx(s, ['nation.integrity', -1]);
+    return enact(s, p.benchmark, p.amended, p.sites, p.points, 'accepted');
+  }
+  if (choice === 'split') {
+    const half = Math.ceil(p.insert / 2);
+    const mid = amendBy(p.alloc, half);
+    applyFx(s, ['pc', -4]);
+    if (chair) chair.rel = clamp(chair.rel - 2, 0, 100);
+    return enact(s, p.benchmark, mid, p.sites, p.points, 'split');
+  }
+  if (chair) chair.rel = clamp(chair.rel - 7 * p.insert, 0, 100);
+  if (vetoHolds(s)) {
+    applyFx(s, ['nation.integrity', 1.5]);
+    applyFx(s, ['bloc.press', 3]);
+    return enact(s, p.benchmark, p.alloc, p.sites, p.points, 'veto');
+  }
+  const text = enact(s, p.benchmark, p.alloc, p.sites, p.points, 'stalled');
+  s.budget.late = true;
+  applyFx(s, ['nation.capacity', -1.5]);
+  applyFx(s, ['bloc.establishment', -3]);
+  applyFx(s, ['nation.integrity', 1]);
   return text;
+}
+
+function amendBy(alloc: Record<SectorId, number>, n: number): Record<SectorId, number> {
+  const out = { ...alloc };
+  out.padding = (out.padding ?? 0) + n;
+  for (let i = 0; i < n; i++) {
+    const from = SECTORS.filter((x) => x.id !== 'padding' && (out[x.id] ?? 0) > 0).sort((a, b) => (out[b.id] ?? 0) - (out[a.id] ?? 0))[0];
+    if (from) out[from.id] -= 1;
+  }
+  return out;
+}
+
+const CUT_FX: Partial<Record<SectorId, [string, number][]>> = {
+  people: [['bloc.street', -3], ['pressure.wageGrievance', 4]],
+  security: [['bloc.establishment', -2], ['bloc.villa', -1]],
+  agric: [['zone.NW.approval', -1], ['zone.NC.approval', -1]],
+  power: [['bloc.establishment', -1], ['bloc.party', -1]],
+};
+
+/** The bill becomes law. Last year's levels are what people now expect: cutting below them is noticed, and each sector's minister reacts. */
+function enact(s: GameState, benchmark: number, alloc: Record<SectorId, number>, sites: Partial<Record<ZoneId, number>> | undefined, points: number, how: 'clean' | 'accepted' | 'split' | 'veto' | 'stalled'): string {
+  const prev = { ...s.budget.alloc };
+  const supplementary = s.budget.supplementary;
+  const sameYear = !!s.budget.reopened;
+  s.budget = {
+    year: sameYear ? s.budget.year : yearOf(s.turn, s.startYear) + 1, benchmark, alloc: { ...alloc }, due: false, late: false,
+    prevAlloc: prev, sites: sites ? fitSites(sites, alloc.power ?? 0) : evenSites(alloc.power ?? 0), points, release: {}, supplementary,
+  };
+  s.counters.budgetTurn = s.turn;
+  const cuts: string[] = [];
+  for (const x of SECTORS) {
+    const was = prev[x.id] ?? x.usual;
+    const now = alloc[x.id] ?? 0;
+    if (now < was && CUT_FX[x.id]) { for (const f of CUT_FX[x.id]!) applyFx(s, [f[0], f[1] * (was - now)]); cuts.push(x.name.toLowerCase()); }
+    const min = SECTOR_MINISTER[x.id];
+    if (min && s.people[min] && !s.people[min].gone && now !== was) s.people[min].rel = clamp(s.people[min].rel + (now > was ? 4 : -5) * Math.abs(now - was), 0, 100);
+  }
+  const cutLine = cuts.length ? ` Cut below last year: ${cuts.join(', ')}. The people who depended on it have noticed.` : '';
+  const yr = s.budget.year;
+  const say: Record<typeof how, string> = {
+    clean: `The Appropriation Act for ${yr} passes as sent. The Assembly's projects are in it, as agreed.`,
+    accepted: `You sign the Assembly's version of the ${yr} budget, insertions and all.`,
+    split: `You and the committee meet halfway. The ${yr} budget carries half the insertions it asked for.`,
+    veto: `You veto the Assembly's version. Your senators sustain the veto and pass your bill. Senator Zango has made a note.`,
+    stalled: `You veto the Assembly's version and the Senate will not pass yours. The bill sits in committee until March: nothing above last year's level is released for three months.`,
+  };
+  const text = say[how] + cutLine;
+  s.news.push(how === 'stalled'
+    ? { chronicle: 'BUDGET STALLS IN SENATE OVER CONSTITUENCY PROJECTS', street: 'SENATORS HOLD BUDGET: "WHERE OUR OWN?"', weight: 5, valence: -1, topic: 'politics', about: 'sen_approp', body: text }
+    : { chronicle: `PRESIDENT SIGNS ${yr} BUDGET; OIL BENCHMARK $${benchmark}${how === 'accepted' ? ' WITH ASSEMBLY INSERTIONS' : ''}`, street: `BUDGET ${yr} DON LAND. OIL BENCHMARK NA $${benchmark}`, weight: 4.5, valence: 0, topic: 'money', body: text });
+  return text;
+}
+
+/** Works points sited to match the works line: the Assembly's cuts come out of the zone with the most. */
+export function fitSites(sites: Partial<Record<ZoneId, number>>, n: number): Partial<Record<ZoneId, number>> {
+  const out = { ...sites };
+  const sum = () => ZONES.reduce((a, z) => a + (out[z] ?? 0), 0);
+  while (sum() > n) { const z = [...ZONES].sort((a, b) => (out[b] ?? 0) - (out[a] ?? 0))[0]; out[z] = (out[z] ?? 0) - 1; }
+  while (sum() < n) { const z = [...ZONES].sort((a, b) => (out[a] ?? 0) - (out[b] ?? 0))[0]; out[z] = (out[z] ?? 0) + 1; }
+  return out;
+}
+
+export function evenSites(points: number): Partial<Record<ZoneId, number>> {
+  const out: Partial<Record<ZoneId, number>> = {};
+  ZONES.forEach((z, i) => { out[z] = Math.floor(points / 6) + (i < points % 6 ? 1 : 0); });
+  return out;
+}
+
+export function setRelease(s: GameState, id: SectorId, mode: 'normal' | 'full' | 'hold'): void {
+  (s.budget.release ??= {})[id] = mode;
+}
+
+/** When oil has moved $12 or more from what the budget assumed, the budget can be reopened once a year. */
+export function canSupplementary(s: GameState): { ok: boolean; reason?: string } {
+  if (s.budget.due) return { ok: false, reason: 'A bill is already on the desk.' };
+  if (s.budget.supplementary === s.budget.year) return { ok: false, reason: 'Already reopened once this year.' };
+  if (s.turn - (s.counters.budgetTurn ?? 0) < 3) return { ok: false, reason: 'Too soon after it was signed.' };
+  if (Math.abs(s.oil.price - s.budget.benchmark) < 12) return { ok: false, reason: `Oil is within $12 of the $${s.budget.benchmark} the budget assumed.` };
+  if (s.pc < 4) return { ok: false, reason: 'Needs 4 political capital.' };
+  return { ok: true };
+}
+
+export function supplementary(s: GameState): string {
+  s.pc = clamp(s.pc - 4, 0, 100);
+  s.budget.supplementary = s.budget.year;
+  s.budget.reopened = true;
+  s.budget.due = true;
+  return `A supplementary budget for ${s.budget.year} goes to the Assembly. Set a new oil price and divide the money again. The committee will want its share again.`;
 }
 
 // ---------------------------------------------------------------- paying what is owed
