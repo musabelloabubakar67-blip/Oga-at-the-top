@@ -191,7 +191,8 @@ export function deal(s: GameState, id: string, op: PersonOp): { text: string; ar
   }
   // pressure
   s.pc = clamp(s.pc - 4, 0, 100);
-  st.compliantUntil = s.turn + 8;
+  // With anti-corruption courts that sit, the file is a real case, and it keeps them cooperative longer.
+  st.compliantUntil = s.turn + (s.agenda.done.includes('c2') ? 14 : 8);
   st.rel = clamp(st.rel - 18, 0, 100);
   applyFx(s, ['nation.integrity', -1.5]);
   return {

@@ -18,10 +18,15 @@ export function moneyEffect(s: GameState): number {
   return v;
 }
 
+/** Results published from every polling unit leave the party machine less to do. */
+export function machineWeight(s: GameState): number {
+  return s.agenda.done.includes('r4') ? 0.6 : 1;
+}
+
 /** A rough reading of where a re-election would stand today, in points of margin. */
 export function projectMargin(s: GameState): number {
   const e = CFG.election;
-  const machine = ((s.blocs.party - 50) / 50) * e.machine;
+  const machine = ((s.blocs.party - 50) / 50) * e.machine * machineWeight(s);
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
   const field = (s.flags['opposition.united'] ? e.united : 0) + (s.flags['opposition.split'] ? e.split : 0)
     - (s.counters.scar ?? 0) * e.scar + e.incumbency - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s);
@@ -34,7 +39,7 @@ export function projectMargin(s: GameState): number {
 /** State-by-state result for the president (re-election) or the president's chosen successor. */
 export function runElection(s: GameState, kind: 'reelection' | 'succession'): ElectionResult {
   const e = CFG.election;
-  const machine = ((s.blocs.party - 50) / 50) * e.machine;
+  const machine = ((s.blocs.party - 50) / 50) * e.machine * machineWeight(s);
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
   const scandal = s.pressures.scandalHeat / e.scandal;
   const field = (s.flags['opposition.united'] ? e.united : 0) + (s.flags['opposition.split'] ? e.split : 0) - (s.counters.scar ?? 0) * e.scar + (kind === 'reelection' ? e.incumbency : 0)

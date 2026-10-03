@@ -11,7 +11,7 @@ import { canRival } from '../engine/opposition';
 import {
   canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
 } from '../engine/people';
-import { movesLeft } from '../engine/reduce';
+import { movesLeft, sackCost } from '../engine/reduce';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
@@ -357,10 +357,11 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                         </button>
                       )}
                       {base.group === 'minister' && (['technocrat', 'party'] as const).map((kind) => {
-                        const ok = left > 0 && s.pc >= 6;
+                        const cost = sackCost(s);
+                        const ok = left > 0 && s.pc >= cost;
                         return (
                           <button key={kind} disabled={!ok} onClick={() => dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind })} className={btn(ok)}>
-                            {kind === 'technocrat' ? 'Replace with a technocrat' : 'Replace with a party nominee'} · 6 capital
+                            {kind === 'technocrat' ? 'Replace with a technocrat' : 'Replace with a party nominee'} · {cost} capital
                           </button>
                         );
                       })}

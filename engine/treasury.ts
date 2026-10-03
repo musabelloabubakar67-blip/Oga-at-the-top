@@ -6,6 +6,7 @@ import { BENCHMARKS, DEBTS, DEBT_BY_ID, FUND_BY_ID, SECTORS, SECTOR_BY_ID } from
 import { PEOPLE } from '../content/people';
 import { CFG, monthOf, yearOf } from './config';
 import { ARREARS, addOwed, rateOf, servicePoints, syncDebt } from './ledger';
+import { policyFiscalLines } from './policies';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -67,14 +68,17 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   const add = (label: string, value: number, hint: string) => { if (Math.abs(value) >= 0.0005) lines.push({ label, value, hint }); };
 
   add('Running the government', e.fiscalBase, 'Salaries and overheads, against ordinary revenue.');
-  add(subsidy === 'removed' ? 'No petrol subsidy to pay' : 'The petrol subsidy', e.subsidyDrift[subsidy] ?? 0,
-    subsidy === 'removed' ? 'What ending the subsidy freed.' : 'The gap between the pump price and the cost, paid monthly.');
+  // The gap between the pump price and the cost of fuel moves with the price of crude.
+  const crude = s.oil.price / 72;
+  add(subsidy === 'removed' ? 'No petrol subsidy to pay' : 'The petrol subsidy', (e.subsidyDrift[subsidy] ?? 0) * crude,
+    subsidy === 'removed' ? `What ending the subsidy freed, at $${Math.round(s.oil.price)} oil.` : `The gap between the pump price and the cost, paid monthly. Dearer as crude rises: $${Math.round(s.oil.price)} now.`);
   add('Debt service', -(n.debt - 66) * e.debtToFiscal, 'Against the 66% of revenue you inherited. Each point retired is worth about ₦36bn a year.');
   add('Tax collection', (n.capacity - 34) * e.capacityToFiscal, 'A state that works collects what it is owed. Rises with state capacity.');
   add('Leakage', (n.integrity - 28) * e.integrityToFiscal, 'Less is stolen as integrity rises.');
   add('Industry and jobs', (n.jobs - 34) * e.jobsToFiscal, 'Factories and payrolls pay tax.');
   add('The Finance Minister', ((s.chars.fin?.competence ?? 3) - 3) * 0.012, 'A competent one finds money. A weak one loses it.');
   add('Your reforms and orders', s.counters['bonus.fiscal'] ?? 0, 'The permanent effect of what you have built, cut or promised.');
+  for (const l of policyFiscalLines(s)) add(l.label, l.value, l.hint);
   add('The insurgency', -Math.max(0, s.theatres.NE - 50) * 0.0009, 'The war in the North East is paid for every month.');
   const points = BENCHMARKS.find((b) => b.price === s.budget.benchmark)?.points ?? 10;
   const spare = points - SECTORS.reduce((a, x) => a + (s.budget.alloc[x.id] ?? 0), 0);
@@ -342,7 +346,8 @@ export function fundCosts(s: GameState): string[] {
 function arrearsTick(s: GameState): void {
   const d = s.debts;
   // Power is sold below cost until the tariff is fixed, so the gas bill builds again.
-  if (!s.agenda.done.includes('p3')) addOwed(s, 'gas', 0.035);
+  // Clearing the gas debt means paying suppliers as they deliver: arrears build half as fast until the tariff covers the cost.
+  if (!s.agenda.done.includes('p3')) addOwed(s, 'gas', 0.035 * (s.agenda.done.includes('p1') ? 0.5 : 1));
   if (d.gas > 0.2) s.nation.power = clamp(s.nation.power - 0.1 * Math.min(2.5, d.gas / 0.7), 0, 100);
   if (d.contractors > 0.5) s.nation.jobs = clamp(s.nation.jobs - 0.04 * Math.min(3, d.contractors / 1.2), 0, 100);
   if (d.pensions > 0.2) {

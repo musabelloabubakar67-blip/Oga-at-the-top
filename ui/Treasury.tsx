@@ -6,6 +6,8 @@ import { dateLabel, yearOf } from '../engine/config';
 import { rateOf, servicePoints } from '../engine/ledger';
 import { naira } from '../engine/text';
 import { inflationTarget } from '../engine/tick';
+import { activePolicies, affordableWage, canRepeal, economyStrength, policyName, policyNow, repealCost } from '../engine/policies';
+import { describe } from '../engine/effects';
 import {
   budgetPoints, canBudget, canFund, canPay, canSecuritise, fiscalFlow, fundCosts, oilGap, paddingDemand,
 } from '../engine/treasury';
@@ -13,7 +15,7 @@ import type { Action, DebtId, FundId, GameState, SectorId } from '../engine/type
 import { senate } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = 'books' | 'owed' | 'saved';
+type Tab = 'books' | 'owed' | 'saved' | 'policies';
 
 const signed = (v: number) => `${v >= 0 ? '+' : '−'}₦${Math.round(Math.abs(v) * 1000)}bn`;
 
@@ -161,6 +163,60 @@ function Flow({ s }: { s: GameState }) {
   );
 }
 
+function Policies({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
+  const eco = economyStrength(s);
+  const ids = activePolicies(s);
+  return (
+    <div className="mt-4 grid gap-6 sm:grid-cols-[1fr_2fr]">
+      <section>
+        <h3 className="label border-b rule pb-1 text-ink-soft">What the economy can carry: {Math.round(eco.v)} of 100</h3>
+        <ul className="mt-2 space-y-0.5">
+          {eco.lines.map((l) => (
+            <li key={l.label} className="flex justify-between gap-3 text-sm"><span>{l.label}</span><span className={l.value >= 0 ? 'text-state' : 'text-alarm'}>{l.value > 0 ? '+' : '−'}{Math.abs(l.value).toFixed(1)}</span></li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[13px] leading-snug text-ink-soft">
+          Policies that promise money are judged against this every month. Today the economy could carry a minimum wage of about ₦{affordableWage(s)}k.
+        </p>
+      </section>
+      <section>
+        <h3 className="label border-b rule pb-1 text-ink-soft">Standing policies, at today's economy</h3>
+        {ids.length === 0 && <p className="mt-2 font-serif italic text-ink-soft">None in force. A fixed pump price, a decreed wage, closed borders and the like would be costed here, every month, against the economy as it is.</p>}
+        <ul className="mt-2 space-y-3">
+          {ids.map((id) => {
+            const p = policyNow(s, id)!;
+            const cost = repealCost(id);
+            const can = canRepeal(s, id);
+            const year = describe(p.fx.map(([t, v]) => [t, v * 12]));
+            return (
+              <li key={id} className="border border-ink/20 p-3">
+                <p className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-serif text-lg">{policyName(id)}</span>
+                  <span className="text-sm">
+                    {Math.abs(p.fiscal) >= 0.0005 && <span className={p.fiscal >= 0 ? 'text-state' : 'text-alarm'}>{signed(p.fiscal)} a month</span>}
+                    {Math.abs(p.inflation) >= 0.05 && <span className={`ml-3 ${p.inflation <= 0 ? 'text-state' : 'text-alarm'}`}>inflation {p.inflation > 0 ? '+' : '−'}{Math.abs(p.inflation).toFixed(1)}</span>}
+                  </span>
+                </p>
+                {year.length > 0 && (
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-[13px]">
+                    <span className="label pt-0.5 text-ink-soft">A year of it</span>
+                    {year.map((c) => <span key={c.label} className={c.good ? 'text-state' : 'text-alarm'}>{c.label} {c.text}</span>)}
+                  </p>
+                )}
+                <p className="mt-1 text-[13px] leading-snug text-ink-soft">{p.why}</p>
+                <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'REPEAL', id })}
+                  className={`mt-2 border px-3 py-1.5 font-serif text-sm ${can.ok ? 'border-ink/30 hover:border-alarm hover:bg-alarm/5' : 'border-ink/10 opacity-45'}`}>
+                  Repeal it · {cost.pc} capital{cost.fx.length ? ` · ${describe(cost.fx).map((c) => `${c.label} ${c.text}`).join(', ')}` : ''}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
 function Owed({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   const sec = canSecuritise(s);
   return (
@@ -280,7 +336,8 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
   const [before] = useState(s.lastAction?.text);
   const said = s.lastAction && s.lastAction.text !== before ? s.lastAction.text : null;
   const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
-  const tabs: [Tab, string][] = [['books', 'The books'], ['owed', `What is owed · ${Math.round(s.nation.debt)}% and ${naira(arrears)} unpaid`], ['saved', 'What is saved']];
+  const standing = activePolicies(s).length;
+  const tabs: [Tab, string][] = [['books', 'The books'], ['owed', `What is owed · ${Math.round(s.nation.debt)}% and ${naira(arrears)} unpaid`], ['saved', 'What is saved'], ['policies', `Standing policies${standing ? ` · ${standing}` : ''}`]];
   const used = SECTORS.reduce((a, x) => a + (s.budget.alloc[x.id] ?? 0), 0);
   return (
     <Shell onClose={onClose}>
@@ -301,6 +358,7 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
       {tab === 'books' && <Flow s={s} />}
       {tab === 'owed' && <Owed s={s} dispatch={dispatch} />}
       {tab === 'saved' && <Saved s={s} dispatch={dispatch} />}
+      {tab === 'policies' && <Policies s={s} dispatch={dispatch} />}
       {said && tab !== 'books' && (
         <p className="fade-in mt-4 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>
       )}

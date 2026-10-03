@@ -324,6 +324,8 @@ export interface Milestone {
   done: Fx[];
   /** Facts about the world that become true when it is delivered. */
   flags?: Record<string, FlagValue>;
+  /** What it changes in how the country works, for as long as it stands. Shown before signing. */
+  lasting?: string;
   news: [string, string];
   archive: string;
 }
@@ -504,7 +506,8 @@ export type Action =
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
-  | { type: 'ORDER'; id: string; target?: ZoneId }
+  | { type: 'ORDER'; id: string; target?: ZoneId; level?: number }
+  | { type: 'REPEAL'; id: string }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

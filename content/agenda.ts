@@ -19,6 +19,7 @@ const RAW: Track[] = [
     milestones: [
       {
         id: 'p1', name: 'Clear the gas debt', pc: 0, naira: 0.4, months: 3,
+        lasting: 'Until the tariff is cost-reflective, unpaid gas bills build up half as fast: the suppliers are paid as they deliver.',
         blurb: 'The plants exist. They are idle because the gas suppliers have not been paid.',
         done: [['nation.power', 7], ['bloc.establishment', 3]],
         news: ['IDLE POWER PLANTS RETURN AS FG CLEARS GAS DEBT', 'GOVERNMENT PAY GAS DEBT. LIGHT DON IMPROVE'],
@@ -41,6 +42,7 @@ const RAW: Track[] = [
       },
       {
         id: 'p4', name: 'Electricity market law', pc: 15, naira: 0.1, months: 12,
+        lasting: 'Power loses ground half as fast every month: states and private firms generate and keep the grid fed.',
         needs: { v: ['senate', '>=', 50] }, needsText: 'You do not have the Senate. Win over your senators first.',
         blurb: 'Let states and private firms generate and sell. Ends the monopoly that has failed for fifty years.',
         done: [['nation.power', 14], ['nation.capacity', 2], ['bloc.establishment', 5], ['approval', 2]],
@@ -125,6 +127,7 @@ const RAW: Track[] = [
     milestones: [
       {
         id: 'c1', name: 'Open contracting', pc: 8, naira: 0, months: 3,
+        lasting: 'Scandal settles 5 points lower: contracts are published, so there is less to find.',
         blurb: 'Every award above ₦50m published: who, how much, and who else bid.',
         start: [['bloc.party', -4]],
         done: [['nation.integrity', 7], ['bloc.press', 5]],
@@ -133,6 +136,7 @@ const RAW: Track[] = [
       },
       {
         id: 'c2', name: 'Anti-corruption courts with time limits', pc: 10, naira: 0.1, months: 8,
+        lasting: 'A file opened on a governor, senator or minister keeps them cooperative for 14 months instead of 8: cases go to trial.',
         needs: { v: ['senate', '>=', 50] }, needsText: 'You do not have the Senate. Win over your senators first.',
         blurb: 'Cases end in eighteen months instead of eighteen years.',
         done: [['nation.integrity', 8], ['approval', 1.5]],
@@ -141,6 +145,7 @@ const RAW: Track[] = [
       },
       {
         id: 'c3', name: 'Public asset declarations, starting with yours', pc: 12, naira: 0, months: 2,
+        lasting: 'Integrity rises a little every month you take nothing for yourself. Anything you do take is noticed half as much again.',
         needs: { v: ['exposure.count', '==', 0] }, needsText: 'You cannot publish what is in the drawer.',
         blurb: 'Yours first, then the cabinet, then everyone on the federal payroll above director.',
         start: [['bloc.villa', -5]],
@@ -178,6 +183,7 @@ const RAW: Track[] = [
       },
       {
         id: 'v3', name: 'Digital government', pc: 0, naira: 0.3, months: 8,
+        lasting: 'Every reform moves 8% faster: payments, approvals and records are online.',
         blurb: 'One ID, one portal, no "come back tomorrow".',
         done: [['nation.capacity', 8], ['approval', 2], ['nation.integrity', 2]],
         news: ['PASSPORTS, PERMITS NOW ISSUED ONLINE IN 48 HOURS', 'PASSPORT FOR TWO DAYS, NO "ANYTHING FOR THE BOYS"'],
@@ -185,6 +191,7 @@ const RAW: Track[] = [
       },
       {
         id: 'v4', name: 'Delivery unit and published scorecards', pc: 10, naira: 0, months: 6,
+        lasting: 'Replacing a minister costs 3 capital instead of 6: the scorecard is the case for the sacking.',
         blurb: 'Every ministry\'s targets and results, published quarterly. Ministers will hate it.',
         start: [['bloc.villa', -4]],
         done: [['nation.capacity', 10], ['bloc.press', 3]],
@@ -381,7 +388,13 @@ export interface Order {
   event?: [string, string];
   /** The President chooses where it lands. */
   target?: 'theatre';
+  /** A dial: how far to go. {AMT} in the text is replaced by the level's word. The middle level is the default. */
+  levels?: OrderLevel[];
+  /** What the economy does to it: revenue scales with economic strength; borrowing gets dearer as debt service rises. */
+  econ?: 'revenue' | 'credit';
 }
+
+export interface OrderLevel { label: string; word: string; scale: number; pc?: number; naira?: number }
 
 const subsidised: Cond = { not: { flag: 'policy.subsidy', is: 'removed' } };
 
@@ -430,37 +443,41 @@ export const STANDING: Order[] = [
     archive: 'Froze the pump price of petrol by directive.', sig: 3,
   },
   {
-    id: 'bond', group: 'economy', name: 'Issue a $3bn Eurobond', pc: 0, naira: 0, cooldown: 12,
-    blurb: 'Money now. Debt service later, in dollars, and dearer whenever the naira falls.',
+    id: 'bond', group: 'economy', name: 'Issue a Eurobond', pc: 0, naira: 0, cooldown: 12, econ: 'credit',
+    levels: [{ label: '$1bn', word: '$1bn', scale: 1 / 3 }, { label: '$3bn', word: '$3bn', scale: 1 }, { label: '$5bn', word: '$5bn', scale: 5 / 3 }],
+    blurb: 'Money now. Debt service later, in dollars, and dearer whenever the naira falls. The more you already owe, the more each dollar costs.',
     when: { v: ['nation.debt', '<', 100] }, lockedText: 'Nobody will lend at this level of debt.',
     result: 'The bond is oversubscribed at a coupon the Finance Ministry describes as "competitive" and the Debt Office describes privately.',
     fx: [['nation.fiscalSpace', 2], ['debt.eurobond', 2]],
-    news: ['NIGERIA RAISES $3BN IN EUROBOND SALE', 'WE DON BORROW ANOTHER $3BN. WHO GO PAY?'],
-    archive: 'Issued a $3bn Eurobond.', sig: 2,
+    news: ['NIGERIA RAISES {AMT} IN EUROBOND SALE', 'WE DON BORROW ANOTHER {AMT}. WHO GO PAY?'],
+    archive: 'Issued a {AMT} Eurobond.', sig: 2,
   },
   {
     id: 'print', group: 'economy', name: 'Direct the central bank to finance the budget', pc: 6, naira: 0, cooldown: 12,
+    levels: [{ label: '₦1tn', word: '₦1tn', scale: 0.5, pc: 4 }, { label: '₦2tn', word: '₦2tn', scale: 1 }, { label: '₦4tn', word: '₦4tn', scale: 2, pc: 9 }],
     blurb: 'The fastest money there is. It goes on the central bank overdraft, and every naira of it shows up in the price of bread until it is paid back.',
     result: 'The advance is extended. The Governor complies in writing and under protest.',
     fx: [['nation.fiscalSpace', 2], ['debt.ways', 2], ['bonus.inflation', 1.5], ['bloc.establishment', -8]],
-    news: ['CENTRAL BANK EXTENDS ₦4TN ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
-    archive: 'Ordered the central bank to finance the budget.', sig: 3,
+    news: ['CENTRAL BANK EXTENDS {AMT} ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
+    archive: 'Ordered the central bank to lend the government {AMT}.', sig: 3,
   },
   {
-    id: 'tax', group: 'economy', name: 'Raise VAT', pc: 10, naira: 0, cooldown: 0,
-    blurb: 'Permanent revenue. Everyone pays it, and everyone notices.',
-    result: 'VAT rises from 7.5% to 12.5%. Revenue follows. So does the price of everything with a receipt.',
+    id: 'tax', group: 'economy', name: 'Raise VAT', pc: 10, naira: 0, cooldown: 0, econ: 'revenue',
+    levels: [{ label: 'To 10%', word: '10%', scale: 0.5, pc: 6 }, { label: 'To 12.5%', word: '12.5%', scale: 1 }, { label: 'To 15%', word: '15%', scale: 1.5, pc: 14 }],
+    blurb: 'Permanent revenue. Everyone pays it, and everyone notices. A busy economy pays more of it than a struggling one.',
+    result: 'VAT rises from 7.5% to {AMT}. Revenue follows. So does the price of everything with a receipt.',
     fx: [['bonus.fiscal', 0.05], ['nation.inflation', 1.5], ['approval', -3], ['bloc.street', -5], ['bloc.establishment', 3]],
-    news: ['VAT RISES TO 12.5%', 'VAT DON GO UP. EVERYTHING GO COST MORE'],
-    archive: 'Raised VAT to 12.5%.', sig: 3,
+    news: ['VAT RISES TO {AMT}', 'VAT DON GO UP. EVERYTHING GO COST MORE'],
+    archive: 'Raised VAT to {AMT}.', sig: 3,
   },
   {
-    id: 'relief', group: 'relief', name: 'Emergency relief: cash to 15 million households', pc: 0, naira: 0.5, cooldown: 10,
+    id: 'relief', group: 'relief', name: 'Emergency relief: cash to households', pc: 0, naira: 0.5, cooldown: 10,
+    levels: [{ label: '5 million', word: '5 million', scale: 0.35, naira: 0.18 }, { label: '15 million', word: '15 million', scale: 1 }, { label: '25 million', word: '25 million', scale: 1.6, naira: 0.85 }],
     blurb: 'Direct transfers. Takes the edge off hardship for a season. It is not a policy; it is a painkiller.',
     result: 'The transfers go out over three weeks. For the first time in months, the motor parks are discussing something other than prices.',
     fx: [['approval', 4], ['bloc.street', 9], ['pressure.wageGrievance', -15]],
-    news: ['15 MILLION HOUSEHOLDS RECEIVE EMERGENCY TRANSFER', 'ALERT DON ENTER FOR 15 MILLION HOUSE'],
-    archive: 'Paid emergency cash transfers to 15 million households.', sig: 2,
+    news: ['{AMT} HOUSEHOLDS RECEIVE EMERGENCY TRANSFER', 'ALERT DON ENTER FOR {AMT} HOUSE'],
+    archive: 'Paid emergency cash transfers to {AMT} households.', sig: 2,
   },
   {
     id: 'duties', group: 'relief', name: 'Suspend import duties on staple foods', pc: 8, naira: 0.2, cooldown: 0,

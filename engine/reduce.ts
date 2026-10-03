@@ -25,6 +25,7 @@ import {
 import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
+import { POLICY_BY_ID, canRepeal, economyStrength, policyName, repeal } from './policies';
 import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
 import { verdict } from './legacy';
 import { fill } from './text';
@@ -102,8 +103,8 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
     election: null,
     succession: null,
     ending: null,
-    // Marks a game made under the security-by-theatre rules, so a save is never topped up twice.
-    counters: { 'rules.theatres': 1 },
+    // Marks a game made under the current rules, so a save is never adjusted twice.
+    counters: { 'rules.theatres': 1, 'rules.policies': 1 },
     agenda: { tracks: setup.priorities.slice(0, 4), done: [], active: [], failed: [] },
     ventures: { active: [], won: [], lost: [], causes: {} },
     report: [],
@@ -710,7 +711,8 @@ function electionDone(s: GameState): void {
     applyFx(s, ['bloc.party', 8]);
     record(s, 'election', 'won', 'politics', 'Re-elected for a second term.', 3);
     // A narrow win is challenged.
-    if (s.election.margin < 7) s.queue.push({ event: 'tribunal.petition', due: s.turn + 1 });
+    // With results published from the polling unit, only a very narrow win is worth contesting.
+    if (s.election.margin < (s.agenda.done.includes('r4') ? 4 : 7)) s.queue.push({ event: 'tribunal.petition', due: s.turn + 1 });
     s.news.push({ chronicle: '{NAME} RE-ELECTED', street: '{NAME} AGAIN! NIGERIA DECIDES', weight: 9, valence: 1, topic: 'politics' });
   } else {
     s.flags['election.lost'] = true;
@@ -740,7 +742,7 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'VENTURE_RESCUE': if (canRescue(s, action.id).ok) note(s, rescue(s, action.id)); break;
     case 'PERSON': person(s, action.id, action.op); break;
     case 'REPLACE_MINISTER': minister(s, action.id, action.kind); break;
-    case 'ORDER': order(s, action.id, action.target); break;
+    case 'ORDER': order(s, action.id, action.target, action.level); break;
     case 'REPLACE_FIN': replaceFinance(s, action.name); break;
     case 'PAY_DEBT': payDebt(s, action.id, action.amount); break;
     case 'SECURITISE': if (canSecuritise(s).ok) { const b = snapshot(s); const t = securitise(s); record(s, 'treasury.securitise', '', 'action', 'Converted the central bank overdraft into bonds.', 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; } break;
@@ -750,6 +752,12 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'TYCOON': tycoon(s, action.id, action.op); break;
     case 'RIVAL': rival(s, action.id, action.op); break;
     case 'FOCUS': focus(s, action.zone); break;
+    case 'REPEAL': if (canRepeal(s, action.id).ok) {
+      const b = snapshot(s);
+      const t = repeal(s, action.id);
+      record(s, `repeal.${action.id}`, '', 'action', `Repealed: ${policyName(action.id).toLowerCase()}.`, 3);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'END_MONTH': endMonth(s); break;
   }
   return s;
@@ -873,7 +881,8 @@ function launch(s: GameState, id: string, grease = false): void {
 
 function agendaTick(s: GameState): void {
   const austerity = s.nation.debt > CFG.economy.debtCliff && s.nation.fiscalSpace <= 0.05;
-  const speed = (0.8 + s.nation.capacity / 200) * (austerity ? 0.5 : 1);
+  // Digital government moves paper faster.
+  const speed = (0.8 + s.nation.capacity / 200) * (austerity ? 0.5 : 1) * (s.agenda.done.includes('v3') ? 1.08 : 1);
   const still: GameState['agenda']['active'] = [];
   for (const a of s.agenda.active) {
     const entry = MILESTONE_BY_ID[a.id];
@@ -921,7 +930,11 @@ function agendaTick(s: GameState): void {
     const structural = describe(m.done.filter((f) => f[0].startsWith('bonus.')));
     s.report.push({
       kind: 'reform', title: `Delivered: ${m.name}`, cause: track.name,
-      text: opened.length ? `This opens ${opened.length === 1 ? 'a big bet' : 'big bets'} the country could now make: ${opened.map((v) => v.name).join('; ')}.` : undefined,
+      text: [
+        m.lasting ? `For as long as it stands: ${m.lasting}` : '',
+        POLICY_BY_ID[m.id] ? `It is now a standing policy, costed every month against the economy in the Treasury. ${POLICY_BY_ID[m.id].now(s).why}` : '',
+        opened.length ? `This opens ${opened.length === 1 ? 'a big bet' : 'big bets'} the country could now make: ${opened.map((v) => v.name).join('; ')}.` : '',
+      ].filter(Boolean).join(' ') || undefined,
       changes: [...diff(before, snapshot(s)), ...structural],
     });
   }
@@ -958,7 +971,30 @@ function refreshOffers(s: GameState): void {
   }
 }
 
-export function canOrder(s: GameState, o: Order): { ok: boolean; reason?: string } {
+/** The level chosen on a dial, or the order as it stands if it has none. */
+export function orderLevel(o: Order, level?: number): { scale: number; pc: number; naira: number; word: string; index: number } {
+  if (!o.levels?.length) return { scale: 1, pc: o.pc, naira: o.naira, word: '', index: -1 };
+  const i = clamp(level ?? Math.floor(o.levels.length / 2), 0, o.levels.length - 1);
+  const l = o.levels[i];
+  return { scale: l.scale, pc: l.pc ?? o.pc, naira: l.naira ?? o.naira, word: l.word, index: i };
+}
+
+/** What the economy does to an order, and why. */
+export function orderEcon(o: Order, s: GameState): { factor: number; note: string } | null {
+  if (o.econ === 'revenue') {
+    const v = economyStrength(s).v;
+    const f = clamp(v / 50, 0.5, 1.5);
+    return { factor: f, note: `The economy is at ${Math.round(v)} of 100: it pays ${Math.round(f * 100)}% of what it would in an ordinary year.` };
+  }
+  if (o.econ === 'credit') {
+    const f = 1 + Math.max(0, s.nation.debt - 70) / 100;
+    return { factor: f, note: f > 1.005 ? `Debt service is at ${Math.round(s.nation.debt)}% of revenue: lenders want ₦${f.toFixed(2)} back for every ₦1 lent.` : 'Debt service is low enough that lenders charge the ordinary rate.' };
+  }
+  return null;
+}
+
+export function canOrder(s: GameState, o: Order, level?: number): { ok: boolean; reason?: string } {
+  const lv = orderLevel(o, level);
   if (o.situational && !s.offers.some((x) => x.id === o.id)) return { ok: false, reason: 'The moment has passed.' };
   if (o.when && !test(s, o.when)) return { ok: false, reason: o.lockedText ?? 'Not available.' };
   const last = s.counters[`order.${o.id}`];
@@ -968,18 +1004,31 @@ export function canOrder(s: GameState, o: Order): { ok: boolean; reason?: string
     if (wait > 0) return { ok: false, reason: `Available again in ${wait} months.` };
   }
   if (movesLeft(s) <= 0) return { ok: false, reason: 'This month\'s moves are used.' };
-  if (s.pc < o.pc) return { ok: false, reason: `Needs ${o.pc} political capital.` };
-  if (o.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
+  if (s.pc < lv.pc) return { ok: false, reason: `Needs ${lv.pc} political capital.` };
+  if (lv.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
     return { ok: false, reason: 'There is no money, and nobody will lend it.' };
   }
   return { ok: true };
 }
 
 /** The effects an order would have, for display. */
-export function orderOutcome(o: Order, s?: GameState, target?: ZoneId): Outcome {
+export function orderOutcome(o: Order, s?: GameState, target?: ZoneId, level?: number): Outcome {
   if (o.target === 'theatre' && s) {
     const base: Outcome = { result: o.result, fx: o.fx, later: o.later, flags: o.flags, follow: o.follow, news: o.news, archive: o.archive, sig: o.sig, exposure: o.exposure };
     return offensiveOutcome(s, target ?? worstTheatre(s), base);
+  }
+  if (o.levels || o.econ) {
+    const lv = orderLevel(o, level);
+    const econ = s ? orderEcon(o, s) : null;
+    const scale = ([t, v, ...rest]: Fx): Fx => {
+      const f = (o.econ === 'revenue' && t === 'bonus.fiscal') || (o.econ === 'credit' && t.startsWith('debt.')) ? econ?.factor ?? 1 : 1;
+      return [t, Math.round(v * lv.scale * f * 1000) / 1000, ...rest] as Fx;
+    };
+    const amt = (x: string, up = false) => x.replace(/\{AMT\}/g, up ? lv.word.toUpperCase() : lv.word);
+    return {
+      result: amt(o.result), fx: o.fx?.map(scale), later: o.later?.map((l) => ({ ...l, fx: l.fx.map(scale) })), flags: o.flags, follow: o.follow,
+      news: [amt(o.news[0], true), amt(o.news[1], true)], archive: amt(o.archive), sig: o.sig, exposure: o.exposure,
+    };
   }
   if (o.event) {
     const c = EVENTS[o.event[0]]?.choices.find((x) => x.id === o.event![1]);
@@ -988,15 +1037,16 @@ export function orderOutcome(o: Order, s?: GameState, target?: ZoneId): Outcome 
   return { result: o.result, fx: o.fx, later: o.later, flags: o.flags, follow: o.follow, news: o.news, archive: o.archive, sig: o.sig, exposure: o.exposure };
 }
 
-function order(s: GameState, id: string, target?: ZoneId): void {
+function order(s: GameState, id: string, target?: ZoneId, level?: number): void {
   const o = ORDER_BY_ID[id];
-  if (!o || !canOrder(s, o).ok) return;
+  if (!o || !canOrder(s, o, level).ok) return;
+  const lv = orderLevel(o, level);
   const before = snapshot(s);
-  s.pc = clamp(s.pc - o.pc, 0, 100);
+  s.pc = clamp(s.pc - lv.pc, 0, 100);
   s.desk.actionsUsed += 1;
   s.counters[`order.${o.id}`] = s.turn;
   s.offers = s.offers.filter((x) => x.id !== o.id);
-  const outcome = orderOutcome(o, s, target);
+  const outcome = orderOutcome(o, s, target, level);
   const source = o.event ? EVENTS[o.event[0]] : undefined;
   const category: Category = o.group === 'security' ? 'security' : o.group === 'economy' || o.group === 'relief' ? 'economy' : 'politics';
   const pseudo = source ?? ({ id: `order.${o.id}`, category, slot: 'minor', intensity: 4 } as GameEvent);
@@ -1006,7 +1056,7 @@ function order(s: GameState, id: string, target?: ZoneId): void {
     s.choices[source.id] = o.event[1];
   }
   const text = applyOutcome(s, pseudo, o.event?.[1] ?? 'order', { ...outcome, newsWeight: outcome.newsWeight ?? 5 });
-  if (o.naira) applyFx(s, ['nation.fiscalSpace', -o.naira]);
+  if (lv.naira) applyFx(s, ['nation.fiscalSpace', -lv.naira]);
   s.lastAction = { text, changes: diff(before, snapshot(s)) };
 }
 
@@ -1044,10 +1094,16 @@ function person(s: GameState, id: string, op: PersonOp): void {
   s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
 }
 
+/** With published scorecards, the case for a sacking is already made. */
+export function sackCost(s: GameState): number {
+  return s.agenda.done.includes('v4') ? 3 : 6;
+}
+
 function minister(s: GameState, id: string, kind: 'technocrat' | 'party'): void {
-  if (movesLeft(s) <= 0 || s.pc < 6 || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
+  const cost = sackCost(s);
+  if (movesLeft(s) <= 0 || s.pc < cost || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
   const before = snapshot(s);
-  s.pc -= 6;
+  s.pc -= cost;
   s.desk.actionsUsed += 1;
   const old = personView(s, id);
   const out = replaceMinister(s, id, kind);

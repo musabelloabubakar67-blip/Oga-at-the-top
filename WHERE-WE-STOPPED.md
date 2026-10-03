@@ -82,8 +82,8 @@ This replaces the list under "What to do next" below, which is kept for its deta
 |---|---|---|
 | 0 | Baseline: build, lint, simulator table | Done |
 | 1 | Security theatre by theatre; offensive aimed at a theatre | Done |
-| 2 | Effects calculated from the state (with their reasons); standing policies charged monthly against the economy; dials on national orders; a lasting effect for the 11 reforms that have none | Next |
-| 3 | People who change: wants drawn from situation and loyalty (about 12 templates by role plus each person's signature want), appetite that grows, refusals that become grudges; ministers whose true character surfaces, who build a following; three files for the first Finance pick | |
+| 2 | Effects calculated from the state (with their reasons); standing policies charged monthly against the economy; dials on national orders; a lasting effect for the 11 reforms that have none | Done |
+| 3 | Next. People who change: wants drawn from situation and loyalty (about 12 templates by role plus each person's signature want), appetite that grows, refusals that become grudges; ministers whose true character surfaces, who build a following; three files for the first Finance pick | |
 | 4 | Orders aimed at a person, state, businessman, theatre, paper or rival (28 existing orders convert, about 8 new); a ledger of people wronged; levers that wear out with repeated use | |
 | 5 | Backing a successor from the named cast; life after office as a real ending (prison, exile and others); delivered reforms attacked by courts, the Senate and businessmen; a tension curve in the director | |
 | 6 | Each state's figures from its zone plus what is placed there, shown as a table; big bets as located assets with returns, upkeep and capture | |
@@ -91,6 +91,8 @@ This replaces the list under "What to do next" below, which is kept for its deta
 Parked: the Vice President, the courts as people, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
 
 Owner decisions, 3 October: the flat security bonus comes off the security reforms; life after office can end the game badly; wants use role templates plus one signature want each.
+
+Balance after phase 2 (40 each): reformer 100%, machine 83%, kleptocrat 28%, populist 10%, institutionalist 10%. The full balance pass is due now, before phase 3.
 
 Every phase must teach the simulator bots its new actions, or the balance table stops meaning anything. Do the full balance pass after phase 2, not before.
 

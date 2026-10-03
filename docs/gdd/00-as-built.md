@@ -60,7 +60,7 @@ Oil has a price that wanders around $72 with occasional shocks, and an output th
 
 Every December the President signs a budget: an assumed oil price (60, 70, 80 or 90 dollars, giving 8, 10, 12 or 14 points) and an allocation of those points across six areas. Each point above or below last year's level shifts that area a little every month for a year. The Appropriations chairman expects three points for legislators' projects; giving fewer either passes over him (if the Senate is at 54 or better) or delays the budget to March.
 
-Oil above the benchmark is saved. Oil below it comes out of the treasury every month.
+Oil above the benchmark is saved. Oil below it comes out of the treasury every month. The petrol subsidy's monthly cost (or, once removed, what removing it saves) moves with the price of crude, in proportion to $72.
 
 ### The federation's share
 
@@ -142,11 +142,31 @@ Corruption is available throughout: the security vote, logistics for the Assembl
 
 **Reforms** (`content/agenda.ts`, `content/tracks2.ts`, `content/tracks3.ts`): fourteen tracks of five, seventy in all. Ten tracks are taken in order. Four (Restructure the Federation, Relief for the People, Order and National Pride, Beyond Oil) can be taken in any order, and nine of their twenty items are what the party, the street or a businessman wants rather than what is good for the country: new states, a price control board, a pump price fixed by law, a decreed minimum wage, an internet falsehood law, closed borders, a national airline, the death penalty for corruption, a ban on raw exports. They pay at once and cost permanently, and both are shown before signing. The scripted reformers skip them. Each costs political capital and money, takes time, and delivers a permanent change. The President declares four priority tracks; others cost half as much capital again. Five can run at once, six at state capacity 50, seven at 65. Each one under way beyond three costs political capital and strains the party every month. Reforms that need a law are voted on when ready and can be defeated.
 
+**Standing policies** (`engine/policies.ts`). The nine tempting reforms carry no fixed permanent cost. Once delivered, each is a standing policy whose cost is worked out every month against the economy as it is, with its reason, and shown in the Treasury's monthly flow, in where inflation is heading, and on a Standing policies tab. The reform card shows a year of it at today's economy before signing.
+
+*What the economy can carry* is a figure from 0 to 100: 50, plus jobs (above 40), less inflation (above 15), plus oil (above $70), plus the treasury, less debt service (above 70). The minimum wage it can pay is ₦60k plus ₦1.2k per point.
+
+| Policy | Costs more when | Pays when |
+|---|---|---|
+| ₦150,000 minimum wage | The economy can carry less than ₦150k: jobs, revenue, inflation and labour anger, in proportion to the gap | It can carry it: a little growth and street support |
+| Price control board | Inflation is above 12: it holds prices down, but jobs and scandal rise with the gap | Inflation is low: it costs little |
+| Pump price fixed by law | Oil and inflation rise; above $80 importers stop and fuel scarcity builds | — |
+| Closed land borders | Few farm reforms delivered and the farm belt violent: inflation | Power at 45 or better: factories replace imports |
+| National airline and shipping line | State capacity and integrity are low | A capable, clean state nearly breaks even |
+| Six new states | Oil earns more (their share of it) | — (the party is pleased monthly) |
+| Ban on raw exports | Power is below 55: farmers cannot sell | Power at 55 or better: jobs |
+| Internet falsehood law | Integrity is below 45: it is used on critics | — |
+| Death penalty for corruption | No anti-corruption courts: selective prosecution | Anti-corruption courts: integrity rises |
+
+Any of them can be repealed for capital and a named political cost. Old saves have the fixed costs these reforms used to carry removed once.
+
+**Lasting effects.** Every reform now changes something for as long as it stands. Eight that had nothing lasting change how the country works, described on the card as *For as long as it stands*: clearing the gas debt halves the growth of gas arrears until the tariff; the electricity market law halves the monthly loss of power; open contracting settles scandal 5 points lower; anti-corruption courts keep a person leaned on cooperative for 14 months instead of 8; asset declarations raise integrity monthly while nothing is taken personally, and make personal taking 50% more visible; digital government makes reforms 8% faster; the delivery unit halves the capital cost of replacing a minister; results transmitted from the polling unit cut the party machine's weight at elections by 40% and narrow a petitionable win from 7 points to 4.
+
 **Big bets** (`content/ventures.ts`, `engine/bets.ts`): 32 risky initiatives. Each lists the conditions it depends on (a capable minister, paid contractors, reliable power, a quiet theatre, a delivered reform, a businessman as partner). Each unmet condition costs a stated share of the odds. Part-way through, the site reports what is not in place and what would fix it. The President can fix the cause, send a task team, or postpone the opening. The outcome names the condition that failed. If every condition was met and it still failed, the report says it was bad luck.
 
 Sixteen of the bets appear only when a specific reform is delivered. The rest can be attempted without the groundwork, at odds that show what the groundwork was for.
 
-**Executive powers** (`content/agenda.ts`, `content/orders2.ts`): 14 standing and 55 situational. Five situational ones are on offer at a time and lapse.
+**Executive powers** (`content/agenda.ts`, `content/orders2.ts`): 14 standing and 55 situational. Five situational ones are on offer at a time and lapse. Four have a dial: VAT to 10, 12.5 or 15%; relief to 5, 15 or 25 million households; a $1bn, $3bn or $5bn Eurobond; ₦1tn, ₦2tn or ₦4tn from the central bank. Each level sets the cost and scales the effects. VAT revenue scales with what the economy can carry (half to one and a half times); a Eurobond is repaid at ₦1 plus 1% per point of debt service above 70 for every ₦1 lent.
 
 ## 0.5 Files and the phone
 
@@ -202,13 +222,15 @@ Simulator results at the time of writing (40 presidencies each):
 |---|---|---|
 | Random | 0% | |
 | Do-nothing | 0% | |
-| Populist | about 20% | Debt service ends above 110%, ₦8tn unpaid |
-| Machine politician | about 60% | Leaves office still owing two favours |
-| Clean institutionalist | about 25% | Loses the primary or the election when it neglects the party |
-| Kleptocrat | about 23% | Keeps about ₦310bn; usually voted out, owing everybody |
+| Populist | about 10% | Takes the crowd-pleasers in a weak economy; debt service ends near 120%, ₦9tn unpaid |
+| Machine politician | about 83% | Takes crowd-pleasers too, borrows before elections; leaves office still owing two favours |
+| Clean institutionalist | about 10% | Raises VAT early, then loses the primary (about 65%) for want of capital and the party |
+| Kleptocrat | about 28% | Keeps about ₦310bn; usually voted out, owing everybody |
 | Reformer (flawless play) | 100% | Delivers about 54 of 70 reforms, skipping the nine crowd-pleasers; leaves debt service near 85% |
 
-Security by theatre moved these. Once the bots used the security focus and the offensive (under the old flat rules) the kleptocrat rose from 20% to 57%: the two levers were stronger than the table showed, because no bot used them. With theatre-by-theatre reforms and a targeted offensive, national security on the eve of the first election fell for every governing strategy (the reformer's from 71 to 58) and the kleptocrat returned to about 23%.
+Standing policies and dials moved these (phase 2). The engine changes alone left every strategy within sampling noise except the machine politician, which rose. The falls came from what the bots now do: the populist and machine take the crowd-pleasers, the institutionalist raises VAT, and bots that borrowed $3bn every time the treasury ran low spiralled into debt (the machine fell to 28% until it borrowed only before elections and below 80 debt service). `SKIP=pop,rep,relief,bond,vat npm run simulate` switches those behaviours off one by one.
+
+Security by theatre moved them before that. Once the bots used the security focus and the offensive (under the old flat rules) the kleptocrat rose from 20% to 57%: the two levers were stronger than the table showed, because no bot used them. With theatre-by-theatre reforms and a targeted offensive, national security on the eve of the first election fell for every governing strategy (the reformer's from 71 to 58) and the kleptocrat returned to about 23%.
 
 The event rewrite moved them before that. Before it the kleptocrat was re-elected 73% of the time and the machine politician 40%; debts to financiers and governors now come due inside ordinary files, which is what the kleptocrat cannot pay. By scenario (12 presidencies each), a reformer is re-elected 83% of the time in The Morning After and 100% elsewhere; the machine politician ranges from 17% (The Morning After) to 92% (The Reformer's Handover). `--world` chains four presidents through one country.
 

@@ -8,6 +8,7 @@ import { TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES } from '../content/ventures';
 import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
+import { policyNow } from '../engine/policies';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -16,7 +17,7 @@ import { describe } from '../engine/effects';
 import { verdict } from '../engine/legacy';
 import {
   ACTION_COST, DRAWER_COST, agendaSlots, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
-  favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
+  favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderEcon, orderLevel, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
   standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
 } from '../engine/reduce';
 import { blocks, fill, naira } from '../engine/text';
@@ -81,17 +82,30 @@ function Changes({ changes, dark }: { changes: Change[]; dark?: boolean }) {
 }
 
 /** What is expected to change, as arrows. */
-function Expected({ items, later, dark }: { items: Pred; later?: boolean; dark?: boolean }) {
+function Expected({ items, later, dark, label }: { items: Pred; later?: boolean; dark?: boolean; label?: string }) {
   if (!items.length) return null;
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[13px]">
-      <span className={`label pt-0.5 ${dark ? 'text-mute' : 'text-ink-soft'}`}>{later ? 'Later' : 'Now'}</span>
+      <span className={`label pt-0.5 ${dark ? 'text-mute' : 'text-ink-soft'}`}>{label ?? (later ? 'Later' : 'Now')}</span>
       {items.map((c, i) => (
         <span key={i} className={c.good ? good(dark) : bad(dark)}>
           <span className={dark ? 'text-ivory/75' : 'text-ink-soft'}>{c.label}</span> {c.arrows}
         </span>
       ))}
     </span>
+  );
+}
+
+/** A standing policy's cost, a year of it, at the economy as it is today. */
+function PolicyPreview({ s, id }: { s: GameState; id: string }) {
+  const p = policyNow(s, id);
+  if (!p) return null;
+  const year: Fx[] = [...p.fx.map(([t, v]) => [t, v * 12] as Fx), ['bonus.fiscal', p.fiscal], ['bonus.inflation', p.inflation]];
+  return (
+    <>
+      <Expected items={describe(year)} dark label="Every year, at today's economy" />
+      <p className="text-[12.5px] leading-snug text-ivory/60">{p.why}</p>
+    </>
   );
 }
 
@@ -322,31 +336,35 @@ const GROUPS: [Order['group'], string][] = [
   ['capital', 'Raising political capital'], ['economy', 'The economy'], ['relief', 'Relief'], ['security', 'Security'], ['politics', 'Cabinet and party'],
 ];
 
-function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (target?: ZoneId) => void; tag?: React.ReactNode }) {
-  const can = canOrder(s, o);
+function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (target?: ZoneId, level?: number) => void; tag?: React.ReactNode }) {
   const [where, setWhere] = useState<ZoneId>(() => worstTheatre(s));
+  const [level, setLevel] = useState<number | undefined>(undefined);
+  const lv = orderLevel(o, level);
+  const can = canOrder(s, o, level);
   const target = o.target === 'theatre' ? where : undefined;
-  const out = orderOutcome(o, s, target);
+  const out = orderOutcome(o, s, target, level);
   const strength = target ? offensiveStrength(s, target) : null;
+  const econ = orderEcon(o, s);
   const now: Fx[] = [...(out.fx ?? [])];
-  if (o.naira) now.push(['nation.fiscalSpace', -o.naira]);
+  if (lv.naira) now.push(['nation.fiscalSpace', -lv.naira]);
   const card = (
     <button
-      disabled={!can.ok} onClick={() => onUse(target)}
+      disabled={!can.ok} onClick={() => onUse(target, o.levels ? lv.index : undefined)}
       className={`w-full border px-4 py-3 text-left ${can.ok ? 'border-ink/25 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-50'}`}
     >
       <span className="flex flex-wrap items-baseline justify-between gap-x-3">
         <span className="font-serif text-lg">{o.name}</span>
         <span className="flex flex-wrap gap-1.5">
           {tag}
-          {o.pc ? <Chip>{o.pc} capital</Chip> : null}
-          {o.naira ? <Chip>{naira(o.naira)}</Chip> : null}
+          {lv.pc ? <Chip>{lv.pc} capital</Chip> : null}
+          {lv.naira ? <Chip>{naira(lv.naira)}</Chip> : null}
         </span>
       </span>
       <span className="mt-0.5 block text-sm leading-snug text-ink-soft">{o.blurb}</span>
       <span className="mt-1.5 block space-y-0.5">
         <Expected items={describe(now)} />
         {(out.later ?? []).map((l, i) => <Expected key={i} items={describe(l.fx)} later />)}
+        {econ && <span className="block text-[13px] text-ink-soft">{econ.note}</span>}
         {strength && (
           <span className="block text-[13px] text-ink-soft">
             Strength ×{Number(strength.strike.toFixed(2))}{strength.why.length ? `: ${strength.why.join('; ')}` : ': no groundwork yet'}.
@@ -357,6 +375,22 @@ function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (targe
       </span>
     </button>
   );
+  if (o.levels) {
+    return (
+      <div>
+        <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+          <span className="label mr-1 text-ink-soft">How far</span>
+          {o.levels.map((l, i) => (
+            <button key={l.label} onClick={() => setLevel(i)}
+              className={`border px-2 py-0.5 text-[13px] ${lv.index === i ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
+              {l.label}
+            </button>
+          ))}
+        </div>
+        {card}
+      </div>
+    );
+  }
   if (!target) return card;
   return (
     <div>
@@ -401,7 +435,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
               const months = x.until - s.turn;
               return (
                 <li key={x.id}>
-                  <OrderCard s={s} o={o} onUse={(t) => done({ type: 'ORDER', id: o.id, target: t })}
+                  <OrderCard s={s} o={o} onUse={(t, l) => done({ type: 'ORDER', id: o.id, target: t, level: l })}
                     tag={<>{x.since === s.turn && <Chip tone="alarm">New</Chip>}<Chip>{months <= 1 ? 'Last month' : `${months} months left`}</Chip></>} />
                 </li>
               );
@@ -415,7 +449,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
             <h3 className="label border-b rule pb-1 text-ink-soft">{title}</h3>
             <ul className="mt-2 space-y-2">
               {standingOrders(s).filter((o) => o.group === group).map((o) => (
-                <li key={o.id}><OrderCard s={s} o={o} onUse={(t) => done({ type: 'ORDER', id: o.id, target: t })} /></li>
+                <li key={o.id}><OrderCard s={s} o={o} onUse={(t, l) => done({ type: 'ORDER', id: o.id, target: t, level: l })} /></li>
               ))}
               {group === 'politics' && financeAlternatives(s).map((c) => {
                 const ok = left > 0 && s.pc >= 10;
@@ -510,6 +544,8 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
                   <div className="mt-1.5 space-y-0.5">
                     {m.start && <Expected items={describe(m.start)} dark />}
                     <Expected items={describe(m.done)} later dark />
+                    <PolicyPreview s={s} id={m.id} />
+                    {m.lasting && <p className="text-[12.5px] leading-snug text-ivory/70"><span className="label mr-1 text-mute">For as long as it stands</span>{m.lasting}</p>}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <button

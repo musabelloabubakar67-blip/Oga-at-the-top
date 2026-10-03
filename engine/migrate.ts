@@ -91,6 +91,7 @@ export function migrate(raw: unknown): GameState | null {
     }
     const s = r as GameState;
     if (!s.counters['rules.theatres']) theatreRules(s);
+    if (!s.counters['rules.policies']) policyRules(s);
     // A file that no longer exists cannot be decided.
     if (s.desk?.lead && !EVENTS[s.desk.lead.eventId]) s.desk.lead = null;
     s.desk.minors = (s.desk?.minors ?? []).filter((m) => EVENTS[m.eventId]);
@@ -112,6 +113,17 @@ function theatreRules(s: GameState): void {
     if (id === 's2' || id === 's5') s.counters['bonus.security'] = Math.max(0, (s.counters['bonus.security'] ?? 0) - 0.05);
   }
   s.counters['rules.theatres'] = 1;
+}
+
+/** The fixed permanent costs the tempting reforms used to carry. Their standing policies now cost them monthly. */
+const OLD_POLICY_BONUS: Record<string, [string, number][]> = {
+  h1: [['bonus.inflation', 1.5]], h2: [['bonus.fiscal', -0.05]], h4: [['bonus.inflation', 1], ['bonus.fiscal', -0.025]],
+  o2: [['bonus.inflation', 2]], o4: [['bonus.fiscal', -0.03]], r2: [['bonus.fiscal', -0.04]], g3: [['bonus.fiscal', -0.025]],
+};
+
+function policyRules(s: GameState): void {
+  for (const id of s.agenda.done) for (const [k, v] of OLD_POLICY_BONUS[id] ?? []) s.counters[k] = (s.counters[k] ?? 0) - v;
+  s.counters['rules.policies'] = 1;
 }
 
 /** Parts of the state whose keys are created by playing, not by the game's content. */

@@ -9,7 +9,7 @@ import { canCall, canTycoon } from '../engine/favours';
 import { canFund, canPay, usualBudget } from '../engine/treasury';
 import type { DebtId, SectorId } from '../engine/types';
 import { FINANCE_CANDIDATES } from '../content/names';
-import { dateLabel } from '../engine/config';
+import { dateLabel, termTurnOf } from '../engine/config';
 import { moneyEffect, projectMargin } from '../engine/election';
 import { governorEffect } from '../engine/people';
 import { verdict } from '../engine/legacy';
@@ -21,6 +21,8 @@ import { movesLeft } from '../engine/reduce';
 import { standing } from '../engine/vars';
 import { applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
 import { canFocus } from '../engine/security';
+import { fiscalFlow } from '../engine/treasury';
+import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { ORDER_BY_ID } from '../content/agenda';
 import type { Choice, Fx, GameState, ZoneId } from '../engine/types';
 import { ZONES, approval, hardship } from '../engine/vars';
@@ -45,6 +47,7 @@ interface Bot {
   act: (s: GameState) => [string, ZoneId?] | null;
 }
 
+const skip = (what: string) => (process.env.SKIP ?? '').includes(what);
 const orderOk = (s: GameState, id: string) => canOrder(s, ORDER_BY_ID[id]).ok;
 const lowestZone = (s: GameState): ZoneId => [...ZONES].sort((a, b) => s.zones[a].approval - s.zones[b].approval)[0];
 const campaigning = (s: GameState) => canAct(s, 'rally').ok;
@@ -188,6 +191,26 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       const v = VENTURE_BY_ID[id];
       if (canVenture(s, v).ok && s.nation.fiscalSpace > v.naira + 1 && s.pc > v.pc + 15) s = applyAction(s, { type: 'VENTURE', id });
     }
+    // Crowd-pleasers: the populist and the machine take what the street or the party wants, from any track.
+    if (!skip('pop') && (bot.name === 'Populist' || bot.name === 'Machine')) {
+      for (const t of TRACKS) for (const m of t.milestones) {
+        if (!m.popular || s.agenda.done.includes(m.id) || s.agenda.active.some((x) => x.id === m.id)) continue;
+        if (canLaunch(s, m.id).ok && s.pc - m.pc > 15 && m.naira <= s.nation.fiscalSpace + 0.3) s = applyAction(s, { type: 'LAUNCH', id: m.id });
+      }
+    }
+    // The careful ones undo a standing policy that is costing the country, when they can afford the politics.
+    if (!skip('rep') && (bot.name === 'Institutionalist' || bot.name === 'Reformer')) {
+      for (const id of activePolicies(s)) {
+        const p = policyNow(s, id)!;
+        const hurts = p.fiscal < -0.015 || p.inflation > 1 || p.fx.some(([t, v]) => t === 'nation.jobs' && v < 0);
+        if (hurts && canRepeal(s, id).ok && s.pc - repealCost(id).pc > 20) s = applyAction(s, { type: 'REPEAL', id });
+      }
+    }
+    // The dials.
+    if (!skip('relief') && bot.name === 'Populist' && s.blocs.street < 45 && orderOk(s, 'relief') && s.nation.fiscalSpace > 1) s = applyAction(s, { type: 'ORDER', id: 'relief', level: 2 });
+    if (!skip('relief') && bot.name === 'Machine' && termTurnOf(s.turn) >= 36 && orderOk(s, 'relief') && s.nation.fiscalSpace > 0.6) s = applyAction(s, { type: 'ORDER', id: 'relief', level: 1 });
+    if (!skip('bond') && (bot.name === 'Kleptocrat' || bot.name === 'Machine') && s.nation.fiscalSpace < 0.3 && s.nation.debt < 80 && termTurnOf(s.turn) >= 30 && orderOk(s, 'bond')) s = applyAction(s, { type: 'ORDER', id: 'bond', level: 1 });
+    if (!skip('vat') && bot.name === 'Institutionalist' && termTurnOf(s.turn) <= 20 && fiscalFlow(s).total < 0 && orderOk(s, 'tax')) s = applyAction(s, { type: 'ORDER', id: 'tax', level: 0 });
     if (bot.name === 'Reformer' && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
     if (bot.reforms === 'all' && s.nation.fiscalSpace > 4) s = applyAction(s, { type: 'ORDER', id: 'paydown' });
     // Anyone governing watches the worst theatre: forces go there, and an offensive when one is available.
