@@ -4,6 +4,7 @@
 // field to the state does not strand anybody's presidency.
 
 import { EVENTS } from '../content';
+import { MILESTONE_BY_ID } from '../content/agenda';
 import { DEBTS } from '../content/treasury';
 import { initTycoons } from './favours';
 import { syncDebt } from './ledger';
@@ -89,6 +90,7 @@ export function migrate(raw: unknown): GameState | null {
       }
     }
     const s = r as GameState;
+    if (!s.counters['rules.theatres']) theatreRules(s);
     // A file that no longer exists cannot be decided.
     if (s.desk?.lead && !EVENTS[s.desk.lead.eventId]) s.desk.lead = null;
     s.desk.minors = (s.desk?.minors ?? []).filter((m) => EVENTS[m.eventId]);
@@ -97,6 +99,19 @@ export function migrate(raw: unknown): GameState | null {
   } catch {
     return null;
   }
+}
+
+/** Security reforms delivered before they worked theatre by theatre get their lasting measures now. */
+function theatreRules(s: GameState): void {
+  for (const id of s.agenda.done) {
+    for (const [t, v] of MILESTONE_BY_ID[id]?.m.done ?? []) {
+      if (t === 'drift.all') for (const z of ZONES) s.counters[`drift.${z}`] = (s.counters[`drift.${z}`] ?? 0) + v;
+      else if (t.startsWith('drift.') || t.startsWith('sec.')) s.counters[t] = (s.counters[t] ?? 0) + v;
+    }
+    // The old forward bases and police posts paid a flat national bonus instead.
+    if (id === 's2' || id === 's5') s.counters['bonus.security'] = Math.max(0, (s.counters['bonus.security'] ?? 0) - 0.05);
+  }
+  s.counters['rules.theatres'] = 1;
 }
 
 /** Parts of the state whose keys are created by playing, not by the game's content. */

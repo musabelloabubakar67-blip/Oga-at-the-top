@@ -24,7 +24,7 @@ import {
 } from './people';
 import { buildPapers } from './press';
 import { rand, randInt } from './rng';
-import { canFocus, initSecurity, setFocus } from './security';
+import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
 import { verdict } from './legacy';
 import { fill } from './text';
@@ -102,7 +102,8 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
     election: null,
     succession: null,
     ending: null,
-    counters: {},
+    // Marks a game made under the security-by-theatre rules, so a save is never topped up twice.
+    counters: { 'rules.theatres': 1 },
     agenda: { tracks: setup.priorities.slice(0, 4), done: [], active: [], failed: [] },
     ventures: { active: [], won: [], lost: [], causes: {} },
     report: [],
@@ -739,7 +740,7 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'VENTURE_RESCUE': if (canRescue(s, action.id).ok) note(s, rescue(s, action.id)); break;
     case 'PERSON': person(s, action.id, action.op); break;
     case 'REPLACE_MINISTER': minister(s, action.id, action.kind); break;
-    case 'ORDER': order(s, action.id); break;
+    case 'ORDER': order(s, action.id, action.target); break;
     case 'REPLACE_FIN': replaceFinance(s, action.name); break;
     case 'PAY_DEBT': payDebt(s, action.id, action.amount); break;
     case 'SECURITISE': if (canSecuritise(s).ok) { const b = snapshot(s); const t = securitise(s); record(s, 'treasury.securitise', '', 'action', 'Converted the central bank overdraft into bonds.', 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; } break;
@@ -975,7 +976,11 @@ export function canOrder(s: GameState, o: Order): { ok: boolean; reason?: string
 }
 
 /** The effects an order would have, for display. */
-export function orderOutcome(o: Order): Outcome {
+export function orderOutcome(o: Order, s?: GameState, target?: ZoneId): Outcome {
+  if (o.target === 'theatre' && s) {
+    const base: Outcome = { result: o.result, fx: o.fx, later: o.later, flags: o.flags, follow: o.follow, news: o.news, archive: o.archive, sig: o.sig, exposure: o.exposure };
+    return offensiveOutcome(s, target ?? worstTheatre(s), base);
+  }
   if (o.event) {
     const c = EVENTS[o.event[0]]?.choices.find((x) => x.id === o.event![1]);
     if (c) return c.outcomes[c.outcomes.length - 1];
@@ -983,7 +988,7 @@ export function orderOutcome(o: Order): Outcome {
   return { result: o.result, fx: o.fx, later: o.later, flags: o.flags, follow: o.follow, news: o.news, archive: o.archive, sig: o.sig, exposure: o.exposure };
 }
 
-function order(s: GameState, id: string): void {
+function order(s: GameState, id: string, target?: ZoneId): void {
   const o = ORDER_BY_ID[id];
   if (!o || !canOrder(s, o).ok) return;
   const before = snapshot(s);
@@ -991,7 +996,7 @@ function order(s: GameState, id: string): void {
   s.desk.actionsUsed += 1;
   s.counters[`order.${o.id}`] = s.turn;
   s.offers = s.offers.filter((x) => x.id !== o.id);
-  const outcome = orderOutcome(o);
+  const outcome = orderOutcome(o, s, target);
   const source = o.event ? EVENTS[o.event[0]] : undefined;
   const category: Category = o.group === 'security' ? 'security' : o.group === 'economy' || o.group === 'relief' ? 'economy' : 'politics';
   const pseudo = source ?? ({ id: `order.${o.id}`, category, slot: 'minor', intensity: 4 } as GameEvent);

@@ -504,7 +504,7 @@ export type Action =
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
-  | { type: 'ORDER'; id: string }
+  | { type: 'ORDER'; id: string; target?: ZoneId }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

@@ -8,7 +8,7 @@ import { TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES } from '../content/ventures';
 import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
-import { canFocus, theatreDrift, threatWord } from '../engine/security';
+import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
 import { capitalIncome, movesTotal } from '../engine/capital';
@@ -322,15 +322,17 @@ const GROUPS: [Order['group'], string][] = [
   ['capital', 'Raising political capital'], ['economy', 'The economy'], ['relief', 'Relief'], ['security', 'Security'], ['politics', 'Cabinet and party'],
 ];
 
-function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: () => void; tag?: React.ReactNode }) {
+function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (target?: ZoneId) => void; tag?: React.ReactNode }) {
   const can = canOrder(s, o);
-  const out = orderOutcome(o);
+  const [where, setWhere] = useState<ZoneId>(() => worstTheatre(s));
+  const target = o.target === 'theatre' ? where : undefined;
+  const out = orderOutcome(o, s, target);
+  const strength = target ? offensiveStrength(s, target) : null;
   const now: Fx[] = [...(out.fx ?? [])];
   if (o.naira) now.push(['nation.fiscalSpace', -o.naira]);
-  const later = (out.later ?? []).flatMap((l) => l.fx);
-  return (
+  const card = (
     <button
-      disabled={!can.ok} onClick={onUse}
+      disabled={!can.ok} onClick={() => onUse(target)}
       className={`w-full border px-4 py-3 text-left ${can.ok ? 'border-ink/25 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-50'}`}
     >
       <span className="flex flex-wrap items-baseline justify-between gap-x-3">
@@ -344,10 +346,31 @@ function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: () => 
       <span className="mt-0.5 block text-sm leading-snug text-ink-soft">{o.blurb}</span>
       <span className="mt-1.5 block space-y-0.5">
         <Expected items={describe(now)} />
-        <Expected items={describe(later)} later />
+        {(out.later ?? []).map((l, i) => <Expected key={i} items={describe(l.fx)} later />)}
+        {strength && (
+          <span className="block text-[13px] text-ink-soft">
+            Strength ×{Number(strength.strike.toFixed(2))}{strength.why.length ? `: ${strength.why.join('; ')}` : ': no groundwork yet'}.
+            {' '}{strength.held ? 'The ground will be held afterwards.' : 'Nothing will hold the ground afterwards, so part of the gain comes back within a year.'}
+          </span>
+        )}
         {!can.ok && can.reason && <span className="block text-[13px] text-alarm">{can.reason}</span>}
       </span>
     </button>
+  );
+  if (!target) return card;
+  return (
+    <div>
+      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+        <span className="label mr-1 text-ink-soft">Where</span>
+        {THEATRES.map((th) => (
+          <button key={th.zone} onClick={() => setWhere(th.zone)}
+            className={`border px-2 py-0.5 text-[13px] ${where === th.zone ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
+            {ZONE_NAME[th.zone]} · {Math.round(s.theatres[th.zone])}
+          </button>
+        ))}
+      </div>
+      {card}
+    </div>
   );
 }
 
@@ -378,7 +401,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
               const months = x.until - s.turn;
               return (
                 <li key={x.id}>
-                  <OrderCard s={s} o={o} onUse={() => done({ type: 'ORDER', id: o.id })}
+                  <OrderCard s={s} o={o} onUse={(t) => done({ type: 'ORDER', id: o.id, target: t })}
                     tag={<>{x.since === s.turn && <Chip tone="alarm">New</Chip>}<Chip>{months <= 1 ? 'Last month' : `${months} months left`}</Chip></>} />
                 </li>
               );
@@ -392,7 +415,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
             <h3 className="label border-b rule pb-1 text-ink-soft">{title}</h3>
             <ul className="mt-2 space-y-2">
               {standingOrders(s).filter((o) => o.group === group).map((o) => (
-                <li key={o.id}><OrderCard s={s} o={o} onUse={() => done({ type: 'ORDER', id: o.id })} /></li>
+                <li key={o.id}><OrderCard s={s} o={o} onUse={(t) => done({ type: 'ORDER', id: o.id, target: t })} /></li>
               ))}
               {group === 'politics' && financeAlternatives(s).map((c) => {
                 const ok = left > 0 && s.pc >= 10;

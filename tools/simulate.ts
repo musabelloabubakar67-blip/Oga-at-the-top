@@ -19,7 +19,9 @@ import { VENTURE_BY_ID } from '../content/ventures';
 import { canDeal } from '../engine/people';
 import { movesLeft } from '../engine/reduce';
 import { standing } from '../engine/vars';
-import { applyAction, availability, canAct, canDrawer, canLaunch, canVenture, newGame } from '../engine/reduce';
+import { applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
+import { canFocus } from '../engine/security';
+import { ORDER_BY_ID } from '../content/agenda';
 import type { Choice, Fx, GameState, ZoneId } from '../engine/types';
 import { ZONES, approval, hardship } from '../engine/vars';
 import { traceFor } from '../engine/view';
@@ -43,6 +45,7 @@ interface Bot {
   act: (s: GameState) => [string, ZoneId?] | null;
 }
 
+const orderOk = (s: GameState, id: string) => canOrder(s, ORDER_BY_ID[id]).ok;
 const lowestZone = (s: GameState): ZoneId => [...ZONES].sort((a, b) => s.zones[a].approval - s.zones[b].approval)[0];
 const campaigning = (s: GameState) => canAct(s, 'rally').ok;
 
@@ -187,6 +190,12 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     }
     if (bot.name === 'Reformer' && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
     if (bot.reforms === 'all' && s.nation.fiscalSpace > 4) s = applyAction(s, { type: 'ORDER', id: 'paydown' });
+    // Anyone governing watches the worst theatre: forces go there, and an offensive when one is available.
+    if (bot.name !== 'Do-nothing' && bot.name !== 'Random') {
+      const worst = [...ZONES].sort((a, b) => s.theatres[b] - s.theatres[a])[0];
+      if (s.theatres[worst] >= 55 && canFocus(s, worst, movesLeft(s)).ok) s = applyAction(s, { type: 'FOCUS', zone: worst });
+      if (s.theatres[worst] >= 60 && orderOk(s, 'offensive')) s = applyAction(s, { type: 'ORDER', id: 'offensive', target: worst });
+    }
     const a = bot.act(s);
     if (a && canAct(s, a[0] as never).ok) s = applyAction(s, { type: 'ACT', action: a[0] as never, zone: a[1] });
     // Whatever move is left goes on people: grant a want if it is cheap, otherwise an hour of time.
@@ -205,7 +214,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         approval: approval(s), hardship: hardship(s), party: s.blocs.party, street: s.blocs.street, chest: s.campaign.chest, scandal: s.pressures.scandalHeat,
         rival: Math.max(...Object.values(s.opposition)), governors: ZONES.reduce((a, z) => a + governorEffect(s, z), 0) / 6, money: moneyEffect(s),
         treasury: s.nation.fiscalSpace, debt: s.nation.debt, arrears: s.debts.gas + s.debts.contractors + s.debts.pensions, inflation: s.nation.inflation,
-        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs,
+        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
       });
     }
     s = applyAction(s, { type: 'END_MONTH' });

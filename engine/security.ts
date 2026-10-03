@@ -1,9 +1,10 @@
 // Six theatres, each with its own cause and its own cost to the country.
 
+import { MILESTONE_BY_ID } from '../content/agenda';
 import { THEATRES, THEATRE_BY_ZONE } from '../content/theatres';
 import { CFG, monthOf } from './config';
-import type { GameState, ZoneId } from './types';
-import { ZONES, clamp, hardship, shiftThreat, syncSecurity } from './vars';
+import type { GameState, Outcome, ZoneId } from './types';
+import { ZONES, ZONE_NAME, clamp, hardship, shiftThreat, syncSecurity } from './vars';
 
 export function initSecurity(s: GameState): void {
   s.theatres = Object.fromEntries(THEATRES.map((t) => [t.zone, t.start])) as Record<ZoneId, number>;
@@ -27,16 +28,19 @@ export function theatreDrift(s: GameState, z: ZoneId): { d: number; why: string[
   let d = CFG.economy.securityDecay;
   const add = (v: number, text: string) => { if (Math.abs(v) >= 0.02) { d += v; why.push(`${text} (${v > 0 ? 'worse' : 'better'})`); } };
   const austerity = n.debt > CFG.economy.debtCliff && n.fiscalSpace <= 0.05;
+  // State police take some of the anger that would otherwise become recruits.
+  const shield = Math.min(0.75, s.counters['sec.shield'] ?? 0);
+  const living = shield ? `Cost-of-living pressure, ${Math.round(shield * 100)}% absorbed by state police` : 'Cost-of-living pressure';
   switch (z) {
     case 'NW':
-      add((h - 55) * 0.012, 'Cost-of-living pressure');
+      add((h - 55) * 0.012 * (1 - shield), living);
       break;
     case 'NE':
       if (austerity) add(0.35, 'The government has no money for the war');
       if (s.people.gov_ne?.granted) add(-0.12, 'Reconstruction is under way');
       break;
     case 'NC':
-      add((h - 55) * 0.008, 'Cost-of-living pressure');
+      add((h - 55) * 0.008 * (1 - shield), living);
       if ([4, 5, 6, 7].includes(monthOf(s.turn)) && !s.agenda.done.includes('f2')) add(0.18, 'Planting season, unprotected');
       break;
     case 'SW':
@@ -54,7 +58,62 @@ export function theatreDrift(s: GameState, z: ZoneId): { d: number; why: string[
   if (austerity && z !== 'NE') add(CFG.economy.austeritySecurity, 'Austerity');
   if (s.focus === z) add(-0.6, 'The security effort is concentrated here');
   else if (s.focus) add(0.1, 'Forces have been moved elsewhere');
+  // What has been built here keeps working, every month.
+  const lasting = s.counters[`drift.${z}`] ?? 0;
+  if (lasting) add(lasting, measuresIn(s, z) || 'Lasting measures');
+  // Courts and police posts keep cleared ground cleared.
+  const hold = Math.min(0.75, s.counters['sec.hold'] ?? 0);
+  if (hold && d > 0 && s.theatres[z] < 45) {
+    const cut = d * hold;
+    d -= cut;
+    why.push('Cleared ground is held by courts and police posts (better)');
+  }
   return { d, why };
+}
+
+/** The delivered reforms that keep working in a theatre, by name. */
+function measuresIn(s: GameState, z: ZoneId): string {
+  return s.agenda.done
+    .map((id) => MILESTONE_BY_ID[id]?.m)
+    .filter((m) => m && m.done.some(([t, v]) => (t === `drift.${z}` || t === 'drift.all') && v < 0))
+    .map((m) => m!.name)
+    .join('; ');
+}
+
+/** How hard an offensive in a theatre would hit, and why. */
+export function offensiveStrength(s: GameState, z: ZoneId): { strike: number; why: string[]; held: boolean } {
+  const why: string[] = [];
+  let strike = 1 + (s.counters['sec.strike'] ?? 0);
+  for (const id of s.agenda.done) {
+    const m = MILESTONE_BY_ID[id]?.m;
+    if (m?.done.some(([t, v]) => t === 'sec.strike' && v > 0)) why.push(m.name.toLowerCase());
+  }
+  if (s.focus === z) { strike += 0.25; why.push('the forces are already concentrated there'); }
+  if (z === 'SE') { strike *= 0.5; why.push('the South East is a political problem, and soldiers make it worse'); }
+  const held = (s.counters[`drift.${z}`] ?? 0) <= -0.08 || (s.counters['sec.hold'] ?? 0) > 0;
+  return { strike, why, held };
+}
+
+/** The theatre in the worst state. */
+export function worstTheatre(s: GameState): ZoneId {
+  return [...ZONES].sort((a, b) => s.theatres[b] - s.theatres[a])[0];
+}
+
+/** A military offensive aimed at one theatre. Its weight comes from what has been built. */
+export function offensiveOutcome(s: GameState, z: ZoneId, base: Outcome): Outcome {
+  const { strike, held } = offensiveStrength(s, z);
+  const where = ZONE_NAME[z];
+  const r = (x: number) => Math.round(x * 10) / 10;
+  return {
+    ...base,
+    result: `Operations begin against ${THEATRE_BY_ZONE[z].name.toLowerCase()} in the ${where}. The Defence Headquarters issues daily figures. You ask for weekly ones that have been checked.`,
+    fx: [[`theatre.${z}`, r(-4 * strike)], ['bloc.establishment', 2], ...(z === 'SE' ? [['zone.SE.approval', -4] as [string, number]] : [])],
+    later: [
+      { after: [3, 5], fx: [[`theatre.${z}`, r(-8 * strike)], ['approval', 1.5]], label: `The offensive clears the main camps in the ${where}.`, note: base.later?.[0]?.note },
+      ...(held ? [] : [{ after: [9, 12] as [number, number], fx: [[`theatre.${z}`, 7] as [string, number]], label: `Nobody held the ground in the ${where}. The fighters come back to the camps the army left.` }]),
+    ],
+    archive: `Ordered a sustained military offensive in the ${where}.`,
+  };
 }
 
 export function securityTick(s: GameState): void {

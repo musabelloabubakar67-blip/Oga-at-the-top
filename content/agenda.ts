@@ -55,14 +55,14 @@ const RAW: Track[] = [
       {
         id: 's1', name: 'Pay and equip the troops', pc: 0, naira: 0.35, months: 3,
         blurb: 'Allowances, fuel and radios. The unit that took three hours to move had no diesel.',
-        done: [['nation.security', 6], ['bloc.establishment', 3]],
+        done: [['theatre.NE', -5], ['theatre.NW', -3], ['theatre.NC', -3], ['drift.NE', -0.12], ['drift.NW', -0.04], ['drift.NC', -0.04], ['sec.strike', 0.5], ['bloc.establishment', 3]],
         news: ['TROOPS RECEIVE ARREARS, NEW EQUIPMENT', 'SOLDIERS DON COLLECT THEIR MONEY. AT LAST'],
         archive: 'Paid the troops\' arrears and re-equipped front-line units.',
       },
       {
         id: 's2', name: 'Forward bases in the farm belt and the North West', pc: 4, naira: 0.6, months: 8,
         blurb: 'Put the response ten minutes from the villages instead of ninety.',
-        done: [['nation.security', 10], ['zone.NC.security', 4], ['zone.NW.security', 4], ['approval', 2], ['bonus.security', 0.05]],
+        done: [['theatre.NW', -12], ['theatre.NC', -10], ['drift.NW', -0.25], ['drift.NC', -0.2], ['approval', 2]],
         news: ['ATTACKS FALL SHARPLY AS FORWARD BASES OPEN', 'FARMERS RETURN: "WE CAN SLEEP NOW"'],
         archive: 'Opened forward operating bases across the farm belt and the North West.',
       },
@@ -70,7 +70,7 @@ const RAW: Track[] = [
         id: 's3', name: 'Audit the defence procurement account', pc: 14, naira: 0, months: 4,
         blurb: 'Find out where the equipment budget has been going. Some senior people already know.',
         start: [['bloc.establishment', -6], ['bloc.villa', -2]],
-        done: [['nation.security', 7], ['nation.integrity', 4], ['bonus.fiscal', 0.015]],
+        done: [['theatre.NE', -4], ['drift.all', -0.03], ['sec.strike', 0.5], ['nation.integrity', 4], ['bonus.fiscal', 0.015]],
         news: ['DEFENCE AUDIT FINDS ₦300BN IN PHANTOM CONTRACTS', 'THE ARMS MONEY: SEE WHO CHOP AM'],
         archive: 'Audited the defence procurement account.',
       },
@@ -78,7 +78,7 @@ const RAW: Track[] = [
         id: 's4', name: 'State police: the constitutional amendment', pc: 18, naira: 0.1, months: 14,
         needs: { v: ['senate', '>=', 56] }, needsText: 'It needs two thirds of the Senate and 24 state assemblies. Your senators and governors must be firmly with you.',
         blurb: 'Policing by people who know the terrain. The governors have wanted it for years. So have their opponents\' fears.',
-        done: [['nation.security', 14], ['bloc.party', 5], ['nation.integrity', -2]],
+        done: [['theatre.SW', -6], ['theatre.SE', -4], ['theatre.NW', -4], ['theatre.NC', -4], ['sec.shield', 0.5], ['drift.SW', -0.1], ['drift.SE', -0.05], ['bloc.party', 5], ['nation.integrity', -2]],
         news: ['STATE POLICE BECOMES LAW AS 26 ASSEMBLIES RATIFY', 'STATE POLICE DON LAND. GOVERNORS, NO MISBEHAVE'],
         archive: 'Amended the Constitution to create state police.',
       },
@@ -270,7 +270,7 @@ const CAPSTONES: Record<string, Track['milestones'][number]> = {
   security: {
     id: 's5', name: 'A court and a police post in every local government', pc: 8, naira: 0.6, months: 10,
     blurb: 'Security that outlasts the offensive: somewhere to report a crime and somewhere to try it.',
-    done: [['nation.security', 10], ['nation.integrity', 3], ['bonus.security', 0.05], ['bonus.fiscal', -0.02]],
+    done: [['theatre.NW', -5], ['theatre.NC', -5], ['theatre.SW', -4], ['theatre.SE', -3], ['theatre.SS', -3], ['sec.hold', 0.5], ['drift.NW', -0.08], ['drift.NC', -0.08], ['drift.SW', -0.05], ['drift.NE', -0.06], ['nation.integrity', 3], ['bonus.fiscal', -0.02]],
     news: ['EVERY LOCAL GOVERNMENT NOW HAS A COURT AND POLICE POST', 'YOU FIT REPORT CASE FOR YOUR OWN VILLAGE NOW'],
     archive: 'Put a court and a police post in every local government.',
   },
@@ -379,6 +379,8 @@ export interface Order {
   sig?: 1 | 2 | 3;
   /** Use the outcome of an existing event choice instead of the fields above. */
   event?: [string, string];
+  /** The President chooses where it lands. */
+  target?: 'theatre';
 }
 
 const subsidised: Cond = { not: { flag: 'policy.subsidy', is: 'removed' } };
@@ -469,8 +471,8 @@ export const STANDING: Order[] = [
     archive: 'Suspended import duties on staple foods.', sig: 2,
   },
   {
-    id: 'offensive', group: 'security', name: 'Order a sustained military offensive', pc: 5, naira: 0.4, cooldown: 10,
-    blurb: 'Air and ground operations against the camps. Results in months, not days, and not without cost.',
+    id: 'offensive', group: 'security', name: 'Order a sustained military offensive', pc: 5, naira: 0.4, cooldown: 10, target: 'theatre',
+    blurb: 'Air and ground operations against the camps in one theatre. Paid, equipped troops hit harder. Without forward bases or police posts behind them, the fighters come back.',
     result: 'Operations begin in three states. The Defence Headquarters issues daily figures. You ask for weekly ones that have been checked.',
     fx: [['nation.security', 3], ['bloc.establishment', 2]],
     later: [{ after: [3, 5], fx: [['nation.security', 6], ['approval', 2]], label: 'The military offensive clears the main camps.', note: ['TROOPS OVERRUN MAJOR BANDIT CAMPS', 'ARMY DON CLEAR THE BUSH. ROAD DON SAFE SMALL'] }],

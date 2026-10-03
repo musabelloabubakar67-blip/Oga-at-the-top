@@ -2,7 +2,7 @@
 
 This chapter describes what is in the code today. Where it disagrees with chapters 1 to 10, this chapter is right and the other is the older plan. Every number here is in `engine/config.ts` or the content files and is a tuning value, not a commitment.
 
-Last brought up to date: 2 October 2026.
+Last brought up to date: 3 October 2026.
 
 ## 0.1 What the player does
 
@@ -72,14 +72,28 @@ Six theatres, one per zone, each a threat from 0 to 100 with its own cause and c
 
 | Zone | Theatre | Costs | Moved by |
 |---|---|---|---|
-| North West | Banditry and kidnapping | Food prices | Cost-of-living pressure |
-| North East | The insurgency | A monthly charge on the treasury | Austerity; reconstruction |
-| North Central | Farm-belt violence | The largest driver of food prices | Planting season unless secured; hardship |
-| South West | Highway kidnapping, city gangs | The establishment | Jobs |
+| North West | Banditry and kidnapping | Food prices | Cost-of-living pressure; forward bases, local courts, paid troops |
+| North East | The insurgency | A monthly charge on the treasury | Austerity; reconstruction; paid troops, police posts |
+| North Central | Farm-belt violence | The largest driver of food prices | Planting season unless secured; hardship; forward bases, local courts |
+| South West | Highway kidnapping, city gangs | The establishment | Jobs; state police, local courts |
 | South East | Agitation and sit-at-home | Jobs | Approval in the South East |
 | South South | Oil theft | Oil output, so the budget | Integrity; metering; the amnesty |
 
 The President can concentrate the security effort on one theatre: it improves steadily and the other five get slightly worse.
+
+**Security reforms work theatre by theatre.** None of them raises the national figure directly. Each delivers a one-off fall in named theatres and lasting measures, all shown before signing and listed by name among each theatre's causes every month:
+
+| Reform | One-off | Lasting |
+|---|---|---|
+| Pay and equip the troops | North East −5, North West and North Central −3 | Monthly easing in those three; offensives +50% |
+| Forward bases | North West −12, North Central −10 | North West −0.25 and North Central −0.2 a month |
+| Audit the defence procurement account | North East −4 | Every theatre −0.03 a month; offensives +50% |
+| State police | South West −6, South East, North West, North Central −4 | Cost of living feeds violence half as much; South West and South East ease monthly |
+| A court and a police post in every local government | Five theatres −3 to −5 | Half of any worsening is stopped in a theatre below 45; monthly easing in four |
+
+Effects with the targets `drift.<zone>` (or `drift.all`), `sec.strike`, `sec.shield` and `sec.hold` record these measures; they are carried into a successor's presidency.
+
+**The military offensive is aimed at one theatre**, chosen by the President. It takes 4 points off at once and 8 more three to five months later, multiplied by its strength: 1, plus half for paid troops, half for an audited procurement account, a quarter if the forces are already concentrated there, all halved in the South East (where it also costs 4 points of approval in the zone). If nothing holds the ground afterwards (police posts and courts anywhere, or lasting measures worth at least 0.08 a month in that theatre: forward bases in the north, paid troops in the North East, state police in the South West), 7 points come back nine to twelve months later. The card shows the strength, its reasons and whether the ground will be held.
 
 ## 0.3 Politics
 
@@ -179,7 +193,7 @@ Every character has an ordinary Nigerian name. Each full name was searched on th
 ## 0.9 Tools
 
 - `npm run typecheck`, `npm run lint:content` (references, tokens, operations, cast selectors, bet conditions, the "nothing echoes" and softlock rules).
-- `npm run simulate -- 40 --probe` plays whole presidencies with seven scripted strategies and reports outcomes, and the state on the eve of the first election.
+- `npm run simulate -- 40 --probe` plays whole presidencies with seven scripted strategies and reports outcomes, and the state on the eve of the first election, including each theatre. Every bot except Random and Do-nothing concentrates forces on the worst theatre above 55 and orders an offensive there above 60.
 - Saves are brought forward by `engine/migrate.ts`: an older save has new systems started from the state it is in, and any missing field is filled from a fresh game.
 
 Simulator results at the time of writing (40 presidencies each):
@@ -188,13 +202,15 @@ Simulator results at the time of writing (40 presidencies each):
 |---|---|---|
 | Random | 0% | |
 | Do-nothing | 0% | |
-| Populist | about 15% | Debt service ends above 110%, ₦8tn unpaid |
-| Machine politician | about 70% | Leaves office still owing two favours |
-| Clean institutionalist | about 38% | Loses the primary or the election when it neglects the party |
-| Kleptocrat | about 20% | Keeps about ₦310bn; usually voted out, owing everybody |
+| Populist | about 20% | Debt service ends above 110%, ₦8tn unpaid |
+| Machine politician | about 60% | Leaves office still owing two favours |
+| Clean institutionalist | about 25% | Loses the primary or the election when it neglects the party |
+| Kleptocrat | about 23% | Keeps about ₦310bn; usually voted out, owing everybody |
 | Reformer (flawless play) | 100% | Delivers about 54 of 70 reforms, skipping the nine crowd-pleasers; leaves debt service near 85% |
 
-The event rewrite moved these. Before it the kleptocrat was re-elected 73% of the time and the machine politician 40%; debts to financiers and governors now come due inside ordinary files, which is what the kleptocrat cannot pay. By scenario (12 presidencies each), a reformer is re-elected 83% of the time in The Morning After and 100% elsewhere; the machine politician ranges from 17% (The Morning After) to 92% (The Reformer's Handover). `--world` chains four presidents through one country.
+Security by theatre moved these. Once the bots used the security focus and the offensive (under the old flat rules) the kleptocrat rose from 20% to 57%: the two levers were stronger than the table showed, because no bot used them. With theatre-by-theatre reforms and a targeted offensive, national security on the eve of the first election fell for every governing strategy (the reformer's from 71 to 58) and the kleptocrat returned to about 23%.
+
+The event rewrite moved them before that. Before it the kleptocrat was re-elected 73% of the time and the machine politician 40%; debts to financiers and governors now come due inside ordinary files, which is what the kleptocrat cannot pay. By scenario (12 presidencies each), a reformer is re-elected 83% of the time in The Morning After and 100% elsewhere; the machine politician ranges from 17% (The Morning After) to 92% (The Reformer's Handover). `--world` chains four presidents through one country.
 
 ## 0.10 Not built
 

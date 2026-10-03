@@ -87,7 +87,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   s.used = { ...prev.used };
 
   for (const [k, v] of Object.entries(prev.flags)) if (WORLD_FLAG.test(k)) s.flags[k] = v;
-  for (const [k, v] of Object.entries(prev.counters)) if (k.startsWith('bonus.') || k === 'refinery') s.counters[k] = v;
+  for (const [k, v] of Object.entries(prev.counters)) if (k.startsWith('bonus.') || k.startsWith('drift.') || k.startsWith('sec.') || k === 'refinery') s.counters[k] = v;
   for (const id of WORLD_ORDERS) if (prev.counters[`order.${id}`] !== undefined && ORDER_BY_ID[id]) s.counters[`order.${id}`] = -999;
 
   // Reforms delivered stay delivered. Those under way are still under way, at the stage they had reached.

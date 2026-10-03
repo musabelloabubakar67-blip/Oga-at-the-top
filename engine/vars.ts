@@ -148,6 +148,7 @@ export function getVar(s: GameState, path: string): number {
     case 'bets': return p[1] === 'won' ? s.ventures.won.length : p[1] === 'lost' ? s.ventures.lost.length : s.ventures.active.length;
     case 'venture': return s.ventures.won.includes(p[1]) ? 1 : s.ventures.lost.includes(p[1]) ? -1 : 0;
     case 'bonus': return s.counters[path] ?? 0;
+    case 'drift': case 'sec': return s.counters[path] ?? 0;
     case 'debt': return p[1] === 'arrears' ? s.debts.gas + s.debts.contractors + s.debts.pensions : s.debts[p[1] as DebtId] ?? 0;
     case 'fund': return p[1] === 'total' ? s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth : s.funds[p[1] as FundId] ?? 0;
     case 'oil': return p[1] === 'gap' ? s.oil.price - s.budget.benchmark : p[1] === 'output' ? s.oil.output : s.oil.price;
@@ -271,6 +272,11 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
     case 'person': { const who = s.people[p[1]]; if (who) who.rel = clamp(who.rel + delta, 0, 100); return note(); }
     // Permanent structural shifts earned by reform: bonus.fiscal, bonus.inflation, bonus.power
     case 'bonus': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
+    // Lasting security measures: drift.<zone> moves a theatre every month, sec.* changes how theatres behave.
+    case 'drift':
+      for (const z of p[1] === 'all' ? ZONES : [p[1] as ZoneId]) s.counters[`drift.${z}`] = (s.counters[`drift.${z}`] ?? 0) + delta;
+      return note();
+    case 'sec': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
     case 'campaign': s.campaign.chest = Math.max(0, s.campaign.chest + delta); return;
     case 'debt': if (s.debts[p[1] as DebtId] !== undefined) addOwed(s, p[1] as DebtId, delta); return note();
     case 'fund': { const k = p[1] as FundId; if (s.funds[k] !== undefined) s.funds[k] = Math.max(0, s.funds[k] + delta); return note(); }
