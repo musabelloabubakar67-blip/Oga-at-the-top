@@ -6,6 +6,7 @@
 
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
+import { ADVISER_POOL, REPLACEABLE } from '../content/names';
 import { describe } from './effects';
 import { rand } from './rng';
 import type { Choice, Fx, GameEvent, GameState, Outcome } from './types';
@@ -78,6 +79,31 @@ export function seedAdvisers(s: GameState): void {
     const c = s.chars[roles[Math.floor(rand(s) * roles.length)]];
     c.rep = { ...c.rep!, competence: Math.min(5, c.competence + 1) };
   }
+}
+
+/** Who is still available to bring in. */
+export function poolFor(s: GameState): typeof ADVISER_POOL {
+  const taken = new Set(Object.values(s.chars).map((c) => c.name));
+  return ADVISER_POOL.filter((c) => !taken.has(c.name) && !s.flags[`pool.gone.${c.short}`]);
+}
+
+export const REPLACE_PC = 6;
+
+export function canReplaceAdviser(s: GameState, role: string, name: string, movesLeft: number): { ok: boolean; reason?: string } {
+  if (!REPLACEABLE.includes(role) || !s.chars[role]) return { ok: false };
+  if (!poolFor(s).some((c) => c.name === name)) return { ok: false, reason: 'Not available.' };
+  if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
+  if (s.pc < REPLACE_PC) return { ok: false, reason: `Needs ${REPLACE_PC} political capital.` };
+  return { ok: true };
+}
+
+/** Bring someone in. The one who leaves does not come back. */
+export function replaceAdviser(s: GameState, role: string, name: string): string {
+  const old = s.chars[role];
+  const next = ADVISER_POOL.find((c) => c.name === name)!;
+  s.flags[`pool.gone.${old.short}`] = true;
+  s.chars[role] = { ...next, id: role, role: old.role, rel: 40, notes: [], patron: next.patron ?? 'president', rep: next.rep ?? { competence: next.competence, loyalty: next.loyalty } };
+  return `${old.name} is thanked and leaves the Villa. ${next.name} is the new ${old.role}.`;
 }
 
 /** The adviser whose brief a file falls under. */

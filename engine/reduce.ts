@@ -26,7 +26,7 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
-import { LINKED, adviserFor, forecast, logAdvice, recommend, secondFor, seedAdvisers } from './advice';
+import { LINKED, REPLACE_PC, adviserFor, canReplaceAdviser, replaceAdviser, forecast, logAdvice, recommend, secondFor, seedAdvisers } from './advice';
 import { POLICY_BY_ID, canRepeal, economyStrength, policyName, repeal } from './policies';
 import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
 import { verdict } from './legacy';
@@ -767,6 +767,14 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'TYCOON': tycoon(s, action.id, action.op); break;
     case 'RIVAL': rival(s, action.id, action.op); break;
     case 'FOCUS': focus(s, action.zone); break;
+    case 'REPLACE_ADVISER': if (canReplaceAdviser(s, action.role, action.name, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.pc = clamp(s.pc - REPLACE_PC, 0, 100);
+      s.desk.actionsUsed += 1;
+      const t = replaceAdviser(s, action.role, action.name);
+      record(s, `adviser.${action.role}`, 'replace', 'politics', t, 2);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'SECOND_OPINION': {
       const item = s.desk.lead?.eventId === action.eventId ? s.desk.lead : s.desk.minors.find((m) => m.eventId === action.eventId);
       const e = item ? eventOf(s, item) : undefined;

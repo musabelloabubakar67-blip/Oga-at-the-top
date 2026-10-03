@@ -22,7 +22,8 @@ import { standing } from '../engine/vars';
 import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
-import { adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
+import { adviserFor, canReplaceAdviser, forecast, poolFor, recommend, secondFor, trackRecord } from '../engine/advice';
+import { REPLACEABLE } from '../content/names';
 import { fiscalFlow } from '../engine/treasury';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
@@ -269,6 +270,15 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     for (const id of bot.bets ?? []) {
       const v = VENTURE_BY_ID[id];
       if (canVenture(s, v).ok && s.nation.fiscalSpace > v.naira + 1 && s.pc > v.pc + 15) s = applyAction(s, { type: 'VENTURE', id });
+    }
+    // A President who reads the record replaces an adviser whose advice keeps helping someone else, choosing by reputation.
+    if (bot.advice === 'check') {
+      for (const role of REPLACEABLE) {
+        const r = trackRecord(s, role);
+        if (!r.served.length) continue;
+        const pick = poolFor(s).sort((x, y) => (y.rep?.competence ?? y.competence) - (x.rep?.competence ?? x.competence))[0];
+        if (pick && canReplaceAdviser(s, role, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_ADVISER', role, name: pick.name });
+      }
     }
     // Crowd-pleasers: the populist and the machine take what the street or the party wants, from any track.
     if (!skip('pop') && (bot.name === 'Populist' || bot.name === 'Machine')) {

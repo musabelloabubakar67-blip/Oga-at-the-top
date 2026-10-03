@@ -533,6 +533,7 @@ export type Action =
   | { type: 'ORDER'; id: string; target?: ZoneId; level?: number }
   | { type: 'REPEAL'; id: string }
   | { type: 'SECOND_OPINION'; eventId: string }
+  | { type: 'REPLACE_ADVISER'; role: string; name: string }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

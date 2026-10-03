@@ -129,6 +129,7 @@ Each adviser has a true competence, loyalty and integrity, a **patron** (whom th
 - **Recommendations.** The adviser recommends one option: the best for the President as they see it, or, if they lean, the one their patron gains from.
 - **What happened** is shown after the decision as before. Each forecast is checked against the outcome (in arrows; within one arrow counts as close) and kept.
 - **The record**, on the advisers tab of the people screen: forecasts checked, how many were close, how often the President followed them, and whom their recommendations helped. The file shows the adviser's reputation and record beside the forecasts.
+- **Replacing an adviser.** The Chief of Staff, the political adviser and the information, labour and education ministers can be replaced from a pool of six (`ADVISER_POOL` in `content/names.ts`) for a move and 6 capital. The President sees each candidate's background and reputation; some are not what they seem, and it shows in their record. Whoever leaves does not come back.
 - **A second opinion** from the Chief of Staff (or the political adviser, if the Chief of Staff gave the first) costs a move and shows their forecast under each option.
 
 Reforms, orders, policies and bets are not forecast; they show their effects exactly.
@@ -260,16 +261,18 @@ Simulator results at the time of writing (40 presidencies each):
 |---|---|---|
 | Random | 0–2% | |
 | Do-nothing | about 2% | |
-| Populist | about 30% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
-| Machine politician | about 73% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
-| Clean institutionalist | about 40% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
-| Kleptocrat | about 33–43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% first aimed for; the owner chose to leave it, because corruption works |
-| Reformer (flawless play) | about 77% | Times its painful reforms (early in a term or after re-election, one at a time). Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
-| Reformer, any order | about 63% | The same script without the timing: painful reforms land on the election |
-| Reformer, keeps subsidy | about 78% | Keeping the subsidy costs a flawless reformer nothing at the ballot |
-| Reformer, ignores debts | about 78% | Leaving debts unpaid costs a flawless reformer little |
+| Populist | about 34% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
+| Machine politician | about 55% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
+| Clean institutionalist | about 45% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
+| Kleptocrat | about 30–43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% first aimed for; the owner chose to leave it, because corruption works |
+| Reformer (flawless play) | about 79% | Times its painful reforms (early in a term or after re-election, one at a time). Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
+| Reformer, any order | about 53% | The same script without the timing: painful reforms land on the election |
+| Reformer, keeps subsidy | about 82% | Keeping the subsidy costs a flawless reformer nothing at the ballot |
+| Reformer, ignores debts | about 84% |
+| Reformer, trusts advisers | about 73% | Takes every recommendation on files |
+| Reformer, checks the record | about 84% | Asks for a second opinion when an adviser's record is poor or keeps helping someone else | Leaving debts unpaid costs a flawless reformer little |
 
-With shocks (about three a presidency for those who last), the flawless reformer fell from 88% and the machine rose from 57%. The three imperfect reformers measure how narrow the reformer's path is. Timing is now worth about 26 points; the subsidy and the debts are not yet decisions that change who wins. The populist, machine, reformer and institutionalist bots all time their painful reforms; only the "any order" reformer does not.
+Phase 3 (advisers, wants, ministers' arcs) was balanced on 100 presidencies each: blind trust in advisers costs a reformer about 11 points, checking their record recovers it. The populist declines crooked asks as it declines scandal in files; the institutionalist refuses crooked asks openly only to people solidly with it; refusing everyone cost it half its wins. With shocks (about three a presidency for those who last), the flawless reformer fell from 88% and the machine rose from 57%. The three imperfect reformers measure how narrow the reformer's path is. Timing is now worth about 26 points; the subsidy and the debts are not yet decisions that change who wins. The populist, machine, reformer and institutionalist bots all time their painful reforms; only the "any order" reformer does not.
 
 The balance pass of 3 October (60 presidencies each) set these. Aims were reformer 75–85%, machine 55–70%, institutionalist 30–40%, populist 25–35%, kleptocrat 20–30%. The bots now value each choice by the chance-weighted average of its outcomes rather than its last one, so they see gambles as the engine plays them; before this the kleptocrat never noticed that a bribe could break the merger. The probe prints margin percentiles (p10, p50, p90), opposition unity and integrity. By scenario (12 each) the reformer ranges from 42% (The Morning After) to 100% (The Long Emergency), the populist from 0% (The Morning After, The Long Emergency) to 83% (The Reformer's Handover).
 

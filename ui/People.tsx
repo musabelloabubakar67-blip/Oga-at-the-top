@@ -14,7 +14,8 @@ import {
 import { movesLeft, sackCost } from '../engine/reduce';
 import { competenceShown, following, seenCompetence } from '../engine/people';
 import { currentWant, grudgeLine } from '../engine/wants';
-import { adviser, patronName, trackRecord } from '../engine/advice';
+import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord } from '../engine/advice';
+import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
@@ -107,6 +108,7 @@ const GRADE: Record<string, string> = { A: 'text-state', B: 'text-state', C: 'te
 
 export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dispatch: Dispatch; onClose: () => void; start?: Tab }) {
   const [tab, setTab] = useState<Tab>(start ?? 'governor');
+  const [swap, setSwap] = useState<string | null>(null);
   const [before] = useState(s.lastAction?.text);
   const said = s.lastAction && s.lastAction.text !== before ? s.lastAction.text : null;
   const left = movesLeft(s);
@@ -159,6 +161,30 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                   {r.served.map(([who, n]) => (
                     <p key={who} className="mt-1 text-sm text-alarm">Their recommendations have helped {patronName(who)} {n} {n === 1 ? 'time' : 'times'}.</p>
                   ))}
+                  {REPLACEABLE.includes(role) && (
+                    <button onClick={() => setSwap(swap === role ? null : role)} className="mt-2 border border-ink/30 px-3 py-1 font-serif text-sm hover:border-state">
+                      {swap === role ? 'Keep them' : 'Replace…'}
+                    </button>
+                  )}
+                  {swap === role && (
+                    <ul className="mt-2 space-y-2">
+                      {poolFor(s).map((c) => {
+                        const can = canReplaceAdviser(s, role, c.name, left);
+                        const rp = c.rep ?? { competence: c.competence, loyalty: c.loyalty };
+                        return (
+                          <li key={c.name} className="border-l-2 border-honour pl-3">
+                            <p className="font-serif">{c.name}</p>
+                            <p className="text-[13px] leading-snug text-ink-soft">{c.blurb} By reputation: {rp.competence >= 4 ? 'able' : rp.competence <= 2 ? 'out of their depth' : 'adequate'}, {rp.loyalty >= 4 ? 'loyal' : rp.loyalty <= 2 ? 'their own person' : 'reliable enough'}.</p>
+                            <button disabled={!can.ok} title={can.reason} onClick={() => { dispatch({ type: 'REPLACE_ADVISER', role, name: c.name }); setSwap(null); }}
+                              className={`mt-1 border px-3 py-1 text-sm ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>
+                              Bring in as {a.title} · {REPLACE_PC} capital · 1 move
+                            </button>
+                          </li>
+                        );
+                      })}
+                      {poolFor(s).length === 0 && <li className="text-sm italic text-ink-soft">Nobody else is willing to take the job.</li>}
+                    </ul>
+                  )}
                 </li>
               );
             })}
