@@ -25,6 +25,7 @@ import {
 import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
+import { shockTick } from './shocks';
 import { POLICY_BY_ID, canRepeal, economyStrength, policyName, repeal } from './policies';
 import { applyInheritance, handoverNotes, winnerOf, type Winner } from './succession';
 import { verdict } from './legacy';
@@ -107,6 +108,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
     counters: { 'rules.theatres': 1, 'rules.policies': 1 },
     agenda: { tracks: setup.priorities.slice(0, 4), done: [], active: [], failed: [] },
     ventures: { active: [], won: [], lost: [], causes: {} },
+    shocks: { active: [], seen: [], last: 0 },
     report: [],
     prev: {},
     lastAction: null,
@@ -665,6 +667,7 @@ function advance(s: GameState): void {
   economyTick(s);
   politicsTick(s);
   midterm(s);
+  shockTick(s);
 
   const tt = termTurnOf(s.turn);
   if (s.term === 2 && tt === CFG.electionTermTurn + 1 && !s.succession) {

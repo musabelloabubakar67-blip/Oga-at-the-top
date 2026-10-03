@@ -92,7 +92,7 @@ Parked: the Vice President, the courts as people, the military as a political ac
 
 Owner decisions, 3 October: the flat security bonus comes off the security reforms; life after office can end the game badly; wants use role templates plus one signature want each.
 
-Balance pass done on 3 October (60 each): reformer 88%, machine 55%, kleptocrat 43%, institutionalist 32%, populist 23%. The owner chose to leave the kleptocrat where it is. Reformers then got pain before payoff on fourteen reforms: a flawless reformer that times them wins 88%, one that takes reforms in any order 62%. Keeping the subsidy or ignoring debts still costs a flawless reformer almost nothing; that is open. Chapter 0, section 0.7 and the tools table, has the mechanics and the numbers.
+Balance pass done on 3 October (60 each): reformer 88%, machine 55%, kleptocrat 43%, institutionalist 32%, populist 23%. The owner chose to leave the kleptocrat where it is. Reformers then got pain before payoff on fourteen reforms: a flawless reformer that times them wins 88%, one that takes reforms in any order 62%. Keeping the subsidy or ignoring debts still costs a flawless reformer almost nothing; that is open. Shocks were then added (the owner asked not to be told what they are; see `content/shocks.ts`): flawless reformer 77%, any-order reformer 63%, machine 73%, institutionalist 40%, kleptocrat 33%, populist 30%. Chapter 0, section 0.7 and the tools table, has the mechanics and the numbers.
 
 Every phase must teach the simulator bots its new actions, or the balance table stops meaning anything. Do the full balance pass after phase 2, not before.
 

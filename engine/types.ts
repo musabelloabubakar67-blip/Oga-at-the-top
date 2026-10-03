@@ -434,6 +434,8 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** What is happening to the country from outside, and what already has. */
+  shocks: { active: { id: string; since: number; until: number }[]; seen: string[]; last: number };
   report: ReportItem[];
   prev: Record<string, number>;
   /** Powers of the moment currently on offer. */

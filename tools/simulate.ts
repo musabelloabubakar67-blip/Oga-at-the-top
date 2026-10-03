@@ -334,6 +334,7 @@ for (const bot of BOTS) {
   const dims: Record<string, number> = {};
   let elApp = 0, elMargin = 0, elN = 0, elParty = 0;
   const margins: number[] = [];
+  let shocks = 0;
   let months = 0, reelected = 0, quiet = 0, unique = 0, app = 0, hard = 0, personal = 0;
   let betsWon = 0, betsLost = 0, reforms = 0, arrears = 0, debt = 0, saved = 0, gone = 0, owing = 0;
   for (let i = 0; i < runs; i++) {
@@ -344,6 +345,7 @@ for (const bot of BOTS) {
     for (const d of v.dims) dims[d.name] = (dims[d.name] ?? 0) + d.score;
     months += Math.min(s.turn, 96);
     if (s.flags['election.won']) reelected++;
+    shocks += s.shocks?.seen.length ?? 0;
     if (s.election) { elApp += s.election.approval; elMargin += s.election.margin; elN++; margins.push(s.election.margin); }
     unique += Object.keys(s.fired).length;
     quiet += 0;
@@ -360,7 +362,7 @@ for (const bot of BOTS) {
   console.log(`   legacy    ${Object.entries(dims).map(([k, n]) => `${k.split(' ')[0]} ${(n / runs).toFixed(1)}`).join(' · ')}`);
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
-  console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)}\n`);
+  console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)} · shocks ${(shocks / runs).toFixed(1)}\n`);
 }
 if (args.includes('--probe')) {
   console.log('On the eve of the first election (averages):');

@@ -186,6 +186,14 @@ Sixteen of the bets appear only when a specific reform is delivered. The rest ca
 
 Tone rule: grave files carry no jokes, and every paper prints them straight.
 
+## 0.5a Shocks (`content/shocks.ts`, `engine/shocks.ts`)
+
+The owner asked not to be told what the shocks are, so this section describes the mechanism and leaves the list to the content file.
+
+Shocks are things that happen to the country from outside, good and bad. After month 6, with none under way and at least ten months since the last, each month has a 7% chance of one, drawn by weight from those not yet seen this presidency (some only in certain months). That gives about two to three in a full presidency. Each lasts a few months and arrives with a lead file.
+
+Every month a shock lasts, its effects land scaled by what is in place. A bad shock is reduced by each *cushion* that holds (a delivered reform, a fund with money in it, a quiet theatre, the government's answer in the file), down to 15% of its full force. A good shock is *caught*: a base share plus each thing in place, up to 150%. The desk shows the shock, the months left, the share felt or caught, each month's effects, and every cushion met (✓) or missing (✗); the monthly report repeats it with the reasons. The lint requires every bad shock to have at least one cushion the President could have built.
+
 ## 0.6 The press (`content/press.ts`, `engine/press.ts`)
 
 Four papers: The Federal Chronicle (record), Street Gist (the street), The Daily Stakeholder (owned by the media businessman; loyal or hostile as he is), The Daily Rejoinder (the opposition's).
@@ -232,16 +240,16 @@ Simulator results at the time of writing (40 presidencies each):
 |---|---|---|
 | Random | 0–2% | |
 | Do-nothing | about 2% | |
-| Populist | about 20% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
-| Machine politician | about 57% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
-| Clean institutionalist | about 42% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
-| Kleptocrat | about 38–43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% first aimed for; the owner chose to leave it, because corruption works |
-| Reformer (flawless play) | about 88% | Times its painful reforms (early in a term or after re-election, one at a time). Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
-| Reformer, any order | about 62% | The same script without the timing: painful reforms land on the election |
-| Reformer, keeps subsidy | about 87% | Keeping the subsidy costs a flawless reformer nothing at the ballot |
-| Reformer, ignores debts | about 82% | Leaving debts unpaid costs a flawless reformer little |
+| Populist | about 30% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
+| Machine politician | about 73% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
+| Clean institutionalist | about 40% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
+| Kleptocrat | about 33–43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% first aimed for; the owner chose to leave it, because corruption works |
+| Reformer (flawless play) | about 77% | Times its painful reforms (early in a term or after re-election, one at a time). Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
+| Reformer, any order | about 63% | The same script without the timing: painful reforms land on the election |
+| Reformer, keeps subsidy | about 78% | Keeping the subsidy costs a flawless reformer nothing at the ballot |
+| Reformer, ignores debts | about 78% | Leaving debts unpaid costs a flawless reformer little |
 
-The three imperfect reformers measure how narrow the reformer's path is. Timing is now worth about 26 points; the subsidy and the debts are not yet decisions that change who wins. The populist, machine, reformer and institutionalist bots all time their painful reforms; only the "any order" reformer does not.
+With shocks (about three a presidency for those who last), the flawless reformer fell from 88% and the machine rose from 57%. The three imperfect reformers measure how narrow the reformer's path is. Timing is now worth about 26 points; the subsidy and the debts are not yet decisions that change who wins. The populist, machine, reformer and institutionalist bots all time their painful reforms; only the "any order" reformer does not.
 
 The balance pass of 3 October (60 presidencies each) set these. Aims were reformer 75–85%, machine 55–70%, institutionalist 30–40%, populist 25–35%, kleptocrat 20–30%. The bots now value each choice by the chance-weighted average of its outcomes rather than its last one, so they see gambles as the engine plays them; before this the kleptocrat never noticed that a bribe could break the merger. The probe prints margin percentiles (p10, p50, p90), opposition unity and integrity. By scenario (12 each) the reformer ranges from 42% (The Morning After) to 100% (The Long Emergency), the populist from 0% (The Morning After, The Long Emergency) to 83% (The Reformer's Handover).
 

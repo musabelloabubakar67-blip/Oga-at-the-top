@@ -9,6 +9,7 @@ import { VENTURES } from '../content/ventures';
 import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
 import { policyNow } from '../engine/policies';
+import { activeShocks } from '../engine/shocks';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -1061,6 +1062,23 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
               </ul>
             </section>
           )}
+
+          {activeShocks(s).map((x) => (
+            <section key={x.def.id} className={`border p-4 ${x.def.good ? 'border-state-lit/40 bg-state/5' : 'border-alarm/40 bg-alarm/5'}`}>
+              <p className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-serif text-xl text-ivory">{x.def.name}</span>
+                <span className="label text-mute">{x.left <= 1 ? 'Last month' : `${x.left} months left`}</span>
+              </p>
+              <p className={`mt-1 text-sm ${x.def.good ? 'text-state-lit' : 'text-alarm'}`}>
+                {x.def.good ? `${Math.round(x.factor * 100)}% of it is being caught.` : `${Math.round(x.factor * 100)}% of it is being felt.`}
+              </p>
+              <span className="mt-1 block"><Expected items={describe(x.fx)} dark label="Each month" /></span>
+              <ul className="mt-1.5 space-y-0.5 text-[13px]">
+                {x.met.map((g) => <li key={g.label} className="text-state-lit">✓ {g.label}</li>)}
+                {x.missing.map((g) => <li key={g.label} className="text-ivory/50">✗ {g.label}</li>)}
+              </ul>
+            </section>
+          ))}
 
           <section>
             <p className="label text-mute">Executive powers</p>

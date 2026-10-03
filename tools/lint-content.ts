@@ -7,6 +7,7 @@ import { PEOPLE, PERSON_BY_ID, RIVALS } from '../content/people';
 import { EDITORIALS, FILLERS, SIDEBARS, STORIES } from '../content/press';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES } from '../content/ventures';
+import { SHOCKS } from '../content/shocks';
 import { SELECTORS } from '../engine/cast';
 import type { Cond, Fx, GameEvent, Op2, Outcome } from '../engine/types';
 
@@ -193,6 +194,7 @@ for (const e of EVENT_LIST) for (const c of e.choices) for (const o of c.outcome
 followed.add('removal.notice');
 followed.add('opp.woo');
 followed.add('tribunal.petition');
+for (const d of SHOCKS) followed.add(d.file);
 for (const e of EVENT_LIST) if (e.ignored) for (const f of e.ignored.follow ?? []) followed.add(f.event);
 for (const e of chains) if (!followed.has(e.id)) err(e, 'chain event is never queued by anything');
 
@@ -201,6 +203,16 @@ console.log(`${EVENT_LIST.length} events: ${leads} lead files, ${minors} minor m
 console.log(`${ORDERS.length} executive powers, ${ORDERS.filter((o) => o.situational).length} of them situational. ${TRACKS.length} reform tracks, ${milestones.size} reforms.`);
 console.log(`${VENTURES.length} big bets, ${opened} opened by reforms. ${TYCOONS.length} businessmen. ${SIDEBARS.length + FILLERS.length + EDITORIALS.length} conditioned press lines, ${STORIES.length} running stories.`);
 for (const w of warn) console.log(`  warn  ${w}`);
+// Shocks: effects, cushions and files must all resolve.
+for (const d of SHOCKS) {
+  const ref = { id: `shock.${d.id}` };
+  checkFx(ref, d.hit);
+  checkCond(ref, d.when);
+  for (const g of d.guards) checkCond(ref, g.when);
+  if (!EVENTS[d.file]) err(ref, `file ${d.file} does not exist`);
+  if (!d.good && d.guards.filter((g) => !('flag' in g.when)).length === 0) err(ref, 'a bad shock needs at least one thing the President could have built to cushion it');
+}
+
 if (errors.length) {
   for (const m of errors) console.error(`  ERROR ${m}`);
   process.exit(1);
