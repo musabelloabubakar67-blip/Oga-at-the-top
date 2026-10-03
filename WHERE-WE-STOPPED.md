@@ -88,7 +88,9 @@ This replaces the list under "What to do next" below, which is kept for its deta
 | 5 | Done. Any of the named cast can be groomed and backed, with strength, loyalty and integrity shown; life after office from elder statesman to prison or exile, decided by what can be found and who protects you; delivered reforms attacked by businessmen, governors, the Senate and the courts; a tension curve in the director | |
 | 6 | Done. A table of all 37 states with how each would vote today and what has been put there; seventeen big bets built in a chosen state, running as assets under a manager with returns, upkeep, capture and an effect on the state's vote, or leaving an abandoned site | |
 
-Next: the UI redesign for desktop (owner, 3 October): brief / decisions / levers; people as the hub, with every aimed order on their card; four permanent sections (Country with a map, Power, Treasury, Orders); a coming-up strip; previews on the gauges.
+The UI redesign for desktop is done (owner, 3 October): six sections behind a rail, a top bar with previews, a coming-up strip, aimed orders on people cards, a tile map. Chapter 0, section 0.1, describes it.
+
+Balance after phases 4b to 6 (100 each): flawless reformer 80%, any-order reformer 67%, institutionalist 64%, machine 63%, kleptocrat 29%, populist 28%. Machine was 67% before rival attacks drew sympathy back. The populist moves between 23% and 35% with small changes (noise at 100 runs is about ±5); it loses on hardship (73 to 79), which may be the right lesson or may be too harsh: the owner's call. After office: reformers end as elder statesmen, the machine mostly on trial or investigated, the kleptocrat in exile (it moves money abroad), the populist investigated about half the time.
 
 Parked: the Vice President, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
 
