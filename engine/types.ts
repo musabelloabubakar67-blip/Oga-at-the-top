@@ -377,6 +377,8 @@ export interface ElectionResult {
   approval: number;
   margin: number; // percentage points, two-party
   won: boolean;
+  /** How far the national mood on the day moved the vote, in points of share; positive is towards the President's side. */
+  swing?: number;
 }
 
 export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned' | 'annulled';

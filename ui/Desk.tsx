@@ -104,6 +104,7 @@ function PolicyPreview({ s, id }: { s: GameState; id: string }) {
   return (
     <>
       <Expected items={describe(year)} dark label="Every year, at today's economy" />
+      {p.approval > 0 && <p className="text-[12.5px] leading-snug text-state-lit">While it stands, approval is {p.approval} {p.approval === 1 ? 'point' : 'points'} higher than it would otherwise be.</p>}
       <p className="text-[12.5px] leading-snug text-ivory/60">{p.why}</p>
     </>
   );
@@ -1112,7 +1113,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
               <p className="font-serif text-5xl text-ivory">{app}%
                 <span className="ml-2 align-middle text-sm"><Delta d={appDelta} upIsGood unit="" /></span>
               </p>
-              {showOutlook && <p className="label mt-1 text-ivory/75">Re-election: {out.word}</p>}
+              {showOutlook && <p className="label mt-1 text-ivory/75" title="An estimate of the margin today. The mood on polling day can move it by up to twelve points, usually by fewer than five.">Re-election: {out.word}</p>}
             </div>
             <div>
               <p className="label text-mute">Political capital</p>

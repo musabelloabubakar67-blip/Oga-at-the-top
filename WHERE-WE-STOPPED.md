@@ -92,7 +92,7 @@ Parked: the Vice President, the courts as people, the military as a political ac
 
 Owner decisions, 3 October: the flat security bonus comes off the security reforms; life after office can end the game badly; wants use role templates plus one signature want each.
 
-Balance after phase 2 (40 each): reformer 100%, machine 83%, kleptocrat 28%, populist 10%, institutionalist 10%. The full balance pass is due now, before phase 3.
+Balance pass done on 3 October (60 each): reformer 88%, machine 55%, kleptocrat 43%, institutionalist 32%, populist 23%. The kleptocrat is above the 20–30% aimed for; the owner has not yet ruled on it. Chapter 0, section 0.7 and the tools table, has the mechanics and the numbers.
 
 Every phase must teach the simulator bots its new actions, or the balance table stops meaning anything. Do the full balance pass after phase 2, not before.
 

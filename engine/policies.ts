@@ -24,14 +24,17 @@ export function economyStrength(s: GameState): { v: number; lines: Line[] } {
 }
 
 /** What a policy does this month: to revenue, to inflation, and to everything else. */
-export interface PolicyNow { fiscal: number; inflation: number; fx: Fx[]; why: string }
+/** approval: points of lasting popularity while it stands, on top of everything else that moves approval. */
+export interface PolicyNow { fiscal: number; inflation: number; approval: number; fx: Fx[]; why: string }
 
 interface PolicyDef {
   /** The reform that puts it in force. */
   id: string;
   /** A short name for the books. */
   short: string;
-  now: (s: GameState) => PolicyNow;
+  now: (s: GameState) => Omit<PolicyNow, 'approval'>;
+  /** The popularity it keeps while it stands: what made it tempting. */
+  goodwill: (s: GameState) => number;
   /** Undoing it costs this much capital, and this. */
   repealPc: number;
   repeal: Fx[];
@@ -47,7 +50,7 @@ export function affordableWage(s: GameState): number {
 
 const DEFS: PolicyDef[] = [
   {
-    id: 'h4', short: 'The ₦150,000 minimum wage', repealPc: 10, repeal: [['approval', -3], ['bloc.street', -8], ['pressure.wageGrievance', 20]],
+    id: 'h4', short: 'The ₦150,000 minimum wage', goodwill: (s) => (affordableWage(s) >= 150 ? 2 : 1),  repealPc: 10, repeal: [['approval', -3], ['bloc.street', -8], ['pressure.wageGrievance', 20]],
     now: (s) => {
       const can = affordableWage(s);
       const gap = 150 - can;
@@ -60,7 +63,7 @@ const DEFS: PolicyDef[] = [
     },
   },
   {
-    id: 'h1', short: 'The price control board', repealPc: 6, repeal: [['approval', -2], ['bloc.street', -5]],
+    id: 'h1', short: 'The price control board', goodwill: (s) => (s.nation.inflation > 12 ? 1.5 : 0.3),  repealPc: 6, repeal: [['approval', -2], ['bloc.street', -5]],
     now: (s) => {
       const excess = Math.max(0, s.nation.inflation - 12);
       if (excess < 1) return { fiscal: -0.003, inflation: 0, fx: [], why: 'Prices are close to what food costs to grow, so the board has little to do but meet.' };
@@ -69,7 +72,7 @@ const DEFS: PolicyDef[] = [
     },
   },
   {
-    id: 'h2', short: 'The pump price fixed by law', repealPc: 12, repeal: [['approval', -4], ['bloc.street', -8], ['pressure.wageGrievance', 15]],
+    id: 'h2', short: 'The pump price fixed by law', goodwill: () => 2,  repealPc: 12, repeal: [['approval', -4], ['bloc.street', -8], ['pressure.wageGrievance', 15]],
     now: (s) => {
       const oil = s.oil.price;
       const fiscal = -(0.015 + 0.0006 * Math.max(0, oil - 45) + 0.0008 * Math.max(0, s.nation.inflation - 12));
@@ -79,7 +82,7 @@ const DEFS: PolicyDef[] = [
     },
   },
   {
-    id: 'o2', short: 'The closed land borders', repealPc: 6, repeal: [['tycoon.ty_maker', -10], ['tycoon.ty_trade', 8]],
+    id: 'o2', short: 'The closed land borders', goodwill: () => 0.5,  repealPc: 6, repeal: [['tycoon.ty_maker', -10], ['tycoon.ty_trade', 8]],
     now: (s) => {
       const farms = ['f1', 'f2', 'f3', 'f5'].filter((id) => done(s, id)).length;
       const belt = (s.theatres.NW + s.theatres.NC) / 2;
@@ -90,7 +93,7 @@ const DEFS: PolicyDef[] = [
     },
   },
   {
-    id: 'o4', short: 'The national airline and shipping line', repealPc: 4, repeal: [['bloc.party', -5]],
+    id: 'o4', short: 'The national airline and shipping line', goodwill: () => 0.5,  repealPc: 4, repeal: [['bloc.party', -5]],
     now: (s) => {
       const fiscal = Math.min(0.005, -0.03 + 0.0005 * (s.nation.capacity - 35) + 0.0004 * (s.nation.integrity - 30));
       return { fiscal, inflation: 0, fx: [],
@@ -98,18 +101,18 @@ const DEFS: PolicyDef[] = [
     },
   },
   {
-    id: 'r2', short: 'The six new states', repealPc: 20, repeal: [['bloc.party', -12], ['approval', -2]],
+    id: 'r2', short: 'The six new states', goodwill: () => 0.5,  repealPc: 20, repeal: [['bloc.party', -12], ['approval', -2]],
     now: (s) => ({ fiscal: -0.0004 * s.oil.price, inflation: 0, fx: [['bloc.party', 0.02]],
       why: `Six new governments take their share of the federation account. The more oil earns ($${r1(s.oil.price)}), the more their share costs the centre.` }),
   },
   {
-    id: 'g3', short: 'The ban on raw exports', repealPc: 5, repeal: [['tycoon.ty_maker', -8], ['approval', -1]],
+    id: 'g3', short: 'The ban on raw exports', goodwill: () => 0.3,  repealPc: 5, repeal: [['tycoon.ty_maker', -8], ['approval', -1]],
     now: (s) => s.nation.power >= 55
       ? { fiscal: -0.008, inflation: 0, fx: [['nation.jobs', 0.04]], why: `Power is at ${r1(s.nation.power)}: there is electricity to process what used to be shipped raw, and the factories hire.` }
       : { fiscal: -0.02, inflation: 0, fx: [['nation.jobs', -0.03], ['zone.NC.approval', -0.03]], why: `Power is at ${r1(s.nation.power)}: there is not enough electricity to process the crops, so farmers cannot sell them at all. Above 55 the ban starts to pay.` },
   },
   {
-    id: 'o1', short: 'The internet falsehood law', repealPc: 4, repeal: [['bloc.press', 6], ['bloc.villa', -3]],
+    id: 'o1', short: 'The internet falsehood law', goodwill: () => 0,  repealPc: 4, repeal: [['bloc.press', 6], ['bloc.villa', -3]],
     now: (s) => {
       const abuse = Math.max(0, 45 - s.nation.integrity) * 0.003;
       return { fiscal: 0, inflation: 0, fx: [['pressure.scandalHeat', -0.15], ['bloc.press', -0.08], ...(abuse ? [['nation.integrity', -abuse] as Fx] : [])],
@@ -117,7 +120,7 @@ const DEFS: PolicyDef[] = [
     },
   },
   {
-    id: 'o5', short: 'The death penalty for corruption', repealPc: 4, repeal: [['bloc.street', -4], ['bloc.establishment', 3]],
+    id: 'o5', short: 'The death penalty for corruption', goodwill: () => 1.5,  repealPc: 4, repeal: [['bloc.street', -4], ['bloc.establishment', 3]],
     now: (s) => done(s, 'c2')
       ? { fiscal: 0, inflation: 0, fx: [['nation.integrity', 0.03]], why: 'Tried in anti-corruption courts with time limits, the threat is believed, and officials behave.' }
       : { fiscal: 0, inflation: 0, fx: [['pressure.scandalHeat', 0.08], ['bloc.establishment', -0.05], ['nation.integrity', -0.01]], why: 'Without courts that work, it is used on the President\'s opponents and nobody else. The establishment notices.' },
@@ -136,7 +139,13 @@ export function activePolicies(s: GameState): string[] {
 }
 
 export function policyNow(s: GameState, id: string): PolicyNow | null {
-  return POLICY_BY_ID[id]?.now(s) ?? null;
+  const d = POLICY_BY_ID[id];
+  return d ? { ...d.now(s), approval: d.goodwill(s) } : null;
+}
+
+/** Popularity the policies in force keep, added to where approval is heading in every zone. */
+export function policyGoodwill(s: GameState): number {
+  return activePolicies(s).reduce((a, id) => a + POLICY_BY_ID[id].goodwill(s), 0);
 }
 
 /** Lines for the treasury's monthly flow. */

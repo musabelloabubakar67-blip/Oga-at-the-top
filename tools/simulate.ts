@@ -9,7 +9,7 @@ import { canCall, canTycoon } from '../engine/favours';
 import { canFund, canPay, usualBudget } from '../engine/treasury';
 import type { DebtId, SectorId } from '../engine/types';
 import { FINANCE_CANDIDATES } from '../content/names';
-import { dateLabel, termTurnOf } from '../engine/config';
+import { CFG, dateLabel, termTurnOf } from '../engine/config';
 import { moneyEffect, projectMargin } from '../engine/election';
 import { governorEffect } from '../engine/people';
 import { verdict } from '../engine/legacy';
@@ -25,7 +25,7 @@ import { fiscalFlow } from '../engine/treasury';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { ORDER_BY_ID } from '../content/agenda';
 import type { Choice, Fx, GameState, ZoneId } from '../engine/types';
-import { ZONES, approval, hardship } from '../engine/vars';
+import { ZONES, approval, delegates, hardship, test } from '../engine/vars';
 import { traceFor } from '../engine/view';
 
 type Weights = Record<string, number>;
@@ -57,7 +57,7 @@ const BOTS: Bot[] = [
   {
     name: 'Populist', finance: 1, purse: false, pcAversion: 0.4, tracks: ['power', 'food', 'security', 'people'], reforms: 'free',
     budget: [80, 2, 2, 4, 2, 0, 2], pays: ['pensions'], courts: true,
-    w: { approval: 3, 'bloc.street': 1.5, 'bloc.party': 0.6, 'pressure.wageGrievance': -0.3, 'nation.petrolPrice': -0.02 },
+    w: { approval: 3, 'bloc.street': 1.5, 'bloc.party': 0.6, 'pressure.wageGrievance': -0.3, 'nation.petrolPrice': -0.02, 'pressure.scandalHeat': -0.4, 'nation.integrity': 0.5 },
     act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : ['tour', lowestZone(s)]),
   },
   {
@@ -72,8 +72,9 @@ const BOTS: Bot[] = [
   {
     name: 'Institutionalist', finance: 0, purse: false, pcAversion: 0.05, tracks: ['clean', 'service', 'security', 'people'], reforms: 'all', bets: ['loot', 'census', 'borders'],
     budget: [60, 3, 2, 2, 1, 0, 0], pays: ['pensions', 'contractors', 'gas', 'ways'], saves: true,
-    w: { 'nation.integrity': 3, 'nation.capacity': 3, 'bloc.press': 0.3, approval: 0.3, 'counter.committees': -3 },
-    act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : s.pc > 30 && canAct(s, 'audit').ok ? ['audit'] : s.blocs.party < 48 ? ['convene'] : ['tour', lowestZone(s)]),
+    w: { 'nation.integrity': 3, 'nation.capacity': 3, 'bloc.press': 0.3, approval: 1, 'counter.committees': -3 },
+    // Clean, but not naive: in the year before the primary the party comes first.
+    act: (s) => (campaigning(s) ? ['rally', lowestZone(s)] : termTurnOf(s.turn) >= 24 && termTurnOf(s.turn) <= 38 && s.blocs.party < 55 ? ['convene'] : s.pc > 30 && canAct(s, 'audit').ok ? ['audit'] : s.blocs.party < 48 ? ['convene'] : ['tour', lowestZone(s)]),
   },
   {
     name: 'Machine', finance: 1, purse: false, pcAversion: 0.2, tracks: ['power', 'security', 'food', 'works'], reforms: 'free',
@@ -95,14 +96,25 @@ const BOTS: Bot[] = [
 ];
 
 function score(bot: Bot, c: Choice, s: GameState): number {
-  const o = c.outcomes[c.outcomes.length - 1];
-  const all: Fx[] = [...(o.fx ?? []), ...(o.later ?? []).flatMap((l) => l.fx)];
+  // Each outcome weighted by how likely it is, in the order the engine tries them.
+  let left = 1;
   let v = 0;
-  for (const [t, d] of all) v += (bot.w[t] ?? 0) * d;
+  const value = (x: Choice['outcomes'][number], p: number) => {
+    for (const [t, d] of [...(x.fx ?? []), ...(x.later ?? []).flatMap((l) => l.fx)]) v += p * (bot.w[t] ?? 0) * d;
+    if (x.ends) v -= p * 1000;
+  };
+  for (const x of c.outcomes) {
+    if (left <= 0) break;
+    if (x.when && !test(s, x.when)) continue;
+    const p = left * (x.chance ?? 1);
+    left -= p;
+    value(x, p);
+  }
+  // When nothing is picked, the engine falls back to the last outcome.
+  if (left > 0) value(c.outcomes[c.outcomes.length - 1], left);
   v -= (c.pc ?? 0) * bot.pcAversion;
   if (c.purse && bot.name === 'Kleptocrat') v += 12;
   if (c.naira) v += (bot.w['nation.fiscalSpace'] ?? 0) * -c.naira;
-  if (o.ends) v -= 1000;
   if (bot.name === 'Do-nothing' && !c.pc && !c.naira) v += 2;
   if (bot.name === 'Random') v = Math.random() * 10;
   return v + (s.turn % 7) * 1e-6;
@@ -184,6 +196,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         if (bot.reforms === 'grease' && next.naira > s.nation.fiscalSpace + 0.5) continue;
         if (bot.reforms === 'all' && next.naira > s.nation.fiscalSpace && s.nation.debt > 80) continue;
         if (bot.reforms === 'all' && s.pc - next.pc < 12) continue;
+        // A careful President paces the agenda in the year before the primary, so the party is not strained.
+        if (bot.name === 'Institutionalist' && termTurnOf(s.turn) >= 24 && termTurnOf(s.turn) <= 38 && s.agenda.active.length >= CFG.agenda.easyLoad) continue;
         s = applyAction(s, { type: 'LAUNCH', id: next.id });
       }
     }
@@ -207,7 +221,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       }
     }
     // The dials.
-    if (!skip('relief') && bot.name === 'Populist' && s.blocs.street < 45 && orderOk(s, 'relief') && s.nation.fiscalSpace > 1) s = applyAction(s, { type: 'ORDER', id: 'relief', level: 2 });
+    if (!skip('relief') && bot.name === 'Populist' && (s.blocs.street < 45 || termTurnOf(s.turn) >= 40) && orderOk(s, 'relief') && s.nation.fiscalSpace > 1) s = applyAction(s, { type: 'ORDER', id: 'relief', level: 2 });
     if (!skip('relief') && bot.name === 'Machine' && termTurnOf(s.turn) >= 36 && orderOk(s, 'relief') && s.nation.fiscalSpace > 0.6) s = applyAction(s, { type: 'ORDER', id: 'relief', level: 1 });
     if (!skip('bond') && (bot.name === 'Kleptocrat' || bot.name === 'Machine') && s.nation.fiscalSpace < 0.3 && s.nation.debt < 80 && termTurnOf(s.turn) >= 30 && orderOk(s, 'bond')) s = applyAction(s, { type: 'ORDER', id: 'bond', level: 1 });
     if (!skip('vat') && bot.name === 'Institutionalist' && termTurnOf(s.turn) <= 20 && fiscalFlow(s).total < 0 && orderOk(s, 'tax')) s = applyAction(s, { type: 'ORDER', id: 'tax', level: 0 });
@@ -226,7 +240,9 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       while (movesLeft(s) > 0) {
         const pool = PEOPLE.filter((p) => p.group !== 'minister').sort((x, y) => standing(s, x.id) - standing(s, y.id));
         const target = pool[0];
-        const generous = bot.name === 'Machine' || bot.name === 'Kleptocrat' || bot.name === 'Populist';
+        // The clean grant only what costs no integrity: a reconstruction fund, a seaport. Never fertiliser with a photograph on the bag.
+        const clean = bot.name === 'Institutionalist' && !!target.want && !target.want.fx.some(([t, d]) => t === 'nation.integrity' && d < 0);
+        const generous = bot.name === 'Machine' || bot.name === 'Kleptocrat' || bot.name === 'Populist' || clean;
         const op = generous && canDeal(s, target.id, 'grant', movesLeft(s)).ok && (target.want?.naira ?? 0) <= s.nation.fiscalSpace + 0.3 ? 'grant' : 'court';
         if (!canDeal(s, target.id, op, movesLeft(s)).ok) break;
         s = applyAction(s, { type: 'PERSON', id: target.id, op });
@@ -237,7 +253,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         approval: approval(s), hardship: hardship(s), party: s.blocs.party, street: s.blocs.street, chest: s.campaign.chest, scandal: s.pressures.scandalHeat,
         rival: Math.max(...Object.values(s.opposition)), governors: ZONES.reduce((a, z) => a + governorEffect(s, z), 0) / 6, money: moneyEffect(s),
         treasury: s.nation.fiscalSpace, debt: s.nation.debt, arrears: s.debts.gas + s.debts.contractors + s.debts.pensions, inflation: s.nation.inflation,
-        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
+        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, united: s.flags['opposition.united'] ? 1 : 0, broad: s.flags['opposition.broad'] ? 1 : 0, integrity: s.nation.integrity, merger: s.fired['opposition.unites'] ? 1 : 0, delegates: delegates(s), security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
       });
     }
     s = applyAction(s, { type: 'END_MONTH' });
@@ -292,6 +308,7 @@ for (const bot of BOTS) {
   const epithets: Record<string, number> = {};
   const dims: Record<string, number> = {};
   let elApp = 0, elMargin = 0, elN = 0, elParty = 0;
+  const margins: number[] = [];
   let months = 0, reelected = 0, quiet = 0, unique = 0, app = 0, hard = 0, personal = 0;
   let betsWon = 0, betsLost = 0, reforms = 0, arrears = 0, debt = 0, saved = 0, gone = 0, owing = 0;
   for (let i = 0; i < runs; i++) {
@@ -302,7 +319,7 @@ for (const bot of BOTS) {
     for (const d of v.dims) dims[d.name] = (dims[d.name] ?? 0) + d.score;
     months += Math.min(s.turn, 96);
     if (s.flags['election.won']) reelected++;
-    if (s.election) { elApp += s.election.approval; elMargin += s.election.margin; elN++; }
+    if (s.election) { elApp += s.election.approval; elMargin += s.election.margin; elN++; margins.push(s.election.margin); }
     unique += Object.keys(s.fired).length;
     quiet += 0;
     betsWon += s.ventures.won.length; betsLost += s.ventures.lost.length; reforms += s.agenda.done.length; arrears += s.debts.gas + s.debts.contractors + s.debts.pensions; debt += s.nation.debt; saved += s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth; gone += Object.values(s.people).filter((p) => p.gone).length; owing += s.favours.filter((f) => f.dir === 'owing').length;
@@ -312,7 +329,8 @@ for (const bot of BOTS) {
   const pct = (n: number) => `${Math.round((n / runs) * 100)}%`;
   console.log(`── ${bot.name}`);
   console.log(`   months in office ${(months / runs).toFixed(0)} · re-elected ${pct(reelected)} · final approval ${(app / runs).toFixed(0)}% · hardship ${(hard / runs).toFixed(0)} · kept ₦${(personal / runs).toFixed(0)}bn`);
-  console.log(`   at first election: approval ${(elApp / Math.max(1, elN)).toFixed(0)}% · margin ${(elMargin / Math.max(1, elN)).toFixed(1)} pts · contested ${elN}`);
+  const q = (f: number) => { const m = [...margins].sort((a, b) => a - b); return m.length ? m[Math.min(m.length - 1, Math.floor(f * m.length))].toFixed(1) : '–'; };
+  console.log(`   at first election: approval ${(elApp / Math.max(1, elN)).toFixed(0)}% · margin ${(elMargin / Math.max(1, elN)).toFixed(1)} pts (p10 ${q(0.1)}, p50 ${q(0.5)}, p90 ${q(0.9)}) · contested ${elN}`);
   console.log(`   endings   ${Object.entries(endings).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   legacy    ${Object.entries(dims).map(([k, n]) => `${k.split(' ')[0]} ${(n / runs).toFixed(1)}`).join(' · ')}`);
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
@@ -323,7 +341,7 @@ if (args.includes('--probe')) {
   console.log('On the eve of the first election (averages):');
   for (const [name, rows] of Object.entries(eve)) {
     const keys = Object.keys(rows[0]);
-    console.log(`  ${name.padEnd(17)}` + keys.map((k) => `${k} ${(rows.reduce((a, r) => a + r[k], 0) / rows.length).toFixed(k === 'treasury' || k === 'arrears' || k === 'money' || k === 'governors' ? 1 : 0)}`).join(' · '));
+    console.log(`  ${name.padEnd(17)}` + keys.map((k) => `${k} ${(rows.reduce((a, r) => a + r[k], 0) / rows.length).toFixed(k === 'united' || k === 'broad' ? 2 : k === 'treasury' || k === 'arrears' || k === 'money' || k === 'governors' ? 1 : 0)}`).join(' · '));
   }
   console.log('');
 }

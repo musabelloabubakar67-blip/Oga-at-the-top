@@ -66,6 +66,11 @@ export function ElectionNight({ s, onDone }: { s: GameState; onDone: () => void 
               ? `Margin: ${result.margin.toFixed(1)} points. Approval on polling day was ${Math.round(result.approval)}%. The petition will be filed by Friday.`
               : `Margin: ${Math.abs(result.margin).toFixed(1)} points. Approval on polling day was ${Math.round(result.approval)}%. You have three months left in the Villa.`}
           </p>
+          {result.swing !== undefined && Math.abs(result.swing) >= 1 && (
+            <p className="mt-2 text-sm text-ink-soft">
+              The mood of the country on the day moved the vote {Math.abs(result.swing * 2).toFixed(1)} points {result.swing > 0 ? 'towards you' : 'away from you'}{Math.abs(result.swing * 2) > Math.abs(result.margin) ? ', more than the margin itself' : ''}.
+            </p>
+          )}
           <div className="mt-6 text-right">
             <button onClick={onDone} autoFocus className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">
               {result.won ? 'Back to work' : 'Return to the Villa'}

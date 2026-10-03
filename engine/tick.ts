@@ -5,7 +5,7 @@ import { tycoonInflation, tycoonTick } from './favours';
 import { oppositionTick } from './opposition';
 import { peopleTick } from './people';
 import { foodInflation, securityTick } from './security';
-import { policyInflationLines, policyTick } from './policies';
+import { policyGoodwill, policyInflationLines, policyTick } from './policies';
 import { budgetInflation, printedInflation, treasuryTick } from './treasury';
 import type { GameState, Nation } from './types';
 import { BLOCS, ZONES, applyFx, approval, clamp, hardship, petrolShock, test, zoneSecurity } from './vars';
@@ -123,13 +123,16 @@ export function politicsTick(s: GameState): void {
 
   s.counters.scar = (s.counters.scar ?? 0) * CFG.scar.decay + Math.max(0, h - CFG.scar.above) * CFG.scar.gain;
   const a = CFG.approval;
+  // The crowd-pleasers stay popular for as long as they stand.
+  const goodwill = policyGoodwill(s);
   for (const z of ZONES) {
     const zone = s.zones[z];
     // Voters punish hardship more than they reward its absence.
     const target = a.base + zone.lean - (h - 45) * (h > 45 ? a.hardship : a.relief) - (45 - zoneSecurity(s, z)) * (zoneSecurity(s, z) > 45 ? a.security * 0.5 : a.security)
       + (s.blocs.press - 50) * a.press - s.counters.scar * a.scar
       - Math.max(0, s.pressures.scandalHeat - a.scandalAbove) * a.scandal
-      - Math.max(0, s.turn - a.fatigueAfter) * a.fatigue;
+      - Math.max(0, s.turn - a.fatigueAfter) * a.fatigue
+      + goodwill;
     zone.approval = clamp(toward(zone.approval, target, a.rate), 5, 95);
   }
 

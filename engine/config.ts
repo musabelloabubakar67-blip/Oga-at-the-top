@@ -54,14 +54,14 @@ export const CFG = {
     breaking: 20,
   },
 
-  approval: { base: 49, hardship: 0.55, relief: 0.25, fatigue: 0.11, fatigueAfter: 12, security: 0.25, press: 0.05, rate: 0.18, scar: 0.3, scandal: 0.07, scandalAbove: 45 },
+  approval: { base: 49, hardship: 0.55, relief: 0.1, fatigue: 0.11, fatigueAfter: 12, security: 0.25, press: 0.05, rate: 0.18, scar: 0.3, scandal: 0.07, scandalAbove: 45 },
   // Voters remember the worst months for a long time.
   scar: { above: 55, gain: 0.04, decay: 0.97 },
 
   election: {
-    approval: 0.45, machine: 5, rally: 1, rallyCap: 3, chestPer: 0.25, chestCap: 3, governor: 0.6,
+    approval: 0.38, machine: 4, rally: 1, rallyCap: 3, chestPer: 0.25, chestCap: 3, governor: 0.6,
     scandal: 16, home: 6, homeZone: 3, noise: 2.5, successorPenalty: 3, tycoon: 1.6,
-    united: -2, split: 2, scar: 0.4, incumbency: 1, rival: 0.1,
+    united: -3, split: 2, swing: 7, clean: 0.08, scar: 0.4, incumbency: 1, rival: 0.1,
   },
 
   director: { quietChance: 0.2, minorOne: 0.42, minorTwo: 0.08 },

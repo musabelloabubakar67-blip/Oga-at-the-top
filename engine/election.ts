@@ -5,7 +5,7 @@ import { governorEffect, strongestRival } from './people';
 import { ZONES, ZONE_WEIGHT } from './vars';
 import { rand } from './rng';
 import type { ElectionResult, GameState, StateResult } from './types';
-import { ZONE_NAME, approval, clamp } from './vars';
+import { ZONE_NAME, approval, clamp, registerOutlook } from './vars';
 
 /** What the businessmen's money is doing to the race: points of vote share. */
 export function moneyEffect(s: GameState): number {
@@ -13,9 +13,19 @@ export function moneyEffect(s: GameState): number {
   for (const t of TYCOONS) {
     const rel = s.tycoons[t.id]?.rel ?? 50;
     if (rel >= 60) v += CFG.election.tycoon * 0.6;
-    if (rel < 35) v -= CFG.election.tycoon;
+    if (rel < 35) v -= CFG.election.tycoon * smearDiscount(s);
   }
   return v;
+}
+
+/** Money spent against a President with a clean record buys less: there is less to smear. */
+export function smearDiscount(s: GameState): number {
+  return 1 - Math.max(0, s.nation.integrity - 40) / 100;
+}
+
+/** Voters credit a clean record, in points of share. */
+export function cleanRecord(s: GameState): number {
+  return Math.max(0, s.nation.integrity - 62) * CFG.election.clean;
 }
 
 /** Results published from every polling unit leave the party machine less to do. */
@@ -28,8 +38,8 @@ export function projectMargin(s: GameState): number {
   const e = CFG.election;
   const machine = ((s.blocs.party - 50) / 50) * e.machine * machineWeight(s);
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
-  const field = (s.flags['opposition.united'] ? e.united : 0) + (s.flags['opposition.split'] ? e.split : 0)
-    - (s.counters.scar ?? 0) * e.scar + e.incumbency - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s);
+  const field = (s.flags['opposition.united'] ? e.united * (s.flags['opposition.broad'] ? 1.5 : 1) : 0) + (s.flags['opposition.split'] ? e.split : 0)
+    - (s.counters.scar ?? 0) * e.scar + e.incumbency - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s) + cleanRecord(s);
   const governors = ZONES.reduce((a, z) => a + governorEffect(s, z) * ZONE_WEIGHT[z], 0);
   const rallies = ZONES.reduce((a, z) => a + Math.min(e.rallyCap, s.campaign.rallies[z] ?? 0) * e.rally * ZONE_WEIGHT[z], 0);
   const twoWay = 50 + (approval(s) - 50) * e.approval + machine + chest - s.pressures.scandalHeat / e.scandal + field + governors + rallies + 0.6;
@@ -42,9 +52,11 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession'): El
   const machine = ((s.blocs.party - 50) / 50) * e.machine * machineWeight(s);
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
   const scandal = s.pressures.scandalHeat / e.scandal;
-  const field = (s.flags['opposition.united'] ? e.united : 0) + (s.flags['opposition.split'] ? e.split : 0) - (s.counters.scar ?? 0) * e.scar + (kind === 'reelection' ? e.incumbency : 0)
-    - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s);
+  const field = (s.flags['opposition.united'] ? e.united * (s.flags['opposition.broad'] ? 1.5 : 1) : 0) + (s.flags['opposition.split'] ? e.split : 0) - (s.counters.scar ?? 0) * e.scar + (kind === 'reelection' ? e.incumbency : 0)
+    - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s) + cleanRecord(s);
   const backing = kind === 'succession' ? Number(s.flags['succession.strength'] ?? -2) - e.successorPenalty : 0;
+  // Nobody controls the mood of the country on the day. Usually small; now and then it decides a close race.
+  const swing = (rand(s) + rand(s) - 1) * e.swing;
 
   const states: StateResult[] = STATES.map((st) => {
     const zone = s.zones[st.zone];
@@ -56,7 +68,7 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession'): El
     const third = 5 + rand(s) * 5;
     const twoWay = clamp(
       50 + (s.stateLean[st.id] ?? 0) + (zone.approval - 50) * e.approval + machine + rallies * e.rally
-        + chest - scandal + home + backing + field + governorEffect(s, st.zone) + noise,
+        + chest - scandal + home + backing + field + governorEffect(s, st.zone) + noise + swing,
       8, 92,
     );
     const share = twoWay * (1 - third / 100);
@@ -88,5 +100,8 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession'): El
     approval: approval(s),
     margin: ((votesFor - votesAgainst) / (votesFor + votesAgainst)) * 100,
     won: votesFor > votesAgainst && spread >= 25,
+    swing,
   };
 }
+
+registerOutlook(projectMargin);

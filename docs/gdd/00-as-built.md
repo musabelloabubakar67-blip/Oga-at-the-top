@@ -194,7 +194,15 @@ Series run over several months (unpaid pensioners, payments out of the Villa, a 
 
 ## 0.7 Elections and the verdict
 
-Re-election is decided state by state from zone approval, the party machine, governors, rallies, the campaign chest, scandal, the strongest rival, and whether the money is with or against the President. The outlook on the desk counts the same things.
+Re-election is decided state by state from zone approval, the party machine, governors, rallies, the campaign chest, scandal, the strongest rival, whether the money is with or against the President, and a clean record. The outlook on the desk counts the same things, except the mood on the day.
+
+- **The mood on the day.** A national swing of up to 7 points of share either way (two random draws, so usually under 3), named on the result screen when it moves the vote by a point or more. A flawless President can lose a close race and an underdog can win one. The outlook's tooltip says so.
+- **A clean record.** Integrity above 62 adds 0.08 points of share per point. Money spent against the President loses force as integrity rises above 40 (at 73, it buys about two-thirds as much): there is less to smear. Money working for the President is unaffected.
+- **The opposition merger** arrives in month 34 of every first term. Against a President whose projected margin is 6 or more, the merger cannot fail and is broad: it draws in everyone who wants a change and costs 4.5 points of share (9 of margin) instead of 3. Otherwise leaving it alone splits it half the time. Paying the open-minded chairman costs ₦20bn from the drawer and works 60% of the time; when it fails the merger goes ahead and the offer leaks. Event conditions can read the projected margin as `outlook`.
+- **Weights.** Approval counts 0.38 points of share per point (was 0.45); the party machine 4 (was 5); a united opposition −3 (was −2).
+- **Popular policies.** Each crowd-pleaser in force keeps approval a little higher for as long as it stands (the ₦150,000 wage 2 points when the economy can carry it and 1 when not; the fixed pump price 2; the price control board 1.5 while inflation is above 12; the death penalty 1.5; the others 0.3 to 0.5), shown on the card and in the policies tab. Voters give less lasting credit for low hardship than before (0.10 a point, was 0.25).
+
+**The primary.** Delegates are 65% the clout of governors and senators who are with the President or owe a favour, 35% the party's mood, plus 1.5 for each point of approval above 50: delegates defy their governors for a popular President. A President with 55% approval (was 58%) and 36% of delegates can also win on the floor.
 
 The verdict grades seven dimensions against what was inherited, including what is still owed and what was saved, names an epithet, and lists what is handed on. The baseline is the scenario or inheritance the presidency actually started from.
 
@@ -220,15 +228,18 @@ Simulator results at the time of writing (40 presidencies each):
 
 | Strategy | Re-elected | Note |
 |---|---|---|
-| Random | 0% | |
-| Do-nothing | 0% | |
-| Populist | about 10% | Takes the crowd-pleasers in a weak economy; debt service ends near 120%, ₦9tn unpaid |
-| Machine politician | about 83% | Takes crowd-pleasers too, borrows before elections; leaves office still owing two favours |
-| Clean institutionalist | about 10% | Raises VAT early, then loses the primary (about 65%) for want of capital and the party |
-| Kleptocrat | about 28% | Keeps about ₦310bn; usually voted out, owing everybody |
-| Reformer (flawless play) | 100% | Delivers about 54 of 70 reforms, skipping the nine crowd-pleasers; leaves debt service near 85% |
+| Random | 0–2% | |
+| Do-nothing | about 2% | |
+| Populist | about 23% | Takes the crowd-pleasers, avoids scandal, spends on relief in election year; usually leads at month 34 and meets a broad merger |
+| Machine politician | about 55% | Takes crowd-pleasers too, borrows before elections; often leads at month 34 and meets a broad merger |
+| Clean institutionalist | about 32% | Grants only wants that cost no integrity, protects the party in the year before the primary; no longer loses the ticket |
+| Kleptocrat | about 43% | Keeps about ₦310bn; buys the opposition chairman or a spoiler. Above the 20–30% aimed for; the owner's rule is that corruption works |
+| Reformer (flawless play) | about 88% | Loses about one election in eight: its lead invites a broad merger, and the mood on the day can take a close one |
 
-Standing policies and dials moved these (phase 2). The engine changes alone left every strategy within sampling noise except the machine politician, which rose. The falls came from what the bots now do: the populist and machine take the crowd-pleasers, the institutionalist raises VAT, and bots that borrowed $3bn every time the treasury ran low spiralled into debt (the machine fell to 28% until it borrowed only before elections and below 80 debt service). `SKIP=pop,rep,relief,bond,vat npm run simulate` switches those behaviours off one by one.
+The balance pass of 3 October (60 presidencies each) set these. Aims were reformer 75–85%, machine 55–70%, institutionalist 30–40%, populist 25–35%, kleptocrat 20–30%. The bots now value each choice by the chance-weighted average of its outcomes rather than its last one, so they see gambles as the engine plays them; before this the kleptocrat never noticed that a bribe could break the merger. The probe prints margin percentiles (p10, p50, p90), opposition unity and integrity. By scenario (12 each) the reformer ranges from 42% (The Morning After) to 100% (The Long Emergency), the populist from 0% (The Morning After, The Long Emergency) to 83% (The Reformer's Handover).
+
+
+Before the balance pass, standing policies and dials moved them (phase 2). The engine changes alone left every strategy within sampling noise except the machine politician, which rose. The falls came from what the bots now do: the populist and machine take the crowd-pleasers, the institutionalist raises VAT, and bots that borrowed $3bn every time the treasury ran low spiralled into debt (the machine fell to 28% until it borrowed only before elections and below 80 debt service). `SKIP=pop,rep,relief,bond,vat npm run simulate` switches those behaviours off one by one.
 
 Security by theatre moved them before that. Once the bots used the security focus and the offensive (under the old flat rules) the kleptocrat rose from 20% to 57%: the two levers were stronger than the table showed, because no bot used them. With theatre-by-theatre reforms and a targeted offensive, national security on the eve of the first election fell for every governing strategy (the reformer's from 71 to 58) and the kleptocrat returned to about 23%.
 

@@ -4,6 +4,10 @@ import { addOwed, shiftPoints } from './ledger';
 import { rand } from './rng';
 import type { BlocId, Cond, DebtId, Favour, Fx, FundId, GameState, Nation, Pressures, SectorId, ZoneId } from './types';
 
+// The projected margin lives in election.ts, which reads this module; it registers itself here.
+let outlookOf: (s: GameState) => number = () => 0;
+export function registerOutlook(fn: (s: GameState) => number): void { outlookOf = fn; }
+
 export const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
 export const BLOCS: BlocId[] = ['villa', 'party', 'street', 'establishment', 'press'];
 
@@ -70,7 +74,8 @@ export function delegates(s: GameState): number {
     if (standing(s, p.id) >= 50 || owes) mine += p.clout;
     else if (standing(s, p.id) >= 40) mine += p.clout * 0.4;
   }
-  return clamp((all ? (mine / all) * 100 : 50) * 0.65 + s.blocs.party * 0.35, 0, 100);
+  // A popular President finds that delegates will defy their governors.
+  return clamp((all ? (mine / all) * 100 : 50) * 0.65 + s.blocs.party * 0.35 + Math.max(0, approval(s) - 50) * 1.5, 0, 100);
 }
 
 // ---------------------------------------------------------------- favours
@@ -167,6 +172,8 @@ export function getVar(s: GameState, path: string): number {
     case 'govs': return PEOPLE.filter((x) => x.group === 'governor' && standing(s, x.id) >= 58).length;
     case 'delegates': return delegates(s);
     case 'margin': return s.election?.margin ?? 0;
+    // Where a re-election would stand today, as the desk's outlook reads it.
+    case 'outlook': return outlookOf(s);
     case 'era': return s.era;
     case 'pred': return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
     case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;

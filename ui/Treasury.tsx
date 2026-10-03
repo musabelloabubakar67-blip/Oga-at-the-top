@@ -203,6 +203,7 @@ function Policies({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
                     {year.map((c) => <span key={c.label} className={c.good ? 'text-state' : 'text-alarm'}>{c.label} {c.text}</span>)}
                   </p>
                 )}
+                {p.approval > 0 && <p className="mt-1 text-[13px] text-state">Keeps approval {p.approval} {p.approval === 1 ? 'point' : 'points'} higher while it stands.</p>}
                 <p className="mt-1 text-[13px] leading-snug text-ink-soft">{p.why}</p>
                 <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'REPEAL', id })}
                   className={`mt-2 border px-3 py-1.5 font-serif text-sm ${can.ok ? 'border-ink/30 hover:border-alarm hover:bg-alarm/5' : 'border-ink/10 opacity-45'}`}>
