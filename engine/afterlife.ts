@@ -19,8 +19,10 @@ export function afterOffice(s: GameState): After {
   const ending = s.ending ?? 'term_limit';
   const kept = s.purseTaken.personal;
   const political = s.purseTaken.political;
-  const trail = s.exposures.reduce((a, x) => a + x.trail, 0);
-  const witnesses = new Set(s.exposures.flatMap((x) => x.witnesses)).size;
+  // Looking away is not a crime a successor can prosecute. Taking and paying are.
+  const acts = s.exposures.filter((x) => x.kind !== 'tolerated');
+  const trail = acts.reduce((a, x) => a + x.trail, 0);
+  const witnesses = new Set(acts.flatMap((x) => x.witnesses)).size;
   const ally = ending === 'term_limit' && !!s.flags['succession.won'];
   const loyalty = Number(s.flags['successor.loyalty'] ?? 35);
   const sIntegrity = Number(s.flags['successor.integrity'] ?? 3);

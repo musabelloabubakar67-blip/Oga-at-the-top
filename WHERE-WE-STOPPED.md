@@ -86,7 +86,9 @@ This replaces the list under "What to do next" below, which is kept for its deta
 | 3 | Done. People who change: wants drawn from situation and loyalty (about 12 templates by role plus each person's signature want), appetite that grows, refusals that become grudges; ministers whose true character surfaces, who build a following; three files for the first Finance pick | |
 | 4 | Done. 4a: institutions; every order given a dial, context or lasting effect. 4b: sixteen orders aimed at a governor, senator, businessman, rival, paper or zone (ten converted, seven new); hostile ones wear out and are remembered for two years; a Supreme Court of seven named justices with vacancies, Senate confirmation, challenges to hostile orders, injunctions against contested reforms, and the election petition decided by the bench | |
 | 5 | Done. Any of the named cast can be groomed and backed, with strength, loyalty and integrity shown; life after office from elder statesman to prison or exile, decided by what can be found and who protects you; delivered reforms attacked by businessmen, governors, the Senate and the courts; a tension curve in the director | |
-| 6 | Each state's figures from its zone plus what is placed there, shown as a table; big bets as located assets with returns, upkeep and capture | |
+| 6 | Done. A table of all 37 states with how each would vote today and what has been put there; seventeen big bets built in a chosen state, running as assets under a manager with returns, upkeep, capture and an effect on the state's vote, or leaving an abandoned site | |
+
+Next: the UI redesign for desktop (owner, 3 October): brief / decisions / levers; people as the hub, with every aimed order on their card; four permanent sections (Country with a map, Power, Treasury, Orders); a coming-up strip; previews on the gauges.
 
 Parked: the Vice President, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
 

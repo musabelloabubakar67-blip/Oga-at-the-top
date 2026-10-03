@@ -8,6 +8,7 @@ import { CFG, monthOf, yearOf } from './config';
 import { ARREARS, addOwed, rateOf, servicePoints, syncDebt } from './ledger';
 import { policyFiscalLines } from './policies';
 import { institutionFiscalLines } from './institutions';
+import { assetFiscalLines } from './places';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -81,6 +82,7 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   add('Your reforms and orders', s.counters['bonus.fiscal'] ?? 0, 'The permanent effect of what you have built, cut or promised.');
   for (const l of policyFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of institutionFiscalLines(s)) add(l.label, l.value, l.hint);
+  for (const l of assetFiscalLines(s)) add(l.label, l.value, l.hint);
   add('The insurgency', -Math.max(0, s.theatres.NE - 50) * 0.0009, 'The war in the North East is paid for every month.');
   const points = BENCHMARKS.find((b) => b.price === s.budget.benchmark)?.points ?? 10;
   const spare = points - SECTORS.reduce((a, x) => a + (s.budget.alloc[x.id] ?? 0), 0);

@@ -27,6 +27,7 @@ import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
 import { canGroom, groom } from './successor';
+import { canSetManager, setManager } from './places';
 import { canNominate, courtTick, nominate } from './courts';
 import { aimFx, aimText, targetsFor, wearFactor, wrong, wrongedTick, type TargetKind } from './targets';
 import { abolish, canAbolish, canEstablish, canReplaceHead, establish, replaceHead } from './institutions';
@@ -759,7 +760,14 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'ACT': act(s, action.action, action.zone); break;
     case 'DRAWER': drawer(s, action.op); break;
     case 'LAUNCH': launch(s, action.id, action.grease); break;
-    case 'VENTURE': launchVenture(s, action.id); break;
+    case 'VENTURE': launchVenture(s, action.id, action.site); break;
+    case 'SET_MANAGER': if (canSetManager(s, action.id, action.name, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = setManager(s, action.id, action.name);
+      record(s, `asset.${action.id}`, 'manager', 'politics', t, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'VENTURE_DELAY': if (canDelay(s, action.id).ok) note(s, delay(s, action.id)); break;
     case 'VENTURE_RESCUE': if (canRescue(s, action.id).ok) note(s, rescue(s, action.id)); break;
     case 'PERSON': person(s, action.id, action.op); break;
@@ -1171,6 +1179,7 @@ function order(s: GameState, id: string, target?: string, level?: number): void 
   (s.orderLog ??= []).push({ id: o.id, turn: s.turn, target: aimed });
   if (s.orderLog.length > 120) s.orderLog = s.orderLog.slice(-120);
   if (o.hostile && o.target && aimed) wrong(s, o.target, aimed, outcome.archive ?? o.name);
+  if (o.target === 'state' && o.place && aimed) (s.placed ??= []).push({ state: aimed, kind: 'monument', label: o.place, turn: s.turn });
   s.lastAction = { text, changes: diff(before, snapshot(s)) };
 }
 

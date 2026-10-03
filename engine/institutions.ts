@@ -24,7 +24,7 @@ export function built(s: GameState): NonNullable<GameState['institutions']> {
 
 /** Everyone who could head an institution now: the two kinds always available, and anyone in the adviser pool not already in a job. */
 export function headsFor(s: GameState): Head[] {
-  const taken = new Set([...Object.values(s.chars).map((c) => c.name), ...built(s).map((i) => i.head.name)]);
+  const taken = new Set([...Object.values(s.chars).map((c) => c.name), ...built(s).map((i) => i.head.name), ...(s.assets ?? []).map((a) => a.head.name)]);
   const pool = ADVISER_POOL.filter((c) => !taken.has(c.name) && !s.flags[`pool.gone.${c.short}`]).map((c): Head => ({
     name: c.name, competence: c.competence, loyalty: c.loyalty, integrity: c.integrity, patron: c.patron ?? 'president',
     rep: c.rep ?? { competence: c.competence, loyalty: c.loyalty }, blurb: c.blurb,

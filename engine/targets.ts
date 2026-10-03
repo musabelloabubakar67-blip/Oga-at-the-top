@@ -6,10 +6,11 @@
 import { OUTLETS as PRESS } from '../content/press';
 import { PEOPLE, PERSON_BY_ID, RIVALS, RIVAL_BY_ID } from '../content/people';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
+import { STATES, STATE_BY_ID } from '../content/states';
 import type { Fx, GameState, ZoneId } from './types';
 import { ZONES, ZONE_NAME, standing } from './vars';
 
-export type TargetKind = 'theatre' | 'governor' | 'politician' | 'tycoon' | 'rival' | 'zone' | 'paper';
+export type TargetKind = 'theatre' | 'governor' | 'politician' | 'tycoon' | 'rival' | 'zone' | 'paper' | 'state';
 
 export interface Target { id: string; label: string; detail?: string }
 
@@ -32,6 +33,9 @@ export function targetsFor(s: GameState, kind: TargetKind): Target[] {
         .map((z) => ({ id: z, label: `the ${ZONE_NAME[z]}`, detail: `approval ${Math.round(s.zones[z].approval)}%` }));
     case 'paper':
       return Object.values(PRESS).map((p) => ({ id: p.id, label: p.name, detail: p.note }));
+    case 'state':
+      return [...STATES].sort((a, b) => s.zones[a.zone].approval - s.zones[b.zone].approval || b.voters - a.voters)
+        .map((st) => ({ id: st.id, label: st.name, detail: `${ZONE_NAME[st.zone]}, ${st.voters}m voters` }));
     case 'theatre':
       return [...ZONES].map((z) => ({ id: z, label: `the ${ZONE_NAME[z]}` }));
   }
@@ -44,12 +48,14 @@ export function targetName(s: GameState, kind: TargetKind, id: string): { name: 
   }
   if (kind === 'tycoon') return { name: TYCOON_BY_ID[id]?.name ?? id, short: TYCOON_BY_ID[id]?.short ?? id };
   if (kind === 'rival') return { name: RIVAL_BY_ID[id]?.name ?? id, short: RIVAL_BY_ID[id]?.short ?? id };
+  if (kind === 'state') { const n = STATE_BY_ID[id]?.name ?? id; return { name: `${n} State`, short: n }; }
   if (kind === 'paper') { const n = PRESS[id as keyof typeof PRESS]?.name ?? id; return { name: n, short: n }; }
   return { name: `the ${ZONE_NAME[id as ZoneId]}`, short: ZONE_NAME[id as ZoneId] };
 }
 
 function zoneOf(kind: TargetKind, id: string): ZoneId | undefined {
   if (kind === 'zone' || kind === 'theatre') return id as ZoneId;
+  if (kind === 'state') return STATE_BY_ID[id]?.zone;
   if (kind === 'governor' || kind === 'politician') return PERSON_BY_ID[id]?.zone;
   return undefined;
 }
@@ -103,7 +109,7 @@ const MEMORY = 24;
 
 /** Someone hit by a hostile order remembers it. */
 export function wrong(s: GameState, kind: TargetKind, id: string, what: string): void {
-  if (kind === 'zone' || kind === 'theatre' || kind === 'paper') return;
+  if (kind === 'zone' || kind === 'theatre' || kind === 'paper' || kind === 'state') return;
   (s.wronged ??= []).push({ who: id, kind, turn: s.turn, what, until: s.turn + MEMORY });
 }
 

@@ -3,6 +3,7 @@ import { TYCOONS } from '../content/tycoons';
 import { CFG } from './config';
 import { governorEffect, strongestRival } from './people';
 import { ZONES, ZONE_WEIGHT } from './vars';
+import { local } from './places';
 import { rand } from './rng';
 import type { ElectionResult, GameState, StateResult } from './types';
 import { ZONE_NAME, approval, clamp, registerOutlook } from './vars';
@@ -47,7 +48,7 @@ export function projectMargin(s: GameState): number {
 }
 
 /** State-by-state result for the president (re-election) or the president's chosen successor. */
-export function runElection(s: GameState, kind: 'reelection' | 'succession'): ElectionResult {
+export function runElection(s: GameState, kind: 'reelection' | 'succession', steady = false): ElectionResult {
   const e = CFG.election;
   const machine = ((s.blocs.party - 50) / 50) * e.machine * machineWeight(s);
   const chest = Math.min(e.chestCap, s.campaign.chest * e.chestPer);
@@ -56,7 +57,7 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession'): El
     - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s) + cleanRecord(s);
   const backing = kind === 'succession' ? Number(s.flags['succession.strength'] ?? -2) - e.successorPenalty : 0;
   // Nobody controls the mood of the country on the day. Usually small; now and then it decides a close race.
-  const swing = (rand(s) + rand(s) - 1) * e.swing;
+  const swing = steady ? 0 : (rand(s) + rand(s) - 1) * e.swing;
 
   const states: StateResult[] = STATES.map((st) => {
     const zone = s.zones[st.zone];
@@ -64,11 +65,11 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession'): El
     const home = kind === 'reelection'
       ? (st.id === s.president.home ? e.home : st.zone === s.president.homeZone ? e.homeZone : 0)
       : 0;
-    const noise = (rand(s) * 2 - 1) * e.noise;
-    const third = 5 + rand(s) * 5;
+    const noise = steady ? 0 : (rand(s) * 2 - 1) * e.noise;
+    const third = steady ? 7.5 : 5 + rand(s) * 5;
     const twoWay = clamp(
       50 + (s.stateLean[st.id] ?? 0) + (zone.approval - 50) * e.approval + machine + rallies * e.rally
-        + chest - scandal + home + backing + field + governorEffect(s, st.zone) + noise + swing,
+        + chest - scandal + home + backing + field + governorEffect(s, st.zone) + local(s, st.id).v * e.approval + noise + swing,
       8, 92,
     );
     const share = twoWay * (1 - third / 100);

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { EVENTS } from '../content';
 import { ORDER_BY_ID, TRACKS, type Order } from '../content/agenda';
 import { THEATRES } from '../content/theatres';
+import { ASSETS } from '../content/assets';
+import { STATE_BY_ID } from '../content/states';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES } from '../content/ventures';
 import { eventOf } from '../engine/cast';
@@ -15,6 +17,8 @@ import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { forecastChallenge } from '../engine/courts';
+import { assetFiscal, assetFx, assetPerformance, assets, canSetManager, local } from '../engine/places';
+import { runElection } from '../engine/election';
 import { grievances, recentUses, targetName, targetsFor, wearFactor, type TargetKind } from '../engine/targets';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -433,7 +437,7 @@ function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (targe
       {levels}
       {picks.length > 0 && (
         <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-          <span className="label mr-1 text-ink-soft">{o.target === 'theatre' || o.target === 'zone' ? 'Where' : 'Whom'}</span>
+          <span className="label mr-1 text-ink-soft">{o.target === 'theatre' || o.target === 'zone' || o.target === 'state' ? 'Where' : 'Whom'}</span>
           {picks.map((t) => (
             <button key={t.id} onClick={() => setWhere(t.id)} title={t.detail}
               className={`border px-2 py-0.5 text-[13px] ${where === t.id ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
@@ -740,6 +744,7 @@ function Risks({ s, v, live }: { s: GameState; v: (typeof VENTURES)[number]; liv
 
 function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   const [open, setOpen] = useState(false);
+  const [sites, setSites] = useState<Record<string, string>>({});
   const running = VENTURES.filter((v) => ventureStatus(s, v.id) === 'active');
   const available = VENTURES.filter((v) => ventureStatus(s, v.id) === 'open' && ventureVisible(s, v));
   const locked = VENTURES.filter((v) => v.opened && ventureStatus(s, v.id) === 'open' && !ventureVisible(s, v));
@@ -805,8 +810,22 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
                     <p className="label text-[#e08a7c]">If it fails</p>
                     <Expected items={describe(v.lose)} later dark />
                   </div>
+                  {ASSETS[v.id] && (
+                    <div className="mt-2">
+                      <p className="label text-mute">Where to build it · if it works, it runs there under a manager you choose and lifts that state's vote; if it fails, the site stays</p>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {ASSETS[v.id].sites.map((st) => (
+                          <button key={st} onClick={() => setSites({ ...sites, [v.id]: st })}
+                            className={`border px-2 py-0.5 text-[13px] ${(sites[v.id] ?? ASSETS[v.id].sites[0]) === st ? 'border-honour bg-honour/15 text-ivory' : 'border-ivory/20 text-ivory/70 hover:border-honour'}`}>
+                            {STATE_BY_ID[st].name} · {Math.round(s.zones[STATE_BY_ID[st].zone].approval)}%{s.theatres[STATE_BY_ID[st].zone] >= 65 ? ' · unsafe' : ''}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-1 text-[13px] text-mute">Once running: {[ASSETS[v.id].fiscal ? `${ASSETS[v.id].fiscal > 0 ? 'earns' : 'costs'} ${naira(Math.abs(ASSETS[v.id].fiscal) * 12)} a year` : null, ...describe(ASSETS[v.id].fx.map(([t, x]) => [t, x * 12] as Fx)).map((c) => `${c.label} ${c.text ?? ''}`.trim())].filter(Boolean).join(' · ')}{ASSETS[v.id].fx.length ? ' a year' : ''}. A site in an unsafe theatre runs at 60%.</p>
+                    </div>
+                  )}
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <button disabled={!can.ok} onClick={() => dispatch({ type: 'VENTURE', id: v.id })} className={`px-3 py-1.5 font-serif ${can.ok ? 'bg-honour/90 text-pit hover:bg-honour' : 'bg-ivory/8 text-ivory/40'}`}>
+                    <button disabled={!can.ok} onClick={() => dispatch({ type: 'VENTURE', id: v.id, site: sites[v.id] ?? ASSETS[v.id]?.sites[0] })} className={`px-3 py-1.5 font-serif ${can.ok ? 'bg-honour/90 text-pit hover:bg-honour' : 'bg-ivory/8 text-ivory/40'}`}>
                       Take the bet
                     </button>
                     <span className="label text-mute">{[v.pc ? `${v.pc} capital` : null, cost ? naira(cost) : null, `${v.months} months`].filter(Boolean).join(' · ')}</span>
@@ -884,6 +903,8 @@ function NationModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
             </li>
           ))}
         </ul>
+
+        <StatesTable s={s} dispatch={dispatch} left={left} />
 
         <h3 className="label mt-7 border-b rule pb-1 text-ink-soft">Security, theatre by theatre</h3>
         <p className="mt-2 text-sm leading-snug text-ink-soft">
@@ -1348,5 +1369,91 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
       {panel === 'nation' && <NationModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'paper' && s.papers.length > 0 && s.phase === 'desk' && <Papers pages={s.papers} onDismiss={() => setPanel(null)} />}
     </main>
+  );
+}
+
+/** Every state: its voters, its zone's mood, what has been put there, and how it would vote today. Then the assets that run in them. */
+function StatesTable({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const [sort, setSort] = useState<'margin' | 'voters' | 'zone'>('margin');
+  const [mgr, setMgr] = useState<string | null>(null);
+  const proj = runElection(structuredClone(s), s.term === 2 ? 'succession' : 'reelection', true);
+  const rows = proj.states.map((r) => ({ ...r, margin: r.share - r.opp, local: local(s, r.id) }));
+  rows.sort((a, b) => (sort === 'voters' ? b.voters - a.voters : sort === 'zone' ? a.zone.localeCompare(b.zone) || a.margin - b.margin : a.margin - b.margin));
+  const won = rows.filter((r) => r.won).length;
+  const mine = assets(s);
+  return (
+    <>
+      <h3 className="label mt-7 border-b rule pb-1 text-ink-soft">The states</h3>
+      <p className="mt-2 text-sm leading-snug text-ink-soft">
+        How each state would vote if the {s.term === 2 ? 'succession election, with your backing as it stands,' : 'election'} were held today, without the mood on the day: {won} of 37 for {s.term === 2 ? 'your party' : 'you'}.
+        {' '}Each is its zone's approval, its own lean, its governor, your rallies and what you have put there: a working asset lifts a state by 3 points of approval, one being built by 1, an abandoned site costs 2.
+      </p>
+      <div className="mt-2 flex gap-2 text-[13px]">
+        <span className="label text-ink-soft">Sort</span>
+        {(['margin', 'voters', 'zone'] as const).map((k) => (
+          <button key={k} onClick={() => setSort(k)} className={`border px-2 py-0.5 ${sort === k ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>{k === 'margin' ? 'Closest first' : k === 'voters' ? 'Largest first' : 'By zone'}</button>
+        ))}
+      </div>
+      <div className="mt-2 max-h-[28rem] overflow-y-auto border border-ink/15">
+        <table className="w-full text-left text-sm">
+          <thead className="sticky top-0 bg-paper-dim">
+            <tr className="label text-ink-soft">
+              <th className="px-2 py-1.5">State</th><th className="px-2">Zone</th><th className="px-2 text-right">Voters</th><th className="px-2 text-right">Zone approval</th><th className="px-2 text-right">Threat</th><th className="px-2">What is there</th><th className="px-2 text-right">Today</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ink/10">
+            {rows.map((r) => (
+              <tr key={r.id} className={s.president.home === r.id ? 'bg-honour/10' : ''}>
+                <td className="px-2 py-1.5 font-serif">{r.name}{s.president.home === r.id ? ' (home)' : ''}</td>
+                <td className="px-2 text-ink-soft">{ZONE_NAME[r.zone]}</td>
+                <td className="px-2 text-right tabular-nums">{r.voters.toFixed(1)}m</td>
+                <td className="px-2 text-right tabular-nums">{Math.round(s.zones[r.zone].approval)}%</td>
+                <td className={`px-2 text-right tabular-nums ${s.theatres[r.zone] >= 65 ? 'text-alarm' : ''}`}>{Math.round(s.theatres[r.zone])}</td>
+                <td className="px-2 text-[13px] text-ink-soft">{r.local.items.map((x) => `${x.label} (${x.v > 0 ? '+' : ''}${x.v})`).join('; ')}</td>
+                <td className={`px-2 text-right font-serif tabular-nums ${r.won ? 'text-state' : 'text-alarm'}`}>{r.margin > 0 ? '+' : ''}{r.margin.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {mine.length > 0 && (
+        <>
+          <h3 className="label mt-6 border-b rule pb-1 text-ink-soft">Assets: what your big bets built</h3>
+          <ul className="mt-2 space-y-2">
+            {mine.map((a) => {
+              const perf = assetPerformance(s, a.id);
+              const fiscal = assetFiscal(s, a.id);
+              return (
+                <li key={a.id} className="border border-ink/20 p-3">
+                  <p className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-serif text-lg">{ASSETS[a.id].name}, {STATE_BY_ID[a.state].name}</span>
+                    <span className={`label ${perf.captured ? 'text-alarm' : 'text-ink-soft'}`}>running at {Math.round(perf.k * 100)}%{perf.captured ? ' · captured' : ''}</span>
+                  </p>
+                  <p className="text-sm text-ink-soft">Managed by {a.head.name} since {dateLabel(a.since, s.startYear)}. {fiscal >= 0 ? 'Earns' : 'Costs'} {naira(Math.abs(fiscal) * 12)} a year.{perf.why.length ? ` ${perf.why.join('. ')}.` : ''}</p>
+                  <Expected items={describe(assetFx(s, a.id).map(([t, x]) => [t, x * 12] as Fx))} label="A year" />
+                  <button onClick={() => setMgr(mgr === a.id ? null : a.id)} className="label mt-1 text-state hover:underline">{mgr === a.id ? 'Close' : `Replace the manager · ${REHEAD_PC} capital`}</button>
+                  {mgr === a.id && (
+                    <ul className="mt-1 space-y-1">
+                      {headsFor(s).filter((h) => h.name !== a.head.name).map((h) => {
+                        const can = canSetManager(s, a.id, h.name, left);
+                        return (
+                          <li key={h.name}>
+                            <button disabled={!can.ok} onClick={() => { dispatch({ type: 'SET_MANAGER', id: a.id, name: h.name }); setMgr(null); }}
+                              className={`w-full border px-2 py-1 text-left text-sm ${can.ok ? 'border-ink/20 hover:border-state' : 'border-ink/10 opacity-50'}`}>
+                              <span className="font-serif">{h.name}</span> <span className="text-ink-soft">· said to be {repWords(h.rep)}{h.blurb ? `. ${h.blurb}` : ''}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </>
   );
 }

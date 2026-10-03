@@ -448,6 +448,12 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** Where each big bet is being built: venture id to state id. */
+  sites?: Record<string, string>;
+  /** Big bets that worked and now run every month. */
+  assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
+  /** Other things put in a state: abandoned sites, monuments. */
+  placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
   /** The Supreme Court. Seeded on first use. */
   bench?: { seats: ({ name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string } | null)[]; packed: number; spent: string[] };
   /** Every order given, for wear-out. */
@@ -525,7 +531,8 @@ export type Action =
   | { type: 'ACT'; action: ActionId; zone?: ZoneId }
   | { type: 'DRAWER'; op: DrawerOp }
   | { type: 'LAUNCH'; id: string; grease?: boolean }
-  | { type: 'VENTURE'; id: string }
+  | { type: 'VENTURE'; id: string; site?: string }
+  | { type: 'SET_MANAGER'; id: string; name: string }
   | { type: 'VENTURE_DELAY'; id: string }
   | { type: 'VENTURE_RESCUE'; id: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }

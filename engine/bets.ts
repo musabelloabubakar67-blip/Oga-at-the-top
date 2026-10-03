@@ -1,6 +1,8 @@
 // Big bets. Each names what must be true for it to work; those conditions are
 // watched while it runs and judged on the day it opens.
 
+import { ASSETS } from '../content/assets';
+import { settleSite } from './places';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURES, VENTURE_BY_ID, type Risk, type Venture } from '../content/ventures';
 import { record } from './archive';
@@ -63,9 +65,11 @@ export function canVenture(s: GameState, v: Venture): { ok: boolean; reason?: st
   return { ok: true };
 }
 
-export function launchVenture(s: GameState, id: string): void {
+export function launchVenture(s: GameState, id: string, site?: string): void {
   const v = VENTURE_BY_ID[id];
   if (!v || !canVenture(s, v).ok) return;
+  const where = ASSETS[id] ? (site && ASSETS[id].sites.includes(site) ? site : ASSETS[id].sites[0]) : undefined;
+  if (where) (s.sites ??= {})[id] = where;
   const before = snapshot(s);
   const withPartner = partnerIn(s, v);
   const naira = ventureNaira(s, v);
@@ -177,6 +181,7 @@ export function ventureTick(s: GameState): void {
     const fx = won ? v.win : v.lose;
     for (const f of fx) applyFx(s, f, rec.touches);
     (won ? s.ventures.won : s.ventures.lost).push(v.id);
+    settleSite(s, v.id, won);
     if (won) applyFx(s, ['pc', CFG.agenda.ventureWinPc]);
     if (v.brief) addMark(s, v.brief, won ? 2 : -2, `${won ? 'Delivered' : 'Presided over the failure of'}: ${v.name}`);
     if (v.partner && st.partner && s.tycoons[v.partner]) s.tycoons[v.partner].rel = clamp(s.tycoons[v.partner].rel + (won ? 6 : -10), 0, 100);

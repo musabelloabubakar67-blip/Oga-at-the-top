@@ -383,7 +383,7 @@ export const SITUATIONAL: Order[] = [
     archive: 'Ended below-cost pricing across public services in your second term.', sig: 3,
   },
   {
-    ...moment, id: 'monument', name: 'Build something with your name on it', pc: 0, naira: 0.8, cooldown: 0, target: 'zone',
+    ...moment, id: 'monument', name: 'Build something with your name on it', pc: 0, naira: 0.8, cooldown: 0, target: 'state', place: 'The national library bearing your name',
     when: all({ term: 2 }, { termTurn: [20, 44] }),
     blurb: 'A presidential library, a national theatre, a bridge. Every second-term President does it. Few of them are finished. Where you put it is a statement.',
     result: 'The foundation stone is laid in {T}. It bears your name in letters you approved personally.',

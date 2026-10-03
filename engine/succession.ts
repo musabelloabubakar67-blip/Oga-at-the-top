@@ -94,6 +94,16 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   s.agenda.done = [...prev.agenda.done];
   // What was built keeps running under the same heads, captured or not.
   s.institutions = (prev.institutions ?? []).map((i) => ({ ...i, head: { ...i.head } }));
+  // What was built stays where it was built, with whoever runs it; the bench sits on.
+  s.assets = (prev.assets ?? []).map((a) => ({ ...a, head: { ...a.head } }));
+  s.placed = (prev.placed ?? []).map((p) => ({ ...p }));
+  s.sites = { ...(prev.sites ?? {}) };
+  if (prev.bench) {
+    // The calendar restarts at month one. Justices loyal to the last President are loyal to their party.
+    const shift = prev.turn - 1;
+    const flip = (l: 'you' | 'free' | 'them') => (w.sameParty ? l : l === 'you' ? 'them' : l === 'them' ? 'you' : l);
+    s.bench = { packed: 0, spent: [], seats: prev.bench.seats.map((j) => j && { ...j, lean: flip(j.lean), mine: false, retires: Math.max(2, j.retires - shift) }) };
+  }
   s.agenda.active = prev.agenda.active.map((a) => ({ id: a.id, progress: a.progress }));
   s.agenda.failed = [];
   s.ventures = { active: prev.ventures.active.map((a) => ({ ...a })), won: [...prev.ventures.won], lost: [...prev.ventures.lost], causes: { ...prev.ventures.causes } };

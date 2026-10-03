@@ -20,6 +20,9 @@ import { canDeal } from '../engine/people';
 import { movesLeft } from '../engine/reduce';
 import { standing } from '../engine/vars';
 import { bench, canNominate, nominees } from '../engine/courts';
+import { ASSETS } from '../content/assets';
+import { runElection } from '../engine/election';
+import { STATE_BY_ID } from '../content/states';
 import { canGroom, candidate, candidateIds } from '../engine/successor';
 import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
 import { canFocus } from '../engine/security';
@@ -273,7 +276,16 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     }
     for (const id of bot.bets ?? []) {
       const v = VENTURE_BY_ID[id];
-      if (canVenture(s, v).ok && s.nation.fiscalSpace > v.naira + 1 && s.pc > v.pc + 15) s = applyAction(s, { type: 'VENTURE', id });
+      if (canVenture(s, v).ok && s.nation.fiscalSpace > v.naira + 1 && s.pc > v.pc + 15) {
+        // Build it where the vote is closest and the theatre is safe.
+        let site: string | undefined;
+        if (ASSETS[id]) {
+          const proj = runElection(structuredClone(s), 'reelection', true).states;
+          const gap = (st: string) => Math.abs((proj.find((r) => r.id === st)?.share ?? 50) - (proj.find((r) => r.id === st)?.opp ?? 50)) + (s.theatres[STATE_BY_ID[st].zone] >= 65 ? 50 : 0);
+          site = [...ASSETS[id].sites].sort((a, b) => gap(a) - gap(b))[0];
+        }
+        s = applyAction(s, { type: 'VENTURE', id, site });
+      }
     }
     // What each kind of President builds, and whom they put in charge.
     const builds: Record<string, [string[], 'rep' | 'party' | 'civil']> = {
@@ -448,7 +460,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   const margins: number[] = [];
   let shocks = 0;
   let months = 0, reelected = 0, quiet = 0, unique = 0, app = 0, hard = 0, personal = 0;
-  let betsWon = 0, betsLost = 0, reforms = 0, arrears = 0, debt = 0, saved = 0, gone = 0, owing = 0;
+  let assetsN = 0, abandonedN = 0, betsWon = 0, betsLost = 0, reforms = 0, arrears = 0, debt = 0, saved = 0, gone = 0, owing = 0;
   for (let i = 0; i < runs; i++) {
     const s = play(bot, 1000 + i * 7919);
     const v = verdict(s);
@@ -463,7 +475,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
     if (s.election) { elApp += s.election.approval; elMargin += s.election.margin; elN++; margins.push(s.election.margin); }
     unique += Object.keys(s.fired).length;
     quiet += 0;
-    betsWon += s.ventures.won.length; betsLost += s.ventures.lost.length; reforms += s.agenda.done.length; arrears += s.debts.gas + s.debts.contractors + s.debts.pensions; debt += s.nation.debt; saved += s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth; gone += Object.values(s.people).filter((p) => p.gone).length; owing += s.favours.filter((f) => f.dir === 'owing').length;
+    assetsN += (s.assets ?? []).length; abandonedN += (s.placed ?? []).filter((p) => p.kind === "abandoned").length; betsWon += s.ventures.won.length; betsLost += s.ventures.lost.length; reforms += s.agenda.done.length; arrears += s.debts.gas + s.debts.contractors + s.debts.pensions; debt += s.nation.debt; saved += s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth; gone += Object.values(s.people).filter((p) => p.gone).length; owing += s.favours.filter((f) => f.dir === 'owing').length;
     app += approval(s); hard += hardship(s); personal += s.purseTaken.personal;
     for (const [id, f] of Object.entries(s.fired)) { everFired.add(id); fireCount[id] = (fireCount[id] ?? 0) + f.length; }
   }
@@ -476,7 +488,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   console.log(`   legacy    ${Object.entries(dims).map(([k, n]) => `${k.split(' ')[0]} ${(n / runs).toFixed(1)}`).join(' · ')}`);
   console.log(`   after     ${Object.entries(afters).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
-  console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
+  console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · assets ${(assetsN / runs).toFixed(1)}, abandoned ${(abandonedN / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
   console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)} · shocks ${(shocks / runs).toFixed(1)}\n`);
 }
 if (args.includes('--probe')) {

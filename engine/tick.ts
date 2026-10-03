@@ -7,6 +7,7 @@ import { peopleTick } from './people';
 import { foodInflation, securityTick } from './security';
 import { policyGoodwill, policyInflationLines, policyTick } from './policies';
 import { institutionInflationLines, institutionTick } from './institutions';
+import { assetTick } from './places';
 import { budgetInflation, printedInflation, treasuryTick } from './treasury';
 import type { GameState, Nation } from './types';
 import { BLOCS, ZONES, applyFx, approval, clamp, hardship, petrolShock, test, zoneSecurity } from './vars';
@@ -82,6 +83,7 @@ export function economyTick(s: GameState): void {
   policyTick(s);
   // What has been built keeps running.
   institutionTick(s);
+  assetTick(s);
 
   // The example is followed: exposure erodes integrity slowly.
   const recent = s.exposures.filter((x) => s.turn - x.turn <= 12).length;

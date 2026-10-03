@@ -47,7 +47,8 @@ export function benchVars(s: GameState): Record<string, number> {
 /** Who can be nominated now, and whether the Senate would confirm them. */
 export function nominees(s: GameState) {
   const b = bench(s);
-  return NOMINEES.filter((n) => !b.spent.includes(n.name)).map((n) => {
+  const sitting = new Set(b.seats.map((j) => j?.name));
+  return NOMINEES.filter((n) => !b.spent.includes(n.name) && !sitting.has(n.name)).map((n) => {
     const sen = senate(s);
     return { ...n, confirms: sen >= n.senate, why: n.senate ? `The Senate confirms with support of ${n.senate} or better (now ${Math.round(sen)}).` : 'The Senate will confirm without a fight.' };
   });
