@@ -395,8 +395,10 @@ export interface Order {
   sig?: 1 | 2 | 3;
   /** Use the outcome of an existing event choice instead of the fields above. */
   event?: [string, string];
-  /** The President chooses where it lands. */
-  target?: 'theatre';
+  /** The President chooses where it lands. Effects written with $T land on the target, $Z on its zone; {T}, {T_SHORT} and {T_ZONE} name them. */
+  target?: 'theatre' | 'governor' | 'politician' | 'tycoon' | 'rival' | 'zone' | 'paper';
+  /** How hard it hits whoever it is aimed at: they remember it for two years, and it wears out with use. */
+  hostile?: number;
   /** A dial: how far to go. {AMT} in the text is replaced by the level's word. The middle level is the default. */
   levels?: OrderLevel[];
   /** What the economy does to it: revenue scales with economic strength; borrowing gets dearer as debt service rises. */

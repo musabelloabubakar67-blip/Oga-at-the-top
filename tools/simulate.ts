@@ -324,6 +324,19 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     if (!skip('vat') && bot.name === 'Institutionalist' && termTurnOf(s.turn) <= 20 && fiscalFlow(s).total < 0 && orderOk(s, 'tax')) s = applyAction(s, { type: 'ORDER', id: 'tax', level: 0 });
     if (bot.name.startsWith('Reformer') && !bot.keepsSubsidy && s.turn === 2) s = applyAction(s, { type: 'ORDER', id: 'subsidy_end' });
     if (bot.reforms === 'all' && s.nation.fiscalSpace > 4) s = applyAction(s, { type: 'ORDER', id: 'paydown' });
+    // Aimed orders: each style reaches for its own weapons, at whoever is least friendly (the default target).
+    if (!skip('aim')) {
+      const uses: Record<string, string[]> = {
+        Kleptocrat: ['waiver', 'asset_sale', 'licence', 'dossier', 'ban_protest', 'detail'],
+        Machine: ['project', 'dossier', 'ban_protest', 'detail', 'emergency_rule', 'state_visit'],
+        Populist: ['airlift', 'project', 'monument', 'bank_tax'],
+        Institutionalist: ['airlift', 'state_visit', 'monument'],
+      };
+      for (const id of uses[bot.name] ?? []) {
+        if (movesLeft(s) <= 1) break;
+        if (s.offers.some((x) => x.id === id) && orderOk(s, id) && s.pc - ORDER_BY_ID[id].pc > 15) s = applyAction(s, { type: 'ORDER', id });
+      }
+    }
     // Anyone governing watches the worst theatre: forces go there, and an offensive when one is available.
     if (bot.name !== 'Do-nothing' && bot.name !== 'Random') {
       const worst = [...ZONES].sort((a, b) => s.theatres[b] - s.theatres[a])[0];

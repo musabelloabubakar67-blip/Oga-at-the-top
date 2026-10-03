@@ -18,13 +18,14 @@ import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecor
 import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
+import { grievances } from '../engine/targets';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
 type Tab = Group | 'advisers' | 'money' | 'opposition' | 'owed';
 
 const INTRO: Record<Tab, string> = {
-  governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on his hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
+  governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on their hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
   senator: 'Reforms that need a law are voted on in the Senate, and your own senators decide whether they pass. Bills pass when the Senate stands at 50 or better; constitutional changes need more. The budget goes through them every December.',
   minister: 'A minister\'s competence sets how fast the reforms in the brief move, and whether the big bets in it can work. Each is judged from the day they took the job.',
   money: 'Five people who hold parts of the economy. Each can help or hurt in ways no minister can, and each wants something specific. Money that is with you campaigns for you. Money that is against you funds your rivals.',
@@ -227,6 +228,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     {st.reasons.length > 0 && (
                       <p className="mt-1.5 text-[13px] leading-snug text-ink-soft"><span className="label mr-1">Why</span>{st.reasons.join(' ')}</p>
                     )}
+                    <Wronged s={s} id={t.id} />
                     <FavoursOf s={s} id={t.id} dispatch={dispatch} left={left} />
 
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
@@ -276,6 +278,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                         : top.id === r.id && <span className="label border border-alarm/50 px-1.5 py-0.5 text-alarm">Your likely challenger</span>}
                     </p>
                     <p className="label text-ink-soft">{r.party} · strength {Math.round(v)}</p>
+                    <Wronged s={s} id={r.id} />
                     <Bar v={v} bad />
                     <p className="mt-2 text-sm leading-snug">{r.style}</p>
                     <p className="mt-1 text-sm italic leading-snug text-ink-soft">{r.feeds}</p>
@@ -406,6 +409,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     </div>
                   )}
                   {!want && !st.gone && (st.grants ?? 0) > 0 && <p className="mt-2 text-[13px] text-ink-soft">Satisfied for now. They will ask again.</p>}
+                  <Wronged s={s} id={p.id} />
                   {grudgeLine(s, p.id) && <p className={`mt-1 text-[13px] ${st.grudge ? 'text-alarm' : 'text-ink-soft'}`}>{grudgeLine(s, p.id)}</p>}
 
                   {!st.gone && (
@@ -465,3 +469,15 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 }
 
 export { kindOf, regard };
+
+/** What your orders have done to them, and how long they will remember it. */
+function Wronged({ s, id }: { s: GameState; id: string }) {
+  const g = grievances(s, id);
+  if (!g.length) return null;
+  return (
+    <p className="mt-1 text-[13px] leading-snug text-alarm">
+      <span className="label mr-1">Remembers</span>
+      {g.map((w) => `${w.what} (${dateLabel(w.turn)}; for ${w.until - s.turn} more months)`).join(' ')}
+    </p>
+  );
+}

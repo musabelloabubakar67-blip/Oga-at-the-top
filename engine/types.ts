@@ -448,6 +448,10 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** Every order given, for wear-out. */
+  orderLog?: { id: string; turn: number; target?: string }[];
+  /** Who has been hit by a hostile order, and until when they will not forget. */
+  wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** What orders have built that keeps running, and who heads each. */
   institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
   /** Every adviser's forecasts, checked against what happened. */
@@ -532,7 +536,7 @@ export type Action =
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
-  | { type: 'ORDER'; id: string; target?: ZoneId; level?: number }
+  | { type: 'ORDER'; id: string; target?: string; level?: number }
   | { type: 'REPEAL'; id: string }
   | { type: 'SECOND_OPINION'; eventId: string }
   | { type: 'REPLACE_ADVISER'; role: string; name: string }

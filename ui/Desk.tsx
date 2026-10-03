@@ -14,6 +14,7 @@ import { REHEAD_PC, available as availableInstitutions, built, canAbolish, canEs
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
+import { grievances, recentUses, targetName, targetsFor, wearFactor, type TargetKind } from '../engine/targets';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
 import { capitalIncome, movesTotal } from '../engine/capital';
@@ -367,17 +368,19 @@ const GROUPS: [Order['group'], string][] = [
   ['capital', 'Raising political capital'], ['economy', 'The economy'], ['relief', 'Relief'], ['security', 'Security'], ['politics', 'Cabinet and party'],
 ];
 
-function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (target?: ZoneId, level?: number) => void; tag?: React.ReactNode }) {
-  const [where, setWhere] = useState<ZoneId>(() => worstTheatre(s));
+function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (target?: string, level?: number) => void; tag?: React.ReactNode }) {
+  const [where, setWhere] = useState<string | undefined>(() => (o.target === 'theatre' ? worstTheatre(s) : o.target ? targetsFor(s, o.target)[0]?.id : undefined));
   const [level, setLevel] = useState<number | undefined>(undefined);
   const lv = orderLevel(o, level);
   const can = canOrder(s, o, level);
-  const target = o.target === 'theatre' ? where : undefined;
+  const target = o.target ? where : undefined;
   const out = orderOutcome(o, s, target, level);
-  const strength = target ? offensiveStrength(s, target) : null;
+  const strength = o.target === 'theatre' && target ? offensiveStrength(s, target as ZoneId) : null;
   const econ = orderEcon(o, s);
   const now: Fx[] = [...(out.fx ?? [])];
   if (lv.naira) now.push(['nation.fiscalSpace', -lv.naira]);
+  const uses = o.hostile ? recentUses(s, o.id) : 0;
+  const remembers = o.hostile && target && o.target !== 'paper' && o.target !== 'zone' && o.target !== 'theatre';
   const card = (
     <button
       disabled={!can.ok} onClick={() => onUse(target, o.levels ? lv.index : undefined)}
@@ -402,38 +405,41 @@ function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (targe
             {' '}{strength.held ? 'The ground will be held afterwards.' : 'Nothing will hold the ground afterwards, so part of the gain comes back within a year.'}
           </span>
         )}
+        {uses > 0 && <span className="block text-[13px] text-ink-soft">Used {uses === 1 ? 'once' : `${uses} times`} in the last two years. Everyone has seen it coming: it works at {Math.round(wearFactor(s, o.id) * 100)}%.</span>}
+        {remembers && <span className="block text-[13px] text-ink-soft">{targetName(s, o.target as TargetKind, target!).name} will remember this for two years, and will not warm to you past a point until then.</span>}
         {!can.ok && can.reason && <span className="block text-[13px] text-alarm">{can.reason}</span>}
       </span>
     </button>
   );
-  if (o.levels) {
-    return (
-      <div>
+  const levels = o.levels && (
+    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+      <span className="label mr-1 text-ink-soft">How far</span>
+      {o.levels.map((l, i) => (
+        <button key={l.label} onClick={() => setLevel(i)}
+          className={`border px-2 py-0.5 text-[13px] ${lv.index === i ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
+          {l.label}
+        </button>
+      ))}
+    </div>
+  );
+  const picks = o.target === 'theatre'
+    ? THEATRES.map((th) => ({ id: th.zone, label: `${ZONE_NAME[th.zone]} · ${Math.round(s.theatres[th.zone])}`, detail: undefined as string | undefined }))
+    : o.target ? targetsFor(s, o.target).map((t) => ({ id: t.id, label: t.label, detail: t.detail })) : [];
+  const grudges = (id: string) => grievances(s, id).length;
+  return (
+    <div>
+      {levels}
+      {picks.length > 0 && (
         <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-          <span className="label mr-1 text-ink-soft">How far</span>
-          {o.levels.map((l, i) => (
-            <button key={l.label} onClick={() => setLevel(i)}
-              className={`border px-2 py-0.5 text-[13px] ${lv.index === i ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
-              {l.label}
+          <span className="label mr-1 text-ink-soft">{o.target === 'theatre' || o.target === 'zone' ? 'Where' : 'Whom'}</span>
+          {picks.map((t) => (
+            <button key={t.id} onClick={() => setWhere(t.id)} title={t.detail}
+              className={`border px-2 py-0.5 text-[13px] ${where === t.id ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
+              {t.label}{t.detail && o.target !== 'paper' ? <span className="text-ink-soft"> · {t.detail.replace(/^.*, /, '')}</span> : null}{grudges(t.id) ? <span className="text-alarm"> · wronged</span> : null}
             </button>
           ))}
         </div>
-        {card}
-      </div>
-    );
-  }
-  if (!target) return card;
-  return (
-    <div>
-      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-        <span className="label mr-1 text-ink-soft">Where</span>
-        {THEATRES.map((th) => (
-          <button key={th.zone} onClick={() => setWhere(th.zone)}
-            className={`border px-2 py-0.5 text-[13px] ${where === th.zone ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
-            {ZONE_NAME[th.zone]} · {Math.round(s.theatres[th.zone])}
-          </button>
-        ))}
-      </div>
+      )}
       {card}
     </div>
   );

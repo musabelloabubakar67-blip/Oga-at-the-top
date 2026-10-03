@@ -26,6 +26,7 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
+import { aimFx, aimText, targetsFor, wearFactor, wrong, wrongedTick, type TargetKind } from './targets';
 import { abolish, canAbolish, canEstablish, canReplaceHead, establish, replaceHead } from './institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { LINKED, REPLACE_PC, adviserFor, canReplaceAdviser, replaceAdviser, forecast, logAdvice, recommend, secondFor, seedAdvisers } from './advice';
@@ -681,6 +682,7 @@ function advance(s: GameState): void {
   economyTick(s);
   politicsTick(s);
   midterm(s);
+  wrongedTick(s);
   shockTick(s);
 
   const tt = termTurnOf(s.turn);
@@ -1086,11 +1088,27 @@ export function canOrder(s: GameState, o: Order, level?: number): { ok: boolean;
 }
 
 /** The effects an order would have, for display. */
-export function orderOutcome(o: Order, s?: GameState, target?: ZoneId, level?: number): Outcome {
+export function orderOutcome(o: Order, s?: GameState, target?: string, level?: number): Outcome {
   if (o.target === 'theatre' && s) {
     const base: Outcome = { result: o.result, fx: o.fx, later: o.later, flags: o.flags, follow: o.follow, news: o.news, archive: o.archive, sig: o.sig, exposure: o.exposure };
-    return offensiveOutcome(s, target ?? worstTheatre(s), base);
+    return offensiveOutcome(s, (target as ZoneId | undefined) ?? worstTheatre(s), base);
   }
+  const base = baseOrderOutcome(o, s, level);
+  if (!o.target || !s) return base;
+  const id = target ?? targetsFor(s, o.target)[0]?.id;
+  if (!id) return base;
+  // A weapon used again works less well; a gift does not wear out.
+  const wear = o.hostile ? wearFactor(s, o.id) : 1;
+  const worn = (fx: Fx[]) => aimFx(s, o.target as TargetKind, id, fx).map(([t, v, ...rest]) => [t, wear === 1 ? v : Math.round(v * wear * 1000) / 1000, ...rest] as Fx);
+  const say = (x: string) => aimText(s, o.target as TargetKind, id, x);
+  return {
+    ...base,
+    result: say(base.result), fx: base.fx && worn(base.fx), later: base.later?.map((l) => ({ ...l, fx: worn(l.fx), label: say(l.label), note: l.note && [say(l.note[0]), say(l.note[1])] })),
+    news: base.news && [say(base.news[0]), say(base.news[1])], archive: base.archive && say(base.archive),
+  };
+}
+
+function baseOrderOutcome(o: Order, s?: GameState, level?: number): Outcome {
   if (o.levels || o.econ) {
     const lv = orderLevel(o, level);
     const econ = s ? orderEcon(o, s) : null;
@@ -1111,7 +1129,7 @@ export function orderOutcome(o: Order, s?: GameState, target?: ZoneId, level?: n
   return { result: o.result, fx: o.fx, later: o.later, flags: o.flags, follow: o.follow, news: o.news, archive: o.archive, sig: o.sig, exposure: o.exposure };
 }
 
-function order(s: GameState, id: string, target?: ZoneId, level?: number): void {
+function order(s: GameState, id: string, target?: string, level?: number): void {
   const o = ORDER_BY_ID[id];
   if (!o || !canOrder(s, o, level).ok) return;
   const lv = orderLevel(o, level);
@@ -1131,6 +1149,10 @@ function order(s: GameState, id: string, target?: ZoneId, level?: number): void 
   }
   const text = applyOutcome(s, pseudo, o.event?.[1] ?? 'order', { ...outcome, newsWeight: outcome.newsWeight ?? 5 });
   if (lv.naira) applyFx(s, ['nation.fiscalSpace', -lv.naira]);
+  const aimed = o.target && o.target !== 'theatre' ? target ?? targetsFor(s, o.target)[0]?.id : target;
+  (s.orderLog ??= []).push({ id: o.id, turn: s.turn, target: aimed });
+  if (s.orderLog.length > 120) s.orderLog = s.orderLog.slice(-120);
+  if (o.hostile && o.target && aimed) wrong(s, o.target, aimed, outcome.archive ?? o.name);
   s.lastAction = { text, changes: diff(before, snapshot(s)) };
 }
 

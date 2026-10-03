@@ -141,11 +141,20 @@ for (const e of EVENT_LIST) {
   }
 }
 
+// An aimed order is checked as if it were aimed at a sample target of its kind.
+const SAMPLE: Record<string, [string, string]> = { governor: ['gov_nw', 'NW'], politician: ['gov_nw', 'NW'], tycoon: ['ty_trade', 'NW'], rival: ['alt', 'NW'], zone: ['NW', 'NW'], paper: ['chronicle', 'NW'], theatre: ['NW', 'NW'] };
 for (const o of ORDERS) {
   const ref = { id: `order.${o.id}` };
+  const [tid, tz] = o.target ? SAMPLE[o.target] : ['', ''];
+  const aim = (fx: Fx[] | undefined) => fx?.filter((f) => !(o.target === 'paper' && f[0] === 'paper')).map(([t, ...rest]) => [t.replace('$T', tid).replace('$Z', tz), ...rest] as Fx);
+  const texts = [o.result, o.archive, ...o.news, ...(o.later ?? []).flatMap((l) => [l.label, ...(l.note ?? [])])];
+  const fxKeys = [...(o.fx ?? []), ...(o.later ?? []).flatMap((l) => l.fx)].map((f) => f[0]);
+  if (!o.target && (texts.some((x) => /\{T(_SHORT|_ZONE)?\}/.test(x)) || fxKeys.some((k) => k.includes('$')))) err(ref, 'names a target but the order is not aimed at anyone');
+  if (o.hostile && (!o.target || o.target === 'theatre')) err(ref, 'hostile, but not aimed at anyone');
+  if ((o.target === 'zone' || o.target === 'paper') && fxKeys.some((k) => k.includes('$T'))) err(ref, `$T means nothing for an order aimed at a ${o.target}`);
   checkCond(ref, o.when);
-  checkFx(ref, o.fx);
-  for (const l of o.later ?? []) { checkFx(ref, l.fx); checkCond(ref, l.when); }
+  checkFx(ref, aim(o.fx));
+  for (const l of o.later ?? []) { checkFx(ref, aim(l.fx)); checkCond(ref, l.when); }
   for (const f of o.follow ?? []) if (!EVENTS[f.event]) err(ref, `follow-up to unknown event ${f.event}`);
   if (o.event && !EVENTS[o.event[0]]?.choices.some((c) => c.id === o.event![1])) err(ref, 'points at an unknown event choice');
 }
