@@ -290,7 +290,7 @@ export interface PersonState {
   gone?: boolean;
 }
 
-export interface TycoonState { rel: number; granted: boolean; squeezed?: number; reasons: string[] }
+export interface TycoonState { rel: number; granted: boolean; squeezed?: number; reasons: string[]; /** Granted by a predecessor: it stands, but the gratitude went with them. */ inherited?: boolean; /** When the President last made time for them, and how often. */ courted?: number; courtN?: number }
 
 export interface Budget {
   /** The fiscal year this budget covers. */
@@ -569,7 +569,7 @@ export type Action =
   | { type: 'BUDGET_RELEASE'; sector: SectorId; mode: 'normal' | 'full' | 'hold' }
   | { type: 'SUPPLEMENTARY' }
   | { type: 'FAVOUR'; id: number; use: string }
-  | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' }
+  | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' | 'court' }
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }
   | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party'; name?: string }

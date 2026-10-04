@@ -196,6 +196,8 @@ What the President owes is called in after about eight months, as a file. Paying
 
 Five businesspeople, each holding a sector: commodity imports, manufacturing, banking, fuel, and telecoms and media. Each has a standing with the President that moves with what the government does: reforms that end waivers, publish accounts or open markets turn several of them hostile.
 
+Winning them back: an invitation to the Villa (a move and 3 capital, once a year each) warms a businessman for twelve months, by 12 points the first time and 3 fewer each time after, never below 4. What a predecessor did, a reform that hurt them or one that helped, counts for half (`mine.<id>` decides whose it was). A want a predecessor granted still stands and is worth 12 rather than 20; the new President can renew it in their own name for half the cost and half the damage, which wins the rest and leaves the businessman owing.
+
 - With the President (60 or better): a monthly benefit in their sector, political capital, votes, and they co-finance big bets (40% of the cost).
 - Against (below 35): a monthly harm, a crisis file of their own, and money for a rival.
 

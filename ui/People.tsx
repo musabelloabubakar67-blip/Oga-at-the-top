@@ -213,6 +213,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                 const grant = canTycoon(s, t.id, 'grant', left);
                 const squeeze = canTycoon(s, t.id, 'squeeze', left);
                 const take = canTycoon(s, t.id, 'take', left);
+                const court = canTycoon(s, t.id, 'court', left);
                 return (
                   <li key={t.id} className="border border-ink/20 p-4">
                     <p className="flex flex-wrap items-baseline justify-between gap-2">
@@ -232,16 +233,19 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     <FavoursOf s={s} id={t.id} dispatch={dispatch} left={left} />
 
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
-                      <p className="label text-ink-soft">{st.granted ? 'You gave' : 'Wants'}</p>
+                      <p className="label text-ink-soft">{st.inherited ? 'Your predecessor gave, and it is up for renewal' : st.granted ? 'You gave' : 'Wants'}</p>
                       <p className="font-serif leading-snug">{t.want.text}</p>
-                      {!st.granted && <Fx fx={t.want.fx} />}
+                      {(!st.granted || st.inherited) && <Fx fx={st.inherited ? t.want.fx.map(([k, d]) => [k, d * 0.5] as [string, number]) : t.want.fx} />}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {!st.granted && (
+                      {(!st.granted || st.inherited) && (
                         <button disabled={!grant.ok} title={grant.reason} onClick={() => dispatch({ type: 'TYCOON', id: t.id, op: 'grant' })} className={btn(grant.ok, 'good')}>
-                          Give what is asked{[t.want.pc && ` · ${t.want.pc} capital`, t.want.naira && ` · ${naira(t.want.naira)}`].filter(Boolean).join('')}
+                          {st.inherited ? 'Renew it in your name' : 'Give what is asked'}{[t.want.pc && ` · ${st.inherited ? Math.round(t.want.pc / 2) : t.want.pc} capital`, t.want.naira && ` · ${naira(st.inherited ? t.want.naira / 2 : t.want.naira)}`].filter(Boolean).join('')}
                         </button>
                       )}
+                      <button disabled={!court.ok} title={court.reason} onClick={() => dispatch({ type: 'TYCOON', id: t.id, op: 'court' })} className={btn(court.ok, 'good')}>
+                        Invite to the Villa · 3 capital · warmer for a year
+                      </button>
                       <button disabled={!take.ok} title={take.reason} onClick={() => dispatch({ type: 'TYCOON', id: t.id, op: 'take' })} className={btn(take.ok)}>
                         Take ₦8bn for the campaign
                       </button>
@@ -251,7 +255,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     </div>
                     <Fx fx={t.squeeze.fx} />
                     <p className="mt-2 text-[13px] leading-snug text-ink-soft">
-                      Giving what is asked wins them, settles anything you owe them, and otherwise leaves them owing you. Taking money puts you in their debt, and they become a witness. Setting the agencies on them brings in money and makes an enemy for two years.
+                      Giving what is asked wins them, settles anything you owe them, and otherwise leaves them owing you. An invitation to the Villa costs nothing but time and capital and warms them for a year, a little less each time. What a predecessor did to them, good or bad, counts for half. Taking money puts you in their debt, and they become a witness. Setting the agencies on them brings in money and makes an enemy for two years.
                     </p>
                   </li>
                 );

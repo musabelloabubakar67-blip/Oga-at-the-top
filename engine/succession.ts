@@ -110,7 +110,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   s.ventures = { active: prev.ventures.active.map((a) => ({ ...a })), won: [...prev.ventures.won], lost: [...prev.ventures.lost], causes: { ...prev.ventures.causes } };
   s.bets = structuredClone(prev.bets);
   // A licence once given stays given.
-  for (const [id, t] of Object.entries(prev.tycoons)) if (t.granted && s.tycoons[id]) s.tycoons[id].granted = true;
+  for (const [id, t] of Object.entries(prev.tycoons)) if (t.granted && s.tycoons[id]) { s.tycoons[id].granted = true; s.tycoons[id].inherited = true; }
 
   // The mood the new President walks into.
   const h = hardship(s);

@@ -257,6 +257,10 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       if (amount > 0.05 && amount <= spare && canPay(s, id, amount).ok) s = applyAction(s, { type: 'PAY_DEBT', id, amount });
     }
     if (bot.saves && s.nation.fiscalSpace > 3.4 && canFund(s, 'abroad', 1).ok) s = applyAction(s, { type: 'FUND', id: 'abroad', amount: 1 });
+    // Everyone but the cynics makes time for a businessman who has turned cold.
+    if (!skip('court') && bot.name !== 'Random' && bot.name !== 'Do-nothing') {
+      for (const t of TYCOONS) if (movesLeft(s) > 1 && s.pc > 18 && s.tycoons[t.id].rel < 50 && canTycoon(s, t.id, 'court', movesLeft(s)).ok) s = applyAction(s, { type: 'TYCOON', id: t.id, op: 'court' });
+    }
     // Machine politicians keep the money men sweet and spend what they are owed.
     if (bot.courts) {
       for (const t of TYCOONS) {
@@ -463,7 +467,7 @@ if (args.includes('--world')) {
     for (const bot of order) {
       const s = play(bot, 900 + w * 77 + order.indexOf(bot), false, { prev });
       const v = verdict(s);
-      console.log(`world ${w} · ${v.years} · ${bot.name.padEnd(10)} · ${s.president.partyShort.padEnd(5)} · ${v.epithet.padEnd(30)} · ${s.ending} · debt ${Math.round(s.nation.debt)}% · unpaid ₦${(s.debts.gas + s.debts.contractors + s.debts.pensions).toFixed(1)}tn · reforms ${s.agenda.done.length} · inflation ${Math.round(s.nation.inflation)}%`);
+      console.log(`world ${w} · ${v.years} · ${bot.name.padEnd(10)} · ${s.president.partyShort.padEnd(5)} · ${v.epithet.padEnd(30)} · ${s.ending} · debt ${Math.round(s.nation.debt)}% · unpaid ₦${(s.debts.gas + s.debts.contractors + s.debts.pensions).toFixed(1)}tn · reforms ${s.agenda.done.length} · inflation ${Math.round(s.nation.inflation)}% · money men ${TYCOONS.map((x) => Math.round(s.tycoons[x.id].rel)).join('/')}`);
       prev = s;
     }
     console.log('');

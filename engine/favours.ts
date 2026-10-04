@@ -64,14 +64,35 @@ export function tycoonMood(rel: number): string {
   return 'Against you';
 }
 
+const COURT_MONTHS = 12;
+const COURT_PC = 3;
+/** Each courtship is worth less than the one before. */
+const courtBonus = (n: number) => Math.max(4, 12 - 3 * (n - 1));
+
+/** A condition on a reform or order that a predecessor, not this President, delivered. */
+function inheritedAct(s: GameState, c: Tycoon['moved'][number]['when']): boolean {
+  if (!('v' in c)) return false;
+  const [path] = c.v;
+  const m = /^(agenda|ordered)\.(.+)$/.exec(path);
+  return !!m && !test(s, { v: [`mine.${m[2]}`, '==', 1] });
+}
+
 function target(s: GameState, t: Tycoon): { v: number; reasons: string[] } {
   const st = s.tycoons[t.id];
   let v = 50;
   const reasons: string[] = [];
   if (s.flags.financier === t.id) { v += 8; reasons.push('Backed your campaign.'); }
-  if (st.granted) { v += 20; reasons.push('You granted what was asked.'); }
+  if (st.granted && !st.inherited) { v += 20; reasons.push('You granted what was asked.'); }
+  if (st.granted && st.inherited) { v += 12; reasons.push('What your predecessor gave still stands, and they would like it to keep standing. Renewing it in your name would make it yours.'); }
+  if (st.courted !== undefined && s.turn - st.courted < COURT_MONTHS) { const d = courtBonus(st.courtN ?? 1); v += d; reasons.push(`You made time for ${t.short} at the Villa (+${d}).`); }
   if (st.squeezed !== undefined && s.turn - st.squeezed < 24) { v -= 26; reasons.push('You set the agencies on the business.'); }
-  for (const m of t.moved) if (test(s, m.when)) { v += m.d; reasons.push(m.text); }
+  for (const m of t.moved) {
+    if (!test(s, m.when)) continue;
+    // What a predecessor did is felt at half the weight: the business has adjusted, and the grudge was with them.
+    const theirs = inheritedAct(s, m.when);
+    v += theirs ? m.d * 0.5 : m.d;
+    reasons.push(theirs ? `Done before you, and felt half as much: ${m.text.replace(/^You /, 'The government ')}` : m.text);
+  }
   const owing = favoursOwing(s, t.id).filter((f) => s.turn - f.turn > 18).length;
   if (owing) { v -= 8 * owing; reasons.push('You owe, and have been slow to pay.'); }
   return { v: clamp(v, 5, 95), reasons };
@@ -124,7 +145,7 @@ export function tycoonInflation(s: GameState): number {
   return rel >= 60 ? -0.5 : rel < 35 ? 1.2 : 0;
 }
 
-export type TycoonOp = 'grant' | 'squeeze' | 'take';
+export type TycoonOp = 'grant' | 'squeeze' | 'take' | 'court';
 
 export function canTycoon(s: GameState, id: string, op: TycoonOp, movesLeft: number): { ok: boolean; reason?: string } {
   const t = TYCOON_BY_ID[id];
@@ -132,9 +153,13 @@ export function canTycoon(s: GameState, id: string, op: TycoonOp, movesLeft: num
   if (!t || !st) return { ok: false };
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (op === 'grant') {
-    if (st.granted) return { ok: false, reason: 'Already granted.' };
+    if (st.granted && !st.inherited) return { ok: false, reason: 'Already granted.' };
     if (t.want.pc && s.pc < t.want.pc) return { ok: false, reason: `Needs ${t.want.pc} political capital.` };
     if (t.want.naira && t.want.naira > s.nation.fiscalSpace && s.nation.debt >= 100) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
+  }
+  if (op === 'court') {
+    if (st.courted !== undefined && s.turn - st.courted < COURT_MONTHS) return { ok: false, reason: `You saw ${t.short} ${s.turn - st.courted === 0 ? 'this month' : `${s.turn - st.courted} months ago`}. Once a year is attention; more is a request.` };
+    if (s.pc < COURT_PC) return { ok: false, reason: `Needs ${COURT_PC} political capital.` };
   }
   if (op === 'squeeze') {
     if (st.squeezed !== undefined && s.turn - st.squeezed < 24) return { ok: false, reason: 'The agencies have been through the books already. There is nothing more to find for two years.' };
@@ -150,11 +175,27 @@ export function canTycoon(s: GameState, id: string, op: TycoonOp, movesLeft: num
 export function tycoonDeal(s: GameState, id: string, op: TycoonOp): { text: string; archive: string; sealed?: boolean } {
   const t = TYCOON_BY_ID[id];
   const st = s.tycoons[id];
+  if (op === 'court') {
+    s.pc = clamp(s.pc - COURT_PC, 0, 100);
+    st.courted = s.turn;
+    st.courtN = (st.courtN ?? 0) + 1;
+    st.rel = clamp(st.rel + 4, 0, 100);
+    return { text: `${t.short} comes to the Villa for dinner and a long talk about the economy. Nothing is promised. ${t.short} leaves feeling heard, which is rarer than being given things, and lasts about a year.`, archive: `Made time for ${t.name} at the Villa.` };
+  }
   if (op === 'grant') {
-    if (t.want.pc) s.pc = clamp(s.pc - t.want.pc, 0, 100);
-    if (t.want.naira) applyFx(s, ['nation.fiscalSpace', -t.want.naira]);
-    for (const fx of t.want.fx) applyFx(s, fx);
+    // Renewing what a predecessor gave costs half, and does half the damage again.
+    const k = st.inherited ? 0.5 : 1;
+    const renewed = !!st.inherited;
+    if (t.want.pc) s.pc = clamp(s.pc - Math.round(t.want.pc * k), 0, 100);
+    if (t.want.naira) applyFx(s, ['nation.fiscalSpace', -t.want.naira * k]);
+    for (const [target, d] of t.want.fx) applyFx(s, [target, d * k]);
     st.granted = true;
+    st.inherited = false;
+    if (renewed) {
+      st.rel = clamp(st.rel + 15, 0, 100);
+      addFavour(s, id, 'owed', 1, `You renewed what your predecessor gave ${t.short}.`);
+      return { text: `It is renewed in your name. ${t.short} now has it from you, and says so. ${t.short} owes you.`, archive: `Renewed for ${t.name} what the last government gave: ${t.want.text.replace(/\.$/, '').toLowerCase()}.` };
+    }
     st.rel = clamp(st.rel + 22, 0, 100);
     // Something given settles something owed first.
     const debt = favoursOwing(s, id)[0];
