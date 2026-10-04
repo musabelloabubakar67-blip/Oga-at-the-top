@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 import { risky } from './formers';
 // What is coming: the things that will bite in the next few months, gathered
 // from every system so the player does not have to open each screen to find them.
@@ -46,7 +47,7 @@ export function upcoming(s: GameState): Coming[] {
   if (vacant) out.push({ months: 0, text: `${vacant === 1 ? 'A seat' : `${vacant} seats`} on the Supreme Court to fill`, tone: 'neutral', go: 'power', tab: 'courts' });
   const reach = benchVars(s).bought + benchVars(s).hostile;
   const exposed = s.agenda.active.filter((a) => contested(a.id) && s.counters[`injunct.${a.id}`] === undefined);
-  if (reach && exposed.length) out.push({ months: 1, text: `${exposed.length === 1 ? MILESTONE_BY_ID[exposed[0].id].m.name : `${exposed.length} reforms`} could be frozen: ${Math.round(Math.min(1, 0.03 * reach * (s.agenda.done.includes('j10') ? 0.4 : 1)) * 100)}% a month`, tone: 'bad', go: 'power', tab: 'courts' });
+  if (reach && exposed.length) out.push({ months: 1, text: `${exposed.length === 1 ? reformName(s, exposed[0].id) : `${exposed.length} reforms`} could be frozen: ${Math.round(Math.min(1, 0.03 * reach * (s.agenda.done.includes('j10') ? 0.4 : 1)) * 100)}% a month`, tone: 'bad', go: 'power', tab: 'courts' });
 
   // Hostile orders about to be challenged.
   for (const o of (s.orderLog ?? []).filter((x) => x.turn === s.turn)) {
@@ -70,7 +71,7 @@ export function upcoming(s: GameState): Coming[] {
     const m = MILESTONE_BY_ID[a.id]?.m;
     if (!m) continue;
     const months = Math.ceil(((100 - a.progress) / 100) * m.months);
-    if (months <= 2) out.push({ months, text: `${m.name} ${m.needs ? 'goes to the Assembly' : 'is delivered'}`, tone: 'good', go: 'reforms' });
+    if (months <= 2) out.push({ months, text: `${reformName(s, m.id)} ${m.needs ? 'goes to the Assembly' : 'is delivered'}`, tone: 'good', go: 'reforms' });
   }
 
   // Bets about to be decided.

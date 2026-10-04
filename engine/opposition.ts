@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // The opposition acts. Each rival has moves of their own, taken when the
 // President gives them the opening, and each can be dealt with directly.
 
@@ -84,7 +85,7 @@ function moveAlt(s: GameState): boolean {
   if (law && s.turn - (s.counters.injunction ?? -99) > 16) {
     s.counters.injunction = s.turn;
     law.progress = Math.max(5, law.progress - 16);
-    const name = MILESTONE_BY_ID[law.id].m.name;
+    const name = reformName(s, law.id);
     log(s, 'alt', `${r.short}'s lawyers obtained an injunction against "${name}". It has lost about three months.`, {
       chronicle: `COURT HALTS PRESIDENT'S ${name.toUpperCase()}`, street: 'COURT DON STOP PRESIDENT BILL. LAWYERS DEY CHOP',
       body: `A Federal High Court granted an interim order on the application of the ${r.party}. The Attorney General expects to have it lifted, in what he calls due course.`,

@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // Delivered reforms do not stay delivered by themselves. Whoever lost from one
 // waits until it is safe, then comes for it: a businessman with lawyers and a
 // lobby, the Senate with a repeal bill, or a court someone can reach.
@@ -47,14 +48,14 @@ export function weaken(s: GameState, id: string, share: number): string {
   if (!entry || !s.agenda.done.includes(id)) return '';
   const { m } = entry;
   s.counters[`attack.${id}`] = s.turn;
-  if (share <= 0) return `${m.name} survives intact.`;
+  if (share <= 0) return `${reformName(s, m.id)} survives intact.`;
   for (const [t, v] of m.done) if (t !== 'pc') applyFx(s, [t, -v * Math.min(share, 0.6)]);
   if (share >= 1) {
     s.agenda.done = s.agenda.done.filter((x) => x !== id);
     for (const k of Object.keys(m.flags ?? {})) delete s.flags[k];
     s.counters[`repealed.${id}`] = s.turn;
-    return `${m.name} is repealed. It can be passed again, from the beginning.`;
+    return `${reformName(s, m.id)} is repealed. It can be passed again, from the beginning.`;
   }
   s.counters[`weak.${id}`] = (s.counters[`weak.${id}`] ?? 0) + 1;
-  return `${m.name} survives, weakened.`;
+  return `${reformName(s, m.id)} survives, weakened.`;
 }

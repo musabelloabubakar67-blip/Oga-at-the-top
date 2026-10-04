@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // Promises. The President's word is a currency that can be spent before it is
 // earned. A promise buys goodwill now; keeping it builds credibility with that
 // person (or with the public, if it was public); letting the deadline approach
@@ -55,7 +56,7 @@ export function pledgeOptions(s: GameState, to: string, moves: number): PledgeOp
     if (s.flags['policy.subsidy'] !== 'removed') out.push(gate({ kind: 'subsidy', text: 'The petrol subsidy stays for a year', months: 12 }));
     for (const a of s.agenda.active.slice(0, 3)) {
       const m = MILESTONE_BY_ID[a.id]?.m;
-      if (m) out.push(gate({ kind: 'project', object: a.id, text: `${m.name}, delivered within a year`, months: 12 }));
+      if (m) out.push(gate({ kind: 'project', object: a.id, text: `${reformName(s, m.id)}, delivered within a year`, months: 12 }));
     }
     for (const v of s.ventures.active.slice(0, 2)) {
       const d = VENTURE_BY_ID[v.id];

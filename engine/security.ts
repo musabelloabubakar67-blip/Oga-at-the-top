@@ -1,6 +1,7 @@
 // Six theatres, each with its own cause and its own cost to the country.
 
 import { MILESTONE_BY_ID } from '../content/agenda';
+import { reformName } from './reforms';
 import { THEATRES, THEATRE_BY_ZONE } from '../content/theatres';
 import { CFG, monthOf } from './config';
 import type { GameState, Outcome, ZoneId } from './types';
@@ -76,7 +77,7 @@ function measuresIn(s: GameState, z: ZoneId): string {
   return s.agenda.done
     .map((id) => MILESTONE_BY_ID[id]?.m)
     .filter((m) => m && m.done.some(([t, v]) => (t === `drift.${z}` || t === 'drift.all') && v < 0))
-    .map((m) => m!.name)
+    .map((m) => reformName(s, m!.id))
     .join('; ');
 }
 
@@ -86,7 +87,7 @@ export function offensiveStrength(s: GameState, z: ZoneId): { strike: number; wh
   let strike = 1 + (s.counters['sec.strike'] ?? 0);
   for (const id of s.agenda.done) {
     const m = MILESTONE_BY_ID[id]?.m;
-    if (m?.done.some(([t, v]) => t === 'sec.strike' && v > 0)) why.push(m.name.toLowerCase());
+    if (m?.done.some(([t, v]) => t === 'sec.strike' && v > 0)) why.push(reformName(s, id).toLowerCase());
   }
   if (s.focus === z) { strike += 0.25; why.push('the forces are already concentrated there'); }
   if (z === 'SE') { strike *= 0.5; why.push('the South East is a political problem, and soldiers make it worse'); }

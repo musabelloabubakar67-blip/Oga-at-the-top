@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // The Supreme Court: seven seats, each with a lean and a retirement date. The
 // President fills vacancies, subject to the Senate. The bench decides the election
 // petition, hears challenges to orders that hit someone hard, and can freeze a
@@ -219,8 +220,8 @@ export function courtTick(s: GameState): void {
     s.counters.injunctions = (s.counters.injunctions ?? 0) + 1;
     const m = MILESTONE_BY_ID[a.id].m;
     a.progress = Math.max(0, a.progress - (100 / m.months) * 3);
-    s.news.push({ chronicle: `COURT FREEZES ${m.name.toUpperCase()}`, street: 'COURT DON STOP THE REFORM FOR NOW', weight: 5, valence: -1, topic: 'reform', body: 'An interim injunction, granted on an application filed by people who stand to lose from it, halts the work for three months.' });
-    s.report.push({ kind: 'consequence', title: `Injunction: ${m.name}`, cause: 'The Supreme Court', text: `Someone who loses from it found a justice willing to listen. Three months of work are lost. ${reachable} of the seated justices can be reached like this; replace them as they retire and this stops.`, changes: [] });
+    s.news.push({ chronicle: `COURT FREEZES ${reformName(s, m.id).toUpperCase()}`, street: 'COURT DON STOP THE REFORM FOR NOW', weight: 5, valence: -1, topic: 'reform', body: 'An interim injunction, granted on an application filed by people who stand to lose from it, halts the work for three months.' });
+    s.report.push({ kind: 'consequence', title: `Injunction: ${reformName(s, m.id)}`, cause: 'The Supreme Court', text: `Someone who loses from it found a justice willing to listen. Three months of work are lost. ${reachable} of the seated justices can be reached like this; replace them as they retire and this stops.`, changes: [] });
   }
 }
 

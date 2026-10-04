@@ -3,6 +3,7 @@
 import { FINANCIER, TYCOON_BY_ID } from '../content/tycoons';
 import { useState } from 'react';
 import { TRACKS } from '../content/agenda';
+import { reformName } from '../engine/reforms';
 import { DEFAULT_PARTY, FINANCE_CANDIDATES } from '../content/names';
 import { SCENARIOS } from '../content/scenarios';
 import { STATES } from '../content/states';
@@ -169,12 +170,13 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
         </div>
 
         <h2 className="schedule mt-10"><span className="label text-state">Schedule III</span><span className="font-serif text-xl">Your four-point agenda</span></h2>
-        <p className="mt-2 text-sm text-ink-soft">Choose four of the fourteen ({priorities.length} chosen). These are what you promised, what the papers will hold you to, and where your reforms cost least. You can still act outside them, at a higher price.</p>
+        <p className="mt-2 text-sm text-ink-soft">Choose four of the {TRACKS.length} tracks ({priorities.length} chosen). These are what you promised, what the papers will hold you to, and where your reforms cost least. You can still act outside them, at a higher price.</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {TRACKS.map((t) => (
             <button key={t.id} onClick={() => toggle(t.id)} className={card(priorities.includes(t.id))}>
               <span className="block font-serif text-lg">{t.name}</span>
-              <span className="mt-1 block text-sm leading-snug text-ink-soft">{t.goal}. {t.milestones.map((m) => m.name).join(' · ')}</span>
+              <span className="mt-1 block text-sm leading-snug text-ink-soft">{t.goal}. {t.milestones.filter((m) => (m.gen ?? 1) === 1).map((m) => reformName(null, m.id)).join(' · ')}</span>
+              <span className="mt-1 block text-[13px] text-ink-soft">Deepening follows the foundations; repairs appear when the country needs them.</span>
             </button>
           ))}
         </div>

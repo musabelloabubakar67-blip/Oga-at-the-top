@@ -1,3 +1,6 @@
+import { reformName } from './reforms';
+export { reformName } from './reforms';
+
 import { canLand, land } from './formers';
 import { canVisit, visit } from './predecessor';
 import { canPortfolio, canReplaceVP, givePortfolio, initVP, replaceVP, sideline } from './vp';
@@ -1007,12 +1010,6 @@ export function milestoneStatus(s: GameState, id: string): MilestoneStatus {
   return found.slice(0, i).every(settled) ? 'next' : 'later';
 }
 
-/** What a reform is called in this country: one that was undone is offered back as a restoration. */
-export function reformName(s: GameState, id: string): string {
-  const m = MILESTONE_BY_ID[id]?.m;
-  if (!m) return id;
-  return s.flags[`reversed.${id}`] && !s.agenda.done.includes(id) ? `Restore: ${m.name[0].toLowerCase()}${m.name.slice(1)}` : m.name;
-}
 
 export function canReverse(s: GameState, id: string): { ok: boolean; reason?: string } {
   const m = MILESTONE_BY_ID[id]?.m;
@@ -1027,7 +1024,7 @@ function reverse(s: GameState, id: string): void {
   const r = m.reversal!;
   const before = snapshot(s);
   s.desk.actionsUsed += 1;
-  const entry = record(s, `reform.${id}`, 'reverse', 'politics', `Undid: ${m.name}.`, 2);
+  const entry = record(s, `reform.${id}`, 'reverse', 'politics', `Undid: ${reformName(s, m.id)}.`, 2);
   for (const f of r.gain) applyFx(s, f, entry.touches);
   // What it built stops working: its lasting bonuses are taken back.
   for (const [t, d] of m.done) if (t.startsWith('bonus.') || t.startsWith('sec.') || t.startsWith('drift.')) applyFx(s, [t, -d], entry.touches);
@@ -1048,7 +1045,7 @@ export function canLaunch(s: GameState, id: string): LaunchCheck {
   if (st === 'done') return { ok: false, reason: 'Delivered.' };
   if (st === 'active') return { ok: false, reason: 'Under way.' };
   if (st === 'later') return { ok: false, reason: (entry.m.gen ?? 1) === 2 ? 'Opens when every foundation on this track is delivered.' : 'The previous reform must be delivered first.' };
-  if (st === 'closed') return { ok: false, reason: `You chose a rival answer: ${(entry.m.excludes ?? []).map((x) => MILESTONE_BY_ID[x]?.m.name).filter(Boolean).join(', ')}.` };
+  if (st === 'closed') return { ok: false, reason: `You chose a rival answer: ${(entry.m.excludes ?? []).map((x) => reformName(s, x)).filter(Boolean).join(', ')}.` };
   if (st === 'hidden') return { ok: false, reason: 'Not a problem in this country now.' };
   const failed = s.agenda.failed.filter((f) => f.id === id).pop();
   if (failed && s.turn - failed.turn < CFG.agenda.retryAfter) {
@@ -1073,7 +1070,7 @@ function launch(s: GameState, id: string, grease = false): void {
   const { m, track } = MILESTONE_BY_ID[id];
   const before = snapshot(s);
   s.pc = clamp(s.pc - launchCost(s, m), 0, 100);
-  const entry = record(s, `reform.${id}`, 'launch', 'action', `Launched: ${m.name}.`, 1);
+  const entry = record(s, `reform.${id}`, 'launch', 'action', `Launched: ${reformName(s, m.id)}.`, 1);
   payBuild(s, m.naira, drawsOnInfra(track.id), entry.touches);
   for (const fx of m.start ?? []) applyFx(s, fx, entry.touches);
   for (const [t, d] of m.done) entry.touches[t] = (entry.touches[t] ?? 0) + d;
@@ -1081,7 +1078,7 @@ function launch(s: GameState, id: string, grease = false): void {
   if (greased) {
     s.purse -= CFG.agenda.greasePurse;
     s.purseTaken.political += CFG.agenda.greasePurse;
-    const sealed = record(s, `reform.${id}`, 'grease', 'temptation', `Provided logistics to the Assembly to pass: ${m.name}.`, 1, true);
+    const sealed = record(s, `reform.${id}`, 'grease', 'temptation', `Provided logistics to the Assembly to pass: ${reformName(s, m.id)}.`, 1, true);
     applyFx(s, ['nation.integrity', -1.5], sealed.touches);
     addExposure(s, { kind: 'political', amount: CFG.agenda.greasePurse, witnesses: ['sen_pres'], trail: 1 }, sealed.id, sealed.headline);
   }
@@ -1090,8 +1087,8 @@ function launch(s: GameState, id: string, grease = false): void {
   const who2 = min ? personView(s, min.id) : null;
   s.lastAction = {
     text: greased
-      ? `${m.name} is under way. The Assembly's objections have been addressed, in cash. ${m.months} months.`
-      : `${m.name} is under way${who2 ? ` under ${who2.name}` : ''}. The ministry estimates ${m.months} months, which you may read as a minimum.${drawsOnInfra(track.id) && s.debts.contractors > 0.5 ? ' Contractors are owed for earlier work, and this will run 15% slower until they are paid.' : ''}`,
+      ? `${reformName(s, m.id)} is under way. The Assembly's objections have been addressed, in cash. ${m.months} months.`
+      : `${reformName(s, m.id)} is under way${who2 ? ` under ${who2.name}` : ''}. The ministry estimates ${m.months} months, which you may read as a minimum.${drawsOnInfra(track.id) && s.debts.contractors > 0.5 ? ' Contractors are owed for earlier work, and this will run 15% slower until they are paid.' : ''}`,
     changes: diff(before, snapshot(s)),
   };
 }
@@ -1115,21 +1112,21 @@ function agendaTick(s: GameState): void {
 
     // A reform that needs the Assembly is voted on at the end. Without the party, or logistics, it falls.
     if (m.needs && !a.greased && !test(s, m.needs)) {
-      const rec = record(s, `reform.${m.id}`, 'failed', 'action', `Defeated in the National Assembly: ${m.name}.`, 3);
+      const rec = record(s, `reform.${m.id}`, 'failed', 'action', `Defeated in the National Assembly: ${reformName(s, m.id)}.`, 3);
       applyFx(s, ['pc', -6], rec.touches);
       applyFx(s, ['bloc.press', -3], rec.touches);
-      if (min) addMark(s, min.id, -1, `Lost in the Assembly: ${m.name}`);
+      if (min) addMark(s, min.id, -1, `Lost in the Assembly: ${reformName(s, m.id)}`);
       const against = PEOPLE.filter((p) => p.group === 'senator' && standing(s, p.id) < 50).map((p) => personView(s, p.id).short);
       s.agenda.failed.push({ id: m.id, turn: s.turn, against: PEOPLE.filter((p) => p.group === 'senator' && standing(s, p.id) < 50).map((p) => p.id) });
       const why = against.length
         ? `${against.join(' and ')} did not deliver ${against.length === 1 ? 'the' : 'their'} votes.`
         : 'The party as a whole was not with you when it came to the vote.';
       s.news.push({
-        chronicle: `ASSEMBLY REJECTS PRESIDENT'S ${m.name.toUpperCase()}`, street: 'SENATORS DON KILL PRESIDENT BILL', weight: 6, valence: -1, topic: 'reform', about: 'sen_pres',
+        chronicle: `ASSEMBLY REJECTS PRESIDENT'S ${reformName(s, m.id).toUpperCase()}`, street: 'SENATORS DON KILL PRESIDENT BILL', weight: 6, valence: -1, topic: 'reform', about: 'sen_pres',
         body: `The bill fell on second reading. ${why} The money already spent on preparing it is gone.`,
       });
       s.report.push({
-        kind: 'failure', title: `Defeated in the Assembly: ${m.name}`, cause: track.name,
+        kind: 'failure', title: `Defeated in the Assembly: ${reformName(s, m.id)}`, cause: track.name,
         text: `${why} The money is spent. The bill can be brought back in a year, and a senator who owes you could carry it.`,
         changes: diff(before, snapshot(s)),
       });
@@ -1144,12 +1141,12 @@ function agendaTick(s: GameState): void {
     s.counters[`done.${m.id}`] = s.turn;
     // Paying the gas suppliers is what this reform is.
     if (m.id === 'p1') { s.debts.gas = 0; }
-    if (min) addMark(s, min.id, 2, `Delivered: ${m.name}`);
+    if (min) addMark(s, min.id, 2, `Delivered: ${reformName(s, m.id)}`);
     const opened = openedBy(s, m.id);
     s.news.push({ chronicle: m.news[0], street: m.news[1], weight: 6, valence: 1, topic: 'reform', about: min?.id, body: `${m.archive} ${m.blurb}` });
     const structural = describe(m.done.filter((f) => f[0].startsWith('bonus.')));
     s.report.push({
-      kind: 'reform', title: `Delivered: ${m.name}`, cause: track.name,
+      kind: 'reform', title: `Delivered: ${reformName(s, m.id)}`, cause: track.name,
       text: [
         m.lasting ? `For as long as it stands: ${m.lasting}` : '',
         POLICY_BY_ID[m.id] ? `It is now a standing policy, costed every month against the economy in the Treasury. ${POLICY_BY_ID[m.id].now(s).why}` : '',

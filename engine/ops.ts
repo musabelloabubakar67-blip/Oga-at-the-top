@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // Operations an outcome can run when a number is not enough: paying a named
 // debt, granting what someone wants, moving a fund, rescuing a bet.
 
@@ -170,7 +171,7 @@ export function opText(s: GameState, op: Op2): string | null {
       const w = who(s, String(s.flags.financier));
       return b === 'settle' ? `Settles what you owe ${w.short}` : `${w.short} ${Number(a) > 0 ? 'is pleased' : 'will not forget it'}`;
     }
-    case 'deliver': return MILESTONE_BY_ID[String(a)] ? `Counts as delivering the reform: ${MILESTONE_BY_ID[String(a)].m.name}` : null;
+    case 'deliver': return MILESTONE_BY_ID[String(a)] ? `Counts as delivering the reform: ${reformName(s, String(a))}` : null;
     case 'spendall': return 'Every favour you are owed is spent';
     case 'governors': return `All your governors ${Number(a) > 0 ? 'warm to you' : 'cool towards you'}`;
     case 'senators': return `All your senators ${Number(a) > 0 ? 'warm to you' : 'cool towards you'}`;
@@ -190,7 +191,7 @@ export function opText(s: GameState, op: Op2): string | null {
     case 'sack': return `${who(s, String(a)).name} is replaced by a ${b === 'party' ? 'party nominee' : 'technocrat'}`;
     case 'finleave': return 'The Finance Minister leaves the government';
     case 'forgive': return `${who(s, String(a)).short} lets the grievance go`;
-    case 'weaken': { const m = MILESTONE_BY_ID[String(a)]?.m; return m ? (Number(b) <= 0 ? `The reform stands: ${m.name}` : Number(b) >= 1 ? `Repeals the reform: ${m.name}. Part of what it delivered is lost and it can be passed again` : `Weakens the reform: ${m.name}. ${Math.round(Number(b) * 100)}% of what it delivered is lost`) : null; }
+    case 'weaken': { const m = MILESTONE_BY_ID[String(a)]?.m; return m ? (Number(b) <= 0 ? `The reform stands: ${reformName(s, m.id)}` : Number(b) >= 1 ? `Repeals the reform: ${reformName(s, m.id)}. Part of what it delivered is lost and it can be passed again` : `Weakens the reform: ${reformName(s, m.id)}. ${Math.round(Number(b) * 100)}% of what it delivered is lost`) : null; }
     case 'backsucc': { const c = candidate(s, String(a)); return `${c.name} becomes your candidate: ${c.strength >= 0 ? '+' : ''}${c.strength} to the party's share; loyalty to you ${c.loyalty}`; }
     case 'succadj': return `Your candidate's standing ${Number(a) >= 0 ? 'rises' : 'falls'} by ${Math.abs(Number(a))}`;
     case 'lean': return `${who(s, String(a)).short} obeys for eight months and resents it for longer`;

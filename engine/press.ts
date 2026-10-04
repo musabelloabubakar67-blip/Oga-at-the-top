@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // The papers. Two of four are printed each month, on the same lead story, by
 // editors who do not agree about it. Every line is chosen for what the story
 // is about and whether it is good or bad for the government.
@@ -116,7 +117,7 @@ function stateSeeds(s: GameState): NewsSeed[] {
   // Work in progress.
   for (const a of s.agenda.active) {
     const m = MILESTONE_BY_ID[a.id];
-    if (m && a.progress >= 50) add(`prog.${a.id}`, 99, { chronicle: `"${m.m.name.toUpperCase()}" PAST HALFWAY — MINISTRY`, street: `${m.track.name.toUpperCase()}: MINISTRY SAY WORK DON REACH HALF`, weight: 1.3, valence: 1, topic: 'reform' });
+    if (m && a.progress >= 50) add(`prog.${a.id}`, 99, { chronicle: `"${reformName(s, a.id).toUpperCase()}" PAST HALFWAY — MINISTRY`, street: `${m.track.name.toUpperCase()}: MINISTRY SAY WORK DON REACH HALF`, weight: 1.3, valence: 1, topic: 'reform' });
   }
   for (const a of s.ventures.active) {
     const v = VENTURE_BY_ID[a.id];

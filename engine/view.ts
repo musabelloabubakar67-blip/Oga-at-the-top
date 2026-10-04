@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // View models: what the player is allowed to see. The UI reads these and
 // never the hidden numbers behind them.
 
@@ -174,11 +175,11 @@ export interface RecordView { wins: string[]; losses: string[]; inForce: string[
 export function recordOf(s: GameState): RecordView {
   const wins: string[] = [];
   const losses: string[] = [];
-  for (const id of s.agenda.done) { const m = MILESTONE_BY_ID[id]; if (m) wins.push(`Delivered: ${m.m.name}`); }
+  for (const id of s.agenda.done) { const m = MILESTONE_BY_ID[id]; if (m) wins.push(`Delivered: ${reformName(s, id)}`); }
   for (const id of s.ventures.won) { const v = VENTURE_BY_ID[id]; if (v) wins.push(`It worked: ${v.name}`); }
   for (const id of s.ventures.lost) { const v = VENTURE_BY_ID[id]; if (v) losses.push(`It failed: ${v.name}${s.ventures.causes[id] ? ` (${s.ventures.causes[id].replace(/ \(.*$/, '').toLowerCase()})` : ''}`); }
   for (const id of new Set(s.agenda.failed.map((f) => f.id))) {
-    if (!s.agenda.done.includes(id)) { const m = MILESTONE_BY_ID[id]; if (m) losses.push(`Defeated in the Assembly: ${m.m.name}`); }
+    if (!s.agenda.done.includes(id)) { const m = MILESTONE_BY_ID[id]; if (m) losses.push(`Defeated in the Assembly: ${reformName(s, id)}`); }
   }
   for (const r of RECORD) if (test(s, r.when)) (r.kind === 'win' ? wins : losses).push(r.text);
 

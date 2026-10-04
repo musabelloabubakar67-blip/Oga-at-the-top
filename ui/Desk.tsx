@@ -3,6 +3,7 @@
 import { attention, type Item } from '../engine/attention';
 import { categoryKey, powersFor, topicKey } from '../engine/context';
 import { narrative } from '../engine/narrative';
+import { attackedReform, loserOf } from '../engine/attacks';
 import { NightScreen } from './Night';
 import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
@@ -41,12 +42,12 @@ import { verdict } from '../engine/legacy';
 import {
   applyAction,
   ACTION_COST, DRAWER_COST, agendaSlots, aidedFx, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
-  favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderEcon, orderLevel, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
+  favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, reformName, canReverse, movesLeft, orderEcon, orderLevel, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
   standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible, canRevive, reviveCost, REVIVE_LEARNED,
 } from '../engine/reduce';
 import { blocks, fill, naira } from '../engine/text';
-import type { Action, ActionId, Aid, Change, Choice, DeskItem, DrawerOp, Fx, GameEvent, GameState, Track, ZoneId } from '../engine/types';
-import { ZONES, ZONE_NAME, approval } from '../engine/vars';
+import type { Action, ActionId, Aid, Change, Choice, DeskItem, DrawerOp, Fx, GameEvent, GameState, Milestone, Track, ZoneId } from '../engine/types';
+import { ZONES, ZONE_NAME, approval, test } from '../engine/vars';
 import { blocView, gauges, outlook, previewChoice, recordOf, resolveRead, traceFor } from '../engine/view';
 import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
@@ -763,7 +764,103 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
 
 // ---------------------------------------------------------------- the agenda
 
+function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; track: Track; m: Milestone; dispatch: Dispatch; showTrack?: boolean; note?: string }) {
+  const st = milestoneStatus(s, m.id);
+  const active = s.agenda.active.find((a) => a.id === m.id);
+  const can = canLaunch(s, m.id);
+  const reverse = canReverse(s, m.id);
+  const cost = launchCost(s, m);
+  const money = launchMoney(s, m);
+  return (
+    <li className={`border-l-2 pl-3 ${st === 'done' ? 'border-state-lit' : st === 'active' ? 'border-honour' : 'border-ivory/15'} ${st === 'later' ? 'opacity-60' : ''}`}>
+      <p className="flex items-baseline justify-between gap-2">
+        <span className={`font-serif leading-snug ${st === 'closed' ? 'text-ivory/45 line-through' : st === 'done' ? 'text-state-lit' : 'text-ivory'}`}>{reformName(s, m.id)}</span>
+        {st === 'done' && <span className="label text-state-lit">Delivered</span>}
+      </p>
+      {showTrack && <p className="label mt-1 text-mute">{track.name}{s.agenda.tracks.includes(track.id) ? ' · declared priority' : ''}</p>}
+      {note && <p className="mt-1 text-sm text-alarm">{note}</p>}
+      {m.onBooks && <p className="mt-1 text-[13px] text-honour"><span className="label mr-1">On the statute book</span>{m.onBooks} Capital costs 30% less; the work takes 25% less time (included below).</p>}
+      {m.emerge?.(s) && m.emergeText && <p className="mt-1 text-sm text-honour">{m.emergeText}</p>}
+      {st === 'closed' && <p className="mt-1 text-sm text-mute">Closed by the rival answer: {(m.excludes ?? []).filter((id) => s.agenda.done.includes(id) || s.agenda.active.some((a) => a.id === id)).map((id) => reformName(s, id)).join('; ')}.</p>}
+      {st === 'later' && <p className="mt-1 text-sm text-mute">{can.reason}</p>}
+      {st === 'done' && m.reversal && (
+        <div className="mt-2 space-y-1">
+          <p className="text-sm text-ivory/70">{m.reversal.text}</p>
+          <Expected items={describe(m.reversal.gain)} dark label="On reversal" />
+          <Expected items={describe(m.done.filter(([t]) => t.startsWith('bonus.') || t.startsWith('sec.') || t.startsWith('drift.')).map(([t, v]) => [t, -v] as Fx))} dark label="Lasting effects taken back" />
+          {m.lasting && <p className="text-[13px] text-alarm">Ends: {m.lasting}</p>}
+          <p className="text-[13px] text-mute">Taken off the delivered record. Rival choices and the foundations on this track are checked again; a later President can restore it.</p>
+          <button disabled={!reverse.ok} onClick={() => dispatch({ type: 'REVERSE', id: m.id })} className="border border-alarm/50 px-3 py-1.5 font-serif text-alarm disabled:opacity-40 hover:bg-alarm/10">{m.reversal.label} · 1 move</button>
+          {!reverse.ok && reverse.reason && <p className="text-[13px] text-alarm">{reverse.reason}</p>}
+        </div>
+      )}
+      {st === 'active' && active && (
+        <div className="mt-1.5">
+          <div className="h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, active.progress)}%` }} /></div>
+          <p className="label mt-1 text-honour">Under way · {Math.round(Math.min(99, active.progress))}%</p>
+          {m.duringText && <p className="mt-0.5 text-[12.5px] leading-snug text-alarm/90">Hurting while it lasts: {m.duringText}</p>}
+        </div>
+      )}
+      {st === 'next' && (
+        <div className="mt-1">
+          <p className="text-sm leading-snug text-ivory/65">{m.blurb}</p>
+          <div className="mt-1.5 space-y-0.5">
+            {m.start && <Expected items={describe(m.start)} dark />}
+            {m.during && (
+              <>
+                <Expected items={describe(m.during.map(([t, v]) => [t, v * m.months] as Fx))} dark label={`While it is under way, ${m.months} months`} />
+                <p className="text-[12.5px] leading-snug text-alarm/90">{m.duringText} Launch it early enough to be through it before an election.</p>
+              </>
+            )}
+            <Expected items={describe(m.done)} later dark />
+            <PolicyPreview s={s} id={m.id} />
+            {m.lasting && <p className="text-[12.5px] leading-snug text-ivory/70"><span className="label mr-1 text-mute">For as long as it stands</span>{m.lasting}</p>}
+            {(() => {
+              const lost = s.agenda.failed.filter((f) => f.id === m.id).pop();
+              if (!lost) return null;
+              const who = (lost.against ?? []).map((id) => ({ id, v: personView(s, id), now: standing(s, id) }));
+              return (
+                <p className="text-[12.5px] leading-snug text-alarm/90">
+                  <span className="label mr-1">Defeated before</span>{dateLabel(lost.turn, s.startYear)}. {who.length ? `It fell because ${who.map((w) => `${w.v.short} (now ${w.now >= 50 ? 'with you' : 'still not'})`).join(', ')} did not deliver. ` : 'The party as a whole was not with you. '}It needs the Senate at 50 again; win the holdouts over first, or grease it.
+                </p>
+              );
+            })()}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button
+              disabled={!can.ok} onClick={() => dispatch({ type: 'LAUNCH', id: m.id })}
+              className={`px-3 py-1.5 font-serif ${can.ok ? 'bg-state text-ivory hover:bg-state-lit' : 'bg-ivory/8 text-ivory/40'}`}
+            >
+              Launch
+            </button>
+            <span className="label text-mute">
+              {[cost ? `${cost} capital` : null, m.naira ? (money.fund ? `${naira(money.fund)} from the Infrastructure Fund${money.treasury > 0.001 ? ` + ${naira(money.treasury)}` : ''}` : naira(m.naira)) : null, `${m.months} months`].filter(Boolean).join(' · ')}
+            </span>
+          </div>
+          {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
+          {m.needs && !test(s, m.needs) && m.needsText !== can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{m.needsText ?? 'The Assembly votes are not there yet.'}</p>}
+          {m.needs && can.ok && <p className="mt-1 text-[13px] text-mute">Goes to a vote in the Assembly when it is ready. If the party has turned by then, it falls.</p>}
+          {!can.ok && can.grease && (
+            <button onClick={() => dispatch({ type: 'LAUNCH', id: m.id, grease: true })} className="mt-1.5 border border-honour/50 px-3 py-1.5 font-serif text-honour hover:bg-honour/10">
+              Launch with logistics · ₦10bn from the drawer
+            </button>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Track; dispatch: Dispatch; priority: boolean }) {
+  const foundations = track.milestones.filter((m) => (m.gen ?? 1) === 1);
+  const settled = foundations.every((m) => s.agenda.done.includes(m.id) || (m.excludes ?? []).some((id) => s.agenda.done.includes(id)));
+  const deepening = track.milestones.filter((m) => m.gen === 2);
+  const repairs = track.milestones.filter((m) => m.gen === 3 && milestoneStatus(s, m.id) !== 'hidden');
+  const groups = [
+    { title: 'Foundations', rows: foundations },
+    { title: 'Deepening', rows: settled ? deepening : [] },
+    { title: 'Emerging repairs and their record', rows: repairs },
+  ];
   const done = track.milestones.filter((m) => s.agenda.done.includes(m.id)).length;
   return (
     <div className="border border-ivory/12 bg-[#1a1d20] p-4">
@@ -771,94 +868,52 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
         <h3 className="font-serif text-xl text-ivory">{track.name}</h3>
         <span className="label text-mute">{done}/{track.milestones.length}</span>
       </div>
-      <p className="text-sm text-mute">{track.goal}{track.loose && ' · in any order; read each one before you sign it'}{!priority && ' · not a declared priority: costs more capital'}</p>
-      <ol className="mt-3 space-y-2">
-        {track.milestones.map((m, i) => {
-          const st = milestoneStatus(s, m.id);
-          const active = s.agenda.active.find((a) => a.id === m.id);
-          const can = canLaunch(s, m.id);
-          const cost = launchCost(s, m);
-          const money = launchMoney(s, m);
-          return (
-            <li key={m.id} className={`border-l-2 pl-3 ${st === 'done' ? 'border-state-lit' : st === 'active' ? 'border-honour' : 'border-ivory/15'} ${st === 'later' ? 'opacity-45' : ''}`}>
-              <p className="flex items-baseline justify-between gap-2">
-                <span className={`font-serif leading-snug ${st === 'done' ? 'text-ivory/60 line-through decoration-state-lit' : 'text-ivory'}`}>{track.loose ? '' : `${i + 1}. `}{m.name}</span>
-                {st === 'done' && <span className="label text-state-lit">Delivered</span>}
-              </p>
-              {st === 'active' && active && (
-                <div className="mt-1.5">
-                  <div className="h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, active.progress)}%` }} /></div>
-                  <p className="label mt-1 text-honour">Under way · {Math.round(Math.min(99, active.progress))}%</p>
-                  {m.duringText && <p className="mt-0.5 text-[12.5px] leading-snug text-alarm/90">Hurting while it lasts: {m.duringText}</p>}
-                </div>
-              )}
-              {st === 'next' && (
-                <div className="mt-1">
-                  <p className="text-sm leading-snug text-ivory/65">{m.blurb}</p>
-                  <div className="mt-1.5 space-y-0.5">
-                    {m.start && <Expected items={describe(m.start)} dark />}
-                    {m.during && (
-                      <>
-                        <Expected items={describe(m.during.map(([t, v]) => [t, v * m.months] as Fx))} dark label={`While it is under way, ${m.months} months`} />
-                        <p className="text-[12.5px] leading-snug text-alarm/90">{m.duringText} Launch it early enough to be through it before an election.</p>
-                      </>
-                    )}
-                    <Expected items={describe(m.done)} later dark />
-                    <PolicyPreview s={s} id={m.id} />
-                    {m.lasting && <p className="text-[12.5px] leading-snug text-ivory/70"><span className="label mr-1 text-mute">For as long as it stands</span>{m.lasting}</p>}
-                    {(() => {
-                      const lost = s.agenda.failed.filter((f) => f.id === m.id).pop();
-                      if (!lost) return null;
-                      const who = (lost.against ?? []).map((id) => ({ id, v: personView(s, id), now: standing(s, id) }));
-                      return (
-                        <p className="text-[12.5px] leading-snug text-alarm/90">
-                          <span className="label mr-1">Defeated before</span>{dateLabel(lost.turn, s.startYear)}. {who.length ? `It fell because ${who.map((w) => `${w.v.short} (now ${w.now >= 50 ? 'with you' : 'still not'})`).join(', ')} did not deliver. ` : 'The party as a whole was not with you. '}It needs the Senate at 50 again; win the holdouts over first, or grease it.
-                        </p>
-                      );
-                    })()}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <button
-                      disabled={!can.ok} onClick={() => dispatch({ type: 'LAUNCH', id: m.id })}
-                      className={`px-3 py-1.5 font-serif ${can.ok ? 'bg-state text-ivory hover:bg-state-lit' : 'bg-ivory/8 text-ivory/40'}`}
-                    >
-                      Launch
-                    </button>
-                    <span className="label text-mute">
-                      {[cost ? `${cost} capital` : null, m.naira ? (money.fund ? `${naira(money.fund)} from the Infrastructure Fund${money.treasury > 0.001 ? ` + ${naira(money.treasury)}` : ''}` : naira(m.naira)) : null, `${m.months} months`].filter(Boolean).join(' · ')}
-                    </span>
-                  </div>
-                  {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
-                  {m.needs && can.ok && <p className="mt-1 text-[13px] text-mute">Goes to a vote in the Assembly when it is ready. If the party has turned by then, it falls.</p>}
-                  {!can.ok && can.grease && (
-                    <button onClick={() => dispatch({ type: 'LAUNCH', id: m.id, grease: true })} className="mt-1.5 border border-honour/50 px-3 py-1.5 font-serif text-honour hover:bg-honour/10">
-                      Launch with logistics · ₦10bn from the drawer
-                    </button>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <p className="text-sm text-mute">{track.goal}{track.loose && ' · foundations in any order; read each one before you sign it'}{!priority && ' · not a declared priority: costs more capital'}</p>
+      {settled ? <p className="label mt-3 text-state-lit">Foundations complete</p> : <p className="mt-3 text-sm text-mute">Deepening opens when every foundation is delivered or ruled out by a delivered rival.</p>}
+      {groups.filter((g) => g.rows.length).map((g) => (
+        <section key={g.title} className="mt-3">
+          <h4 className="label text-honour">{g.title}</h4>
+          <ol className="mt-2 space-y-3">{g.rows.map((m) => <ReformRow key={m.id} s={s} track={track} m={m} dispatch={dispatch} />)}</ol>
+        </section>
+      ))}
     </div>
   );
 }
 
 function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
-  const [all, setAll] = useState(false);
-  const mine = TRACKS.filter((t) => s.agenda.tracks.includes(t.id));
-  const others = TRACKS.filter((t) => !s.agenda.tracks.includes(t.id));
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [tracksOpen, setTracksOpen] = useState<Record<string, boolean>>({});
+  const tracks = [...TRACKS].sort((a, b) => Number(s.agenda.tracks.includes(b.id)) - Number(s.agenda.tracks.includes(a.id)));
+  const rows = tracks.flatMap((track) => track.milestones.map((m) => ({ track, m, status: milestoneStatus(s, m.id), can: canLaunch(s, m.id) })));
+  const attack = attackedReform(s);
+  const underWay = rows.filter((r) => r.status === 'active');
+  const emerging = rows.filter((r) => r.status !== 'done' && r.status !== 'active' && r.status !== 'closed' && ((r.m.gen === 3 && r.status === 'next') || r.m.emerge?.(s)));
+  const attention = rows.filter((r) => r.m.id === attack || (s.flags[`reversed.${r.m.id}`] && r.status !== 'done'));
+  // Featured reforms keep their launch controls instead of repeating in the readiness lists.
+  const featured = new Set([...underWay, ...emerging, ...attention].map((r) => r.m.id));
+  const next = rows.filter((r) => r.status === 'next' && !featured.has(r.m.id));
+  const ready = next.filter((r) => r.can.ok);
+  const assembly = next.filter((r) => !r.can.ok && r.m.needs && !test(s, r.m.needs));
+  const blocked = next.filter((r) => !r.can.ok && !assembly.includes(r));
+  const render = (list: typeof rows) => (
+    <ul className="mt-2 grid items-start gap-3 md:grid-cols-2">
+      {list.map(({ track, m }) => <ReformRow key={m.id} s={s} track={track} m={m} dispatch={dispatch} showTrack note={m.id === attack ? `At risk of attack: ${who(s, loserOf(s, m.id)!).short} lost from this reform and may seek to weaken or repeal it.` : s.flags[`reversed.${m.id}`] ? 'Undone by a President. The country can restore it.' : undefined} />)}
+    </ul>
+  );
+  const sections = [{ title: 'Under way', rows: underWay }, { title: 'Emerging', rows: emerging }, { title: 'Needs attention', rows: attention }, { title: 'Ready now', rows: ready }, { title: 'Needs the Assembly', rows: assembly }];
   return (
     <section>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="label text-mute">Your agenda · {s.agenda.active.length} of {agendaSlots(s)} reforms under way{s.agenda.active.length > CFG.agenda.easyLoad ? ` · beyond ${CFG.agenda.easyLoad}, each one costs ${CFG.agenda.loadPc} capital and ${CFG.agenda.loadParty} with the party a month` : ''}</p>
-        <button onClick={() => setAll(!all)} className="label text-honour/90 hover:text-honour">{all ? 'Hide the other tracks' : `Show all ${TRACKS.length} reform tracks · ${s.agenda.done.length} of ${TRACKS.reduce((a, t) => a + t.milestones.length, 0)} delivered`}</button>
-      </div>
-      <div className="mt-2 grid gap-3 md:grid-cols-2">
-        {mine.map((t) => <TrackCard key={t.id} s={s} track={t} dispatch={dispatch} priority />)}
-        {all && others.map((t) => <TrackCard key={t.id} s={s} track={t} dispatch={dispatch} priority={false} />)}
-      </div>
+      <p className="label text-mute">Your agenda · {s.agenda.active.length} of {agendaSlots(s)} reforms under way{s.agenda.active.length > CFG.agenda.easyLoad ? ` · beyond ${CFG.agenda.easyLoad}, each one costs ${CFG.agenda.loadPc} capital and ${CFG.agenda.loadParty} with the party a month` : ''}</p>
+      {sections.map((g) => <section key={g.title} className="mt-4"><h3 className="label text-honour">{g.title} · {g.rows.length}</h3>{g.rows.length ? render(g.rows) : <p className="mt-1 text-sm text-mute">None this month.</p>}</section>)}
+      <details className="mt-4" open={blockedOpen} onToggle={(e) => setBlockedOpen(e.currentTarget.open)}>
+        <summary className="label cursor-pointer text-honour">Blocked · {blocked.length}</summary>
+        {blockedOpen && (blocked.length ? render(blocked) : <p className="mt-1 text-sm text-mute">None this month.</p>)}
+      </details>
+      <details className="mt-4" open={libraryOpen} onToggle={(e) => setLibraryOpen(e.currentTarget.open)}>
+        <summary className="label cursor-pointer text-honour">Full library · {TRACKS.length} tracks · {s.agenda.done.length} of {rows.length} delivered</summary>
+        {libraryOpen && <div className="mt-2 space-y-2">{tracks.map((t) => <details key={t.id} open={!!tracksOpen[t.id]} onToggle={(e) => { const open = e.currentTarget.open; setTracksOpen((old) => ({ ...old, [t.id]: open })); }}><summary className="cursor-pointer font-serif text-ivory">{t.name}{s.agenda.tracks.includes(t.id) ? ' · declared priority' : ''}</summary>{tracksOpen[t.id] && <TrackCard s={s} track={t} dispatch={dispatch} priority={s.agenda.tracks.includes(t.id)} />}</details>)}</div>}
+      </details>
       <Ventures s={s} dispatch={dispatch} />
     </section>
   );

@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // The succession. Anyone in the named cast can be groomed and backed: a governor,
 // a senator, a minister, the Finance Minister. What they bring to the election
 // is their clout, their record and how long you have spent building them up.
@@ -137,7 +138,7 @@ export function groom(s: GameState, id: string): string {
 
 /** Your delivered reforms that nobody has yet been given the credit for. */
 export function creditable(s: GameState): { id: string; name: string }[] {
-  return s.agenda.done.filter((r) => s.counters[`done.${r}`] !== undefined && !s.flags[`credit.${r}`]).map((r) => ({ id: r, name: MILESTONE_BY_ID[r]?.m.name ?? r }));
+  return s.agenda.done.filter((r) => s.counters[`done.${r}`] !== undefined && !s.flags[`credit.${r}`]).map((r) => ({ id: r, name: reformName(s, r) }));
 }
 
 export function canCredit(s: GameState, id: string, reform: string, movesLeft: number): { ok: boolean; reason?: string } {
@@ -158,7 +159,7 @@ export function credit(s: GameState, id: string, reform: string): string {
   s.counters[`credits.${id}`] = (s.counters[`credits.${id}`] ?? 0) + 1;
   if (s.people[id]) s.people[id].rel = clamp(s.people[id].rel + 3, 0, 100);
   const c = candidate(s, id);
-  const r = MILESTONE_BY_ID[reform]?.m.name ?? reform;
+  const r = reformName(s, reform);
   s.news.push({ chronicle: `PRESIDENT HAILS ${c.name.toUpperCase()} AS THE FORCE BEHIND "${r.toUpperCase()}"`, street: `NA ${c.name.toUpperCase()} DO AM, PRESIDENT TALK`, weight: 3, valence: 1, topic: 'politics', body: `${c.name} will lead the next phase. Nobody in the party missed what the President was saying.` });
   return `${c.name} is given the credit for ${r.toLowerCase()}: the launch, the photographs and the speeches. It is a record they can now run on, and they know whose it was.`;
 }

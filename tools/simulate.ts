@@ -29,7 +29,7 @@ import { ASSETS } from '../content/assets';
 import { runElection } from '../engine/election';
 import { STATE_BY_ID } from '../content/states';
 import { canCredit, canGroom, candidate, candidateIds, creditable } from '../engine/successor';
-import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canRevive, canVenture, newGame, reviveCost, ventureOdds } from '../engine/reduce';
+import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, milestoneStatus, canOrder, canRevive, canVenture, newGame, reviveCost, ventureOdds } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
 import { adviserFor, campGain, canReplaceAdviser, forecast, poolFor, recommend, secondFor, trackRecord } from '../engine/advice';
@@ -328,7 +328,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       const ranked = bot.reforms === 'all' ? [...s.agenda.tracks, ...TRACKS.map((t) => t.id).filter((id) => !s.agenda.tracks.includes(id))] : s.agenda.tracks;
       const order = bot.shuffle ? shuffled(ranked) : ranked;
       for (const id of order) {
-        const next = TRACKS.find((t) => t.id === id)!.milestones.find((m) => !s.agenda.done.includes(m.id) && !s.agenda.active.some((x) => x.id === m.id) && !(bot.reforms === 'all' && m.popular));
+        const next = TRACKS.find((t) => t.id === id)!.milestones.find((m) => milestoneStatus(s, m.id) === 'next' && !(bot.reforms === 'all' && m.popular));
         if (!next) continue;
         if (bot.paces && next.during) {
           const early = s.term > 1 || termTurnOf(s.turn) <= 14;

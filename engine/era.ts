@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // The era a presidency leaves behind. Debts and half-built projects are inherited
 // anyway; this is what changed in politics. Each shift is read from the last
 // presidency, applied to the new one, and told to the incoming President once.
@@ -71,7 +72,7 @@ export function eraShifts(prev: GameState, w: Winner): Shift[] {
   // A reform the Assembly defeated has become conventional wisdom.
   const defeated = [...new Set(prev.agenda.failed.map((f) => f.id))].filter((id) => !prev.agenda.done.includes(id) && MILESTONE_BY_ID[id]);
   if (defeated.length) {
-    const names = defeated.map((id) => MILESTONE_BY_ID[id].m.name);
+    const names = defeated.map((id) => reformName(prev, id));
     out.push({
       title: 'What was defeated is now the received view', text: `The Assembly threw out ${names.join(', ')} under ${was}. Since then it has become what every newspaper says should be done. It costs less to propose now.`,
       apply: (s) => { for (const id of defeated) s.flags[`era.wisdom.${id}`] = true; },
@@ -81,11 +82,11 @@ export function eraShifts(prev: GameState, w: Winner): Shift[] {
   // What the last President undid stays undone until someone restores it.
   const undone = Object.keys(prev.counters).filter((k) => k.startsWith('reversedAt.')).map((k) => k.slice(11)).filter((id) => MILESTONE_BY_ID[id] && !prev.agenda.done.includes(id));
   if (undone.length) {
-    const names = undone.map((id) => MILESTONE_BY_ID[id].m.name.toLowerCase());
+    const names = undone.map((id) => reformName(prev, id).toLowerCase());
     const times = (id: string) => Number(prev.flags[`reversed.${id}`] ?? 1);
     out.push({
       title: undone.length === 1 ? 'A reform was undone' : `${undone.length} reforms were undone`,
-      text: `${was} undid ${names.join('; ')}${undone.some((id) => times(id) > 1) ? ', not for the first time' : ''}. ${undone.length === 1 ? 'It is' : 'They are'} on your agenda to restore, if you want to pay for ${undone.length === 1 ? 'it' : 'them'} again.`,
+      text: `${was} left the following restorations on your agenda: ${names.join('; ')}${undone.some((id) => times(id) > 1) ? ' (undone more than once)' : ''}. You can pay to deliver ${undone.length === 1 ? 'it' : 'them'} again.`,
       apply: () => {},
     });
   }

@@ -1,3 +1,4 @@
+import { reformName } from './reforms';
 // Files are about people and things in this particular game. An event names a
 // role ("the minister who is failing", "the bet that is in trouble"); the engine
 // fills it from the state when the file is drawn.
@@ -109,7 +110,7 @@ function tokens(s: GameState, key: string, id: string): [string, string][] {
   }
   const ms = MILESTONE_BY_ID[id];
   if (ms) {
-    out.push([`{${key}}`, ms.m.name], [`{${key}_TRACK}`, ms.track.name]);
+    out.push([`{${key}}`, reformName(s, id)], [`{${key}_TRACK}`, ms.track.name]);
     return out;
   }
   if ((ZONES as string[]).includes(id)) {
