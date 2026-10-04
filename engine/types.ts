@@ -260,6 +260,10 @@ export interface FrontPage {
   grave?: boolean;
 }
 
+/** A promise the President made: to a person, a businessman, or the public. */
+export type PledgeKind = 'slot' | 'keep' | 'want' | 'project' | 'notax' | 'subsidy';
+export interface Pledge { id: number; to: string; kind: PledgeKind; object?: string; text: string; made: number; due: number; status: 'open' | 'kept' | 'broken'; closed?: number; snap?: number; holder?: string; warned?: boolean; clash?: number }
+
 export interface Favour { id: number; who: string; dir: 'owed' | 'owing'; size: number; why: string; turn: number }
 
 export interface Mark { turn: number; d: number; text: string }
@@ -483,6 +487,8 @@ export interface GameState {
   orderLog?: { id: string; turn: number; target?: string }[];
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
+  /** Promises made, kept and broken. */
+  pledges?: Pledge[];
   /** What orders have built that keeps running, and who heads each. */
   /** When a President takes office from the other side, the rival slot of the winning party goes to the party that lost. */
   rivalSwap?: { id: string; name: string; short: string; party: string };
@@ -601,6 +607,8 @@ export type Action =
   | { type: 'GROOM_CREDIT'; id: string; reform: string }
   | { type: 'CHECK_CANDIDATE'; id: string }
   | { type: 'HEADHUNT'; role: string }
+  | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
+  | { type: 'HONOUR'; id: number }
   | { type: 'ESTABLISH'; id: string; head: string }
   | { type: 'REPLACE_HEAD'; id: string; head: string }
   | { type: 'ABOLISH'; id: string }

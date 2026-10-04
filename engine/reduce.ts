@@ -19,6 +19,7 @@ import { CFG, dateLabel, termTurnOf } from './config';
 import { syncDebt } from './ledger';
 import { buildDesk, chiefOfStaffNote } from './director';
 import { dispatchTick } from './dispatches';
+import { canHonour, honour, pledge, pledgeOptions, pledgeTick } from './promises';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
 import { callFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
@@ -697,6 +698,7 @@ function advance(s: GameState): void {
   politicsTick(s);
   midterm(s);
   wrongedTick(s);
+  pledgeTick(s);
   talentTick(s);
   courtTick(s);
   shockTick(s);
@@ -852,6 +854,22 @@ export function applyAction(state: GameState, action: Action): GameState {
       s.desk.actionsUsed += 1;
       const t = land(s, action.name);
       record(s, 'former.land', 'land', 'temptation', t, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'PLEDGE': {
+      const opt = pledgeOptions(s, action.to, movesLeft(s)).find((o) => o.kind === action.kind && o.object === action.object);
+      if (!opt?.ok) break;
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = pledge(s, action.to, action.kind, action.object, opt.text, opt.months);
+      record(s, 'pledge', action.kind, 'politics', `Promised ${action.to === 'public' ? 'the public' : who(s, action.to).name}: ${opt.text.toLowerCase()}.`, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'HONOUR': if (canHonour(s, action.id, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = honour(s, action.id);
+      record(s, 'pledge.honour', 'honour', 'politics', 'Kept a promise of a ministry.', 1);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
     case 'PRED_VISIT': if (canVisit(s, movesLeft(s)).ok) {

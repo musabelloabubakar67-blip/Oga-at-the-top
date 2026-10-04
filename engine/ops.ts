@@ -17,6 +17,7 @@ import { addOwed } from './ledger';
 import { addMark, deal, replaceMinister } from './people';
 import { naira } from './text';
 import { pay } from './treasury';
+import { pledgeOp } from './promises';
 import type { DebtId, FundId, GameState, Op2, ZoneId } from './types';
 import { clamp, favoursOwing } from './vars';
 
@@ -54,6 +55,8 @@ export function runOp(s: GameState, op: Op2): string {
       }
       return '';
     }
+    case 'honour': case 'breakp': case 'settlep':
+      return pledgeOp(s, name, String(a));
     case 'settle': {
       const debt = favoursOwing(s, String(a))[0];
       if (debt) s.favours = s.favours.filter((f) => f.id !== debt.id);

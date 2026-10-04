@@ -26,6 +26,7 @@ import { movesLeft, sackCost } from '../engine/reduce';
 import { competenceShown, following, seenCompetence } from '../engine/people';
 import { currentWant, grudgeLine } from '../engine/wants';
 import { PowersButton } from './Desk';
+import { PUBLIC, canHonour, pledgeName, pledgeOptions, word } from '../engine/promises';
 import { roleKey } from '../engine/context';
 import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord, worldview } from '../engine/advice';
 import { REPLACEABLE } from '../content/names';
@@ -37,9 +38,10 @@ import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed' | 'federal';
+type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed' | 'federal' | 'promises';
 
 const INTRO: Record<Tab, string> = {
+  promises: 'What you have promised, to whom, and when it falls due. Your word is a currency: it can be spent before it is earned, once.',
   federal: 'Where the people you appoint come from, zone by zone.',
   governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on their hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
   senator: 'Reforms that need a law are voted on in the Senate, and your own senators decide whether they pass. Bills pass when the Senate stands at 50 or better; constitutional changes need more. The budget goes through them every December.',
@@ -51,6 +53,68 @@ const INTRO: Record<Tab, string> = {
   succession: 'Anyone in your government can be built up to succeed you. What they bring to the election is their structure, their record and how long you have spent on them. What they bring you afterwards is their loyalty, which remembers how you treated them, and their integrity, which decides whether loyalty is enough to protect what you did.',
   courts: 'Seven justices who will outlast you. They decide your election petition on appeal, whether your harshest orders stand, and whether someone who loses from a reform can freeze it. When a seat falls vacant you choose who fills it, and the Senate decides whether to let you.',
 };
+
+/** Promise something to this person, or to the public. */
+function PromiseMenu({ s, to, dispatch, left }: { s: GameState; to: string; dispatch: Dispatch; left: number }) {
+  const [open, setOpen] = useState(false);
+  const opts = pledgeOptions(s, to, left);
+  if (!opts.length) return null;
+  const w = word(s, to);
+  return (
+    <div className="mt-2">
+      <button onClick={() => setOpen(!open)} className={btn(true)}>{open ? 'Close' : to === PUBLIC ? 'Make a public promise…' : 'Promise them something…'}</button>
+      {(w.kept > 0 || w.broken > 0) && <span className="ml-2 text-[13px] text-ink-soft">Your word {to === PUBLIC ? 'with the public' : 'with them'}: {w.kept} kept, {w.broken} broken.</span>}
+      {open && (
+        <ul className="mt-2 space-y-1.5">
+          {opts.map((o) => (
+            <li key={o.kind + (o.object ?? '')}>
+              <button disabled={!o.ok} title={o.reason} onClick={() => { dispatch({ type: 'PLEDGE', to, kind: o.kind, object: o.object }); setOpen(false); }} className={`${btn(o.ok, 'good')} text-left`}>
+                {o.text} · 1 move
+              </button>
+            </li>
+          ))}
+          <li className="text-[13px] text-ink-soft">Goodwill now, believed in proportion to your record. Kept, it counts for more next time; broken, it becomes a grudge{to === PUBLIC ? ' in every paper' : ''}. Promising the same post twice works until they compare notes.</li>
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Every promise made: what is open, and how it ended. */
+function Promises({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const all = s.pledges ?? [];
+  const open = all.filter((p) => p.status === 'open');
+  const closed = all.filter((p) => p.status !== 'open').slice(-12).reverse();
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-ink-soft">A promise buys goodwill now and is paid for later. Private promises are made on each person's card; public ones here. Your record with each person, and with the public, decides how much the next promise is believed.</p>
+      <PromiseMenu s={s} to={PUBLIC} dispatch={dispatch} left={left} />
+      <p className="label mt-4 text-ink-soft">Open</p>
+      {open.length === 0 && <p className="mt-1 font-serif italic text-ink-soft">You owe nobody a promise.</p>}
+      <ul className="mt-1 space-y-2">
+        {open.map((p) => {
+          const h = canHonour(s, p.id, left);
+          const clash = p.clash && all.find((x) => x.id === p.clash && x.status === 'open');
+          return (
+            <li key={p.id} className={`border p-3 ${clash ? 'border-alarm/60' : 'border-ink/20'}`}>
+              <p className="flex flex-wrap items-baseline justify-between gap-2"><span className="font-serif text-lg">{p.text}</span><span className={`label ${p.due - s.turn <= 3 ? 'text-alarm' : 'text-ink-soft'}`}>{p.due - s.turn <= 0 ? 'due now' : `due in ${mo(p.due - s.turn)}`}</span></p>
+              <p className="text-[13px] text-ink-soft">To {pledgeName(s, p)} · made {mo(Math.max(0, s.turn - p.made))} ago{clash ? ` · the same post was promised to ${pledgeName(s, clash)}` : ''}</p>
+              {p.kind === 'slot' && <button disabled={!h.ok} title={h.reason} onClick={() => dispatch({ type: 'HONOUR', id: p.id })} className={`mt-2 ${btn(h.ok, 'good')}`}>Keep it now: their nominee takes the ministry · 1 move</button>}
+            </li>
+          );
+        })}
+      </ul>
+      {closed.length > 0 && (
+        <>
+          <p className="label mt-4 text-ink-soft">Kept and broken</p>
+          <ul className="mt-1 space-y-0.5 text-[13px]">
+            {closed.map((p) => <li key={p.id} className="flex justify-between gap-3"><span>{p.text} <span className="text-ink-soft">· to {pledgeName(s, p)}</span></span><span className={p.status === 'kept' ? 'text-state' : 'text-alarm'}>{p.status === 'kept' ? 'Kept' : 'Broken'}</span></li>)}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function senateLine(s: GameState): string {
   const v = senate(s);
@@ -139,7 +203,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
     ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
-    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['succession', 'The succession'] as [Tab, string], ['federal', 'Federal character'] as [Tab, string], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
+    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['succession', 'The succession'] as [Tab, string], ['federal', 'Federal character'] as [Tab, string], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`], ['promises', `Promises · ${(s.pledges ?? []).filter((p) => p.status === 'open').length} open`] as [Tab, string],
   ];
 
   return (
@@ -205,6 +269,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         {tab === 'courts' && <Courts s={s} dispatch={dispatch} left={left} />}
         {tab === 'federal' && <Federal s={s} />}
 
+        {tab === 'promises' && <Promises s={s} dispatch={dispatch} left={left} />}
         {tab === 'owed' && (
           <div className="mt-4">
             <h3 className="label border-b rule pb-1 text-state">Owed to you</h3>
@@ -245,6 +310,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     <Wronged s={s} id={t.id} />
                     <Aimed s={s} kind="tycoon" id={t.id} dispatch={dispatch} />
                     <FavoursOf s={s} id={t.id} dispatch={dispatch} left={left} />
+                    <PromiseMenu s={s} to={t.id} dispatch={dispatch} left={left} />
 
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
                       <p className="label text-ink-soft">{st.inherited ? 'Your predecessor gave, and it is up for renewal' : st.granted ? 'You gave' : 'Wants'}</p>
@@ -431,6 +497,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                   {!want && !st.gone && (st.grants ?? 0) > 0 && <p className="mt-2 text-[13px] text-ink-soft">Satisfied for now. They will ask again.</p>}
                   <Wronged s={s} id={p.id} />
                   {grudgeLine(s, p.id) && <p className={`mt-1 text-[13px] ${st.grudge ? 'text-alarm' : 'text-ink-soft'}`}>{grudgeLine(s, p.id)}</p>}
+                  {!st.gone && <PromiseMenu s={s} to={p.id} dispatch={dispatch} left={left} />}
 
                   {!st.gone && (
                     <div className="mt-3 flex flex-wrap gap-2">
