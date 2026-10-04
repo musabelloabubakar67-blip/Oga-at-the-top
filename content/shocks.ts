@@ -116,7 +116,7 @@ export const SHOCKS: ShockDef[] = [
     news: ['COUP AND FIGHTING ACROSS THE NORTHERN BORDER; REFUGEES CROSS', 'WAR FOR NEXT COUNTRY. PEOPLE DEY RUN ENTER'],
   },
   {
-    id: 'discovery', good: true, name: 'The offshore find', months: 12, weight: 7, base: 0.3,
+    id: 'discovery', good: true, name: 'The offshore find', months: 12, weight: 7, base: 0.5,
     hit: [['nation.fiscalSpace', 0.05], ['bloc.establishment', 0.2]],
     guards: [
       { label: 'The oil company publishes and remits', when: done('t2'), share: 0.4 },
@@ -128,7 +128,7 @@ export const SHOCKS: ShockDef[] = [
     news: ['MAJOR OFFSHORE OIL FIELD DISCOVERED', 'NEW OIL DON SHOW. WHO GO CHOP AM?'],
   },
   {
-    id: 'remit', good: true, name: 'The diaspora surge', months: 8, weight: 7, base: 0.4,
+    id: 'remit', good: true, name: 'The diaspora surge', months: 8, weight: 7, base: 0.6,
     hit: [['nation.inflation', -0.4], ['approval', 0.3], ['nation.jobs', 0.1]],
     guards: [
       { label: 'Payments rails carry it cheaply', when: done('d4'), share: 0.3 },
@@ -140,7 +140,7 @@ export const SHOCKS: ShockDef[] = [
     news: ['MONEY SENT HOME HITS RECORD; NAIRA FIRMS', 'DIASPORA DON SEND MONEY. NAIRA DON GET STRENGTH'],
   },
   {
-    id: 'factory', good: true, name: 'The investment wave', months: 10, weight: 7, base: 0.2,
+    id: 'factory', good: true, name: 'The investment wave', months: 10, weight: 7, base: 0.45,
     hit: [['nation.jobs', 0.35], ['nation.fiscalSpace', 0.015], ['zone.SW.approval', 0.2]],
     guards: [
       { label: 'Power is reliable enough to run a factory', when: v('nation.power', '>=', 55), share: 0.4 },
@@ -152,7 +152,7 @@ export const SHOCKS: ShockDef[] = [
     news: ['GLOBAL MANUFACTURERS SCOUT NIGERIA AS SUPPLY CHAINS MOVE', 'FOREIGN FACTORY DEY FIND WHERE TO LAND'],
   },
   {
-    id: 'bumper', good: true, name: 'The bumper harvest', months: 5, weight: 7, base: 0.4,
+    id: 'bumper', good: true, name: 'The bumper harvest', months: 5, weight: 7, base: 0.6,
     hit: [['nation.inflation', -0.6], ['bloc.street', 0.3]],
     guards: [
       { label: 'Storage and rural roads kept it from rotting', when: done('f3'), share: 0.4 },
@@ -161,6 +161,30 @@ export const SHOCKS: ShockDef[] = [
     ],
     file: 'shock.bumper',
     news: ['RECORD HARVEST; FOOD PRICES FALL', 'FOOD DON PLENTY. GARRI DON CHEAP'],
+  },
+  {
+    id: 'crops', good: true, name: 'The crop price boom', months: 8, weight: 8, base: 0.55,
+    hit: [['fx.reserves', 0.4], ['zone.SW.approval', 0.3], ['zone.NC.approval', 0.25], ['zone.NW.approval', 0.2], ['nation.jobs', 0.1]],
+    guards: [
+      { label: 'Storage and rural roads got the crop to port', when: done('f3'), share: 0.25 },
+      { label: 'The ports clear cargo in forty-eight hours', when: done('i1'), share: 0.2 },
+      { label: 'Farmers can sell at the market rate for dollars', when: { flag: 'fx.stance', is: 'float' }, share: 0.15 },
+      { label: 'Export levies were waived', when: answered('crops', 'waive'), share: 0.2 },
+    ],
+    file: 'shock.crops',
+    news: ['COCOA, SESAME AND CASHEW PRICES HIT RECORD', 'COCOA DON COST PASS GOLD. FARMERS DEY SMILE'],
+  },
+  {
+    id: 'listing', good: true, name: 'The tech listing', months: 6, weight: 6, base: 0.55,
+    hit: [['fx.reserves', 0.5], ['bloc.establishment', 0.4], ['nation.jobs', 0.15], ['bloc.press', 0.2]],
+    guards: [
+      { label: 'The payment rails it was built on', when: done('d4'), share: 0.25 },
+      { label: 'Integrity good enough for foreign funds to follow (45 or better)', when: v('nation.integrity', '>=', 45), share: 0.2 },
+      { label: 'Power reliable enough for the startups that follow', when: v('nation.power', '>=', 50), share: 0.15 },
+      { label: 'The President rang the bell', when: answered('listing', 'bell'), share: 0.15 },
+    ],
+    file: 'shock.listing',
+    news: ['LAGOS STARTUP LISTS ABROAD AT $9BN', 'OUR TECH COMPANY DON LIST ABROAD. NA BILLION DOLLAR'],
   },
   {
     id: 'cup', good: true, name: 'The trophy', months: 2, weight: 5, base: 1,
@@ -190,6 +214,8 @@ const READS: Record<string, GameEvent['reads']> = {
   remit: [{ role: 'fin', good: 'It is the cheapest foreign exchange the country will ever receive, {SIR}. Taxing it is the quickest way to make it go elsewhere.' }],
   factory: [{ role: 'fin', good: 'They are choosing between four countries, {SIR}. A tax holiday is cheaper than losing them; consultancies are dearer than both.' }],
   bumper: [{ role: 'fin', good: 'Buying now is cheap, {SIR}. Next year\'s lean season will be expensive either way, and less so with a full reserve.' }],
+  crops: [{ role: 'fin', good: 'Every dollar the farmers earn is a dollar we do not have to borrow, {SIR}. A levy now takes from the one thing growing.' }],
+  listing: [{ role: 'fin', good: 'The money that follows a listing like this goes wherever it feels welcome, {SIR}. Give it a reason to stay.' }],
   cup: [{ role: 'sap', good: 'Hold the cup for the photograph, {SIR}, but not for long. The country can tell when a President is borrowing a goal.' }],
 };
 
@@ -284,6 +310,19 @@ export const SHOCK_FILES: GameEvent[] = [
   ], [
     { id: 'reserve', label: 'Buy the surplus into the grain reserve', naira: 0.2, outcomes: [{ result: 'The reserve buys at a floor price. Farmers are paid, and next year\'s lean season has a cushion.', fx: [['zone.NC.approval', 2], ['zone.NW.approval', 2]], flags: pick('bumper', 'reserve'), news: ['FG BUYS RECORD HARVEST INTO RESERVE', 'GOVERNMENT DON BUY FARMERS CORN'], archive: 'Bought a record harvest into the grain reserve.', sig: 2 }] },
     { id: 'market', label: 'Let prices fall', outcomes: [{ result: 'Prices fall. City families eat better. Farmers sell at a loss.', fx: [['zone.NC.approval', -2]], flags: pick('bumper', 'market'), news: ['FOOD PRICES TUMBLE AFTER RECORD HARVEST', 'FOOD CHEAP. FARMERS DEY CRY'], archive: 'Let food prices fall after a record harvest.', sig: 1 }] },
+  ], 'dry', 'fortune'),
+  file('crops', 'The crops are worth more than ever', 'Federal Ministry of Agriculture', [
+    'A failed harvest in West Africa\'s other growers and a run on chocolate makers has doubled the price of cocoa, sesame and cashew in three months. Our farmers have more to sell than they have had in a decade.',
+    'How much of the windfall reaches them, and the country, depends on the ports, the roads and the levies.',
+  ], [
+    { id: 'waive', label: 'Waive export levies for the season', pc: 3, outcomes: [{ result: 'The levies are suspended. Buyers queue at the produce markets. The treasury gives up a little now for a great deal more in the farmers\' pockets.', fx: [['nation.fiscalSpace', -0.05], ['zone.SW.approval', 2]], flags: pick('crops', 'waive'), news: ['FG SUSPENDS EXPORT LEVIES ON CASH CROPS', 'NO LEVY FOR COCOA THIS SEASON'], archive: 'Waived export levies during the crop price boom.', sig: 1 }] },
+    { id: 'levy', label: 'Raise the levy and take a share', outcomes: [{ result: 'The levy doubles. The treasury takes its cut; the buyers take their trucks to the borders, where nobody is collecting anything.', fx: [['nation.fiscalSpace', 0.15], ['zone.SW.approval', -2], ['zone.NC.approval', -1]], flags: pick('crops', 'levy'), news: ['FG DOUBLES CASH CROP EXPORT LEVY', 'GOVERNMENT WAN CHOP FROM COCOA MONEY'], archive: 'Doubled the export levy during the crop price boom.', sig: 1 }] },
+  ], 'dry', 'fortune'),
+  file('listing', 'A Nigerian company is worth $9bn', 'Office of the Special Adviser, Economic Matters', [
+    'A payments company founded in a Yaba flat eight years ago has listed on a foreign exchange at nine billion dollars. Its founders are on every front page. Foreign funds are asking which Nigerian company is next.',
+  ], [
+    { id: 'bell', label: 'Fly out and ring the opening bell', pc: 2, naira: 0.02, outcomes: [{ result: 'You ring the bell. The photograph travels further than any trade mission. Two funds announce Lagos offices the same week.', fx: [['bloc.establishment', 3], ['bloc.press', 2]], flags: pick('listing', 'bell'), news: ['PRESIDENT RINGS BELL AS NIGERIAN FIRM LISTS', 'PRESIDENT DON RING BELL FOR OUR COMPANY'], archive: 'Rang the opening bell for a Nigerian company\'s listing abroad.', sig: 1 }] },
+    { id: 'tax', label: 'Announce a review of the company\'s tax affairs', outcomes: [{ result: 'The review is announced the morning after the listing. The founders\' statement is polite. The funds asking which company is next stop asking.', fx: [['nation.fiscalSpace', 0.08], ['bloc.establishment', -4], ['bloc.press', -2]], flags: pick('listing', 'tax'), news: ['FG TO REVIEW TAX AFFAIRS OF NEWLY LISTED FIRM', 'DEM DON START TO CHECK THE COMPANY TAX'], archive: 'Ordered a tax review of a Nigerian company the day after it listed abroad.', sig: 1 }] },
   ], 'dry', 'fortune'),
   file('cup', 'Champions', 'Office of the Special Adviser, Media', [
     'The national team has won the continental cup on penalties. The country has stopped work to celebrate, and shows no sign of starting again.',

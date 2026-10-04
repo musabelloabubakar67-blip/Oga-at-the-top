@@ -55,7 +55,7 @@ export function upcoming(s: GameState): Coming[] {
   if (bitter.length) out.push({ months: 0, text: `${bitter.map((p) => who(s, p.id).short).join(', ')} ${bitter.length === 1 ? 'holds' : 'hold'} more than one grudge`, tone: 'bad', go: 'power' });
 
   // Shocks ending.
-  for (const x of activeShocks(s)) if (x.left <= 2) out.push({ months: x.left, text: `${x.def.name} ${x.left <= 1 ? 'ends this month' : 'ends soon'}`, tone: x.def.good ? 'bad' : 'good', go: 'desk' });
+  for (const x of activeShocks(s)) out.push({ months: x.left, text: `${x.def.name}: ${x.left <= 1 ? 'the last month' : `${x.left} more months`}, ${Math.round(x.factor * 100)}% ${x.def.good ? 'caught' : 'felt'}`, tone: x.def.good ? 'good' : 'bad', go: 'desk' });
 
   // Reforms about to land.
   for (const a of s.agenda.active) {

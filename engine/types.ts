@@ -483,7 +483,7 @@ export interface GameState {
   /** Every adviser's forecasts, checked against what happened. */
   advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
   /** What is happening to the country from outside, and what already has. */
-  shocks: { active: { id: string; since: number; until: number }[]; seen: string[]; last: number };
+  shocks: { active: { id: string; since: number; until: number; felt?: Record<string, number> }[]; seen: string[]; last: number };
   report: ReportItem[];
   prev: Record<string, number>;
   /** Powers of the moment currently on offer. */

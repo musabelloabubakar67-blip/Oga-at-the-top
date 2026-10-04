@@ -13,7 +13,7 @@ export function shockFactor(s: GameState, d: ShockDef): { factor: number; met: G
   const met = d.guards.filter((g) => test(s, g.when));
   const missing = d.guards.filter((g) => !met.includes(g) && !g.when.hasOwnProperty('flag'));
   const sum = met.reduce((a, g) => a + g.share, 0);
-  const factor = d.good ? Math.min(1.5, (d.base ?? 0.4) + sum) : Math.max(0.15, 1 - sum);
+  const factor = d.good ? Math.min(1.5, (d.base ?? 0.6) + sum) : Math.max(0.15, 1 - sum);
   return { factor, met, missing };
 }
 
@@ -22,13 +22,13 @@ export function shockFx(s: GameState, d: ShockDef): Fx[] {
   return d.hit.map(([t, v]) => [t, Math.round(v * factor * 1000) / 1000] as Fx);
 }
 
-export interface ShockView { def: ShockDef; left: number; factor: number; met: Guard[]; missing: Guard[]; fx: Fx[] }
+export interface ShockView { def: ShockDef; left: number; factor: number; met: Guard[]; missing: Guard[]; fx: Fx[]; since: number; felt: Record<string, number> }
 
 export function activeShocks(s: GameState): ShockView[] {
   return (s.shocks?.active ?? []).map((a) => {
     const def = SHOCK_BY_ID[a.id];
     const f = shockFactor(s, def);
-    return { def, left: a.until - s.turn + 1, ...f, fx: shockFx(s, def) };
+    return { def, left: a.until - s.turn + 1, ...f, fx: shockFx(s, def), since: a.since, felt: a.felt ?? {} };
   });
 }
 
@@ -43,6 +43,8 @@ export function shockTick(s: GameState): void {
     const { factor, met, missing } = shockFactor(s, d);
     const before = snapshot(s);
     for (const f of shockFx(s, d)) applyFx(s, f);
+    // Keep a tally of what it has done so far, for the desk.
+    for (const c of diff(before, snapshot(s))) (a.felt ??= {})[c.label] = Math.round(((a.felt[c.label] ?? 0) + c.delta) * 100) / 100;
     const pct = Math.round(factor * 100);
     const why = d.good
       ? `${pct}% of it is being caught.${met.length ? ` Because: ${met.map((g) => g.label.toLowerCase()).join('; ')}.` : ''}${missing.length ? ` Lost for want of: ${missing.map((g) => g.label.toLowerCase()).join('; ')}.` : ''}`
@@ -54,12 +56,15 @@ export function shockTick(s: GameState): void {
 
   // Something new, now and then.
   if (s.turn < 6 || s.shocks.active.length || s.turn - s.shocks.last < REST) return;
-  if (rand(s) >= CHANCE) return;
+  // The first one comes a little sooner, so a first term reliably meets one.
+  if (rand(s) >= (s.shocks.seen.length === 0 && s.turn >= 8 ? 0.12 : CHANCE)) return;
   const d = weighted(s, SHOCKS.filter((x) => !s.shocks.seen.includes(x.id) && test(s, x.when)), (x) => x.weight);
   if (!d) return;
   s.shocks.active.push({ id: d.id, since: s.turn, until: s.turn + d.months });
   s.shocks.seen.push(d.id);
   s.shocks.last = s.turn;
   s.queue.push({ event: d.file, due: s.turn });
-  s.news.push({ chronicle: d.news[0], street: d.news[1], weight: 7, valence: d.good ? 1 : -1, topic: 'general' });
+  // It takes the front page.
+  s.news.push({ chronicle: d.news[0], street: d.news[1], weight: 12, valence: d.good ? 1 : -1, topic: 'general' });
+  s.counters.shockArrived = s.turn;
 }

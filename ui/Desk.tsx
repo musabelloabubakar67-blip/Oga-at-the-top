@@ -1213,6 +1213,28 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
 
                 <section className="min-w-0 space-y-4">
                   <h2 className="label text-mute">To decide</h2>
+                  {activeShocks(s).map((x) => {
+                    const fresh = s.turn - x.since <= 1;
+                    const tally = Object.entries(x.felt).filter(([, v]) => Math.abs(v) >= 0.05);
+                    return (
+                      <div key={x.def.id} className={`slide-in border-2 p-5 ${x.def.good ? 'border-state-lit bg-state/10' : 'border-alarm bg-alarm/10'}`}>
+                        <p className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="label text-mute">From outside the country</span>
+                          <span className={`stamp text-[10px] ${x.def.good ? 'text-state-lit' : 'text-[#e08a7c]'}`}>{fresh ? (x.def.good ? 'WINDFALL' : 'SHOCK') : `${x.left <= 1 ? 'LAST MONTH' : `${x.left} MONTHS LEFT`}`}</span>
+                        </p>
+                        <p className="mt-2 font-serif text-2xl leading-tight text-ivory">{x.def.name}</p>
+                        <p className={`mt-1 text-sm ${x.def.good ? 'text-state-lit' : 'text-[#e08a7c]'}`}>
+                          {x.def.good ? `${Math.round(x.factor * 100)}% of it is being caught.` : `${Math.round(x.factor * 100)}% of it is being felt.`} {x.left <= 1 ? 'This is the last month.' : `It runs ${x.left} more months.`}
+                        </p>
+                        <span className="mt-1 block"><Expected items={describe(x.fx)} dark label="Each month" /></span>
+                        {tally.length > 0 && <p className="mt-1 text-[13px] text-ivory/70"><span className="label mr-1 text-mute">So far</span>{tally.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${Math.abs(v) >= 1 ? v.toFixed(1) : v.toFixed(2)}`).join(' · ')}</p>}
+                        <ul className="mt-1.5 space-y-0.5 text-[13px]">
+                          {x.met.map((g) => <li key={g.label} className="text-state-lit">✓ {g.label}</li>)}
+                          {x.missing.map((g) => <li key={g.label} className="text-ivory/50">✗ {g.label}</li>)}
+                        </ul>
+                      </div>
+                    );
+                  })}
                   {lead && leadEvent ? (
                     <button onClick={() => setOpen(lead.eventId)} className="paper slide-in block w-full p-5 text-left transition-transform hover:-translate-y-0.5 sm:p-6">
                       <span className="flex items-start justify-between gap-4">
@@ -1258,20 +1280,6 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                       </ul>
                     </div>
                   )}
-                  {activeShocks(s).map((x) => (
-                    <div key={x.def.id} className={`border p-4 ${x.def.good ? 'border-state-lit/40 bg-state/5' : 'border-alarm/40 bg-alarm/5'}`}>
-                      <p className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-serif text-xl text-ivory">{x.def.name}</span>
-                        <span className="label text-mute">{x.left <= 1 ? 'Last month' : `${x.left} months left`}</span>
-                      </p>
-                      <p className={`mt-1 text-sm ${x.def.good ? 'text-state-lit' : 'text-alarm'}`}>{x.def.good ? `${Math.round(x.factor * 100)}% of it is being caught.` : `${Math.round(x.factor * 100)}% of it is being felt.`}</p>
-                      <span className="mt-1 block"><Expected items={describe(x.fx)} dark label="Each month" /></span>
-                      <ul className="mt-1.5 space-y-0.5 text-[13px]">
-                        {x.met.map((g) => <li key={g.label} className="text-state-lit">✓ {g.label}</li>)}
-                        {x.missing.map((g) => <li key={g.label} className="text-ivory/50">✗ {g.label}</li>)}
-                      </ul>
-                    </div>
-                  ))}
                   <div className="grid gap-2 sm:grid-cols-2">
                     <button onClick={() => go('orders')} className="border border-honour/40 bg-honour/5 p-4 text-left hover:bg-honour/10">
                       <span className="block font-serif text-lg text-ivory">Give an order</span>
