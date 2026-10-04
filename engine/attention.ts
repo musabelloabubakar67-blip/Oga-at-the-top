@@ -12,7 +12,7 @@ import type { GameState, Topic } from './types';
 import { upcoming, type Section } from './upcoming';
 import { BLOCS, ZONES, favoursOwed, hardship } from './vars';
 
-export interface Item { text: string; go: Section; tab?: string }
+export interface Item { text: string; go: Section; tab?: string; topic?: Topic }
 export interface Attention { hurt: Item[]; open: Item[]; noise: string | null }
 
 const WORD: Record<Topic, string> = {
@@ -72,5 +72,5 @@ export function attention(s: GameState): Attention {
   const loud = lead && !lead.grave && lead.topic && calm(s, lead.topic) && !top.some((x) => x.topic === lead.topic);
   const noise = loud ? `Everyone is talking about ${WORD[lead.topic!]}: "${lead.lead}". It is loud, and nothing we watch says it needs you this month.` : null;
 
-  return { hurt: top.map(({ text, go, tab }) => ({ text, go, tab })), open: fresh.slice(0, 2).map(({ text, go, tab }) => ({ text, go, tab })), noise };
+  return { hurt: top.map(({ text, go, tab, topic }) => ({ text, go, tab, topic })), open: fresh.slice(0, 2).map(({ text, go, tab }) => ({ text, go, tab })), noise };
 }

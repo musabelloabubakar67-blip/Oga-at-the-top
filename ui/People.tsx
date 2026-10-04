@@ -25,6 +25,8 @@ import {
 import { movesLeft, sackCost } from '../engine/reduce';
 import { competenceShown, following, seenCompetence } from '../engine/people';
 import { currentWant, grudgeLine } from '../engine/wants';
+import { PowersButton } from './Desk';
+import { roleKey } from '../engine/context';
 import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord, worldview } from '../engine/advice';
 import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
@@ -173,6 +175,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     <span className="label text-ink-soft">{a.title}</span>
                   </p>
                   <p className="mt-1 text-sm">{worldview(a)}</p>
+                  <PowersButton s={s} ctx={roleKey(role)} dispatch={dispatch} label={`Powers in ${a.short}'s brief`} />
                   <p className="mt-1 text-sm text-ink-soft">
                     Reputation: {a.rep.competence >= 4 ? 'able' : a.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {a.rep.loyalty >= 4 ? 'loyal' : a.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
                   </p>

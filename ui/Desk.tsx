@@ -1,6 +1,7 @@
 'use client';
 
 import { attention, type Item } from '../engine/attention';
+import { categoryKey, powersFor, topicKey } from '../engine/context';
 import { narrative } from '../engine/narrative';
 import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
@@ -301,8 +302,9 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
                 <Changes changes={item.resolved.changes} />
               </div>
             )}
-            <div className="mt-6 text-right">
-              <button onClick={onClose} autoFocus className="bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close the file</button>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <PowersButton s={s} ctx={categoryKey(e.category)} dispatch={dispatch} />
+              <button onClick={onClose} autoFocus className="ml-auto bg-ink px-5 py-2.5 font-serif text-paper hover:bg-state">Close the file</button>
             </div>
           </section>
         )}
@@ -379,6 +381,32 @@ const APPEARANCES: { id: ActionId; name: string; text: string; zone?: boolean; f
 const GROUPS: [Order['group'], string][] = [
   ['capital', 'Raising political capital'], ['economy', 'The economy'], ['relief', 'Relief'], ['security', 'Security'], ['politics', 'Cabinet and party'],
 ];
+
+/** The open powers that bear on what the President is looking at, one click away. The full toolbox stays on the Orders screen. */
+export function PowersButton({ s, ctx, dispatch, dark, label }: { s: GameState; ctx: string; dispatch: Dispatch; dark?: boolean; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const list = powersFor(s, ctx);
+  if (!list.length) return null;
+  return (
+    <>
+      <button onClick={(ev) => { ev.stopPropagation(); setOpen(true); }} className={`label underline decoration-dotted underline-offset-2 ${dark ? 'text-honour/80 hover:text-honour' : 'text-state hover:text-ink'}`}>
+        {label ?? `${list.length} ${list.length === 1 ? 'power bears' : 'powers bear'} on this`}
+      </button>
+      {open && (
+        <Modal onClose={() => setOpen(false)} wide>
+          <p className="label text-ink-soft">Powers open to you now that bear on this</p>
+          <ul className="mt-2 space-y-2">
+            {list.map((o) => (
+              <li key={o.id}><OrderCard s={s} o={o} onUse={(target, level) => { dispatch({ type: 'ORDER', id: o.id, target, level }); setOpen(false); }} /></li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm text-ink-soft">Every other power is on the Orders screen.</p>
+          <CloseButton onClose={() => setOpen(false)} className="mt-4" />
+        </Modal>
+      )}
+    </>
+  );
+}
 
 function OrderCard({ s, o, onUse, tag }: { s: GameState; o: Order; onUse: (target?: string, level?: number) => void; tag?: React.ReactNode }) {
   const [where, setWhere] = useState<string | undefined>(() => (o.target === 'theatre' ? worstTheatre(s) : o.target ? targetsFor(s, o.target)[0]?.id : undefined));
@@ -1235,11 +1263,12 @@ const NAV: [View, string, string][] = [
 ];
 
 /** The Chief of Staff's briefing: what deserves the President's attention this month. */
-function Briefing({ s, go }: { s: GameState; go: (v: View, tab?: string) => void }) {
+function Briefing({ s, go, dispatch }: { s: GameState; go: (v: View, tab?: string) => void; dispatch: Dispatch }) {
   const a = attention(s);
   const row = (x: Item, tone: string) => (
-    <li key={x.text}>
-      <button onClick={() => go(x.go, x.tab)} className={`w-full border-l-2 py-1 pl-3 text-left font-serif leading-snug hover:bg-ivory/5 ${tone}`}>{x.text}</button>
+    <li key={x.text} className={`border-l-2 pl-3 ${tone}`}>
+      <button onClick={() => go(x.go, x.tab)} className="w-full py-1 text-left font-serif leading-snug hover:bg-ivory/5">{x.text}</button>
+      {x.topic && <PowersButton s={s} ctx={topicKey(x.topic)} dispatch={dispatch} dark />}
     </li>
   );
   return (
@@ -1358,7 +1387,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_300px] lg:grid-cols-2">
                 <section className="min-w-0 space-y-5">
                   <h2 className="label text-mute">The brief</h2>
-                  <Briefing s={s} go={go} />
+                  <Briefing s={s} go={go} dispatch={dispatch} />
                   {s.lastAction && (
                     <div className="fade-in border border-ivory/10 p-4">
                       <p className="label text-mute">Just done</p>
@@ -1465,7 +1494,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                 </section>
 
                 <aside className="min-w-0 space-y-5 lg:col-span-2 xl:col-span-1 xl:border-l xl:border-ivory/10 xl:pl-6">
-                  <CountryColumn s={s} next={next} onCountry={() => go('country')} />
+                  <CountryColumn s={s} next={next} onCountry={() => go('country')} dispatch={dispatch} />
                 </aside>
               </div>
             )}
@@ -1541,7 +1570,7 @@ function StatusBar({ s, next, stop, canEnd, left, unanswered, onEnd }: { s: Game
 }
 
 /** The country at a glance, on the desk: the gauges and the blocs, with where a hovered action would move them. */
-function CountryColumn({ s, next, onCountry }: { s: GameState; next: GameState | null; onCountry: () => void }) {
+function CountryColumn({ s, next, onCountry, dispatch }: { s: GameState; next: GameState | null; onCountry: () => void; dispatch: Dispatch }) {
   const g = gauges(s);
   const gn = next ? gauges(next) : null;
   const bn = next ? next.blocs : null;
@@ -1573,6 +1602,7 @@ function CountryColumn({ s, next, onCountry }: { s: GameState; next: GameState |
                     {moved && n!.bar !== undefined && <div className="absolute top-[-2px] h-2 w-0.5 bg-honour" style={{ left: `${Math.max(0, Math.min(100, n!.bar))}%` }} />}
                   </div>
                 )}
+                {(x.bar !== undefined ? (x.upIsGood ? x.bar < 40 : x.bar > 55) : (x.upIsGood ? x.delta < 0 : x.delta > 0)) && <PowersButton s={s} ctx={x.label} dispatch={dispatch} dark />}
               </li>
             );
           })}
