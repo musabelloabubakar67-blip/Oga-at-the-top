@@ -5,7 +5,7 @@ import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { STATES, STATE_BY_ID } from '../content/states';
 import { addExposure, record } from './archive';
 import {
-  canDelay, canRescue, canVenture, delay, launchVenture, openedBy, rescue, ventureTick,
+  canDelay, canRescue, canVenture, delay, launchVenture, openedBy, rescue, revive, ventureTick,
 } from './bets';
 import { movesTotal } from './capital';
 import { eventOf } from './cast';
@@ -51,7 +51,7 @@ import type {
 import { ZONES, ZONE_NAME, addFavour, applyFx, approval, clamp, favoursOwed, hardship, standing, syncSecurity, test } from './vars';
 
 export {
-  canDelay, canRescue, canVenture, partnerIn, rescueCost, risksOf, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
+  canDelay, canRescue, canVenture, partnerIn, rescueCost, risksOf, ventureNaira, ventureOdds, ventureStatus, ventureVisible, canRevive, reviveCost, REVIVE_LEARNED,
 } from './bets';
 
 // ---------------------------------------------------------------- new game
@@ -765,6 +765,7 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'DRAWER': drawer(s, action.op); break;
     case 'LAUNCH': launch(s, action.id, action.grease); break;
     case 'VENTURE': launchVenture(s, action.id, action.site); break;
+    case 'VENTURE_REVIVE': revive(s, action.id); break;
     case 'SET_MANAGER': if (canSetManager(s, action.id, action.name, movesLeft(s)).ok) {
       const b = snapshot(s);
       s.desk.actionsUsed += 1;

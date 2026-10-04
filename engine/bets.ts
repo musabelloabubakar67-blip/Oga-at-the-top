@@ -23,7 +23,9 @@ export function risksOf(s: GameState, v: Venture): RiskView[] {
 export function ventureOdds(s: GameState, v: Venture): number {
   const lost = risksOf(s, v).reduce((a, r) => a + (r.ok ? 0 : r.risk.cost), 0);
   const rescued = s.bets[v.id]?.rescued ? 0.12 : 0;
-  return clamp(v.top - lost + rescued, 0.05, 0.95);
+  // A second attempt knows exactly what went wrong the first time.
+  const learned = s.bets[v.id]?.revived ? REVIVE_LEARNED : 0;
+  return clamp(v.top - lost + rescued + learned, 0.05, 0.95);
 }
 
 /** A businessman who is with you pays part of it. */
@@ -85,6 +87,57 @@ export function launchVenture(s: GameState, id: string, site?: string): void {
   const partnerLine = withPartner && v.partner ? ` ${TYCOON_BY_ID[v.partner].short} is putting in 40% of the money.` : '';
   s.lastAction = {
     text: `${v.name}: announced.${partnerLine} ${unmet.length ? `${unmet.length} of the things it depends on ${unmet.length === 1 ? 'is' : 'are'} not in place. You have about ${v.months} months to put that right.` : `Everything it depends on is in place. What is left is luck, and about ${v.months} months.`}`,
+    changes: diff(before, snapshot(s)),
+  };
+}
+
+// ---------------------------------------------------------------- reviving a failure
+
+/** A failed bet leaves a half-built site and a known cause. Once the dust has settled, it can be tried once more. */
+export const REVIVE_WAIT = 6;
+export const REVIVE_LEARNED = 0.06;
+/** How far along a revived bet starts: the site, the designs and some of the equipment survive. */
+const REVIVE_START = 40;
+
+export function reviveCost(s: GameState, v: Venture): { pc: number; naira: number; months: number } {
+  return { pc: v.pc + 4, naira: Math.round(ventureNaira(s, v) * 0.6 * 20) / 20, months: Math.round(v.months * (1 - REVIVE_START / 100)) };
+}
+
+export function canRevive(s: GameState, id: string): { ok: boolean; reason?: string } {
+  const v = VENTURE_BY_ID[id];
+  if (!v || ventureStatus(s, id) !== 'lost') return { ok: false };
+  if (s.bets[id]?.revived) return { ok: false, reason: 'It has failed twice. Nobody will put money into it a third time.' };
+  const since = s.turn - (s.counters[`lost.${id}`] ?? -99);
+  if (since < REVIVE_WAIT) return { ok: false, reason: `It failed ${since === 0 ? 'this month' : `${since} month${since === 1 ? '' : 's'} ago`}. Nobody will touch it for another ${REVIVE_WAIT - since}.` };
+  if (s.ventures.active.length >= CFG.agenda.ventureSlots) return { ok: false, reason: `You can run ${CFG.agenda.ventureSlots} big bets at a time.` };
+  const c = reviveCost(s, v);
+  if (s.pc < c.pc) return { ok: false, reason: `Needs ${c.pc} political capital: you are asking people to believe in it again.` };
+  if (buildCost(s, c.naira, !!v.infra).treasury > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
+  return { ok: true };
+}
+
+export function revive(s: GameState, id: string): void {
+  const v = VENTURE_BY_ID[id];
+  if (!v || !canRevive(s, id).ok) return;
+  const c = reviveCost(s, v);
+  const before = snapshot(s);
+  const cause = s.ventures.causes[id];
+  const entry = record(s, `venture.${id}`, 'revive', 'action', `Revived a failed bet: ${v.name}.`, 2);
+  s.pc = clamp(s.pc - c.pc, 0, 100);
+  payBuild(s, c.naira, !!v.infra, entry.touches);
+  s.ventures.lost = s.ventures.lost.filter((x) => x !== id);
+  delete s.ventures.causes[id];
+  s.ventures.active.push({ id, progress: REVIVE_START });
+  s.bets[id] = { warned: [], partner: partnerIn(s, v), revived: true };
+  // The abandoned site becomes a building site again.
+  const state = s.sites?.[id];
+  const label = `The abandoned site of ${v.name.toLowerCase()}`;
+  if (state) s.placed = (s.placed ?? []).filter((p) => !(p.kind === 'abandoned' && p.state === state && p.label === label));
+  s.news.push({ chronicle: `${v.name.toUpperCase()}: WORK RESUMES ON FAILED PROJECT`, street: `DEM WAN TRY ${v.name.toUpperCase()} AGAIN. THIS TIME NA THIS TIME?`, weight: 4, valence: 0, topic: 'bet', about: v.brief, body: `${v.blurb} The first attempt failed${cause ? `: ${cause.toLowerCase()}` : ''}.` });
+  const unmet = risksOf(s, v).filter((r) => !r.ok);
+  const sameCause = cause && unmet.some((r) => r.risk.label === cause);
+  s.lastAction = {
+    text: `${v.name}: revived, ${REVIVE_START}% of the way there. What was learned is worth ${Math.round(REVIVE_LEARNED * 100)} points of the odds. ${sameCause ? `What sank it last time is still not in place: ${cause}.` : cause && cause !== 'Bad luck' ? `What sank it last time is now in place.` : ''} ${unmet.length ? `${unmet.length} of the things it depends on ${unmet.length === 1 ? 'is' : 'are'} not in place.` : 'Everything it depends on is in place.'} If it fails again, it stays failed.`.replace(/  +/g, ' '),
     changes: diff(before, snapshot(s)),
   };
 }
@@ -181,6 +234,7 @@ export function ventureTick(s: GameState): void {
     const fx = won ? v.win : v.lose;
     for (const f of fx) applyFx(s, f, rec.touches);
     (won ? s.ventures.won : s.ventures.lost).push(v.id);
+    if (!won) s.counters[`lost.${v.id}`] = s.turn;
     settleSite(s, v.id, won);
     if (won) applyFx(s, ['pc', CFG.agenda.ventureWinPc]);
     if (v.brief) addMark(s, v.brief, won ? 2 : -2, `${won ? 'Delivered' : 'Presided over the failure of'}: ${v.name}`);
@@ -191,10 +245,10 @@ export function ventureTick(s: GameState): void {
       const carried = risksOf(s, v).filter((r) => !r.ok);
       why = carried.length ? `It worked in spite of ${carried.length === 1 ? 'one thing' : `${carried.length} things`} not being in place. You were lucky at ${Math.round(odds * 100)}%.` : 'Everything it depended on was in place.';
     } else if (cause) {
-      why = `Why it failed: ${cause.fail} What would have saved it: ${cause.fix}`;
+      why = `Why it failed: ${cause.fail} What would have saved it: ${cause.fix}${st.revived ? ' It has now failed twice.' : ` The site stays. Once that is put right, it can be revived in ${REVIVE_WAIT} months.`}`;
       s.ventures.causes[v.id] = cause.label;
     } else {
-      why = `Why it failed: ${v.luck} Nothing you did caused this. Everything it depended on was in place, and the odds were ${Math.round(odds * 100)}%.`;
+      why = `Why it failed: ${v.luck} Nothing you did caused this. Everything it depended on was in place, and the odds were ${Math.round(odds * 100)}%.${st.revived ? '' : ` It can be tried again in ${REVIVE_WAIT} months.`}`;
       s.ventures.causes[v.id] = 'Bad luck';
     }
     const news = won ? v.winNews : v.loseNews;

@@ -509,7 +509,7 @@ export interface GameState {
   used: Record<string, number>;
   stories: Story[];
   /** Big bets: which named risks have been warned about, and any rescue or delay. */
-  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean }>;
+  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean }>;
   lastAction: { text: string; changes: Change[] } | null;
 }
 
@@ -555,6 +555,7 @@ export type Action =
   | { type: 'SET_MANAGER'; id: string; name: string }
   | { type: 'VENTURE_DELAY'; id: string }
   | { type: 'VENTURE_RESCUE'; id: string }
+  | { type: 'VENTURE_REVIVE'; id: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

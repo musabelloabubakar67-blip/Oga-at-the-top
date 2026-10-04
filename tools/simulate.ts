@@ -25,7 +25,7 @@ import { ASSETS } from '../content/assets';
 import { runElection } from '../engine/election';
 import { STATE_BY_ID } from '../content/states';
 import { canGroom, candidate, candidateIds } from '../engine/successor';
-import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canVenture, newGame } from '../engine/reduce';
+import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canRevive, canVenture, newGame, reviveCost, ventureOdds } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
 import { adviserFor, canReplaceAdviser, forecast, poolFor, recommend, secondFor, trackRecord } from '../engine/advice';
@@ -300,6 +300,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         }
         s = applyAction(s, { type: 'VENTURE', id, site });
       }
+      // A failed bet is tried once more when its odds are now decent.
+      if (canRevive(s, id).ok && ventureOdds(s, v) >= 0.5 && s.pc > reviveCost(s, v).pc + 12) { s = applyAction(s, { type: 'VENTURE_REVIVE', id }); revived++; }
     }
     // What each kind of President builds, and whom they put in charge.
     const builds: Record<string, [string[], 'rep' | 'party' | 'civil']> = {
@@ -337,7 +339,9 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     // Crowd-pleasers: the populist and the machine take what the street or the party wants, from any track.
     if (!skip('pop') && (bot.name === 'Populist' || bot.name === 'Machine')) {
       for (const t of TRACKS) for (const m of t.milestones) {
-        if (!m.popular || s.agenda.done.includes(m.id) || s.agenda.active.some((x) => x.id === m.id)) continue;
+        // Relief that the street feels is what a crowd-pleaser buys, whether or not it is good for the country.
+        const relief = t.id === 'welfare' && (m.id === 'h3' || m.id === 'h7' || (bot.name === 'Populist' && m.id === 'h6'));
+        if (!(m.popular || relief) || s.agenda.done.includes(m.id) || s.agenda.active.some((x) => x.id === m.id)) continue;
         if (canLaunch(s, m.id).ok && s.pc - m.pc > 15 && m.naira <= s.nation.fiscalSpace + 0.3) s = applyAction(s, { type: 'LAUNCH', id: m.id });
       }
     }
@@ -469,6 +473,7 @@ if (args.includes('--trace')) {
   process.exit(0);
 }
 
+let revived = 0;
 const everFired = new Set<string>();
 const fireCount: Record<string, number> = {};
 console.log(`${runs} presidencies per strategy\n`);
@@ -514,6 +519,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · assets ${(assetsN / runs).toFixed(1)}, abandoned ${(abandonedN / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
   console.log(`   oil dependence at the end ${(dep / runs).toFixed(0)}% · loose reforms ${Object.entries(loose).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' ') || 'none'}`);
+  if (revived) { console.log(`   failed bets revived ${(revived / runs).toFixed(2)} per presidency`); revived = 0; }
   console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)} · shocks ${(shocks / runs).toFixed(1)}\n`);
 }
 if (args.includes('--probe')) {

@@ -35,7 +35,7 @@ import {
   applyAction,
   ACTION_COST, DRAWER_COST, agendaSlots, aidedFx, aidedPc, availability, blocked, canAct, canDelay, canDrawer, canLaunch, canOrder, canRescue, canVenture,
   favoursFor, financeAlternatives, launchCost, launchMoney, milestoneStatus, movesLeft, orderEcon, orderLevel, orderOutcome, partnerIn, rescueCost, risksOf, shieldFor,
-  standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible,
+  standingOrders, ventureNaira, ventureOdds, ventureStatus, ventureVisible, canRevive, reviveCost, REVIVE_LEARNED,
 } from '../engine/reduce';
 import { blocks, fill, naira } from '../engine/text';
 import type { Action, ActionId, Aid, Change, Choice, DeskItem, DrawerOp, Fx, GameEvent, GameState, Track, ZoneId } from '../engine/types';
@@ -812,6 +812,7 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   const available = VENTURES.filter((v) => ventureStatus(s, v.id) === 'open' && ventureVisible(s, v));
   const locked = VENTURES.filter((v) => v.opened && ventureStatus(s, v.id) === 'open' && !ventureVisible(s, v));
   const fresh = available.filter((v) => v.opened);
+  const failed = VENTURES.filter((v) => ventureStatus(s, v.id) === 'lost');
   return (
     <div className="mt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -847,6 +848,37 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
             );
           })}
         </ul>
+      )}
+      {failed.length > 0 && (
+        <div className="mt-3">
+          <p className="label text-mute">Failed · the sites are still there</p>
+          <ul className="mt-1 space-y-2">
+            {failed.map((v) => {
+              const can = canRevive(s, v.id);
+              const c = reviveCost(s, v);
+              const cause = s.ventures.causes[v.id];
+              const odds = Math.min(0.95, ventureOdds(s, v) + (s.bets[v.id]?.revived ? 0 : REVIVE_LEARNED));
+              const twice = !!s.bets[v.id]?.revived;
+              return (
+                <li key={v.id} className="border border-[#e08a7c]/30 bg-[#1a1d20] p-3">
+                  <p className="flex items-baseline justify-between gap-2 font-serif text-ivory">{v.name}{!twice && <span className={`label ${odds < 0.5 ? 'text-[#e08a7c]' : 'text-honour'}`}>{Math.round(odds * 100)}% odds if revived</span>}</p>
+                  <p className="mt-0.5 text-[13px] text-ivory/65">{cause ? `Failed: ${cause === 'Bad luck' ? 'bad luck, with everything in place' : `${cause} was not in place`}.` : 'Failed.'}{twice ? '' : ` A second attempt starts 40% built, and knows what went wrong: +${Math.round(REVIVE_LEARNED * 100)} points.`}</p>
+                  {!twice && <Risks s={s} v={v} />}
+                  {!twice && (
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'VENTURE_REVIVE', id: v.id })}
+                        className={`border px-2.5 py-1 text-sm ${can.ok ? 'border-honour/50 text-honour hover:bg-honour/10' : 'border-ivory/10 text-ivory/35'}`}>
+                        Revive it · {c.pc} capital{c.naira ? `, ${naira(c.naira)}` : ''} · {c.months} months
+                      </button>
+                      <span className="text-[13px] text-mute">If it fails again, it stays failed.</span>
+                    </div>
+                  )}
+                  {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
       {open && (
         <>
