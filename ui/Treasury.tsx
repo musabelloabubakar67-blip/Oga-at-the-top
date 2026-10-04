@@ -9,7 +9,8 @@ import { dateLabel, yearOf } from '../engine/config';
 import { rateOf, servicePoints } from '../engine/ledger';
 import { naira } from '../engine/text';
 import { inflationTarget } from '../engine/tick';
-import { activePolicies, affordableWage, canRepeal, economyStrength, policyName, policyNow, repealCost } from '../engine/policies';
+import { dependence, nonOilPoints } from '../engine/dependence';
+import { activePolicies, canRepeal, economyStrength, policyName, policyNow, repealCost } from '../engine/policies';
 import { describe } from '../engine/effects';
 import {
   budgetPoints, canBudget, canFund, canPay, canSecuritise, canSupplementary, effectiveIncrease, erosion, evenSites, fiscalFlow, fundCosts, oilGap, paddingDemand, potency, releaseRate, vetoHolds,
@@ -71,6 +72,7 @@ export function BudgetModal({ s, dispatch, onClose }: { s: GameState; dispatch: 
       <p className="mt-2 text-sm text-ink-soft">
         Oil is at <span className="font-semibold text-ink">${Math.round(s.oil.price)}</span> and the country produces {s.oil.output.toFixed(2)}m barrels a day. Above your figure, the difference is saved; below it, it comes out of the treasury every month.
         {eroded > 0 && <span className="text-alarm"> With inflation at {Math.round(s.nation.inflation)}%, every budget buys {eroded} {eroded === 1 ? 'point' : 'points'} less than its headline.</span>}
+              {(() => { const d = dependence(s); const k = nonOilPoints(s); return <span> Oil is {Math.round(d.v)}% of revenue, so a miss costs {Math.round(d.v / 75 * 100)}% of what it would have at the start.{k > 0 ? <span className="text-state"> Revenue from outside oil adds {k} {k === 1 ? 'point' : 'points'} to every budget below.</span> : ''}</span>; })()}
       </p>
       {(() => {
         const f = oilForecast(s);
@@ -266,6 +268,8 @@ function Flow({ s }: { s: GameState }) {
   const flow = fiscalFlow(s);
   const infl = inflationTarget(s);
   const gap = oilGap(s);
+  const dep = dependence(s);
+  const nonOil = nonOilPoints(s);
   return (
     <div className="mt-4 grid gap-6 sm:grid-cols-2">
       <section>
@@ -296,6 +300,20 @@ function Flow({ s }: { s: GameState }) {
             ? <span className="text-state">Oil is paying {signed(gap)} a month above the budget. That is saved in the stabilisation account automatically.</span>
             : <span className="text-alarm">Oil is paying {signed(gap)} a month against the budget. That comes out of the treasury.</span>}
         </p>
+        <h3 className="label mt-5 border-b rule pb-1 text-ink-soft">How much of the budget is oil: {Math.round(dep.v)}%</h3>
+        <ul className="mt-2 space-y-1">
+          {dep.lines.map((l) => (
+            <li key={l.label} className="text-sm leading-snug">
+              <span className="flex justify-between gap-3"><span>{l.label}</span><span className={l.value <= 0 ? 'text-state' : 'text-alarm'}>{l.value > 0 ? '+' : '−'}{Math.abs(l.value).toFixed(0)}</span></span>
+              <span className="block text-[12.5px] text-ink-soft">{l.hint}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[13px] leading-snug text-ink-soft">
+          It started at 75%. Oil gaps and windfalls are {Math.round(dep.v / 75 * 100)}% of what they were then.
+          {nonOil ? ` Revenue from outside oil adds ${nonOil} ${nonOil === 1 ? 'point' : 'points'} to every budget.` : ' Every ten points it falls adds a point to every budget.'}
+          {' '}Oil will still be the largest single source; the point is that its price stops deciding the year.
+        </p>
         <h3 className="label mt-5 border-b rule pb-1 text-ink-soft">Where inflation is heading: {infl.total.toFixed(1)}%</h3>
         <ul className="mt-2 space-y-0.5">
           {infl.lines.map((l) => (
@@ -321,7 +339,7 @@ function Policies({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
           ))}
         </ul>
         <p className="mt-2 text-[13px] leading-snug text-ink-soft">
-          Policies that promise money are judged against this every month. Today the economy could carry a minimum wage of about ₦{affordableWage(s)}k.
+          Orders that raise revenue pay more in a strong economy, and orders that cost jobs hurt more in a weak one. Each standing policy beside it is worked out against the country as it is this month.
         </p>
       </section>
       <section>

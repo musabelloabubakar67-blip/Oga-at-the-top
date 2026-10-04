@@ -9,6 +9,7 @@
 
 import type { GameState } from './types';
 import { clamp, hardship } from './vars';
+import { nonOilDollars } from './dependence';
 
 export type Stance = 'peg' | 'managed' | 'float';
 export const STANCE_NAME: Record<Stance, string> = { peg: 'Defend the naira', managed: 'A managed rate', float: 'Let it float' };
@@ -32,8 +33,8 @@ export function fxFlow(s: GameState): { lines: { label: string; value: number }[
   const plant = (s.assets ?? []).some((a) => a.id === 'refinery') || !!s.flags['refinery.sold'];
   const lines = [
     { label: 'Oil exports', value: (s.oil.price * s.oil.output - 128) * 0.02 },
-    { label: 'Money sent home from abroad', value: 0.25 },
-    { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 },
+    { label: 'Money sent home from abroad', value: 0.25 + (s.agenda.done.includes('g6') ? (premium(s) < 0.2 ? 0.18 : 0.06) : 0) },
+    { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 + nonOilDollars(s) },
     { label: 'Petrol imports', value: national ? -0.05 : plant ? -0.15 : -0.3 },
     { label: 'Foreign debt service', value: -0.12 - Math.max(0, n.debt - 66) * 0.004 },
     // A country that works attracts dollars; one that is falling apart loses them. What is not already counted above.

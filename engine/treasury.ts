@@ -12,6 +12,7 @@ import { assetFiscalLines } from './places';
 import { personView } from './people';
 import { logOilForecast, oilForecastTick } from './oilforecast';
 import { fxScale } from './currency';
+import { nonOilPoints, oilWeight } from './dependence';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -41,7 +42,8 @@ export function oilOutput(s: GameState): number {
 
 /** What oil is paying against what the budget assumed, ₦tn a month. Positive is saved; negative comes out of the treasury. */
 export function oilGap(s: GameState): number {
-  return ((s.oil.price * s.oil.output) / 1.75 - s.budget.benchmark) * 0.0035;
+  // The less the budget leans on oil, the less its price moves the treasury, either way.
+  return ((s.oil.price * s.oil.output) / 1.75 - s.budget.benchmark) * 0.0035 * oilWeight(s);
 }
 
 function oilTick(s: GameState): void {
@@ -157,7 +159,7 @@ export function erosion(s: GameState): number {
 }
 
 export function budgetPoints(benchmark: number, s?: GameState): number {
-  return (BENCHMARKS.find((b) => b.price === benchmark)?.points ?? 10) - (s ? erosion(s) : 0);
+  return (BENCHMARKS.find((b) => b.price === benchmark)?.points ?? 10) - (s ? erosion(s) - nonOilPoints(s) : 0);
 }
 
 /** The monthly effect of a sector's allocation this year, before the instruction on releases changes it. */

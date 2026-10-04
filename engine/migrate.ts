@@ -97,6 +97,11 @@ export function migrate(raw: unknown): GameState | null {
     if (s.chars.cos && !s.chars.cos.rep) seedAdvisers(s);
     // Institutions set up before files could ask about them.
     for (const i of s.institutions ?? []) s.flags[`inst.${i.id}`] = true;
+    // Reforms that have been taken off the agenda leave the books; their standing costs end with them.
+    const known = (id: string) => !!MILESTONE_BY_ID[id];
+    s.agenda.done = s.agenda.done.filter(known);
+    s.agenda.active = s.agenda.active.filter((a) => known(a.id));
+    s.agenda.failed = s.agenda.failed.filter((a) => known(a.id));
     // A file that no longer exists cannot be decided.
     if (s.desk?.lead && !EVENTS[s.desk.lead.eventId]) s.desk.lead = null;
     s.desk.minors = (s.desk?.minors ?? []).filter((m) => EVENTS[m.eventId]);
