@@ -2,6 +2,7 @@
 // and prints distributions. Usage: npm run simulate -- [runs] [--trace]
 
 import { EVENT_LIST } from '../content';
+import { measureLevers } from './levers';
 import { SCENARIOS } from '../content/scenarios';
 import { TYCOONS } from '../content/tycoons';
 import { eventOf } from '../engine/cast';
@@ -74,6 +75,8 @@ interface Bot {
 }
 
 let revived = 0;
+/** Sample states for --levers. */
+const SAMPLES: GameState[] | null = process.argv.includes('--levers') ? [] : null;
 const skip = (what: string) => (process.env.SKIP ?? '').includes(what);
 const orderOk = (s: GameState, id: string) => canOrder(s, ORDER_BY_ID[id]).ok;
 const lowestZone = (s: GameState): ZoneId => [...ZONES].sort((a, b) => s.zones[a].approval - s.zones[b].approval)[0];
@@ -255,6 +258,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       }
       if (s.budget.due) throw new Error(`${bot.name} could not pass a budget at turn ${s.turn}`);
     }
+    // For tools/levers.ts: the state at the start of a month's moves, every eighth month.
+    if (SAMPLES && s.turn % 8 === 3) SAMPLES.push(structuredClone(s));
     // Pay what is owed, in the bot's order of priority, keeping a little in hand.
     for (const id of bot.pays ?? []) {
       const reserve = id === 'ways' || id === 'eurobond' ? 2.2 : 0.4;
@@ -487,6 +492,12 @@ if (args.includes('--scenarios')) {
     });
     console.log(`${sc.name.padEnd(26)} ${line.join(' · ')}`);
   }
+  process.exit(0);
+}
+if (args.includes('--levers')) {
+  // Every order measured from states real presidencies pass through: see tools/levers.ts.
+  for (const bot of BOTS.filter((b) => ['Reformer', 'Machine', 'Populist', 'Institutionalist', 'Kleptocrat'].includes(b.name))) for (let i = 0; i < runs; i++) play(bot, 4000 + i * 613);
+  measureLevers(SAMPLES!, Number(process.env.AHEAD ?? 6));
   process.exit(0);
 }
 if (args.includes('--world')) {
