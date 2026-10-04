@@ -7,6 +7,16 @@ import type { GameState } from './types';
 
 export function rivalOf(s: GameState, id: string): Rival {
   const base = RIVAL_BY_ID[id] ?? RIVAL_BY_ID.alt;
+  // Dandume left the party of the first President. Governing for another party, he is not "of your own party".
+  const origin = String(s.flags['party.origin'] ?? s.president.party);
+  if (base.id === 'strong' && origin !== s.president.party && s.rivalSwap?.id !== 'strong') {
+    return {
+      ...base,
+      style: `A former governor of the ${origin} who left it with his delegates. Knows where everything is buried because he helped bury it.`,
+      feeds: 'Grows when your party is divided and your governors are unhappy, and on every defector he can collect.',
+      deal: { ...base.deal, name: 'Bring him across: a ministry and his delegates', text: 'He crosses to your party with his people. Your own governors will ask what he did to deserve it, and you will owe him.', done: 'He crosses, to drums, at a rally in his old state. Your governors smile for the photographs.' },
+    };
+  }
   const o = s.rivalSwap;
   if (!o || o.id !== base.id) return base;
   return {

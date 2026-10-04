@@ -144,6 +144,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
     rel: w.sameParty ? 60 : 25, zone: prev.president.homeZone, home: prev.president.home,
   };
   s.predecessor = pred;
+  s.flags['party.origin'] = String(prev.flags['party.origin'] ?? prev.president.party);
   freshCabinet(s);
   // From the other side: the rival slot of the party that won now belongs to the party that lost, under the outgoing Vice President.
   if (!w.sameParty && w.rival) {
