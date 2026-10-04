@@ -78,6 +78,18 @@ export function eraShifts(prev: GameState, w: Winner): Shift[] {
     });
   }
 
+  // What the last President undid stays undone until someone restores it.
+  const undone = Object.keys(prev.counters).filter((k) => k.startsWith('reversedAt.')).map((k) => k.slice(11)).filter((id) => MILESTONE_BY_ID[id] && !prev.agenda.done.includes(id));
+  if (undone.length) {
+    const names = undone.map((id) => MILESTONE_BY_ID[id].m.name.toLowerCase());
+    const times = (id: string) => Number(prev.flags[`reversed.${id}`] ?? 1);
+    out.push({
+      title: undone.length === 1 ? 'A reform was undone' : `${undone.length} reforms were undone`,
+      text: `${was} undid ${names.join('; ')}${undone.some((id) => times(id) > 1) ? ', not for the first time' : ''}. ${undone.length === 1 ? 'It is' : 'They are'} on your agenda to restore, if you want to pay for ${undone.length === 1 ? 'it' : 'them'} again.`,
+      apply: () => {},
+    });
+  }
+
   return out;
 }
 

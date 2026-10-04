@@ -65,7 +65,7 @@ export function handoverNotes(prev: GameState): string[] {
 }
 
 // What stays true of the country whoever is President.
-const WORLD_FLAG = /^(law\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
+const WORLD_FLAG = /^(reversed\.|law\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
 // Decisions that cannot be taken twice.
 const WORLD_ORDERS = ['tax', 'duties', 'subsidy_end', 'price_freeze', 'merge'];
 

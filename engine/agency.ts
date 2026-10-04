@@ -67,7 +67,7 @@ function options(s: GameState): Move[] {
     // Warm, and wants to be seen to be useful.
     if (r >= 72 && t !== 'principled') out.push({ who: id, act: 'offer', w: 2 + clout * 0.3 });
     // The principled say so out loud when the government stops being clean.
-    if (t === 'principled' && (s.pressures.scandalHeat > 55 || s.nation.integrity < 28)) out.push({ who: id, act: 'protest', w: 3 });
+    if (t === 'principled' && (s.pressures.scandalHeat > 55 || s.nation.integrity < 28)) out.push({ who: id, act: 'protest', w: s.flags['order.permits'] ? 1 : 3 });
     // Two cold people find each other.
     if (r < 50 && t !== 'loyal') {
       const partner = PEOPLE.filter((q) => q.id !== id && live(s, q.id) && standing(s, q.id) < 50 && temper(q.id) !== 'loyal' && tie(s, id, q.id) < 75)

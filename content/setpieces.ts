@@ -62,7 +62,7 @@ export const NIGHTS: SetPiece[] = [
     truths: [
       { id: 'nothing', weight: () => 2, title: 'It was a rumour', reveal: 'There was no coup. A battalion was moved for a training exercise nobody had told the Villa about.', news: ['VILLA SPENDS NIGHT ON ALERT OVER TRAINING EXERCISE', 'NA EXERCISE O! NO BE COUP'] },
       { id: 'probe', weight: (s) => 1 + (s.nation.security < 30 ? 0.5 : 0), title: 'A few officers were testing the water', reveal: 'Three officers had sounded out others about "the situation". Nobody followed them. They are in custody by breakfast.', news: ['OFFICERS DETAINED AFTER "SUSPICIOUS MOVEMENTS"', 'SOJA THREE DON ENTER CELL'] },
-      { id: 'real', weight: (s) => 0.3 + (approval(s) < 35 ? 0.5 : 0) + (chiefsFresh(s) ? -0.2 : 0.3), title: 'It was an attempt, and it failed', reveal: 'It was real. A group of middle-ranking officers tried to seize the broadcasting house and lost their nerve when nobody senior joined them.', fx: [['nation.security', -3]], news: ['COUP ATTEMPT FOILED IN ABUJA', 'DEM TRY COUP. E NO WORK'] },
+      { id: 'real', weight: (s) => Math.max(0.05, 0.3 + (approval(s) < 35 ? 0.5 : 0) + (chiefsFresh(s) ? -0.2 : 0.3) - (s.agenda.done.includes('s6') ? 0.25 : 0)), title: 'It was an attempt, and it failed', reveal: 'It was real. A group of middle-ranking officers tried to seize the broadcasting house and lost their nerve when nobody senior joined them.', fx: [['nation.security', -3]], news: ['COUP ATTEMPT FOILED IN ABUJA', 'DEM TRY COUP. E NO WORK'] },
     ],
     beats: [
       { id: 'tv', at: 75, text: 'A television station reports "unusual troop movement" in Abuja, citing residents. It runs the clip every ten minutes.' },
@@ -244,6 +244,7 @@ export const NIGHTS: SetPiece[] = [
     beats: [
       { id: 'radio', at: 1440, text: 'Local radio in two states is reading out the fax. Some listeners are leaving; most are waiting to see if anyone official says anything.' },
       { id: 'gov', at: 1500, when: cold, text: '{GOV} says the federal government "was informed weeks ago and did nothing". It was informed two hours ago.' },
+      { id: 'service', at: 1500, when: (s) => s.agenda.done.includes('o9'), text: 'The disaster service has crews and boats at the river already. Its commander asks for one thing: the order to evacuate.' },
       { id: 'release', at: 1620, text: 'The release begins. Nobody downstream can see how much water there is in the dark.' },
       { id: 'rising', at: 1710, when: t('large'), text: 'A village head calls the radio station from a roof.' },
       { id: 'steady', at: 1710, when: t('small'), text: 'The river is high but holding below the embankments. The radio station plays music again.' },
@@ -259,6 +260,8 @@ export const NIGHTS: SetPiece[] = [
       { id: 'governor', label: 'Put {GOV} in charge on the ground, publicly', minutes: 15, needs: ['gov'], text: 'You announce that {GOV} will lead the response on the ground "as the person closest to it".',
         dawn: { small: [['bloc.party', 2]], large: [['bloc.party', -2], ['approval', -1]] },
         after: { large: '{GOV} spent the morning on television blaming Abuja, which was now also blaming {GOV}.' } },
+      { id: 'crews', label: 'Give the disaster service the order', minutes: 10, needs: ['service'], text: 'The disaster service is given the order and moves before you have put the phone down.',
+        dawn: { small: [['nation.capacity', 1]], large: [['approval', 4], ['bloc.street', 4], ['nation.capacity', 2]] }, after: { large: 'The service you built was the reason the night had an ending.' } },
       { id: 'wait', label: 'Wait for the morning and the agency\'s assessment', minutes: 120, text: 'You ask for an assessment by morning.',
         dawn: { large: [['approval', -5], ['bloc.street', -6], ['pressure.scandalHeat', 6]] },
         after: { large: 'Waiting for an assessment, while a fax said exactly what was coming, is the line in the inquiry\'s report everyone will quote.' } },

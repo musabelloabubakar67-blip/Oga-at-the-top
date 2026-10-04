@@ -107,6 +107,7 @@ function dawn(s: GameState): void {
   }
   for (const f of fx) applyFx(s, f);
   sp.morning?.(s, n);
+  s.flags[`night.${n.id}`] = n.truth;
   const changes = diff(before, snapshot(s));
   n.done = { title: say(s, n, truth.title), text: lines.join(' '), changes };
   s.report.push({ kind: changes.filter((c) => c.good).length >= changes.length / 2 ? 'reform' : 'failure', title: `${sp.title}: ${n.done.title.toLowerCase()}`, cause: `The night of ${clockLabel(sp.start)} to ${clockLabel(n.clock)}`, text: n.done.text, changes });

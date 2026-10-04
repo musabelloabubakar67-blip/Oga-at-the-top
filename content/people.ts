@@ -116,7 +116,7 @@ export const PEOPLE: Person[] = [
   },
   {
     id: 'min_works', group: 'minister', name: 'Engr. Lanre Oyelaran', short: 'Oyelaran', title: 'Minister of Works',
-    tracks: ['works', 'industry'], clout: 4, competence: 2, integrity: 2, ambition: 1, metric: ['nation.jobs', 1], sponsor: 'gov_nw', loyalty: 60, temper: 'transactional',
+    tracks: ['works', 'industry', 'cities'], clout: 4, competence: 2, integrity: 2, ambition: 1, metric: ['nation.jobs', 1], sponsor: 'gov_nw', loyalty: 60, temper: 'transactional',
     bio: 'A former governor. Every project under him is 95% complete. He came with four states\' worth of delegates.',
     want: { text: 'A free hand to award the federal road contracts himself.', fx: [['nation.integrity', -3], ['bloc.party', 3]], done: 'The contracts are awarded in a week. The roads will take somewhat longer. He is, for now, entirely yours.' },
   },
@@ -128,7 +128,7 @@ export const PEOPLE: Person[] = [
   },
   {
     id: 'min_justice', group: 'minister', name: 'Barr. Emeka Ezenagu', short: 'Ezenagu', title: 'Attorney General',
-    tracks: ['clean', 'treasury'], clout: 3, competence: 3, integrity: 2, ambition: 1, metric: ['nation.integrity', 1], sponsor: 'sen_pres', loyalty: 65, temper: 'loyal',
+    tracks: ['clean', 'treasury', 'justice'], clout: 3, competence: 3, integrity: 2, ambition: 1, metric: ['nation.integrity', 1], sponsor: 'sen_pres', loyalty: 65, temper: 'loyal',
     bio: 'Can find a legal basis for anything you want, which is his value and his danger.',
     want: { text: 'His former law partner on the Court of Appeal.', fx: [['nation.integrity', -2], ['bloc.establishment', -2]], done: 'The nomination goes through on a voice vote. The Attorney General now has a friend on the bench, and you have a friend in the Attorney General.' },
   },
@@ -140,7 +140,7 @@ export const PEOPLE: Person[] = [
   },
   {
     id: 'min_service', group: 'minister', name: 'Mrs Kemi Oyetunde', short: 'Oyetunde', title: 'Minister of Industry and the Public Service',
-    tracks: ['service', 'digital', 'people'], clout: 2, competence: 4, integrity: 4, ambition: 3, metric: ['nation.capacity', 1], loyalty: 45, temper: 'ambitious',
+    tracks: ['service', 'digital', 'people', 'schools'], clout: 2, competence: 4, integrity: 4, ambition: 3, metric: ['nation.capacity', 1], loyalty: 45, temper: 'ambitious',
     bio: 'Ran a bank. Runs her ministries like one. Is said to be writing down everything she sees.',
     want: { text: 'To chair the economic council when you are out of the country.', pc: 6, fx: [['nation.capacity', 2], ['bloc.villa', -3]], done: 'She chairs her first meeting while you are in Addis Ababa. It ends on time. People notice, including the people you would rather had not.' },
   },

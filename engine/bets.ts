@@ -25,7 +25,9 @@ export function ventureOdds(s: GameState, v: Venture): number {
   const rescued = s.bets[v.id]?.rescued ? 0.12 : 0;
   // A second attempt knows exactly what went wrong the first time.
   const learned = s.bets[v.id]?.revived ? REVIVE_LEARNED : 0;
-  return clamp(v.top - lost + rescued + learned, 0.05, 0.95);
+  // Appraised before it was built.
+  const appraised = s.agenda.done.includes('w8') ? 0.08 : 0;
+  return clamp(v.top - lost + rescued + learned + appraised, 0.05, 0.95);
 }
 
 /** A businessman who is with you pays part of it. */

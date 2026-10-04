@@ -13,6 +13,8 @@ export interface DepLine { label: string; value: number; hint: string }
 export const DIVERSIFIERS: Record<string, number> = {
   t1: 3, t3: 3, t5: 2, i1: 2, i2: 1, i4: 3, d2: 1, d3: 1, f5: 2, w3: 1,
   g1: 3, g2: 3, g4: 5, g6: 2, g7: 3,
+  i6: 1, i7: 2, i8: 1, i9: 1, i10: 1, d9: 2, d10: 1, f8: 1, f10: 2, w9: 1, u7: 1, j3: 1,
+  g8: 3, g9: 2, g10: 2, g11: 2, g12: 1, t10: 1,
 };
 
 const START = 75;

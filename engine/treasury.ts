@@ -515,7 +515,7 @@ export function moveFund(s: GameState, id: FundId, amount: number): string {
   return `₦${Math.round(-amount * 1000)}bn is brought back from ${def.name} into the treasury.`;
 }
 
-const INFRA_TRACKS = new Set(['power', 'works', 'industry', 'food']);
+const INFRA_TRACKS = new Set(['cities', 'power', 'works', 'industry', 'food']);
 export const drawsOnInfra = (track: string) => INFRA_TRACKS.has(track);
 
 /** How a building cost is met: the infrastructure fund first, at a discount, then the treasury. */
@@ -577,7 +577,7 @@ function arrearsTick(s: GameState): void {
   const d = s.debts;
   // Power is sold below cost until the tariff is fixed, so the gas bill builds again.
   // Clearing the gas debt means paying suppliers as they deliver: arrears build half as fast until the tariff covers the cost.
-  if (!s.agenda.done.includes('p3')) addOwed(s, 'gas', 0.035 * (s.agenda.done.includes('p1') ? 0.5 : 1));
+  if (!s.agenda.done.includes('p3') && !s.flags['power.escrow']) addOwed(s, 'gas', 0.035 * (s.agenda.done.includes('p1') ? 0.5 : 1));
   if (d.gas > 0.2) s.nation.power = clamp(s.nation.power - 0.1 * Math.min(2.5, d.gas / 0.7), 0, 100);
   if (d.contractors > 0.5) s.nation.jobs = clamp(s.nation.jobs - 0.04 * Math.min(3, d.contractors / 1.2), 0, 100);
   if (d.pensions > 0.2) {
@@ -627,7 +627,7 @@ export function treasuryTick(s: GameState): void {
       // A government that is short borrows some and simply does not pay the rest.
       const lend = n.debt < e.noLendingAbove;
       addOwed(s, lend ? 'bonds' : 'ways', short * (lend ? 0.5 : 0.5));
-      addOwed(s, 'contractors', short * 0.3);
+      addOwed(s, 'contractors', short * (s.agenda.done.includes('t7') ? 0.12 : 0.3));
       addOwed(s, 'pensions', short * 0.2);
     }
   }

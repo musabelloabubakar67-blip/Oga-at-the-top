@@ -35,12 +35,13 @@ export function oilForecast(s: GameState): OilForecast {
   if (!a) return { ...t, by: 'The Budget Office', title: '', note: '', record: null };
   const year = Math.floor((s.turn - 1) / 12);
   // Competence sets how far off it can be; the error is fixed for the year, so asking again does not change it.
-  const err = (hash(`oil.${year}.${a.name}`) - 0.5) * 2 * Math.max(1, 5 - a.competence) * 4;
+  const council = s.agenda.done.includes('t6') ? 0.5 : 1;
+  const err = (hash(`oil.${year}.${a.name}`) - 0.5) * 2 * Math.max(1, 5 - a.competence) * 4 * council;
   // A minister close to a camp sincerely expects good times: a higher figure means more to spend, including on the camp's projects.
-  const lean = a.patron !== 'president' ? 4 : a.integrity <= 2 ? 3 : 0;
+  const lean = council < 1 ? 0 : a.patron !== 'president' ? 4 : a.integrity <= 2 ? 3 : 0;
   const mid = clamp(t.mid + err + lean, 35, 125);
   const width = 8 + Math.max(0, 4 - a.competence) * 3;
-  const note = a.competence >= 4 ? 'A careful forecast.' : a.competence <= 2 ? 'The working papers are thin.' : 'An ordinary forecast.';
+  const note = council < 1 ? 'Checked by the Fiscal Council.' : a.competence >= 4 ? 'A careful forecast.' : a.competence <= 2 ? 'The working papers are thin.' : 'An ordinary forecast.';
   return { mid: Math.round(mid), low: Math.round(mid - width), high: Math.round(mid + width), by: a.name, title: a.title, note, record: recordLine(s) };
 }
 

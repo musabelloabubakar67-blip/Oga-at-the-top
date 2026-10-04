@@ -382,6 +382,18 @@ export interface Milestone {
   lasting?: string;
   news: [string, string];
   archive: string;
+  /** 1, the foundations (default); 2, the deepening, open once the foundations are delivered; 3, a problem history created, open only while it exists. */
+  gen?: 1 | 2 | 3;
+  /** For generation 3: whether the problem exists in this country now. */
+  emerge?: (s: GameState) => boolean;
+  /** Why it has emerged, in a line. */
+  emergeText?: string;
+  /** Rival answers to the same question: delivering or starting one closes these. */
+  excludes?: string[];
+  /** Already on the statute book at the start: the work is doing it properly, so it costs less and takes less time. */
+  onBooks?: string;
+  /** How a President can undo it for a gain now; the next President inherits the damage and can restore it. */
+  reversal?: { label: string; text: string; gain: Fx[]; news: [string, string] };
 }
 
 export interface Track {
@@ -630,6 +642,7 @@ export type Action =
   | { type: 'HEADHUNT'; role: string }
   | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
   | { type: 'HONOUR'; id: number }
+  | { type: 'REVERSE'; id: string }
   | { type: 'NIGHT'; option: string }
   | { type: 'NIGHT_WAIT' }
   | { type: 'NIGHT_END' }

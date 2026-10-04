@@ -1,7 +1,8 @@
-import type { Cond, ExposureSpec, FlagValue, Follow, Fx, Later, Track } from '../engine/types';
+import type { Cond, ExposureSpec, FlagValue, Follow, Fx, Later, Milestone, Track } from '../engine/types';
 import { SITUATIONAL } from './orders2';
 import { MORE_TRACKS } from './tracks2';
 import { LOOSE_TRACKS } from './tracks3';
+import { ADD, HEALTH, NEW_TRACKS, REVERSALS, REWRITE } from './tracks4';
 
 // THE REFORM AGENDA
 // Six tracks of four reforms each. A reform is launched, paid for, takes time,
@@ -353,13 +354,50 @@ const CAPSTONES: Record<string, Track['milestones'][number]> = {
   },
 };
 
-export const TRACKS: Track[] = [...RAW, ...MORE_TRACKS, ...LOOSE_TRACKS].map((t) => ({
+// THE LIBRARY, REARRANGED
+// Health and schools are two tracks; the old order track becomes One Nigeria, its
+// amnesty, loot register and ranching moving to security, clean government and
+// food; housing moves to the cities. Every track gains its deepening and its
+// repairs (content/tracks4.ts). Ids never change, so saves and files still match.
+function restructure(tracks: Track[]): Track[] {
+  const list = tracks.map((t) => ({ ...t, milestones: [...t.milestones] }));
+  const track = (id: string) => list.find((t) => t.id === id)!;
+  const take = (id: string): Milestone => {
+    for (const t of list) { const i = t.milestones.findIndex((m) => m.id === id); if (i >= 0) return t.milestones.splice(i, 1)[0]; }
+    throw new Error(`No reform ${id}`);
+  };
+  const e2 = take('e2'), e3 = take('e3'), e5 = take('e5'), h5 = take('h5'), o7 = take('o7'), o8 = take('o8'), o3 = take('o3');
+  const health = track('people');
+  const e1 = health.milestones.find((m) => m.id === 'e1')!, e4 = health.milestones.find((m) => m.id === 'e4')!;
+  const hx = (id: string) => HEALTH.find((m) => m.id === id)!;
+  Object.assign(health, { name: 'Healthy Nigeria', goal: 'Care that is there when it is needed', milestones: [e1, hx('m2'), hx('m3'), e4, hx('m5'), ...HEALTH.filter((m) => !['m2', 'm3', 'm5'].includes(m.id))] });
+  const order = track('order');
+  Object.assign(order, { name: 'One Nigeria', goal: 'How much power the state should have to keep the peace' });
+  for (const [id, ms] of Object.entries(ADD)) track(id).milestones.push(...ms);
+  track('security').milestones.push({ ...o7, gen: 2 });
+  track('clean').milestones.push({ ...o8, gen: 2 });
+  track('food').milestones.push({ ...o3, gen: 2 });
+  const fresh = NEW_TRACKS.map((t) => ({ ...t, milestones: [...t.milestones] }));
+  const schools = fresh.find((t) => t.id === 'schools')!;
+  schools.milestones.splice(2, 0, e3, e2, e5);
+  const cities = fresh.find((t) => t.id === 'cities')!;
+  cities.milestones.splice(3, 0, h5);
+  // Schools sits beside health; justice and the cities at the end.
+  const at = list.findIndex((t) => t.id === 'people') + 1;
+  list.splice(at, 0, schools);
+  list.push(...fresh.filter((t) => t.id !== 'schools'));
+  return list.map((t) => ({ ...t, milestones: t.milestones.map((m) => ({ ...m, ...(REWRITE[m.id] ?? {}), ...(REVERSALS[m.id] ? { reversal: REVERSALS[m.id] } : {}) })) }));
+}
+
+const BASE: Track[] = [...RAW, ...MORE_TRACKS, ...LOOSE_TRACKS].map((t) => ({ ...t, milestones: [...t.milestones, ...(CAPSTONES[t.id] ? [CAPSTONES[t.id]] : [])] }));
+
+export const TRACKS: Track[] = restructure(BASE).map((t) => ({
   ...t,
-  milestones: [...t.milestones, ...(CAPSTONES[t.id] ? [CAPSTONES[t.id]] : [])].map((m) => ({
+  milestones: t.milestones.map((m) => ({
     ...m,
     start: [...(m.start ?? []), ...(EXTRA[m.id]?.start ?? [])],
     done: [...m.done, ...(EXTRA[m.id]?.done ?? [])],
-    pc: Math.round(m.pc * CAPITAL), naira: Math.round(m.naira * COST * 20) / 20, months: Math.round(m.months * TIME),
+    pc: Math.round(m.pc * CAPITAL), naira: Math.round(m.naira * COST * 20) / 20, months: Math.round(m.months * TIME * (m.onBooks ? 0.75 : 1)),
   })),
 }));
 

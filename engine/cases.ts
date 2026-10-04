@@ -33,7 +33,9 @@ export function openCases(s: GameState): Case[] {
 
 /** How long the trial runs once it opens. */
 export function trialLength(s: GameState): number {
-  return s.agenda.done.includes('c2') ? 7 : 14;
+  const base = s.agenda.done.includes('c2') ? 7 : 14;
+  // Courts that are digitised and run by managers move faster.
+  return Math.max(4, Math.round(base * (s.agenda.done.includes('j2') ? 0.8 : 1) * (s.agenda.done.includes('j6') ? 0.85 : 1)));
 }
 
 /** Who is prosecuting, in a phrase. */
@@ -55,12 +57,15 @@ export function convictionOdds(s: GameState, c: Case): { p: number; lines: OddsL
     if (s.flags['graft.leash']) add('The agency has learned that some files come back', -0.1);
   }
   if (s.agenda.done.includes('c4')) add('An independent prosecutor', 0.1);
+  if (s.agenda.done.includes('s8')) add('A national forensic network', 0.08);
+  if (s.agenda.done.includes('s9')) add('Witnesses who are protected', 0.06);
+  if (s.agenda.done.includes('j9')) add('Digital and forensic evidence admissible', 0.06);
   add(`Integrity in government: ${Math.round(s.nation.integrity)}`, (s.nation.integrity - 35) * 0.005);
   const clout = PERSON_BY_ID[c.who]?.clout ?? (c.who === 'pred' ? 5 : 3);
   add(`${c.name} has friends: clout ${clout}`, -0.04 * clout);
   if (c.backed) add('You stood behind the case in public', 0.08);
   const bench = benchOf(s);
-  if ((bench.bought ?? 0) >= 1) add('Some of the judges can be reached, by either side', -0.1);
+  if ((bench.bought ?? 0) >= 1 && !s.agenda.done.includes('j7')) add('Some of the judges can be reached, by either side', -0.1);
   return { p: clamp(lines.reduce((a, l) => a + l.value, 0), 0.05, 0.9), lines };
 }
 

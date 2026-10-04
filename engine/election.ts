@@ -14,7 +14,7 @@ export function moneyEffect(s: GameState): number {
   let v = 0;
   for (const t of TYCOONS) {
     const rel = s.tycoons[t.id]?.rel ?? 50;
-    if (rel >= 60) v += CFG.election.tycoon * 0.6;
+    if (rel >= 60) v += CFG.election.tycoon * 0.6 * (s.flags['finance.open'] ? 0.75 : 1);
     if (rel < 35) v -= CFG.election.tycoon * smearDiscount(s);
   }
   return v;

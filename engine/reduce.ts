@@ -878,6 +878,7 @@ export function applyAction(state: GameState, action: Action): GameState {
       record(s, 'pledge.honour', 'honour', 'politics', 'Kept a promise of a ministry.', 1);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
+    case 'REVERSE': if (canReverse(s, action.id).ok) reverse(s, action.id); break;
     case 'NIGHT': nightChoose(s, action.option); break;
     case 'NIGHT_WAIT': nightWait(s); break;
     case 'NIGHT_END': nightEnd(s); break;
@@ -972,7 +973,7 @@ export function launchCost(s: GameState, m: Milestone): number {
   const track = MILESTONE_BY_ID[m.id]?.track;
   const priority = !!track && s.agenda.tracks.includes(track.id);
   // A reform defeated under the last President has since become the received view.
-  return Math.round(m.pc * (priority ? 1 : CFG.agenda.offAgendaPc) * (s.flags[`era.wisdom.${m.id}`] ? 0.6 : 1));
+  return Math.round(m.pc * (priority ? 1 : CFG.agenda.offAgendaPc) * (s.flags[`era.wisdom.${m.id}`] ? 0.6 : 1) * (m.onBooks ? 0.7 : 1));
 }
 
 /** How a reform's money is found: from the Infrastructure Fund first, where it applies. */
@@ -981,16 +982,61 @@ export function launchMoney(s: GameState, m: Milestone): { fund: number; treasur
   return buildCost(s, m.naira, !!track && drawsOnInfra(track.id));
 }
 
-export type MilestoneStatus = 'done' | 'active' | 'next' | 'later';
+export type MilestoneStatus = 'done' | 'active' | 'next' | 'later' | 'closed' | 'hidden';
 
+/**
+ * Where a reform stands. The foundations go in order (any order on a loose track); the
+ * deepening opens once every foundation is delivered; a repair appears only while the
+ * problem it answers exists; a rival answer already chosen closes it.
+ */
 export function milestoneStatus(s: GameState, id: string): MilestoneStatus {
   if (s.agenda.done.includes(id)) return 'done';
   if (s.agenda.active.some((a) => a.id === id)) return 'active';
   const entry = MILESTONE_BY_ID[id];
   if (!entry) return 'later';
-  const i = entry.track.milestones.findIndex((m) => m.id === id);
-  const prior = entry.track.loose || entry.track.milestones.slice(0, i).every((m) => s.agenda.done.includes(m.id));
-  return prior ? 'next' : 'later';
+  const { track, m } = entry;
+  if ((m.excludes ?? []).some((x) => s.agenda.done.includes(x) || s.agenda.active.some((a) => a.id === x))) return 'closed';
+  const gen = m.gen ?? 1;
+  if (gen === 3) return m.emerge?.(s) ? 'next' : 'hidden';
+  const found = track.milestones.filter((x) => (x.gen ?? 1) === 1);
+  // A foundation ruled out by its rival counts as settled.
+  const settled = (x: Milestone) => s.agenda.done.includes(x.id) || (x.excludes ?? []).some((y) => s.agenda.done.includes(y));
+  if (gen === 2) return found.every(settled) ? 'next' : 'later';
+  if (track.loose) return 'next';
+  const i = found.findIndex((x) => x.id === id);
+  return found.slice(0, i).every(settled) ? 'next' : 'later';
+}
+
+/** What a reform is called in this country: one that was undone is offered back as a restoration. */
+export function reformName(s: GameState, id: string): string {
+  const m = MILESTONE_BY_ID[id]?.m;
+  if (!m) return id;
+  return s.flags[`reversed.${id}`] && !s.agenda.done.includes(id) ? `Restore: ${m.name[0].toLowerCase()}${m.name.slice(1)}` : m.name;
+}
+
+export function canReverse(s: GameState, id: string): { ok: boolean; reason?: string } {
+  const m = MILESTONE_BY_ID[id]?.m;
+  if (!m?.reversal || !s.agenda.done.includes(id)) return { ok: false };
+  if (movesLeft(s) <= 0) return { ok: false, reason: "This month's moves are used." };
+  return { ok: true };
+}
+
+/** Undo a delivered reform: what it gives now, and what the country loses for as long as it stays undone. */
+function reverse(s: GameState, id: string): void {
+  const { m } = MILESTONE_BY_ID[id];
+  const r = m.reversal!;
+  const before = snapshot(s);
+  s.desk.actionsUsed += 1;
+  const entry = record(s, `reform.${id}`, 'reverse', 'politics', `Undid: ${m.name}.`, 2);
+  for (const f of r.gain) applyFx(s, f, entry.touches);
+  // What it built stops working: its lasting bonuses are taken back.
+  for (const [t, d] of m.done) if (t.startsWith('bonus.') || t.startsWith('sec.') || t.startsWith('drift.')) applyFx(s, [t, -d], entry.touches);
+  for (const k of Object.keys(m.flags ?? {})) delete s.flags[k];
+  s.agenda.done = s.agenda.done.filter((x) => x !== id);
+  s.flags[`reversed.${id}`] = Number(s.flags[`reversed.${id}`] ?? 0) + 1;
+  s.counters[`reversedAt.${id}`] = s.turn;
+  s.news.push({ chronicle: r.news[0], street: r.news[1], weight: 5, valence: -1, topic: 'reform' });
+  s.lastAction = { text: r.text, changes: diff(before, snapshot(s)) };
 }
 
 export interface LaunchCheck { ok: boolean; reason?: string; grease?: boolean }
@@ -1001,7 +1047,9 @@ export function canLaunch(s: GameState, id: string): LaunchCheck {
   const st = milestoneStatus(s, id);
   if (st === 'done') return { ok: false, reason: 'Delivered.' };
   if (st === 'active') return { ok: false, reason: 'Under way.' };
-  if (st === 'later') return { ok: false, reason: 'The previous reform must be delivered first.' };
+  if (st === 'later') return { ok: false, reason: (entry.m.gen ?? 1) === 2 ? 'Opens when every foundation on this track is delivered.' : 'The previous reform must be delivered first.' };
+  if (st === 'closed') return { ok: false, reason: `You chose a rival answer: ${(entry.m.excludes ?? []).map((x) => MILESTONE_BY_ID[x]?.m.name).filter(Boolean).join(', ')}.` };
+  if (st === 'hidden') return { ok: false, reason: 'Not a problem in this country now.' };
   const failed = s.agenda.failed.filter((f) => f.id === id).pop();
   if (failed && s.turn - failed.turn < CFG.agenda.retryAfter) {
     const wait = CFG.agenda.retryAfter - (s.turn - failed.turn);

@@ -214,7 +214,7 @@ export function courtTick(s: GameState): void {
   const reachable = js.filter((j) => j.lean !== 'you' && (j.lean === 'them' || j.integrity <= 2)).length;
   for (const a of s.agenda.active) {
     if (!contested(a.id) || s.counters[`injunct.${a.id}`] !== undefined) continue;
-    if (rand(s) >= 0.03 * reachable) continue;
+    if (rand(s) >= 0.03 * reachable * (s.agenda.done.includes('j10') ? 0.4 : 1)) continue;
     s.counters[`injunct.${a.id}`] = s.turn;
     s.counters.injunctions = (s.counters.injunctions ?? 0) + 1;
     const m = MILESTONE_BY_ID[a.id].m;
