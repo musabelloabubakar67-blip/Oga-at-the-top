@@ -102,6 +102,7 @@ const WATCH = [
   ...BLOCS.map((b) => `bloc.${b}`), 'purse',
   'debt.eurobond', 'debt.bonds', 'debt.ways', 'debt.gas', 'debt.contractors', 'debt.pensions',
   'fund.abroad', 'fund.buffer', 'fund.infra', 'fund.growth',
+  'pred.rel', 'vp.rel',
 ];
 
 export type Snapshot = Record<string, number>;
@@ -115,6 +116,10 @@ export function snapshot(s: GameState): Snapshot {
   if (s.fx) { out['fx.reserves'] = s.fx.reserves; out['fx.naira'] = s.fx.rate; }
   out['debt.arrears'] = s.debts.gas + s.debts.contractors + s.debts.pensions;
   out['fund.total'] = s.funds.abroad + s.funds.buffer + s.funds.infra + s.funds.growth;
+  for (const [id, st] of Object.entries(s.people)) if (!st.gone) out[`person.${id}`] = st.rel;
+  for (const [id, t] of Object.entries(s.tycoons)) out[`tycoon.${id}`] = t.rel;
+  if (s.predecessor) out['pred.rel'] = s.predecessor.rel ?? 50;
+  if (s.vp) out['vp.rel'] = s.vp.rel;
   return out;
 }
 
@@ -127,9 +132,10 @@ const NOISE: Record<string, number> = {
 /** What measurably changed between two moments. */
 export function diff(before: Snapshot, after: Snapshot): Change[] {
   const out: Change[] = [];
-  for (const k of WATCH) {
+  const named = Object.keys(after).filter((k) => (k.startsWith('person.') || k.startsWith('tycoon.')) && k in before);
+  for (const k of [...WATCH, ...named]) {
     const d = (after[k] ?? 0) - (before[k] ?? 0);
-    if (Math.abs(d) < (NOISE[k] ?? 0.4)) continue;
+    if (Math.abs(d) < (NOISE[k] ?? (k.startsWith('person.') || k.startsWith('tycoon.') || k.endsWith('.rel') ? 1.5 : 0.4))) continue;
     const c = change(k, d);
     if (c) out.push(c);
   }

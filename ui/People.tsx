@@ -703,6 +703,10 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
   const shut = groomWindow(s);
   const reforms = creditable(s);
   const [pickR, setPickR] = useState<Record<string, string>>({});
+  const [all, setAll] = useState(false);
+  // The list, the groomed and the Vice President always show; the rest fold away.
+  const shown = all ? list : list.filter((c, i) => top.has(c.id) || c.groomed > 0 || c.id === 'vp' || i < 5);
+  const hidden = list.length - shown.length;
   return (
     <div className="mt-4">
       <p className="text-sm text-ink-soft">
@@ -712,7 +716,7 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
         {' '}Strength is points of share at the election, before the usual cost of not being you (−3). Loyalty above 75 protects you whatever you did; an honest successor (integrity 4 or 5) will not protect much theft on loyalty alone.
       </p>
       <ul className="mt-3 space-y-2">
-        {list.map((c) => {
+        {shown.map((c) => {
           const can = canGroom(s, c.id, left);
           return (
             <li key={c.id} className={`border p-3 ${top.has(c.id) ? 'border-state/50' : 'border-ink/15'}`}>
@@ -753,6 +757,11 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
           );
         })}
       </ul>
+      {(hidden > 0 || all) && (
+        <button onClick={() => setAll(!all)} className="mt-2 text-sm text-ink-soft underline decoration-ink/30 hover:text-ink">
+          {all ? 'Show only the likeliest' : `${hidden} more who could be built up, weaker today`}
+        </button>
+      )}
     </div>
   );
 }

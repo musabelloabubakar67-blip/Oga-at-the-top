@@ -4,6 +4,7 @@
 // clean the government is, how powerful the accused is, and whether the bench can
 // be reached. The President can stand behind a case or lean on it.
 
+import { midName } from './text';
 import { NAMES } from '../content/names';
 import { PERSON_BY_ID } from '../content/people';
 import { addExposure } from './archive';
@@ -38,7 +39,7 @@ export function trialLength(s: GameState): number {
 /** Who is prosecuting, in a phrase. */
 export function prosecutor(s: GameState): string {
   const g = graft(s);
-  if (g) return `the anti-corruption agency, under ${g.head.name}`;
+  if (g) return `the anti-corruption agency, under ${midName(g.head.name)}`;
   return s.agenda.done.includes('c4') ? 'the independent prosecutor' : 'the Attorney General\'s office';
 }
 
@@ -50,7 +51,7 @@ export function convictionOdds(s: GameState, c: Case): { p: number; lines: OddsL
   const g = graft(s);
   if (g) {
     const honest = g.head.integrity >= 3 && !(g.head.patron !== 'president' && g.head.loyalty <= 3);
-    add(honest ? `An agency chief who cannot be bought (${g.head.name})` : `An agency chief who serves someone else (${g.head.name})`, honest ? 0.15 : -0.15);
+    add(honest ? `An agency chief who cannot be bought (${midName(g.head.name)})` : `An agency chief who serves someone else (${midName(g.head.name)})`, honest ? 0.15 : -0.15);
     if (s.flags['graft.leash']) add('The agency has learned that some files come back', -0.1);
   }
   if (s.agenda.done.includes('c4')) add('An independent prosecutor', 0.1);

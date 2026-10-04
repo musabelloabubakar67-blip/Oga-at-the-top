@@ -2,6 +2,7 @@
 
 import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
+import { midName } from '../engine/text';
 import { Cases } from './Cases';
 import { Inline, Overlay, Preview, usePreview, CloseButton } from './shell';
 import { EVENTS } from '../content';
@@ -875,7 +876,7 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
               <li key={v.id} className="border border-honour/30 bg-[#1a1d20] p-3">
                 <p className="flex items-baseline justify-between gap-2 font-serif text-ivory">{v.name}<span className={`label ${odds < 0.5 ? 'text-[#e08a7c]' : 'text-honour'}`}>{Math.round(odds * 100)}% odds</span></p>
                 <div className="mt-1.5 h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, a.progress)}%` }} /></div>
-                <p className="label mt-1 text-mute">{Math.round(Math.min(99, a.progress))}% built{st?.partner && v.partner ? ` · ${TYCOON_BY_ID[v.partner].short} is co-financing` : ''}{st?.rescued ? ' · reinforced' : ''}{st?.delayed ? ' · postponed once' : ''}</p>
+                <p className="label mt-1 text-mute">{Math.round(Math.min(99, a.progress))}% built{st?.partner && v.partner ? ` · ${TYCOON_BY_ID[v.partner].short} is co-financing` : ''}{st?.revived ? ' · second attempt: if it fails, it stays failed' : ''}{st?.rescued ? ' · reinforced' : ''}{st?.delayed ? ' · postponed once' : ''}</p>
                 <Risks s={s} v={v} live />
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button disabled={!res.ok} title={res.reason} onClick={() => dispatch({ type: 'VENTURE_RESCUE', id: v.id })}
@@ -1584,7 +1585,7 @@ function AssetCards({ s, dispatch, left, dark }: { s: GameState; dispatch: Dispa
               <span className="font-serif text-lg">{d.name}, {STATE_BY_ID[a.state].name}</span>
               <span className={`label ${perf.captured ? (dark ? 'text-[#e08a7c]' : 'text-alarm') : soft}`}>running at {Math.round(perf.k * 100)}%{perf.captured ? ' · captured' : ''}{a.level ? ` · expanded ×${a.level}` : ''}</span>
             </p>
-            <p className={`text-sm ${soft}`}>Managed by {a.head.name} since {dateLabel(a.since, s.startYear)}. {fiscal >= 0 ? 'Earns' : 'Costs'} {naira(Math.abs(fiscal) * 12)} a year.{perf.why.length ? ` ${perf.why.join('. ')}.` : ''}</p>
+            <p className={`text-sm ${soft}`}>Managed by {midName(a.head.name)} since {dateLabel(a.since, s.startYear)}. {fiscal >= 0 ? 'Earns' : 'Costs'} {naira(Math.abs(fiscal) * 12)} a year.{perf.why.length ? ` ${perf.why.join('. ')}.` : ''}</p>
             {d.record.length > 0 && (
               <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
                 {d.record.map((r) => (

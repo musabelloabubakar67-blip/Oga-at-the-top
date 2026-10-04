@@ -1,5 +1,6 @@
 'use client';
 
+import { breakdown } from '../engine/election';
 import { verdict } from '../engine/legacy';
 import { winnerOf } from '../engine/succession';
 import type { GameState } from '../engine/types';
@@ -38,6 +39,21 @@ export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: 
             <h2 className="label mt-10 border-b rule pb-2 text-ink-soft">What you will be remembered for</h2>
             <ul className="mt-3 space-y-1.5 font-serif text-lg">
               {v.defining.map((d, i) => <li key={i}><span className="mr-2 text-honour">◆</span>{d}</li>)}
+            </ul>
+          </>
+        )}
+
+        {s.succession && (
+          <>
+            <h2 className="label mt-10 border-b rule pb-2 text-ink-soft">The election you were not in</h2>
+            <p className="mt-3 font-serif text-lg">
+              {String(s.flags['successor.name'] ?? 'Your party\'s candidate')} {s.succession.won ? 'won' : 'lost'} by {Math.abs(s.succession.margin).toFixed(1)} points, carrying {s.succession.states.filter((x) => x.won).length} of {s.succession.states.length} states.
+            </p>
+            <p className="label mt-3 text-ink-soft">What decided it, in points of margin</p>
+            <ul className="mt-1 grid gap-x-6 text-sm sm:grid-cols-2">
+              {breakdown(s, 'succession').map((l) => (
+                <li key={l.label} className="flex justify-between gap-3 border-b border-ink/10 py-0.5"><span>{l.label}</span><span className={l.value >= 0 ? 'text-state' : 'text-alarm'}>{l.value > 0 ? '+' : '−'}{Math.abs(l.value).toFixed(1)}</span></li>
+              ))}
             </ul>
           </>
         )}

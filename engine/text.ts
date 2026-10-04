@@ -63,3 +63,6 @@ export function naira(tn: number): string {
   if (Math.abs(tn) >= 1) return `₦${tn.toFixed(1)}tn`;
   return `₦${Math.round(tn * 1000)}bn`;
 }
+
+/** A generic name such as "A career civil servant", for use mid-sentence. */
+export const midName = (name: string): string => name.replace(/^A /, 'a ').replace(/^An /, 'an ');

@@ -9,7 +9,7 @@ import { VENTURE_BY_ID } from '../content/ventures';
 import { REHEAD_PC, headsFor, type Head } from './institutions';
 import { release, take } from './talent';
 import type { Fx, GameState } from './types';
-import { applyFx, clamp } from './vars';
+import { ZONE_NAME, applyFx, clamp } from './vars';
 import { buildCost, payBuild } from './treasury';
 
 export function assets(s: GameState): NonNullable<GameState['assets']> {
@@ -25,7 +25,7 @@ export function assetPerformance(s: GameState, id: string): { k: number; why: st
   const why: string[] = [];
   let k = 0.5 + 0.15 * a.head.competence;
   const zone = STATE_BY_ID[a.state]?.zone;
-  if (zone && s.theatres[zone] >= 65) { k *= 0.6; why.push(`The ${zone} theatre is dangerous: it runs at 60%`); }
+  if (zone && s.theatres[zone] >= 65) { k *= 0.6; why.push(`The ${ZONE_NAME[zone]} is dangerous: it runs at 60%`); }
   const captured = leans(a.head);
   if (captured) { k *= 0.6; why.push(`${a.head.name} runs it for someone else`); }
   if (a.head.integrity <= 2) { k *= 0.85; why.push('Its manager takes a cut'); }
