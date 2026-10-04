@@ -7,6 +7,7 @@ import { ASSETS } from '../content/assets';
 import { STATES, STATE_BY_ID } from '../content/states';
 import { VENTURE_BY_ID } from '../content/ventures';
 import { REHEAD_PC, headsFor, type Head } from './institutions';
+import { release, take } from './talent';
 import type { Fx, GameState } from './types';
 import { applyFx, clamp } from './vars';
 
@@ -83,7 +84,9 @@ export function settleSite(s: GameState, id: string, won: boolean): void {
 export function canSetManager(s: GameState, id: string, head: string, movesLeft: number): { ok: boolean; reason?: string } {
   const a = assets(s).find((x) => x.id === id);
   if (!a) return { ok: false };
-  if (a.head.name === head || !headsFor(s).some((h) => h.name === head)) return { ok: false, reason: 'Not available.' };
+  const h = headsFor(s, 'asset').find((x) => x.name === head);
+  if (a.head.name === head || !h) return { ok: false, reason: 'Not available.' };
+  if (h.refuses) return { ok: false, reason: h.refuses };
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < REHEAD_PC) return { ok: false, reason: `Needs ${REHEAD_PC} political capital.` };
   return { ok: true };
@@ -92,7 +95,10 @@ export function canSetManager(s: GameState, id: string, head: string, movesLeft:
 export function setManager(s: GameState, id: string, headName: string): string {
   const a = assets(s).find((x) => x.id === id)!;
   const old = a.head;
-  a.head = headsFor(s).find((h) => h.name === headName)!;
+  a.head = headsFor(s, 'asset').find((h) => h.name === headName)!;
+  const cid = (a.head as Head).cid;
+  if (cid) take(s, cid);
+  release(s, old.name);
   a.since = s.turn;
   a.seen = false;
   s.pc = clamp(s.pc - REHEAD_PC, 0, 100);

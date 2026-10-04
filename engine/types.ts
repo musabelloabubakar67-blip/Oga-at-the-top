@@ -462,6 +462,8 @@ export interface GameState {
   counters: Record<string, number>;
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
+  /** Everyone who could be appointed to anything. Created on first use. */
+  talent?: { pool: { id: string; name: string; short: string; spec: 'economics' | 'security' | 'law' | 'administration' | 'engineering' | 'politics' | 'media'; zone: ZoneId; competence: number; loyalty: number; integrity: number; clout: number; ambition: number; patron: string; rep: { competence: number; loyalty: number; integrity: number }; blurb: string; until: number; checked?: boolean }[]; taken: string[]; seq: number };
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
@@ -565,13 +567,15 @@ export type Action =
   | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' }
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }
-  | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party' }
+  | { type: 'REPLACE_MINISTER'; id: string; kind: 'technocrat' | 'party'; name?: string }
   | { type: 'ORDER'; id: string; target?: string; level?: number }
   | { type: 'REPEAL'; id: string }
   | { type: 'SECOND_OPINION'; eventId: string }
   | { type: 'REPLACE_ADVISER'; role: string; name: string }
   | { type: 'NOMINATE'; seat: number; name: string }
   | { type: 'GROOM'; id: string }
+  | { type: 'CHECK_CANDIDATE'; id: string }
+  | { type: 'HEADHUNT'; role: string }
   | { type: 'ESTABLISH'; id: string; head: string }
   | { type: 'REPLACE_HEAD'; id: string; head: string }
   | { type: 'ABOLISH'; id: string }

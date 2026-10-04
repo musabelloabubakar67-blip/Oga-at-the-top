@@ -4,9 +4,10 @@
 // adviser's record of forecasts against outcomes is kept where the President can
 // read it. Nothing is hidden for long; it has to be checked.
 
+import { candidatesFor, release, take, type Offer } from './talent';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
-import { ADVISER_POOL, REPLACEABLE } from '../content/names';
+import { REPLACEABLE } from '../content/names';
 import { describe } from './effects';
 import { rand } from './rng';
 import type { Choice, Fx, GameEvent, GameState, Outcome } from './types';
@@ -82,16 +83,18 @@ export function seedAdvisers(s: GameState): void {
 }
 
 /** Who is still available to bring in. */
-export function poolFor(s: GameState): typeof ADVISER_POOL {
-  const taken = new Set([...Object.values(s.chars).map((c) => c.name), ...(s.institutions ?? []).map((i) => i.head.name)]);
-  return ADVISER_POOL.filter((c) => !taken.has(c.name) && !s.flags[`pool.gone.${c.short}`]);
+/** Who could take this adviser's desk: the talent pool, best fitted first. */
+export function poolFor(s: GameState, role = 'cos'): Offer[] {
+  return candidatesFor(s, role, 10);
 }
 
 export const REPLACE_PC = 6;
 
 export function canReplaceAdviser(s: GameState, role: string, name: string, movesLeft: number): { ok: boolean; reason?: string } {
   if (!REPLACEABLE.includes(role) || !s.chars[role]) return { ok: false };
-  if (!poolFor(s).some((c) => c.name === name)) return { ok: false, reason: 'Not available.' };
+  const o = poolFor(s, role).find((x) => x.c.name === name);
+  if (!o) return { ok: false, reason: 'Not available.' };
+  if (o.refuses) return { ok: false, reason: o.refuses };
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < REPLACE_PC) return { ok: false, reason: `Needs ${REPLACE_PC} political capital.` };
   return { ok: true };
@@ -100,10 +103,15 @@ export function canReplaceAdviser(s: GameState, role: string, name: string, move
 /** Bring someone in. The one who leaves does not come back. */
 export function replaceAdviser(s: GameState, role: string, name: string): string {
   const old = s.chars[role];
-  const next = ADVISER_POOL.find((c) => c.name === name)!;
-  s.flags[`pool.gone.${old.short}`] = true;
-  s.chars[role] = { ...next, id: role, role: old.role, rel: 40, notes: [], patron: next.patron ?? 'president', rep: next.rep ?? { competence: next.competence, loyalty: next.loyalty } };
-  return `${old.name} is thanked and leaves the Villa. ${next.name} is the new ${old.role}.`;
+  const o = poolFor(s, role).find((x) => x.c.name === name)!;
+  const c = o.c;
+  take(s, c.id);
+  release(s, old.name);
+  s.chars[role] = {
+    id: role, role: old.role, name: c.name, short: c.short, competence: o.effective, clout: c.clout, loyalty: c.loyalty, integrity: c.integrity,
+    patron: c.patron, rep: { competence: Math.max(1, o.shown.competence - (o.fit ? 0 : 1)), loyalty: o.shown.loyalty }, blurb: c.blurb, rel: 40, notes: [],
+  };
+  return `${old.name} is thanked and leaves the Villa. ${c.name} is the new ${old.role}.`;
 }
 
 /** The adviser whose brief a file falls under. */

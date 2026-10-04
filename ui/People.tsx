@@ -2,6 +2,8 @@
 
 import { Inline, Overlay, CloseButton } from './shell';
 import { Aimed } from './Aimed';
+import { Candidates } from './Candidates';
+import { candidatesFor } from '../engine/talent';
 import { useContext, useState } from 'react';
 import { PEOPLE, PERSON_BY_ID, RIVALS, type Group } from '../content/people';
 import { TYCOONS } from '../content/tycoons';
@@ -175,23 +177,9 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     </button>
                   )}
                   {swap === role && (
-                    <ul className="mt-2 space-y-2">
-                      {poolFor(s).map((c) => {
-                        const can = canReplaceAdviser(s, role, c.name, left);
-                        const rp = c.rep ?? { competence: c.competence, loyalty: c.loyalty };
-                        return (
-                          <li key={c.name} className="border-l-2 border-honour pl-3">
-                            <p className="font-serif">{c.name}</p>
-                            <p className="text-[13px] leading-snug text-ink-soft">{c.blurb} By reputation: {rp.competence >= 4 ? 'able' : rp.competence <= 2 ? 'out of their depth' : 'adequate'}, {rp.loyalty >= 4 ? 'loyal' : rp.loyalty <= 2 ? 'their own person' : 'reliable enough'}.</p>
-                            <button disabled={!can.ok} title={can.reason} onClick={() => { dispatch({ type: 'REPLACE_ADVISER', role, name: c.name }); setSwap(null); }}
-                              className={`mt-1 border px-3 py-1 text-sm ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>
-                              Bring in as {a.title} · {REPLACE_PC} capital · 1 move
-                            </button>
-                          </li>
-                        );
-                      })}
-                      {poolFor(s).length === 0 && <li className="text-sm italic text-ink-soft">Nobody else is willing to take the job.</li>}
-                    </ul>
+                    <Candidates s={s} role={role} offers={poolFor(s, role)} dispatch={dispatch} left={left}
+                      can={(name) => canReplaceAdviser(s, role, name, left)} label={`Bring in as ${a.title} · ${REPLACE_PC} capital · 1 move`}
+                      appoint={(name) => { dispatch({ type: 'REPLACE_ADVISER', role, name }); setSwap(null); }} />
                   )}
                 </li>
               );
@@ -456,8 +444,19 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                           </button>
                         );
                       })}
+                      {base.group === 'minister' && (
+                        <button onClick={() => setSwap(swap === p.id ? null : p.id)} className={btn(true)}>{swap === p.id ? 'Close the list' : 'Choose someone…'}</button>
+                      )}
                     </div>
                   )}
+                  {base.group === 'minister' && swap === p.id && (() => {
+                    const cost = sackCost(s, p.id);
+                    return (
+                      <Candidates s={s} role={p.id} offers={candidatesFor(s, p.id, 10)} dispatch={dispatch} left={left} label={`Appoint as ${p.title} · ${cost} capital · 1 move`}
+                        can={() => (left <= 0 ? { ok: false, reason: "This month's moves are used." } : s.pc < cost ? { ok: false, reason: `Needs ${cost} political capital.` } : { ok: true })}
+                        appoint={(name) => { dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind: 'technocrat', name }); setSwap(null); }} />
+                    );
+                  })()}
                   {base.group !== 'minister' && !st.gone && (
                     <p className="mt-2 text-[13px] leading-snug text-ink-soft">
                       Time warms them a little, less each visit. Giving them what they want wins them properly and leaves them owing you a favour. Leaning on them buys eight months of obedience and a lasting grudge.

@@ -169,6 +169,15 @@ A Supreme Court of seven named justices, shown in the Courts tab under Politics.
 - **Injunctions.** A reform that costs the establishment, a businessman or a governor when launched can be frozen once by a court someone can reach: each month a 3% chance for every seated justice who leans against the President or has integrity of 2 or less. A freeze loses three months of progress.
 - **The election petition** is decided on appeal by the bench (see 0.7).
 
+### The talent pool (`content/talent.ts`, `engine/talent.ts`)
+
+Every appointment draws on one pool of people (owner, 4 October): ministers (any portfolio, from a list of named people, or the old quick technocrat or party-nominee options), the Finance Minister (the three known names or anyone suitable), the replaceable advisers, institution heads and asset managers.
+- **The people.** 48 are available at any time, generated from ordinary first names and surnames of each zone (well-known political and business family names left out). Each has a speciality (economics, security, law, administration, engineering, politics, communications), competence, loyalty, integrity, clout, ambition, and a patron: their own person (55%), out for themselves (15%), or close to a governor, senator or businessman. The six hand-written advisers from earlier versions are in the pool too.
+- **Fit.** Each job wants certain specialities (an engineer for the power task force, a lawyer for the Attorney General, an economist for Finance). Anyone outside the field works a point below their competence; the list shows who fits and puts them first.
+- **The file.** What the list shows is the file, which flatters anyone with a backer or out for themselves. A background check (2 capital, no move) shows the truth, including their patron.
+- **Refusals.** A person of integrity 4 or more refuses a government whose integrity is under 32. Some of the most able refuse a President under 38% approval. Anyone whose patron is cold to you (under 35) or holds a grievance against you refuses. The reason is shown.
+- **It refreshes.** People stay available for 6 to 15 months, then move on, and new ones arrive. Someone who leaves a job goes back into the pool for eight months. Searching for more (3 capital and a move) brings three people in the job's field, one of them at least competence 4.
+
 ### Favours (`engine/favours.ts`)
 
 A ledger running both ways. People who owe the President can be called on once: to deliver a zone, whip the Senate, drive a ministry, fund the campaign, quieten the press, stand up in public, or forget what they witnessed. A favour can also be attached to a decision on the desk, where it saves political capital and softens the political damage.

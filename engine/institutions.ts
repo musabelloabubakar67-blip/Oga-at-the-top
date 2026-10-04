@@ -4,13 +4,13 @@
 // the capture shows, with the name of whoever is being served.
 
 import { INSTITUTIONS, INSTITUTION_BY_ID, type InstitutionDef } from '../content/institutions';
-import { ADVISER_POOL } from '../content/names';
+import { candidatesFor, release, specName, take } from './talent';
 import { CFG } from './config';
 import { diff, snapshot } from './effects';
 import type { Fx, GameState } from './types';
 import { applyFx, clamp, getVar } from './vars';
 
-export interface Head { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }
+export interface Head { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; /** From the talent pool. */ cid?: string; spec?: string; fit?: boolean; refuses?: string | null; integrityShown?: number }
 
 /** Two kinds of head who are always available; anyone left in the adviser pool can also be appointed. */
 const GENERIC: Head[] = [
@@ -22,14 +22,19 @@ export function built(s: GameState): NonNullable<GameState['institutions']> {
   return s.institutions ?? [];
 }
 
-/** Everyone who could head an institution now: the two kinds always available, and anyone in the adviser pool not already in a job. */
-export function headsFor(s: GameState): Head[] {
-  const taken = new Set([...Object.values(s.chars).map((c) => c.name), ...built(s).map((i) => i.head.name), ...(s.assets ?? []).map((a) => a.head.name)]);
-  const pool = ADVISER_POOL.filter((c) => !taken.has(c.name) && !s.flags[`pool.gone.${c.short}`]).map((c): Head => ({
-    name: c.name, competence: c.competence, loyalty: c.loyalty, integrity: c.integrity, patron: c.patron ?? 'president',
-    rep: c.rep ?? { competence: c.competence, loyalty: c.loyalty }, blurb: c.blurb,
+/** Everyone who could take this job now: the two kinds always available, and the people in the talent pool, best fitted first. */
+export function headsFor(s: GameState, role = 'asset'): Head[] {
+  const pool = candidatesFor(s, role, 12).map((o): Head => ({
+    name: o.c.name, competence: o.effective, loyalty: o.c.loyalty, integrity: o.c.integrity, patron: o.c.patron,
+    rep: { competence: Math.max(1, o.shown.competence - (o.fit ? 0 : 1)), loyalty: o.shown.loyalty }, integrityShown: o.shown.integrity,
+    blurb: o.c.blurb, cid: o.c.id, spec: specName(o.c), fit: o.fit, refuses: o.refuses,
   }));
   return [...GENERIC, ...pool];
+}
+
+/** Someone appointed from the pool is in a job now. */
+function appointed(s: GameState, h: Head): void {
+  if (h.cid) take(s, h.cid);
 }
 
 const leans = (h: Head) => h.patron !== 'president' && h.loyalty <= 3;
@@ -97,7 +102,9 @@ export function canEstablish(s: GameState, id: string, head: string, movesLeft: 
   const d = INSTITUTION_BY_ID[id];
   if (!d) return { ok: false };
   if (built(s).some((i) => i.id === id)) return { ok: false, reason: 'Already set up.' };
-  if (!headsFor(s).some((h) => h.name === head)) return { ok: false, reason: 'Not available.' };
+  const h = headsFor(s, id).find((x) => x.name === head);
+  if (!h) return { ok: false, reason: 'Not available.' };
+  if (h.refuses) return { ok: false, reason: h.refuses };
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < d.pc) return { ok: false, reason: `Needs ${d.pc} political capital.` };
   if (d.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
@@ -106,7 +113,8 @@ export function canEstablish(s: GameState, id: string, head: string, movesLeft: 
 
 export function establish(s: GameState, id: string, headName: string): { text: string; changes: ReturnType<typeof diff> } {
   const d = INSTITUTION_BY_ID[id];
-  const head = headsFor(s).find((h) => h.name === headName)!;
+  const head = headsFor(s, id).find((h) => h.name === headName)!;
+  appointed(s, head);
   const before = snapshot(s);
   s.pc = clamp(s.pc - d.pc, 0, 100);
   if (d.naira) applyFx(s, ['nation.fiscalSpace', -d.naira]);
@@ -124,7 +132,9 @@ export const REHEAD_PC = 4;
 export function canReplaceHead(s: GameState, id: string, head: string, movesLeft: number): { ok: boolean; reason?: string } {
   const inst = built(s).find((i) => i.id === id);
   if (!inst) return { ok: false };
-  if (inst.head.name === head || !headsFor(s).some((h) => h.name === head)) return { ok: false, reason: 'Not available.' };
+  const h = headsFor(s, id).find((x) => x.name === head);
+  if (inst.head.name === head || !h) return { ok: false, reason: 'Not available.' };
+  if (h.refuses) return { ok: false, reason: h.refuses };
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < REHEAD_PC) return { ok: false, reason: `Needs ${REHEAD_PC} political capital.` };
   return { ok: true };
@@ -133,7 +143,9 @@ export function canReplaceHead(s: GameState, id: string, head: string, movesLeft
 export function replaceHead(s: GameState, id: string, headName: string): string {
   const inst = built(s).find((i) => i.id === id)!;
   const old = inst.head;
-  inst.head = headsFor(s).find((h) => h.name === headName)!;
+  inst.head = headsFor(s, id).find((h) => h.name === headName)!;
+  appointed(s, inst.head);
+  release(s, old.name);
   inst.since = s.turn;
   inst.seen = false;
   s.pc = clamp(s.pc - REHEAD_PC, 0, 100);

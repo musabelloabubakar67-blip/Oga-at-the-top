@@ -13,7 +13,7 @@ import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
 import { policyNow } from '../engine/policies';
 import { activeShocks } from '../engine/shocks';
-import { REHEAD_PC, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
+import { REHEAD_PC, type Head, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
@@ -23,6 +23,8 @@ import { runElection } from '../engine/election';
 import { upcoming } from '../engine/upcoming';
 import { bench } from '../engine/courts';
 import { StateMap } from './StateMap';
+import { Candidates } from './Candidates';
+import { candidatesFor } from '../engine/talent';
 import { grievances, recentUses, targetName, targetsFor, wearFactor, type TargetKind } from '../engine/targets';
 import { oilGap } from '../engine/treasury';
 import { CFG, dateLabel, monthOf, termTurnOf, yearOf } from '../engine/config';
@@ -458,7 +460,7 @@ const repWords = (r: { competence: number; loyalty: number }) =>
 function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
   const [heads, setHeads] = useState<Record<string, string>>({});
   const [rehead, setRehead] = useState<string | null>(null);
-  const candidates = headsFor(s);
+  const headLine = (h: Head) => `${h.spec ? `${h.spec}${h.fit ? '' : ', outside their field'} · ` : ''}by reputation ${repWords(h.rep)}${h.refuses ? ` · will not take it: ${h.refuses}` : ''}`;
   const mine = built(s);
   const year = (fx: Fx[]) => describe(fx.map(([t, v]) => [t, v * 12] as Fx));
   return (
@@ -485,12 +487,12 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
                 </span>
                 {rehead === i.id && (
                   <ul className="mt-2 space-y-1">
-                    {candidates.filter((h) => h.name !== i.head.name).map((h) => {
+                    {headsFor(s, i.id).filter((h) => h.name !== i.head.name).map((h) => {
                       const ok = canReplaceHead(s, i.id, h.name, left);
                       return (
                         <li key={h.name}>
                           <button disabled={!ok.ok} title={ok.reason} onClick={() => { dispatch({ type: 'REPLACE_HEAD', id: i.id, head: h.name }); setRehead(null); }} className={`w-full border px-3 py-1.5 text-left text-sm ${ok.ok ? 'border-ink/20 hover:border-state' : 'border-ink/10 opacity-45'}`}>
-                            <span className="font-serif">{h.name}</span> <span className="text-ink-soft">· by reputation {repWords(h.rep)}. {h.blurb}</span>
+                            <span className="font-serif">{h.name}</span> <span className="text-ink-soft">· {headLine(h)}. {h.blurb}</span>
                           </button>
                         </li>
                       );
@@ -504,7 +506,8 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
       )}
       <ul className="mt-2 space-y-2">
         {availableInstitutions(s).map((d) => {
-          const head = heads[d.id] ?? candidates[0]?.name;
+          const candidates = headsFor(s, d.id);
+          const head = heads[d.id] ?? candidates.find((h) => h.fit && !h.refuses)?.name ?? candidates[0]?.name;
           const can = canEstablish(s, d.id, head, left);
           const preview: Fx[] = d.fx.map(([t, v]) => [t, v * 0.95] as Fx);
           return (
@@ -519,7 +522,7 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
               <span className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="label text-ink-soft">Head</span>
                 <select value={head} onChange={(e) => setHeads({ ...heads, [d.id]: e.target.value })} className="border border-ink/25 bg-paper px-2 py-1 text-sm">
-                  {candidates.map((h) => <option key={h.name} value={h.name}>{h.name} · {repWords(h.rep)}</option>)}
+                  {candidates.map((h) => <option key={h.name} value={h.name}>{h.name} · {headLine(h)}</option>)}
                 </select>
                 <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'ESTABLISH', id: d.id, head })} className={`border px-3 py-1 font-serif ${can.ok ? 'border-ink/30 hover:border-state hover:bg-state/5' : 'border-ink/10 opacity-45'}`}>Set it up · 1 move</button>
               </span>
@@ -604,6 +607,14 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
                   </li>
                 );
               })}
+              {group === 'politics' && only === 'all' && (
+                <li className="border border-ink/15 px-4 py-3">
+                  <p className="font-serif text-lg">Or someone from the talent pool as Minister of Finance</p>
+                  <Candidates s={s} role="fin" offers={candidatesFor(s, 'fin', 6)} dispatch={dispatch} left={left} label="Appoint · 10 capital · 1 move"
+                    can={(name) => (left <= 0 ? { ok: false, reason: "This month's moves are used." } : s.pc < 10 ? { ok: false, reason: 'Needs 10 political capital.' } : { ok: true })}
+                    appoint={(name) => done({ type: 'REPLACE_FIN', name })} />
+                </li>
+              )}
             </ul>
           </section>
         ))}
@@ -1495,13 +1506,13 @@ function StatesTable({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; 
                   <button onClick={() => setMgr(mgr === a.id ? null : a.id)} className="label mt-1 text-state hover:underline">{mgr === a.id ? 'Close' : `Replace the manager · ${REHEAD_PC} capital`}</button>
                   {mgr === a.id && (
                     <ul className="mt-1 space-y-1">
-                      {headsFor(s).filter((h) => h.name !== a.head.name).map((h) => {
+                      {headsFor(s, 'asset').filter((h) => h.name !== a.head.name).map((h) => {
                         const can = canSetManager(s, a.id, h.name, left);
                         return (
                           <li key={h.name}>
                             <button disabled={!can.ok} onClick={() => { dispatch({ type: 'SET_MANAGER', id: a.id, name: h.name }); setMgr(null); }}
                               className={`w-full border px-2 py-1 text-left text-sm ${can.ok ? 'border-ink/20 hover:border-state' : 'border-ink/10 opacity-50'}`}>
-                              <span className="font-serif">{h.name}</span> <span className="text-ink-soft">· said to be {repWords(h.rep)}{h.blurb ? `. ${h.blurb}` : ''}</span>
+                              <span className="font-serif">{h.name}</span> <span className="text-ink-soft">· {h.spec ? `${h.spec} · ` : ''}said to be {repWords(h.rep)}{h.refuses ? ` · will not take it: ${h.refuses}` : ''}{h.blurb ? `. ${h.blurb}` : ''}</span>
                             </button>
                           </li>
                         );

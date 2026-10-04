@@ -20,13 +20,14 @@ import { canRival, rivalDeal, type RivalOp } from './opposition';
 import { runOp } from './ops';
 import {
   addMark, canDeal, deal, following, governorEffect, governorOf, initPeople, seedMinisters, ministerFor, ministerForEvent, ministerSpeed,
-  personView, relWord, replaceMinister, stampMinisters, strongestRival, type PersonOp,
+  personView, relWord, replaceMinister, replaceMinisterWith, stampMinisters, strongestRival, type PersonOp,
 } from './people';
 import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
 import { canGroom, groom } from './successor';
+import { CHECK_PC, HUNT_PC, candidate, candidatesFor, check, headhunt, release, take, talentTick } from './talent';
 import { floatNow, initCurrency } from './currency';
 import { canSetManager, setManager } from './places';
 import { canNominate, courtTick, nominate } from './courts';
@@ -688,6 +689,7 @@ function advance(s: GameState): void {
   politicsTick(s);
   midterm(s);
   wrongedTick(s);
+  talentTick(s);
   courtTick(s);
   shockTick(s);
 
@@ -773,7 +775,9 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'VENTURE_DELAY': if (canDelay(s, action.id).ok) note(s, delay(s, action.id)); break;
     case 'VENTURE_RESCUE': if (canRescue(s, action.id).ok) note(s, rescue(s, action.id)); break;
     case 'PERSON': person(s, action.id, action.op); break;
-    case 'REPLACE_MINISTER': minister(s, action.id, action.kind); break;
+    case 'REPLACE_MINISTER': minister(s, action.id, action.kind, action.name); break;
+    case 'CHECK_CANDIDATE': if (s.pc >= CHECK_PC && candidate(s, action.id) && !candidate(s, action.id)!.checked) note(s, check(s, action.id)); break;
+    case 'HEADHUNT': if (s.pc >= HUNT_PC && movesLeft(s) > 0) { s.desk.actionsUsed += 1; note(s, headhunt(s, action.role)); } break;
     case 'ORDER': order(s, action.id, action.target, action.level); break;
     case 'REPLACE_FIN': replaceFinance(s, action.name); break;
     case 'PAY_DEBT': payDebt(s, action.id, action.amount); break;
@@ -1200,9 +1204,16 @@ export function financeAlternatives(s: GameState) {
 }
 
 function replaceFinance(s: GameState, name: string): void {
-  const next = FINANCE_CANDIDATES.find((c) => c.name === name);
+  // One of the three known names, or anyone from the talent pool who will take it.
+  const pooled = candidatesFor(s, 'fin', 12).find((o) => o.c.name === name && !o.refuses);
+  const next = FINANCE_CANDIDATES.find((c) => c.name === name) ?? (pooled ? {
+    id: 'fin', role: 'Minister of Finance', name: pooled.c.name, short: pooled.c.short, competence: pooled.effective, clout: pooled.c.clout,
+    loyalty: pooled.c.loyalty, integrity: pooled.c.integrity, patron: pooled.c.patron, rep: { competence: pooled.shown.competence, loyalty: pooled.shown.loyalty }, blurb: pooled.c.blurb,
+  } : undefined);
   const old = s.chars.fin;
   if (!next || !old || next.name === old.name || movesLeft(s) <= 0 || s.pc < 10) return;
+  if (pooled) take(s, pooled.c.id);
+  release(s, old.name);
   const before = snapshot(s);
   s.pc -= 10;
   s.desk.actionsUsed += 1;
@@ -1237,22 +1248,25 @@ export function sackCost(s: GameState, id?: string): number {
   return (s.agenda.done.includes('v4') ? 3 : 6) + (id ? following(s, id) : 0);
 }
 
-function minister(s: GameState, id: string, kind: 'technocrat' | 'party'): void {
+function minister(s: GameState, id: string, kind: 'technocrat' | 'party', name?: string): void {
   const cost = sackCost(s, id);
   if (movesLeft(s) <= 0 || s.pc < cost || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
+  const pick = name ? candidatesFor(s, id, 12).find((o) => o.c.name === name) : undefined;
+  if (name && (!pick || pick.refuses)) return;
   const before = snapshot(s);
   s.pc -= cost;
   s.desk.actionsUsed += 1;
   const old = personView(s, id);
-  const out = replaceMinister(s, id, kind);
+  const out = pick ? replaceMinisterWith(s, id, pick) : replaceMinister(s, id, kind);
   // A minister who also advises you: the new one's loyalty is their own. A party nominee serves whoever nominated them.
   const role = Object.keys(LINKED).find((r) => LINKED[r] === id);
   if (role && s.chars[role]) {
     const sponsor = PERSON_BY_ID[id]?.sponsor;
     const c = s.chars[role];
-    c.loyalty = kind === 'technocrat' ? 3 : 2;
-    c.patron = kind === 'technocrat' ? 'president' : sponsor ?? 'self';
-    c.rep = { competence: s.people[id]?.competence ?? c.competence, loyalty: kind === 'technocrat' ? 3 : 4 };
+    c.loyalty = pick ? pick.c.loyalty : kind === 'technocrat' ? 3 : 2;
+    c.patron = pick ? pick.c.patron : kind === 'technocrat' ? 'president' : sponsor ?? 'self';
+    c.rep = pick ? { competence: pick.shown.competence, loyalty: pick.shown.loyalty } : { competence: s.people[id]?.competence ?? c.competence, loyalty: kind === 'technocrat' ? 3 : 4 };
+    c.integrity = pick ? pick.c.integrity : c.integrity;
   }
   record(s, `person.${id}`, 'replace', 'politics', out.archive, 2);
   s.news.push({

@@ -307,16 +307,16 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
     };
     const plan = process.env.NOBUILD?.includes(bot.name) ? undefined : builds[bot.name.startsWith('Reformer') ? 'Reformer' : bot.name];
     if (plan && s.pc > 25 && movesLeft(s) > 1) {
-      const heads = headsFor(s);
+      const next = plan[0].find((id) => !built(s).some((i) => i.id === id));
+      const heads = next ? headsFor(s, next).filter((h) => !h.refuses) : [];
       const head = plan[1] === 'party' ? 'A party nominee' : plan[1] === 'civil' ? 'A career civil servant'
         : [...heads].sort((x, y) => (y.rep.competence + y.rep.loyalty) - (x.rep.competence + x.rep.loyalty))[0]?.name;
-      const next = plan[0].find((id) => !built(s).some((i) => i.id === id));
       if (next && head && canEstablish(s, next, head, movesLeft(s)).ok && (INSTITUTION_BY_ID[next].naira <= s.nation.fiscalSpace)) s = applyAction(s, { type: 'ESTABLISH', id: next, head });
     }
     if (bot.advice === 'check') {
       for (const i of built(s)) {
         if (!i.seen) continue;
-        const pick = headsFor(s).filter((h) => h.name !== i.head.name).sort((x, y) => (y.rep.competence + y.rep.loyalty) - (x.rep.competence + x.rep.loyalty))[0];
+        const pick = headsFor(s, i.id).filter((h) => h.name !== i.head.name && !h.refuses).sort((x, y) => (y.rep.competence + y.rep.loyalty) - (x.rep.competence + x.rep.loyalty))[0];
         if (pick && canReplaceHead(s, i.id, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_HEAD', id: i.id, head: pick.name });
       }
     }
@@ -325,8 +325,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       for (const role of REPLACEABLE) {
         const r = trackRecord(s, role);
         if (!r.served.length) continue;
-        const pick = poolFor(s).sort((x, y) => (y.rep?.competence ?? y.competence) - (x.rep?.competence ?? x.competence))[0];
-        if (pick && canReplaceAdviser(s, role, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_ADVISER', role, name: pick.name });
+        const pick = poolFor(s, role).filter((o) => !o.refuses).sort((x, y) => y.shown.competence - x.shown.competence)[0];
+        if (pick && canReplaceAdviser(s, role, pick.c.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_ADVISER', role, name: pick.c.name });
       }
     }
     // The kleptocrat prepares a way out before anything else.

@@ -6,6 +6,7 @@ import { VENTURES } from '../content/ventures';
 import { CFG } from './config';
 import type { GameState, Mark, PersonState, ZoneId } from './types';
 import { canRefuse, currentWant, refuse } from './wants';
+import { release, take, type Offer } from './talent';
 import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing } from './vars';
 
 export { senate, standing };
@@ -242,6 +243,37 @@ export function replaceMinister(s: GameState, id: string, kind: keyof typeof REP
       ? `${old.name} is thanked. ${name} arrives with a laptop and no entourage. The ministry's files begin to move.`
       : `${old.name} is thanked. ${name} arrives with forty aides. The governors are pleased; the permanent secretary updates her CV.`) + sponsor,
     archive: `Replaced ${old.name} with ${name} as ${old.title}.`,
+  };
+}
+
+/** A named person from the talent pool takes the ministry. Their backer, if any, is pleased; the party reads the appointment by who that is. */
+export function replaceMinisterWith(s: GameState, id: string, o: Offer): { text: string; archive: string } {
+  const old = personView(s, id);
+  const base = PERSON_BY_ID[id];
+  const c = o.c;
+  take(s, c.id);
+  release(s, old.name);
+  s.people[id] = {
+    rel: clamp(40 + (c.loyalty - 3) * 8, 5, 95), granted: false, courted: [], name: c.name, short: c.short,
+    competence: o.effective, clout: c.clout, integrity: c.integrity, ambition: c.ambition, bio: c.blurb,
+    since: s.turn, base: base.metric ? getVar(s, base.metric[0]) : 0, marks: [],
+  };
+  const partyMan = c.patron.startsWith('gov_') || c.patron.startsWith('sen_');
+  applyFx(s, ['bloc.party', partyMan ? 4 : -2 - old.clout]);
+  applyFx(s, ['bloc.villa', -2]);
+  if (partyMan && s.people[c.patron]) s.people[c.patron].rel = clamp(s.people[c.patron].rel + 6, 0, 100);
+  if (s.tycoons[c.patron]) s.tycoons[c.patron].rel = clamp(s.tycoons[c.patron].rel + 6, 0, 100);
+  let sponsor = '';
+  const sp = base.sponsor ? s.people[base.sponsor] : undefined;
+  if (sp && old.name === base.name) {
+    sp.rel = clamp(sp.rel - 8, 0, 100);
+    sponsor = ` ${PERSON_BY_ID[base.sponsor!].short}, whose nominee that was, has stopped returning calls.`;
+  }
+  const adviser = id === 'min_power' ? 'power' : id === 'min_defence' ? 'nsa' : null;
+  if (adviser && s.chars[adviser]) s.chars[adviser] = { ...s.chars[adviser], name: c.name, short: c.short, competence: o.effective, clout: c.clout };
+  return {
+    text: `${old.name} is thanked. ${c.name}, ${o.fit ? 'from the right field' : 'from outside the field'}, is sworn in.${sponsor}`,
+    archive: `Replaced ${old.name} with ${c.name} as ${old.title}.`,
   };
 }
 
