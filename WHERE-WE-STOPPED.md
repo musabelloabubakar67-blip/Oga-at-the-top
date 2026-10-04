@@ -35,7 +35,7 @@ Other simulator modes: `-- 12 --scenarios`, `-- 4 --world`, `-- --trace`. Run th
 - Six named debts, four funds, an oil price, an annual budget, the states' share of revenue.
 - Six security theatres with drivers and a focus.
 - Sixteen named politicians (governors, senators, ministers with scorecards), five businessmen, three rivals who act, and a two-way ledger of favours.
-- 70 reforms in 14 tracks. Ten tracks are sequential. Four can be taken in any order; their items change how a system behaves while they stand, most as standing policies, and three serve the President more than the country.
+- 196 reforms in 17 tracks. Foundations go in order (any order on four loose tracks); deepening opens once they are settled. Nineteen repairs emerge from history, four rival pairs close each other, existing laws carry statute-book notes, and eleven delivered reforms can be reversed for one move and restored by a later President. The agenda leads with status sections and folds the full library by generation.
 - 32 big bets with named conditions for success, 16 of them opened by reforms.
 - 132 event files. All of them read the systems above, offer choices that depend on them, and write back to named people and balances.
 - Four newspapers, two printed each month.
@@ -110,7 +110,7 @@ Every phase must teach the simulator bots its new actions, or the balance table 
 
 ## What to do next
 
-Nothing below is started. In rough order of value:
+The reform-library implementation is complete locally on `claude/handoff-review-0txtze` (4 October); publishing is blocked (see Publishing status). The historical list below predates that work; chapter 0 section 0.4 governs the current reform system. The owner playtests the new screen. In rough order of value:
 
 1. Play the new tracks by hand and tune the nine tempting reforms so that each is a real temptation, not an obvious trap.
 2. Event files that react to the new reforms (what happens after six new states, a fixed pump price, closed borders, the falsehood law).
@@ -144,3 +144,27 @@ These were given across several playtests and are not up for re-opening.
 - The local preview runs on port 3417 (`.claude/launch.json`, name `oga`). Button labels are uppercased by CSS, so match text case-insensitively when driving the page.
 - The game saves to the browser under `oatt.save`; past presidents are under `oatt.history.v1`. Back these up before testing in a browser the owner also plays in.
 - Line endings: the repository is edited on Windows. Git warns about LF to CRLF; the warnings are harmless.
+
+## Reform-library verification, 4 October 2026
+
+40 presidencies per strategy, seeds `1000 + i * 7919`, Standard Inheritance. The old-selector column reruns the branch's handoff state with the original bot selection; the final column uses the first reform whose `milestoneStatus` is `next`. The handoff table was recorded before the second-edition library was balance-tested. Rates below are exact counts out of forty (the simulator rounds its display).
+
+| Strategy | Handoff table | Branch, old selector | Final | Mean delivered, old → final |
+|---|---|---|---|---|
+| Reformer, checks the record | 90% | 90% | 92.5% (37/40) | 58.5 → 59.4 |
+| Reformer | 75% | 82.5% | 82.5% (33/40) | 55.0 → 55.1 |
+| Reformer, trusts advisers | 65% | 70% | 70% (28/40) | 38.5 → 38.4 |
+| Populist | 57% | 27.5% | 27.5% (11/40) | 15.5 → 15.5 |
+| Institutionalist | 55% | 70% | 70% (28/40) | 28.6 → 28.6 |
+| Machine | 53% | 57.5% | 60% (24/40) | 15.3 → 15.3 |
+| Kleptocrat | 10% | 10% | 10% (4/40) | 4.3 → 4.3 |
+
+Generation-2 costs were left unchanged in `content/tracks4.ts`: the reformer does not deliver many more reforms after the bot fix (55.0 → 55.1; checking the record 58.5 → 59.4). The larger Populist fall and Institutionalist rise relative to the handoff table are already present with the old selector, so this completion does not explain them. They remain balance questions for the owner; no engine mechanics were retuned. Forty runs carry roughly eight percentage points of sampling noise; these are bot results, not a human assessment of difficulty or fun.
+
+Checks passed: `npm run typecheck`, `npm run lint:content` (19 existing missing-headline warnings), the seven-bot `npx tsx tools/simulate.ts 40` pass, and `npx tsx tools/simulate.ts 3 --world` (three worlds, twelve presidencies). Separate the bot names in `ONLY` with `|`, because two names contain commas. `npx tsx tools/check-reforms.ts` also checks 196 unique ids and the retired-id list, foundation gates, all four rival pairs, emergence, all eleven reversals, move guards, determinism, inherited restoration names, public promises and upcoming items.
+
+The world bots do not choose `REVERSE`, so the world run alone does not exercise voluntary reversal; focused regression fixtures cover all eleven reversals across a handover. No browser playtest was run, as requested. Visual layout, browser interactions and human balance remain for the owner. The production build and static export passed with `npm run build -- --turbopack`. The default Webpack build could not be verified here: Webpack rejects the `!` in the Windows workspace path; a clean-path copy was denied by the environment. Twenty-seven files did not fire in the seven-bot balance pass, so that pass does not verify every authored event.
+
+## Publishing status
+
+Implementation and verification are complete locally on `claude/handoff-review-0txtze`. Publishing is pending: terminal `git push` failed, and the connected GitHub write returned `MCP tool call requires approval, but approval policy is never`. The remote branch is still at `ea4b2dee81ff681e2d796ce91d77cac5f2b76dbb`. No pull request was opened. Push these local commits from a session that permits repository writes.

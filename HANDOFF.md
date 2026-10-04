@@ -36,9 +36,11 @@ The owner asked for the reform system to be rebuilt along the lines of a second 
   - The public order act o13 damps the cast's protests (`engine/agency.ts`).
   - Nights set the flag `night.<id>` to the truth at dawn (`engine/night.ts`). The water night gains a disaster-service beat and option when o9 is done; professional police s6 make a real coup less likely (`content/setpieces.ts`).
   - The era shifts list reforms the last President undid (`engine/era.ts`).
-- Typecheck and content lint pass. The reform work has **not** been balance-tested.
+- The engine and content were handed off before balance testing. The agenda, bot update and verification below are now complete.
 
-## Still to do, in order
+## Completed handoff checklist (4 October 2026)
+
+Steps 1–5 are complete, and step 6 is committed locally. The push is blocked by the session approval policy (see Publishing status). The original instructions are retained for context; current checks and balance follow the rules section. No PR was opened.
 
 1. **Agenda screen by status** (`ui/Desk.tsx`, functions `Agenda` and `TrackCard`).
    - Pull the per-reform rendering out of `TrackCard` into a `ReformRow` component.
@@ -72,3 +74,27 @@ The owner asked for the reform system to be rebuilt along the lines of a second 
 - No gendered pronouns for roles different people can fill.
 - Effects are shown, never hidden; every outcome has a named cause.
 - `engine/` stays pure and deterministic: random numbers come from `rand(s)`.
+
+## Reform-library verification, 4 October 2026
+
+40 presidencies per strategy, seeds `1000 + i * 7919`, Standard Inheritance. The old-selector column reruns the branch's handoff state with the original bot selection; the final column uses the first reform whose `milestoneStatus` is `next`. The handoff table was recorded before the second-edition library was balance-tested. Rates below are exact counts out of forty (the simulator rounds its display).
+
+| Strategy | Handoff table | Branch, old selector | Final | Mean delivered, old → final |
+|---|---|---|---|---|
+| Reformer, checks the record | 90% | 90% | 92.5% (37/40) | 58.5 → 59.4 |
+| Reformer | 75% | 82.5% | 82.5% (33/40) | 55.0 → 55.1 |
+| Reformer, trusts advisers | 65% | 70% | 70% (28/40) | 38.5 → 38.4 |
+| Populist | 57% | 27.5% | 27.5% (11/40) | 15.5 → 15.5 |
+| Institutionalist | 55% | 70% | 70% (28/40) | 28.6 → 28.6 |
+| Machine | 53% | 57.5% | 60% (24/40) | 15.3 → 15.3 |
+| Kleptocrat | 10% | 10% | 10% (4/40) | 4.3 → 4.3 |
+
+Generation-2 costs were left unchanged in `content/tracks4.ts`: the reformer does not deliver many more reforms after the bot fix (55.0 → 55.1; checking the record 58.5 → 59.4). The larger Populist fall and Institutionalist rise relative to the handoff table are already present with the old selector, so this completion does not explain them. They remain balance questions for the owner; no engine mechanics were retuned. Forty runs carry roughly eight percentage points of sampling noise; these are bot results, not a human assessment of difficulty or fun.
+
+Checks passed: `npm run typecheck`, `npm run lint:content` (19 existing missing-headline warnings), the seven-bot `npx tsx tools/simulate.ts 40` pass, and `npx tsx tools/simulate.ts 3 --world` (three worlds, twelve presidencies). Separate the bot names in `ONLY` with `|`, because two names contain commas. `npx tsx tools/check-reforms.ts` also checks 196 unique ids and the retired-id list, foundation gates, all four rival pairs, emergence, all eleven reversals, move guards, determinism, inherited restoration names, public promises and upcoming items.
+
+The world bots do not choose `REVERSE`, so the world run alone does not exercise voluntary reversal; focused regression fixtures cover all eleven reversals across a handover. No browser playtest was run, as requested. Visual layout, browser interactions and human balance remain for the owner. The production build and static export passed with `npm run build -- --turbopack`. The default Webpack build could not be verified here: Webpack rejects the `!` in the Windows workspace path; a clean-path copy was denied by the environment. Twenty-seven files did not fire in the seven-bot balance pass, so that pass does not verify every authored event.
+
+## Publishing status
+
+Implementation and verification are complete locally on `claude/handoff-review-0txtze`. Publishing is pending: terminal `git push` failed, and the connected GitHub write returned `MCP tool call requires approval, but approval policy is never`. The remote branch is still at `ea4b2dee81ff681e2d796ce91d77cac5f2b76dbb`. No pull request was opened. Push these local commits from a session that permits repository writes.

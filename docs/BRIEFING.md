@@ -23,7 +23,7 @@ Everything the player can do shows its expected effect before and its measured e
 - **Economy.** Nine national figures (inflation, pump price, treasury, debt service, security, power, state capacity, integrity, jobs), three building pressures (fuel scarcity, labour anger, scandal). Six named debts with different costs, four funds, an oil price, an annual budget the Assembly rewrites, oil dependence that falls as the non-oil economy grows, and a currency with reserves and a street rate.
 - **Security.** Six theatres, each with drivers; offensives aimed at a theatre.
 - **Politics.** Five blocs (the Villa, the Party, the Street, the Establishment, the Press). About sixteen named politicians with wants that change, grudges and favours owed both ways; five businessmen; three rivals who act on their own; a Vice President from the other half of the country; the former President; a Supreme Court of named justices; federal character (posts must be spread across six zones).
-- **Reforms.** 70 reforms in 14 tracks, ten of them sequential. Some reforms are bad or tempting on purpose. 32 big bets, built in a chosen state, which succeed or fail on named conditions, can be revived once, and run as assets with a manager.
+- **Reforms.** 196 reforms in 17 tracks: foundations, deepening, emerging repairs, rival answers and eleven reversals. Some reforms are bad or tempting on purpose. 32 big bets, built in a chosen state, which succeed or fail on named conditions, can be revived once, and run as assets with a manager.
 - **Institutions.** An anti-corruption agency and others with heads, budgets and their own files; prosecutions run to a verdict.
 - **Events.** About 140 files, each reading the systems and writing back to named people. Shocks arrive unannounced.
 - **Elections and the end.** Midterm governorships, a re-election with a state-by-state count and a breakdown of every cause of the margin, or a succession where you groom and back an heir. The verdict grades you against what you inherited, keeps a private ledger of what you took, and decides life after office (elder statesman, investigated, exile, prison).
@@ -74,6 +74,8 @@ A second reviewer's feedback was folded into one plan on 4 October, with the own
 - **The cast acts on its own.** Each named politician has aims, a rival they fear, and leverage; each month one or two call, undermine their rival, back yours, leak, court the Vice President, offer help, protest, or make pacts with each other.
 - **Set pieces.** One night engine and six nights: coup rumours, the count on a close election night, a strike deadline, a Friday run on the naira, a dam release upstream, a viral video of a minister. Information arrives late, the cast moves on its own beats, options close, decisions cannot be undone, and the truth is told at dawn.
 
+- **The reform library, second edition.** 196 reforms in 17 tracks. Foundations come first (any order on four loose tracks); deepening opens once foundations are delivered or ruled out by a delivered rival. Nineteen repairs appear only when their historical conditions hold. Four pairs of rival answers close each other. Existing laws and programmes carry a statute-book note, with lower capital cost and shorter work. Eleven delivered reforms can be undone for one move, showing the gain and the lasting effects lost; successors inherit the damage and can pay to restore them. The agenda is organised by status, with priorities first and the full library folded by generation. Reforms are wired into courts, convictions, forecasts, arrears, gas debt, bets, campaign money, dependence, protests and nights. Bots choose the first reform whose status is next on each track.
+
 Not done: an interface for a unified people engine, new stat bars, cutting orders (the measurement found almost none always beaten), hundreds more files.
 
 ### 6.3 Proposed and not taken (for now)
@@ -111,3 +113,24 @@ Kept current as work lands. Newest last.
 | 4 Oct 2026 | Plan | The second reviewer's feedback folded into the plan in section 6, delivered with as little code as possible. The consolidation steps are dropped. |
 | 4 Oct 2026 | W1–W3 | Phase 1 built: the Chief of Staff's briefing, advisers with a worldview, the era you inherit. |
 | 4 Oct 2026 | Phase 2 | Built without a playtest at the owner's request: consequence theatre and what people are saying, contextual actions, promises, the autonomous cast, and six nights on one set-piece engine. |
+| 4 Oct 2026 | Reform library | Completed the second edition: agenda by status, generation groups, emerging repairs, closed rivals, statute-book notes, eleven guarded reversal buttons, restoration names throughout play, and status-aware simulator bots. Chapter 0 section 0.4 and the handoff documents now describe 17 tracks and 196 reforms. Checks and balance are recorded below. |
+
+## Reform-library verification, 4 October 2026
+
+40 presidencies per strategy, seeds `1000 + i * 7919`, Standard Inheritance. The old-selector column reruns the branch's handoff state with the original bot selection; the final column uses the first reform whose `milestoneStatus` is `next`. The handoff table was recorded before the second-edition library was balance-tested. Rates below are exact counts out of forty (the simulator rounds its display).
+
+| Strategy | Handoff table | Branch, old selector | Final | Mean delivered, old → final |
+|---|---|---|---|---|
+| Reformer, checks the record | 90% | 90% | 92.5% (37/40) | 58.5 → 59.4 |
+| Reformer | 75% | 82.5% | 82.5% (33/40) | 55.0 → 55.1 |
+| Reformer, trusts advisers | 65% | 70% | 70% (28/40) | 38.5 → 38.4 |
+| Populist | 57% | 27.5% | 27.5% (11/40) | 15.5 → 15.5 |
+| Institutionalist | 55% | 70% | 70% (28/40) | 28.6 → 28.6 |
+| Machine | 53% | 57.5% | 60% (24/40) | 15.3 → 15.3 |
+| Kleptocrat | 10% | 10% | 10% (4/40) | 4.3 → 4.3 |
+
+Generation-2 costs were left unchanged in `content/tracks4.ts`: the reformer does not deliver many more reforms after the bot fix (55.0 → 55.1; checking the record 58.5 → 59.4). The larger Populist fall and Institutionalist rise relative to the handoff table are already present with the old selector, so this completion does not explain them. They remain balance questions for the owner; no engine mechanics were retuned. Forty runs carry roughly eight percentage points of sampling noise; these are bot results, not a human assessment of difficulty or fun.
+
+Checks passed: `npm run typecheck`, `npm run lint:content` (19 existing missing-headline warnings), the seven-bot `npx tsx tools/simulate.ts 40` pass, and `npx tsx tools/simulate.ts 3 --world` (three worlds, twelve presidencies). Separate the bot names in `ONLY` with `|`, because two names contain commas. `npx tsx tools/check-reforms.ts` also checks 196 unique ids and the retired-id list, foundation gates, all four rival pairs, emergence, all eleven reversals, move guards, determinism, inherited restoration names, public promises and upcoming items.
+
+The world bots do not choose `REVERSE`, so the world run alone does not exercise voluntary reversal; focused regression fixtures cover all eleven reversals across a handover. No browser playtest was run, as requested. Visual layout, browser interactions and human balance remain for the owner. The production build and static export passed with `npm run build -- --turbopack`. The default Webpack build could not be verified here: Webpack rejects the `!` in the Windows workspace path; a clean-path copy was denied by the environment. Twenty-seven files did not fire in the seven-bot balance pass, so that pass does not verify every authored event.
