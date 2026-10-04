@@ -608,7 +608,6 @@ function VicePresident({ s, dispatch, left }: { s: GameState; dispatch: Dispatch
         <button disabled={vp.sidelined || left <= 0} onClick={() => dispatch({ type: 'VP', op: 'sideline' })} className={btn(!vp.sidelined && left > 0, 'bad')}>Sideline the Vice President</button>
         <button onClick={() => setSwap(!swap)} className={btn(true)}>{swap ? 'Keep the ticket' : 'Change the running mate'}</button>
       </div>
-      {!port.ok && port.reason && <p className="mt-1 text-[13px] text-ink-soft">Real work: {port.reason}</p>}
       {swap && (
         <div className="mt-2">
           {(() => { const c = canReplaceVP(s, '', left); return c.reason && c.reason !== 'Not available.' ? <p className="text-[13px] text-ink-soft">{c.reason}</p> : null; })()}
@@ -661,7 +660,7 @@ function FormerPresident({ s, dispatch, left }: { s: GameState; dispatch: Dispat
         <>
           <p className="mt-1 text-[13px] leading-snug text-ink-soft">The former President asks for things through files: a post, a road, an audit left alone. How you answer moves this. A case against them ends the friendship; a conviction ends the influence.</p>
           <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'PRED_VISIT' })} className={`mt-2 ${btn(can.ok, 'good')}`}>Call on the former President · {PRED_VISIT_PC} capital · +10</button>
-          {!can.ok && can.reason && <span className="ml-2 text-[13px] text-ink-soft">{can.reason}</span>}
+
         </>
       )}
     </div>
@@ -746,7 +745,7 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
                       className={`border px-3 py-1 ${cr.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>
                       Give them the credit · {CREDIT_PC} capital · strength +0.3, loyalty +4
                     </button>
-                    {!cr.ok && cr.reason && <span className="text-[13px] text-ink-soft">{cr.reason}</span>}
+
                   </div>
                 );
               })()}

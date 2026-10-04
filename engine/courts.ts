@@ -168,6 +168,15 @@ export function contested(id: string): boolean {
 export function courtTick(s: GameState): void {
   const b = (s.bench ??= seed(s));
   topUp(s, b);
+  // Empty seats are noticed: after four months the backlog is news, and lawyers and investors grumble every month.
+  const vacant = b.seats.filter((j) => !j).length;
+  s.counters['bench.empty'] = vacant ? (s.counters['bench.empty'] ?? 0) + 1 : 0;
+  if (vacant && (s.counters['bench.empty'] ?? 0) > 4) {
+    applyFx(s, ['bloc.establishment', -0.04 * vacant]);
+    if ((s.counters['bench.empty'] ?? 0) === 5) {
+      s.news.push({ chronicle: `SUPREME COURT ${vacant} JUSTICE${vacant === 1 ? '' : 'S'} SHORT; APPEALS BACKLOG GROWS`, street: 'SUPREME COURT NO GET ENOUGH JUDGE. CASES DEY WAIT', weight: 3, valence: -1, topic: 'politics', body: `The Bar Association has written to the President about the empty seats. Commercial appeals are now listed for hearing in three years.` });
+    }
+  }
   // Retirements.
   b.seats.forEach((j, i) => {
     if (!j || j.retires > s.turn) return;

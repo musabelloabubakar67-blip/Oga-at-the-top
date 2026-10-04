@@ -89,3 +89,19 @@ button:disabled { cursor: not-allowed; }
 .cert-field:disabled { color: var(--color-ink); opacity: 1; }
 .cert-sign { font-family: 'Brush Script MT', 'Segoe Script', cursive; transform: rotate(-4deg); display: inline-block; }
 .schedule { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid #1b1b1b33; padding-bottom: 6px; }
+
+/* A button that cannot be pressed says why, in words, not only on hover. */
+button[disabled][title]:not([title=""])::after {
+  content: attr(title);
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+  text-align: left;
+  opacity: 0.95;
+}

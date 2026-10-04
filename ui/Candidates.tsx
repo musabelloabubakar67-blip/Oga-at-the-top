@@ -56,7 +56,6 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
                     className="border border-ink/20 px-3 py-1 text-sm hover:border-state disabled:opacity-45">Background check · {CHECK_PC} capital</button>
                 )}
               </div>
-              {!ok.ok && ok.reason && !o.refuses && <p className="text-[13px] text-ink-soft">{ok.reason}</p>}
             </li>
           );
         })}

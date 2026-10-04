@@ -25,7 +25,7 @@ export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: 
           {v.dims.map((d) => (
             <li key={d.name} className="flex flex-wrap items-baseline justify-between gap-x-4 py-2.5">
               <span className="font-serif text-lg">{d.name}</span>
-              <span className="text-right">
+              <span className="ml-auto text-right">
                 <span className={`font-serif text-lg ${tone(d.grade)}`}>{d.grade}</span>
                 <span className="label block text-ink-soft">{d.from.includes('→') ? `${d.from} · ${d.to}` : `${d.from} → ${d.to}`}</span>
               </span>

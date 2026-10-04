@@ -143,7 +143,18 @@ const FOR_YOU: Record<string, number> = {
   'nation.inflation': -1, 'nation.fiscalSpace': 6, 'nation.debt': -0.5, 'bonus.fiscal': 150,
   'pressure.scandalHeat': -0.3, 'pressure.wageGrievance': -0.2, 'pressure.fuelSupplyStress': -0.2,
 };
-const goodFor = ([t, d]: Fx) => (FOR_YOU[t] ?? (t.startsWith('bloc.') ? 0.4 : t.startsWith('theatre.') ? -0.5 : 0)) * d;
+const goodFor = ([t, d]: Fx) => (FOR_YOU[t] ?? (t.startsWith('bloc.') ? 0.4 : t.startsWith('theatre.') ? -0.5 : t.startsWith('debt.') ? -3 : t.startsWith('fund.') ? 3 : 0)) * d;
+
+/** Each adviser weighs by their brief: the Finance Minister by the books, the political adviser by the crowd. */
+const FISCAL = (t: string) => t === 'nation.fiscalSpace' || t === 'nation.debt' || t === 'bonus.fiscal' || t === 'nation.inflation' || t.startsWith('debt.') || t.startsWith('fund.');
+const POPULAR = (t: string) => t === 'approval' || t.startsWith('bloc.');
+function weighFor(role: string, fx: Fx): number {
+  const [t] = fx;
+  const k = role === 'fin' ? (FISCAL(t) ? 2 : POPULAR(t) ? 0.5 : 1)
+    : role === 'sap' ? (POPULAR(t) ? 1.5 : FISCAL(t) ? 0.7 : 1)
+    : 1;
+  return goodFor(fx) * k;
+}
 
 /** One adviser's forecast of one choice. */
 export function forecast(s: GameState, e: GameEvent, c: Choice, role: string, aidFx: (fx: Fx[] | undefined) => Fx[]): { now: Fx[]; later: Fx[] } {
@@ -194,7 +205,7 @@ export function recommend(s: GameState, e: GameEvent, role: string, aidFx: (fx: 
   let top = -Infinity;
   for (const c of options) {
     const f = forecast(s, e, c, role, aidFx);
-    const v = [...f.now, ...f.later].reduce((x, fx) => x + goodFor(fx), 0) - (c.pc ?? 0) * 0.3 - (c.purse ? 3 : 0);
+    const v = [...f.now, ...f.later].reduce((x, fx) => x + weighFor(role, fx), 0) - (c.pc ?? 0) * 0.3 - (c.purse ? 3 : 0);
     if (v > top) { top = v; best = c.id; }
   }
   return best;

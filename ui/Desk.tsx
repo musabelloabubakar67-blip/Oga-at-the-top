@@ -466,8 +466,7 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
   const mine = built(s);
   const year = (fx: Fx[]) => describe(fx.map(([t, v]) => [t, v * 12] as Fx));
   return (
-    <section className="mt-6">
-      <h3 className="label border-b border-honour pb-1 text-state">Build something that lasts</h3>
+    <section className="mt-2">
       <p className="mt-1 text-sm text-ink-soft">An institution keeps working every month under the head you choose, and costs something every month. A capable head makes it work. A head who serves someone else captures it, and it will show. What you build is handed on.</p>
       {mine.length > 0 && (
         <ul className="mt-2 space-y-2">
@@ -582,6 +581,19 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
   );
 }
 
+/** A group that folds to a single line: its title, and what is in it. */
+function Fold({ title, meta, open, onToggle, accent, children }: { title: string; meta: string; open: boolean; onToggle: () => void; accent?: boolean; children: React.ReactNode }) {
+  return (
+    <section className="mt-3">
+      <button onClick={onToggle} aria-expanded={open} className={`flex w-full items-baseline justify-between gap-3 border-b pb-1 text-left ${accent ? 'border-honour' : 'rule'} hover:border-state`}>
+        <span className={`label ${accent ? 'text-state' : 'text-ink-soft'}`}>{open ? '▾' : '▸'} {title}</span>
+        <span className="label text-ink-soft">{meta}</span>
+      </button>
+      {open && children}
+    </section>
+  );
+}
+
 function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatch; onClose: () => void }) {
   const [pick, setPick] = useState<ActionId | null>(null);
   const left = movesLeft(s);
@@ -589,6 +601,10 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
   const inline = useContext(Inline);
   const [only, setOnly] = useState<'all' | 'aimed' | 'now'>('all');
   const [finOpen, setFinOpen] = useState(false);
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
+  // A short, filtered list needs no folding; "Everything" folds each group to a line.
+  const isOpen = (k: string) => only !== 'all' || !!opened[k] || !!opened.__all;
+  const toggle = (k: string) => setOpened((o) => ({ ...o, [k]: !isOpen(k) }));
   const keep = (o: Order) => only === 'all' || (only === 'aimed' ? !!o.target : canOrder(s, o).ok);
   const list = inline ? 'mt-2 grid items-start gap-2 xl:grid-cols-2' : 'mt-2 space-y-2';
 
@@ -609,6 +625,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
             <button key={k} onClick={() => setOnly(k)} className={`border px-2 py-0.5 ${only === k ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>{label}</button>
           ))}
           <span className="text-ink-soft">Orders aimed at a person are also on their card under Power.</span>
+          {only === 'all' && <button onClick={() => setOpened(opened.__all ? {} : { __all: true })} className="ml-auto label text-state hover:underline">{opened.__all ? 'Fold every group' : 'Open every group'}</button>}
         </div>
 
 
@@ -632,9 +649,11 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
         </section>
 
         <p className="label mt-8 text-ink-soft">Standing powers</p>
-        {GROUPS.map(([group, title]) => (
-          <section key={group} className="mt-3">
-            <h3 className="label border-b rule pb-1 text-ink-soft">{title}</h3>
+        {GROUPS.map(([group, title]) => {
+          const inGroup = standingOrders(s).filter((o) => o.group === group && keep(o));
+          const ready = inGroup.filter((o) => canOrder(s, o).ok).length;
+          return (
+          <Fold key={group} title={title} meta={`${inGroup.length} ${inGroup.length === 1 ? 'order' : 'orders'} · ${ready} you can give now`} open={isOpen(group)} onToggle={() => toggle(group)}>
             <ul className={list}>
               {standingOrders(s).filter((o) => o.group === group && keep(o)).map((o) => (
                 <li key={o.id}><OrderCard s={s} o={o} onUse={(t, l) => done({ type: 'ORDER', id: o.id, target: t, level: l })} /></li>
@@ -665,11 +684,11 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
                 </li>
               )}
             </ul>
-          </section>
-        ))}
+          </Fold>
+          );
+        })}
 
-        <section className="mt-6">
-          <h3 className="label border-b rule pb-1 text-ink-soft">In person</h3>
+        <Fold title="In person" meta={`${APPEARANCES.filter((a) => canAct(s, a.id).ok).length} you can do now`} open={isOpen('person')} onToggle={() => toggle('person')}>
           <ul className="mt-2 space-y-2">
             {APPEARANCES.map((a) => {
               const can = canAct(s, a.id);
@@ -698,8 +717,12 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
               );
             })}
           </ul>
-        </section>
-        {only === 'all' && <Institutions s={s} dispatch={dispatch} left={left} />}
+        </Fold>
+        {only === 'all' && (
+          <Fold title="Build something that lasts" accent meta={`${built(s).length} running`} open={isOpen('inst')} onToggle={() => toggle('inst')}>
+            <Institutions s={s} dispatch={dispatch} left={left} />
+          </Fold>
+        )}
       </div>
     </Modal>
   );
@@ -899,7 +922,6 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
                       <span className="text-[13px] text-mute">If it fails again, it stays failed.</span>
                     </div>
                   )}
-                  {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
                 </li>
               );
             })}
@@ -1305,7 +1327,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                   )}
                   {s.report.length > 0 ? (
                     <div>
-                      <p className="label text-mute">Since last month</p>
+                      <p className="label text-mute">{s.turn === 1 ? "On the first day" : "Since last month"}</p>
                       <ul className="mt-2 space-y-2">
                         {s.report.map((r, i) => (
                           <li key={i} className={`border-l-2 bg-[#1a1d20] px-4 py-3 ${r.kind === 'reform' ? 'border-state-lit' : r.kind === 'failure' ? 'border-alarm' : 'border-honour'}`}>
@@ -1582,7 +1604,6 @@ function AssetCards({ s, dispatch, left, dark }: { s: GameState; dispatch: Dispa
               </button>
               <button onClick={() => setMgr(mgr === a.id ? null : a.id)} className={`border px-2.5 py-1 ${dark ? 'border-ivory/25 hover:border-ivory/50' : 'border-ink/30 hover:border-state'}`}>{mgr === a.id ? 'Keep the manager' : `Replace the manager · ${REHEAD_PC} capital`}</button>
             </div>
-            {!ex.ok && ex.reason && <p className={`mt-1 text-[13px] ${soft}`}>{ex.reason}</p>}
             {mgr === a.id && (
               <ul className="mt-1 space-y-1">
                 {headsFor(s, 'asset').filter((h) => h.name !== a.head.name).map((h) => {

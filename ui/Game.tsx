@@ -1,5 +1,6 @@
 'use client';
 
+import { FINANCE_CANDIDATES } from '../content/names';
 import { useCallback, useEffect, useState } from 'react';
 import { verdict } from '../engine/legacy';
 import { migrate } from '../engine/migrate';
@@ -80,7 +81,7 @@ export function Game() {
 
   const handover: Handover | undefined = previous ? (() => {
     const w = winnerOf(previous);
-    return { party: w.party, partyShort: w.partyShort, sameParty: w.sameParty, how: w.how, notes: handoverNotes(previous), predecessor: previous.president.name, epithet: verdict(previous).epithet };
+    return { party: w.party, partyShort: w.partyShort, sameParty: w.sameParty, how: w.how, notes: handoverNotes(previous), predecessor: previous.president.name, epithet: verdict(previous).epithet, served: [previous.chars.fin?.name, FINANCE_CANDIDATES[['gwarzo', 'ekpenyong', 'lohor'].indexOf(String(previous.flags['fin.pick']))]?.name].filter((x): x is string => !!x) };
   })() : undefined;
 
   if (!ready) return <p className="label p-8 text-mute">Consultations are ongoing…</p>;

@@ -58,7 +58,7 @@ const BACKGROUNDS: { id: Background; name: string; text: string }[] = [
 ];
 
 /** What the next President is handed, when the world carries on. */
-export interface Handover { party: string; partyShort: string; sameParty: boolean; how: string; notes: string[]; predecessor: string; epithet: string }
+export interface Handover { party: string; partyShort: string; sameParty: boolean; how: string; notes: string[]; predecessor: string; epithet: string; /** Finance Ministers of the last government. */ served?: string[] }
 
 export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup) => void; onBack: () => void; handover?: Handover }) {
   const [name, setName] = useState('');
@@ -68,7 +68,9 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
   const [partyShort, setPartyShort] = useState(handover?.partyShort ?? DEFAULT_PARTY.short);
   const [home, setHome] = useState('KN');
   const [background, setBackground] = useState<Background>('governor');
-  const [finance, setFinance] = useState(FINANCE_CANDIDATES[0].name);
+  // A Finance Minister of the last government is marked; from the other side, they will not serve you.
+  const barred = (name: string) => !!handover && !handover.sameParty && !!handover.served?.includes(name);
+  const [finance, setFinance] = useState((FINANCE_CANDIDATES.find((c) => !barred(c.name)) ?? FINANCE_CANDIDATES[0]).name);
   const [priorities, setPriorities] = useState<string[]>([]);
   const toggle = (id: string) => setPriorities((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < 4 ? [...p, id] : p));
   const ready = priorities.length === 4;
@@ -173,9 +175,10 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
         <p className="mt-2 text-sm text-ink-soft">Three names are on the desk. What you read here is reputation. Reputation is sometimes wrong.</p>
         <div className="mt-3 grid gap-3">
           {FINANCE_CANDIDATES.map((c) => (
-            <button key={c.name} onClick={() => setFinance(c.name)} className={card(finance === c.name)}>
+            <button key={c.name} disabled={barred(c.name)} onClick={() => setFinance(c.name)} className={`${card(finance === c.name)} ${barred(c.name) ? 'opacity-50' : ''}`}>
               <span className="block font-serif text-lg">{c.name}</span>
               <span className="mt-1 block text-sm leading-snug text-ink-soft">{c.blurb}</span>
+              {handover?.served?.includes(c.name) && <span className="mt-1 block text-[13px] text-alarm">{barred(c.name) ? `Served as Finance Minister under President ${handover.predecessor}, of the party you beat. Will not serve you.` : `Served as Finance Minister under President ${handover.predecessor}.`}</span>}
             </button>
           ))}
         </div>

@@ -22,6 +22,8 @@ export function initPeople(s: GameState): void {
     if (bg === 'technocrat') rel += p.group === 'minister' ? 6 : -5;
     if (bg === 'outsider') rel -= 6;
     if (p.zone && p.zone === s.president.homeZone) rel += 8;
+    // Nobody starts on the edge of a mood: a fraction of a point in the first month should not relabel them.
+    for (const edge of [75, 58, 42, 25]) if (Math.abs(rel - edge) < 2) rel = rel >= edge ? edge + 2 : edge - 2;
     s.people[p.id] = { rel: clamp(rel, 5, 95), granted: false, courted: [] };
   }
   s.opposition = { alt: 38, fire: 32, strong: 30 };

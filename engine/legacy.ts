@@ -64,7 +64,7 @@ export function verdict(s: GameState): Verdict {
     dim('Power and infrastructure', n.power - b.power, [24, 10, -4, -12], `Index ${b.power.toFixed(0)}`, n.power.toFixed(0)),
     dim('Jobs and industry', n.jobs - b.jobs, [24, 10, -4, -12], `Index ${b.jobs.toFixed(0)}`, n.jobs.toFixed(0)),
     dim('Institutions', (n.capacity - b.capacity + n.integrity - b.integrity) / 2, [18, 7, -3, -10], `Capacity ${b.capacity.toFixed(0)} → ${n.capacity.toFixed(0)}`, `integrity ${b.integrity.toFixed(0)} → ${n.integrity.toFixed(0)}`),
-    dim('Public trust', app - b.approval, [8, 2, -6, -14], `Approval ${b.approval.toFixed(0)}%`, `${app.toFixed(0)}%`),
+    dim('Public trust', app - b.approval, [8, 2, -6, -14], `Approval ${b.approval.toFixed(0)}% without the honeymoon`, `${app.toFixed(0)}%`),
   ];
   const perf = dims.slice(0, 6).reduce((a, d) => a + d.score, 0) / 6;
   const byScore = [...dims.slice(0, 6)].sort((x, y) => y.score - x.score);
