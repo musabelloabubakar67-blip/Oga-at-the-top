@@ -9,6 +9,7 @@ import { ADVISER_POOL } from '../content/names';
 import { PERSON_BY_ID } from '../content/people';
 import { BACKGROUNDS, NAMES_BY_ZONE, ROLE_SPECS, SPEC_NAME, TITLES, type Spec } from '../content/talent';
 import { TYCOON_BY_ID } from '../content/tycoons';
+import { CFG } from './config';
 import type { GameState, ZoneId } from './types';
 import { approval, clamp } from './vars';
 
@@ -132,11 +133,15 @@ const patronName = (id: string) => TYCOON_BY_ID[id]?.short ?? PERSON_BY_ID[id]?.
 
 /** Why this person will not take the job, if they will not. */
 export function refusal(s: GameState, c: Candidate): string | null {
-  if (c.integrity >= 4 && s.nation.integrity < 32) return 'Will not serve a government with this record on corruption.';
-  if (c.competence >= 4 && approval(s) < 38 && (parseInt(c.id.replace(/\D/g, '') || '0', 10) % 2 === 0)) return 'Thinks the government is sinking, and will not go down with it.';
+  // A government is judged on its own record. Until it has one, nobody holds the last one against it.
+  const settled = s.turn > CFG.honeymoonMonths;
+  // Corruption that is this government's: integrity has fallen on its watch, or the President has kept money.
+  const ownRecord = s.nation.integrity < 32 && (s.nation.integrity <= s.baseline.integrity - 4 || s.purseTaken.personal >= 10);
+  if (c.integrity >= 4 && ownRecord) return 'Will not serve a government with your record on corruption.';
+  if (settled && c.competence >= 4 && approval(s) < 38 && (parseInt(c.id.replace(/\D/g, '') || '0', 10) % 2 === 0)) return 'Thinks the government is sinking, and will not go down with it.';
   const p = c.patron;
   const rel = s.tycoons[p]?.rel ?? s.people[p]?.rel;
-  if (rel !== undefined && rel < 35) return `Their patron, ${patronName(p)}, has told them to stay away from your government.`;
+  if (settled && rel !== undefined && rel < 35) return `Their patron, ${patronName(p)}, has told them to stay away from your government.`;
   if ((s.wronged ?? []).some((w) => w.who === p && w.until > s.turn)) return `Their patron, ${patronName(p)}, has a grievance against you.`;
   return null;
 }
