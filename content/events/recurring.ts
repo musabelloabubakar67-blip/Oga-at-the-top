@@ -13,7 +13,7 @@ export const RECURRING: GameEvent[] = [
     body: [
       'The national grid collapsed at 11:47 this morning. Generation fell from 4,100MW to 42MW in under a minute.',
       { when: { v: ['debt.gas', '>', 0.6] }, text: 'Half the gas plants were already idle: the suppliers are owed again and have cut deliveries. The grid was running with nothing in reserve.' },
-      { when: { v: ['agenda.p1', '==', 1] }, text: 'Generation was not the cause. The plants you put back on gas were running at full output when a forty-year-old transmission line failed and took the system with it. More power on the same wires makes this more likely, not less.' },
+      { when: { v: ['agenda.p1', '==', 1] }, text: 'Generation was not the cause. The plants put back on gas were running at full output when a forty-year-old transmission line failed and took the system with it. More power on the same wires makes this more likely, not less.' },
       { when: { v: ['count.grid.collapse', '>=', 2] }, text: 'This is the latest of several collapses under this administration. The Ministry\'s statement is the same statement, with the date changed.' },
       'The transmission company attributes the incident to "a system disturbance". It has attributed the last nine incidents to a system disturbance.',
       { when: { v: ['comp.min_power', '>=', 4] }, text: '{POWERMIN} had the six worst corridors identified before the frequency recovered, and has costed their replacement.' },
@@ -212,7 +212,7 @@ export const RECURRING: GameEvent[] = [
     body: [
       { when: { v: ['agenda.s2', '==', 0] }, text: 'Armed men attacked four farming communities overnight. 47 people are confirmed dead. Several thousand have fled to the local government headquarters.' },
       { when: { v: ['agenda.s2', '==', 0] }, text: 'The nearest military unit is 90 minutes away by road. Distress calls were logged three hours before it moved.' },
-      { when: { v: ['agenda.s2', '==', 1] }, text: 'Armed men attacked two farming communities overnight. Nine people are confirmed dead. Troops from the forward base you opened were on the scene in twenty minutes and drove the attackers off before they reached a third village.' },
+      { when: { v: ['agenda.s2', '==', 1] }, text: 'Armed men attacked two farming communities overnight. Nine people are confirmed dead. Troops from the nearest forward base were on the scene in twenty minutes and drove the attackers off before they reached a third village.' },
       { when: { v: ['agenda.s2', '==', 1] }, text: 'The base held. It cannot be everywhere, and the men who did this know where it is.' },
       { when: { v: ['focus.NC', '==', 1] }, text: 'This happened in the theatre where you have concentrated the security effort.' },
       'The state governor says he has "run out of words". Planting in the area will not happen this season.',
@@ -457,7 +457,7 @@ export const RECURRING: GameEvent[] = [
       'A multilateral lender has offered a $3bn facility at concessional rates.',
       'The conditions: publish the national oil company\'s audited accounts, unify the tax identification system, and end the practice of borrowing from the central bank.',
       'None of the conditions is unreasonable. Each of them has an owner inside your government.',
-      { when: { all: [{ v: ['agenda.t1', '==', 1] }, { v: ['agenda.t2', '==', 1] }] }, text: 'You have already met two of the three conditions on your own. What remains is the central bank.' },
+      { when: { all: [{ v: ['agenda.t1', '==', 1] }, { v: ['agenda.t2', '==', 1] }] }, text: 'Two of the three conditions are already met. What remains is the central bank.' },
       { when: { v: ['debt.ways', '>', 5] }, text: 'The overdraft at the central bank stands above ₦5tn. The third condition is the one that would bite.' },
     ],
     reads: [

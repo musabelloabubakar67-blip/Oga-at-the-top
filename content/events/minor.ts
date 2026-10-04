@@ -471,7 +471,7 @@ export const MINOR: GameEvent[] = [
   },
   {
     ...phone, id: 'minor.refinery', kind: 'recurring', category: 'infrastructure', tone: 'farce',
-    when: { all: [{ turn: [5] }, { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'refinery.audit' } }] }, weight: 8, cooldown: 14, max: 4,
+    when: { all: [{ turn: [5] }, { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'refinery.audit' } }, { v: ['venture.refinery', '<', 1] }, { v: ['active.refinery', '==', 0] }] }, weight: 8, cooldown: 14, max: 4,
     from: 'Minister of State, Petroleum',
     title: 'Refinery: good news',
     body: [

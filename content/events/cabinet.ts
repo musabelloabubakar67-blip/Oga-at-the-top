@@ -6,9 +6,9 @@ import type { Cond, GameEvent } from '../../engine/types';
 // ambition and a following can walk out and run against the President.
 
 const pick = (who: string, from: number, to: number): Cond => ({ all: [{ flag: 'fin.pick', is: who }, { not: { flag: 'fin.replaced' } }, { turn: [from, to] }] });
-const fin = (id: string, who: string, from: number, to: number, title: string, body: GameEvent['body'], reads: GameEvent['reads'], choices: GameEvent['choices']): GameEvent => ({
+const fin = (id: string, who: string, from: number, to: number, title: string, body: GameEvent['body'], reads: GameEvent['reads'], choices: GameEvent['choices'], also?: Cond): GameEvent => ({
   id: `fin.${who}.${id}`, kind: 'threshold', slot: 'lead', category: 'economy', tone: 'dry', intensity: 3, max: 1,
-  when: pick(who, from, to), office: 'Federal Ministry of Finance', stamp: 'CONFIDENTIAL', title, body, reads, choices,
+  when: also ? { all: [pick(who, from, to), also] } : pick(who, from, to), office: 'Federal Ministry of Finance', stamp: 'CONFIDENTIAL', title, body, reads, choices,
 });
 
 export const CABINET: GameEvent[] = [
@@ -19,7 +19,7 @@ export const CABINET: GameEvent[] = [
   ], [{ role: 'fin', good: 'The number will come out, {SIR}. The only question is whether we publish it or someone publishes it about us.' }], [
     { id: 'publish', label: 'Publish the true figures', pc: 4, outcomes: [{ result: 'The figures are published with a plan to pay them. The markets mark the government up for honesty and down for the debt, in roughly equal measure.', fx: [['approval', -1.5], ['bloc.establishment', 4], ['nation.integrity', 3], ['bloc.press', 3], ['debt.contractors', 0.3], ['rel.fin', 15]], news: ['FINANCE MINISTER PUBLISHES TRUE ARREARS FIGURE', 'GOVERNMENT CONFESS: WE OWE PASS WETIN WE TALK'], archive: 'Published the true arrears figure.', sig: 2 }] },
     { id: 'internal', label: 'Keep it inside the ministry for now', outcomes: [{ result: 'The figure stays in a locked drawer. Dr Gwarzo complies, and starts keeping a note of what was decided and by whom.', fx: [['nation.integrity', -1], ['rel.fin', -15]], news: ['', ''], archive: 'Kept the true arrears figure inside the ministry.', sig: 1 }] },
-  ]),
+  ], { v: ['debt.contractors', '>=', 0.6] }),
   fin('offer', 'gwarzo', 16, 20, 'An offer from abroad', [
     'An international development bank has offered Dr Gwarzo a vice-presidency. The offer is generous and expires in a fortnight.',
     'The minister has not asked for anything. The Chief of Staff thinks she is waiting to be asked to stay.',

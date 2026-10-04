@@ -432,7 +432,7 @@ export const LABOUR: GameEvent[] = [
       'The {DOCTORS} has begun an indefinite strike in all federal hospitals over unpaid allowances and the number of doctors leaving the country.',
       'Emergency wards are being run by consultants and house officers. Teaching hospitals in four cities have stopped admitting.',
       'The amount in dispute is ₦38bn.',
-      { when: { v: ['agenda.e1', '==', 1] }, text: 'The ward clinics you reopened are taking patients the teaching hospitals have turned away. They were not built for this.' },
+      { when: { v: ['agenda.e1', '==', 1] }, text: 'The ward clinics are taking patients the teaching hospitals have turned away. They were not built for this.' },
     ],
     trace: [['pressure.wageGrievance', 1]],
     reads: [

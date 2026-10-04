@@ -10,7 +10,7 @@ const phone = { slot: 'minor', channel: 'phone', office: 'Phone', intensity: 1 }
 export const REACTIVE: GameEvent[] = [
   {
     id: 'react.vat', kind: 'standalone', slot: 'lead', category: 'economy', tone: 'dry', intensity: 3, reactive: true,
-    when: { v: ['ordered.tax', '==', 1] }, weight: 12,
+    when: { v: ['mine.tax', '==', 1] }, weight: 12,
     office: 'Federal Ministry of Industry, Trade and Investment', stamp: 'URGENT',
     title: 'The markets have closed over VAT',
     body: [
@@ -60,7 +60,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.freeze', kind: 'standalone', slot: 'lead', category: 'economy', tone: 'dry', intensity: 4, reactive: true,
-    when: { all: [{ v: ['ordered.price_freeze', '==', 1] }, { flag: 'policy.subsidy', is: 'full' }] }, weight: 12,
+    when: { all: [{ v: ['mine.price_freeze', '==', 1] }, { flag: 'policy.subsidy', is: 'full' }] }, weight: 12,
     office: 'Office of the Chief of Staff', stamp: 'URGENT',
     title: 'The marketers have stopped importing',
     body: [
@@ -108,7 +108,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.print', kind: 'standalone', slot: 'lead', category: 'economy', tone: 'dry', intensity: 4, reactive: true,
-    when: { v: ['ordered.print', '==', 1] }, weight: 12,
+    when: { v: ['mine.print', '==', 1] }, weight: 12,
     office: 'Central Bank', stamp: 'CONFIDENTIAL',
     title: 'The price of the money you printed',
     body: [
@@ -252,7 +252,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.payroll', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'dry', intensity: 2, reactive: true,
-    when: { v: ['agenda.v1', '==', 1] }, weight: 12,
+    when: { v: ['mine.v1', '==', 1] }, weight: 12,
     office: 'Office of the Head of the Civil Service', stamp: 'CONFIDENTIAL',
     title: 'The ghosts had sponsors',
     body: [
@@ -299,7 +299,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.statepolice', kind: 'standalone', slot: 'lead', category: 'security', tone: 'grave', intensity: 4, reactive: true,
-    cast: { WHO: 'troubledGovernor' }, when: { v: ['agenda.s4', '==', 1] }, weight: 12,
+    cast: { WHO: 'troubledGovernor' }, when: { v: ['mine.s4', '==', 1] }, weight: 12,
     office: 'Office of the Attorney General of the Federation', stamp: 'URGENT',
     title: 'A governor has used his police',
     body: [
@@ -337,7 +337,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.patronage', kind: 'standalone', slot: 'lead', category: 'scandal', tone: 'dry', intensity: 2, reactive: true,
-    when: { v: ['ordered.patronage', '==', 1] }, weight: 12,
+    when: { v: ['mine.patronage', '==', 1] }, weight: 12,
     office: 'Office of the Chief of Staff', stamp: 'CONFIDENTIAL',
     title: 'One of the party\'s ministers',
     body: [
@@ -374,7 +374,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.duties', kind: 'standalone', slot: 'lead', category: 'economy', tone: 'dry', intensity: 2, reactive: true,
-    when: { v: ['ordered.duties', '==', 1] }, weight: 12,
+    when: { v: ['mine.duties', '==', 1] }, weight: 12,
     office: 'Federal Ministry of Agriculture', stamp: 'ROUTINE',
     title: 'The rice millers',
     body: [
@@ -420,7 +420,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.tariff', kind: 'standalone', slot: 'lead', category: 'infrastructure', tone: 'dry', intensity: 2, reactive: true,
-    when: { v: ['agenda.p3', '==', 1] }, weight: 12,
+    when: { v: ['mine.p3', '==', 1] }, weight: 12,
     office: 'Electricity Regulatory Commission', stamp: 'ROUTINE',
     title: 'Billed for twenty hours, supplied nine',
     body: [
@@ -457,7 +457,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     id: 'react.chiefs', kind: 'standalone', slot: 'lead', category: 'security', tone: 'dry', intensity: 2, reactive: true,
-    when: { v: ['ordered.chiefs', '==', 1] }, weight: 10,
+    when: { v: ['mine.chiefs', '==', 1] }, weight: 10,
     office: 'Office of the National Security Adviser', stamp: 'SECRET',
     title: 'The officers you retired',
     body: [
@@ -614,7 +614,7 @@ export const REACTIVE: GameEvent[] = [
   },
   {
     ...phone, id: 'react.labour_thanks', kind: 'standalone', category: 'labour', tone: 'dry', reactive: true,
-    when: { any: [{ flag: 'wage.agreement', is: 'funded' }, { v: ['agenda.e2', '==', 1] }] }, weight: 10,
+    when: { any: [{ all: [{ flag: 'wage.agreement', is: 'funded' }, { v: ['pred', '==', 0] }] }, { v: ['mine.e2', '==', 1] }] }, weight: 10,
     from: '{LABOUR}',
     title: 'Not a threat, for once',
     body: [

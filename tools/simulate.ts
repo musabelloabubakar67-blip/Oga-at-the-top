@@ -67,6 +67,7 @@ interface Bot {
   act: (s: GameState) => [string, ZoneId?] | null;
 }
 
+let revived = 0;
 const skip = (what: string) => (process.env.SKIP ?? '').includes(what);
 const orderOk = (s: GameState, id: string) => canOrder(s, ORDER_BY_ID[id]).ok;
 const lowestZone = (s: GameState): ZoneId => [...ZONES].sort((a, b) => s.zones[a].approval - s.zones[b].approval)[0];
@@ -473,7 +474,6 @@ if (args.includes('--trace')) {
   process.exit(0);
 }
 
-let revived = 0;
 const everFired = new Set<string>();
 const fireCount: Record<string, number> = {};
 console.log(`${runs} presidencies per strategy\n`);

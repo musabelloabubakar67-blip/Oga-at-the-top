@@ -282,7 +282,7 @@ export const SHOCK_FILES: GameEvent[] = [
   ], 'grave', 'security'),
   file('discovery', 'A field offshore', 'Federal Ministry of Petroleum Resources', [
     'An exploration well forty miles offshore has struck a field the ministry describes as "transformational". The word has been used before.',
-    { when: done('t2'), text: 'Under the law you passed, every barrel and every naira of it will be published.' },
+    { when: done('t2'), text: 'Under the law that makes the oil company publish, every barrel and every naira of it will be published.' },
     { when: { not: done('t2') }, text: 'The national oil company will account for it in the usual way, which is to say, eventually.' },
     'How much of it reaches the treasury depends on how the deal is signed and how clean the books are.',
   ], [

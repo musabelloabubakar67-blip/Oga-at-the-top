@@ -194,7 +194,7 @@ export const SYSTEM: GameEvent[] = [
     body: [
       'The companies that supply gas to the power plants have cut deliveries by half. They are owed more than a trillion naira, and have been told it is "being processed" by three governments.',
       'Eleven plants are idle. They are in working order. There is nothing to burn in them.',
-      { when: v('agenda.p1', '==', 1), text: 'You cleared this debt once. It has built up again because electricity is still sold for less than it costs to make: every unit generated adds to what is owed.' },
+      { when: v('agenda.p1', '==', 1), text: 'This debt was cleared once. It has built up again because electricity is still sold for less than it costs to make: every unit generated adds to what is owed.' },
       { when: v('agenda.p3', '==', 0), text: '{POWERMIN} notes that this will keep happening until the tariff covers the cost of supply.' },
     ],
     statement: 'The current load-shedding is due to gas constraints, which are being addressed.',
@@ -544,7 +544,7 @@ export const SYSTEM: GameEvent[] = [
     body: [
       'The price of a bag of rice has risen by a third in three weeks. There has been no change in the harvest, the exchange rate or the duty.',
       'Customs reports that the warehouses of Chief (Dr) Obinna Ezeudu are full to the roof. Nothing has left them since the month you and he fell out.',
-      { when: v('agenda.f4', '==', 1), text: 'The automatic import rule you put in place has begun to bring in grain from outside. It will take six weeks to reach the markets.' },
+      { when: v('agenda.f4', '==', 1), text: 'The automatic import rule has begun to bring in grain from outside. It will take six weeks to reach the markets.' },
       { when: { flag: 'grain.reserve' }, text: 'The strategic grain reserve you filled is full. Released into the markets, it would undercut him within a fortnight.' },
       { when: { flag: 'inst.reserve' }, text: 'The grain reserve agency has stock in its silos and the authority to sell it.' },
     ],

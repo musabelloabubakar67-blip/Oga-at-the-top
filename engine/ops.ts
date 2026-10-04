@@ -75,7 +75,7 @@ export function runOp(s: GameState, op: Op2): string {
     }
     case 'deliver': {
       const id = String(a);
-      if (!s.agenda.done.includes(id)) { s.agenda.active = s.agenda.active.filter((x) => x.id !== id); s.agenda.done.push(id); }
+      if (!s.agenda.done.includes(id)) { s.agenda.active = s.agenda.active.filter((x) => x.id !== id); s.agenda.done.push(id); s.counters[`done.${id}`] = s.turn; }
       return '';
     }
     case 'spendall':

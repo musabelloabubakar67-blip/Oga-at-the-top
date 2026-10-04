@@ -138,4 +138,6 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   };
   s.predecessor = pred;
   if (pred.kept >= 10 || pred.trail >= 4) s.flags['inherit.exposures'] = true;
+  // What the last President did with the security vote decides what the drawer holds now.
+  s.flags['pred.drawer'] = prev.flags['drawer.sealed'] ? 'sealed' : prev.flags['drawer.open'] ? 'took' : 'left';
 }

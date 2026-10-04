@@ -237,12 +237,14 @@ export const SCANDAL: GameEvent[] = [
 
   {
     id: 'tempt.security_vote', kind: 'calendar', slot: 'lead', category: 'temptation', tone: 'dry', intensity: 2,
-    when: { turn: [3, 6] }, max: 1,
+    // A predecessor who put it on the books left nothing unaudited to tempt anyone.
+    when: { all: [{ turn: [3, 6] }, { not: { flag: 'pred.drawer', is: 'sealed' } }] }, max: 1,
     office: 'Office of the Chief of Staff', stamp: 'SECRET',
     title: 'The security vote',
     body: [
       'There is a standing allocation under the Presidency known as the security vote. It is released monthly. By convention it is not audited, receipted or discussed.',
-      'Your predecessor drew it in full every month. The Chief of Staff has placed the first month\'s papers in the left-hand drawer of the desk and has not said anything further.',
+      { when: { not: { flag: 'pred.drawer', is: 'left' } }, text: 'Your predecessor drew it in full every month. The Chief of Staff has placed the first month\'s papers in the left-hand drawer of the desk and has not said anything further.' },
+      { when: { flag: 'pred.drawer', is: 'left' }, text: 'Your predecessor never touched it, and never put it on the books either. It has been accumulating. The Chief of Staff has placed the papers in the left-hand drawer of the desk and has not said anything further.' },
       'The drawer has a key.',
       '{NSA} notes, for the record, that about a third of it has historically been spent on security.',
     ],
@@ -281,7 +283,8 @@ export const SCANDAL: GameEvent[] = [
   },
   {
     id: 'tempt.contractor', kind: 'recurring', slot: 'lead', category: 'temptation', tone: 'dry', intensity: 2,
-    when: { turn: [6] }, weight: 7, max: 1,
+    // There is no corridor to tender for once the corridors have been rebuilt.
+    when: { all: [{ turn: [6] }, { v: ['agenda.p2', '==', 0] }] }, weight: 7, max: 1,
     office: 'Bureau of Public Procurement', stamp: 'CONFIDENTIAL',
     title: 'Award of contract: the Abuja–Kano transmission corridor',
     body: [

@@ -77,7 +77,8 @@ const DEFS: PolicyDef[] = [
     id: 'h7', short: 'The wage deal with labour', goodwill: () => 0.5, repealPc: 10, repeal: [['pressure.wageGrievance', 25], ['bloc.street', -8]],
     now: (s) => {
       const over = Math.max(0, s.nation.inflation - 10);
-      return { fiscal: -0.003 - 0.0009 * over, inflation: 0.02 * over, fx: [['pressure.wageGrievance', -0.6]],
+      // Indexation feeds prices, but the unions settle for less than full indexation once inflation is wild.
+      return { fiscal: -0.003 - Math.min(0.02, 0.0009 * over), inflation: Math.min(0.6, 0.015 * over), fx: [['pressure.wageGrievance', -0.6]],
         why: over ? `Inflation is ${r1(s.nation.inflation)}%: pay rises with it, and the ${r1(over)} points above 10% are paid by the treasury and passed back into prices. Labour stays off the streets.` : `Inflation is ${r1(s.nation.inflation)}%, so the deal costs almost nothing. Labour stays off the streets.` };
     },
   },

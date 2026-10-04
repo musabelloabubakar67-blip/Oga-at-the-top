@@ -280,6 +280,8 @@ Sixteen of the bets appear only when a specific reform is delivered. The rest ca
 
 Tone rule: grave files carry no jokes, and every paper prints them straight.
 
+**Inherited premises.** The calendar restarts at month one for every President, so a file's premise is checked against the world it fires in, not the default start: the true-arrears file needs real contractor arrears; the security vote is not offered if the predecessor put it on the books, and says so if they left it untouched (`pred.drawer`); the transmission-corridor tender needs the corridors unbuilt; the refinery minister's "mechanical completion" stops once the refinery has been rebuilt or is being rebuilt; and the reactive files that say "you ordered" or "the law you signed" read `mine.<id>`, which is true only for what this President did. Lines that once said "you" about reforms a predecessor may have delivered are worded neutrally.
+
 ## 0.5a Shocks (`content/shocks.ts`, `engine/shocks.ts`)
 
 The owner asked not to be told what the shocks are, so this section describes the mechanism and leaves the list to the content file.
