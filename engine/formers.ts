@@ -4,6 +4,7 @@
 // they may publish (a memoir, an interview, a deposition) unless they were given
 // somewhere comfortable to go.
 
+import { mo } from './config';
 import { PEOPLE } from '../content/people';
 import { personView } from './people';
 import type { GameState } from './types';
@@ -39,7 +40,7 @@ export function formersTick(s: GameState): void {
     applyFx(s, ['pressure.scandalHeat', 6 + 2 * Math.min(4, f.knows)]);
     applyFx(s, ['bloc.press', -2]);
     for (const x of s.exposures) if (x.witnesses.includes(f.slot)) x.trail = Math.min(3, x.trail + 1) as 0 | 1 | 2 | 3;
-    s.news.push({ chronicle: `FORMER ${f.post.toUpperCase()} ${f.name.toUpperCase()}: "WHAT I SAW IN THE VILLA"`, street: `${f.name.toUpperCase()} DON OPEN MOUTH`, weight: 7, valence: -1, topic: 'scandal', body: `${f.name}, who left the post of ${f.post} ${s.turn - f.left} months ago, has given a long interview. It is careful about dates and very careful about amounts.` });
+    s.news.push({ chronicle: `FORMER ${f.post.toUpperCase()} ${f.name.toUpperCase()}: "WHAT I SAW IN THE VILLA"`, street: `${f.name.toUpperCase()} DON OPEN MOUTH`, weight: 7, valence: -1, topic: 'scandal', body: `${f.name}, who left the post of ${f.post} ${mo(s.turn - f.left)} ago, has given a long interview. It is careful about dates and very careful about amounts.` });
     s.report.push({ kind: 'failure', title: `${f.name} talked`, cause: `Left as ${f.post} knowing ${f.knows} ${f.knows === 1 ? 'thing' : 'things'}`, text: 'Everything they witnessed is now easier to find. A soft landing would have kept them quiet.', changes: [] });
   }
 }

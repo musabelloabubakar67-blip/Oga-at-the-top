@@ -7,7 +7,7 @@ import { NORTH } from '../content/federal';
 import { CFG, termTurnOf } from './config';
 import { generatePerson, candidatesFor, type Offer } from './talent';
 import type { GameState, ZoneId } from './types';
-import { ZONES, applyFx, clamp } from './vars';
+import { ZONES, ZONE_NAME, applyFx, clamp } from './vars';
 
 export const PORTFOLIO_PC = 3;
 export const REPLACE_VP_PC = 8;
@@ -21,6 +21,7 @@ export function initVP(s: GameState): void {
   const c = generatePerson(s, 'politics', otherHalf(s.president.homeZone), 3);
   s.vp = { name: c.name, short: c.short, zone: c.zone, competence: c.competence, loyalty: c.loyalty, integrity: c.integrity, clout: Math.max(2, c.clout), ambition: c.ambition, rel: 55, since: s.turn, blurb: c.blurb };
   (s.origins ??= {})[c.name] = c.zone;
+  s.report.push({ kind: 'consequence', title: `${c.name} is sworn in as Vice President`, cause: 'Your running mate', text: `${c.blurb} From the ${ZONE_NAME[c.zone]}, which balances the ticket. Give the Vice President work and they are a second pair of hands and, in time, an heir; leave them idle and ambitious and they build a camp of their own. Politics, Your advisers.`, changes: [] });
 }
 
 /** Where the Vice President's standing is heading, and why. */
@@ -109,5 +110,5 @@ export function replaceVP(s: GameState, name: string): string {
   (s.origins ??= {})[c.name] = c.zone;
   if (s.flags['succession.backed'] === 'vp') delete s.flags['succession.backed'];
   for (const k of Object.keys(s.counters)) if (k.endsWith('.vp') && (k.startsWith('groom') || k.startsWith('credits'))) delete s.counters[k];
-  return `${old.name} is dropped from the ticket and ${c.name} takes the place. The ${old.zone} reads it as a slight; ${old.name}'s people read it as a declaration.`;
+  return `${old.name} is dropped from the ticket and ${c.name} takes the place. The ${ZONE_NAME[old.zone]} reads it as a slight; ${old.name}'s people read it as a declaration.`;
 }

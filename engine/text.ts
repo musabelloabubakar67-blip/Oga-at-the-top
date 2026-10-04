@@ -1,3 +1,4 @@
+import { rivalOf } from './rivals';
 import { NAMES } from '../content/names';
 import { PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
 import { STATE_BY_ID } from '../content/states';
@@ -8,7 +9,7 @@ import { delegates, senate, test } from './vars';
 
 function rival(s: GameState) {
   const id = Object.entries(s.opposition ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'alt';
-  return RIVAL_BY_ID[id] ?? RIVAL_BY_ID.alt;
+  return rivalOf(s, id);
 }
 
 export function fill(s: GameState, text: string): string {

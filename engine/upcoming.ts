@@ -4,7 +4,7 @@ import { risky } from './formers';
 
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
 import { PEOPLE } from '../content/people';
-import { CFG, termTurnOf } from './config';
+import { CFG, mo, termTurnOf } from './config';
 import { bench, benchVars, contested } from './courts';
 import { activeShocks } from './shocks';
 import { convictionOdds, openCases, trialLength } from './cases';
@@ -23,7 +23,7 @@ export function upcoming(s: GameState): Coming[] {
   // The calendar.
   const toElection = CFG.electionTermTurn - tt;
   if (s.term === 1 && toElection > 0 && toElection <= 12) out.push({ months: toElection, text: `The election in ${toElection} ${toElection === 1 ? 'month' : 'months'}`, tone: 'neutral', go: 'country' });
-  if (s.term === 2 && tt >= 12 && tt < 34 && !s.flags['succession.backed']) out.push({ months: 34 - tt, text: `The party picks its candidate in ${34 - tt} months: groom a successor`, tone: 'neutral', go: 'power', tab: 'succession' });
+  if (s.term === 2 && tt >= 12 && tt < 34 && !s.flags['succession.backed']) out.push({ months: 34 - tt, text: `The party picks its candidate in ${mo(34 - tt)}: groom a successor`, tone: 'neutral', go: 'power', tab: 'succession' });
   const loose = risky(s).length;
   if (loose) out.push({ months: 0, text: `${loose} former ${loose === 1 ? 'official knows' : 'officials know'} what went into the drawer`, tone: 'bad', go: 'power', tab: 'advisers' });
   for (const c of openCases(s)) {

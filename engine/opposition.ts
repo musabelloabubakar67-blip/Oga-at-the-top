@@ -1,6 +1,7 @@
 // The opposition acts. Each rival has moves of their own, taken when the
 // President gives them the opening, and each can be dealt with directly.
 
+import { rivalOf } from './rivals';
 import { MILESTONE_BY_ID } from '../content/agenda';
 import { PEOPLE, PERSON_BY_ID, RIVALS, RIVAL_BY_ID } from '../content/people';
 import { personView, strongestRival } from './people';
@@ -151,8 +152,8 @@ export function oppositionTick(s: GameState): void {
 export type RivalOp = 'coopt' | 'debate' | 'agencies' | 'spoiler';
 
 export function canRival(s: GameState, id: string, op: RivalOp, movesLeft: number): { ok: boolean; reason?: string } {
-  const r = RIVAL_BY_ID[id];
-  if (!r) return { ok: false };
+  if (!RIVAL_BY_ID[id]) return { ok: false };
+  const r = rivalOf(s, id);
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   const inside = !!s.flags[`rival.${id}.in`];
   if (op === 'coopt') {
@@ -178,7 +179,7 @@ export function canRival(s: GameState, id: string, op: RivalOp, movesLeft: numbe
 }
 
 export function rivalDeal(s: GameState, id: string, op: RivalOp): { text: string; archive: string; sealed?: boolean } {
-  const r = RIVAL_BY_ID[id];
+  const r = rivalOf(s, id);
   if (op === 'coopt') {
     s.pc = clamp(s.pc - r.deal.pc, 0, 100);
     if (r.deal.naira) applyFx(s, ['nation.fiscalSpace', -r.deal.naira]);

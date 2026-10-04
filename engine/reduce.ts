@@ -973,7 +973,8 @@ export function canLaunch(s: GameState, id: string): LaunchCheck {
   if (st === 'later') return { ok: false, reason: 'The previous reform must be delivered first.' };
   const failed = s.agenda.failed.filter((f) => f.id === id).pop();
   if (failed && s.turn - failed.turn < CFG.agenda.retryAfter) {
-    return { ok: false, reason: `Defeated in the Assembly. It can be brought back in ${CFG.agenda.retryAfter - (s.turn - failed.turn)} months.` };
+    const wait = CFG.agenda.retryAfter - (s.turn - failed.turn);
+    return { ok: false, reason: `Defeated in the Assembly. It can be brought back in ${wait} ${wait === 1 ? 'month' : 'months'}.` };
   }
   if (s.agenda.active.length >= agendaSlots(s)) return { ok: false, reason: `The government can carry ${agendaSlots(s)} reforms at once. State capacity of 50 adds a sixth, and 65 a seventh.` };
   if (s.pc < launchCost(s, entry.m)) return { ok: false, reason: `Needs ${launchCost(s, entry.m)} political capital.` };
@@ -1161,7 +1162,7 @@ export function canOrder(s: GameState, o: Order, level?: number): { ok: boolean;
   if (last !== undefined) {
     if (o.cooldown === 0) return { ok: false, reason: 'Already done.' };
     const wait = o.cooldown - (s.turn - last);
-    if (wait > 0) return { ok: false, reason: `Available again in ${wait} months.` };
+    if (wait > 0) return { ok: false, reason: `Available again in ${wait} ${wait === 1 ? 'month' : 'months'}.` };
   }
   if (movesLeft(s) <= 0) return { ok: false, reason: 'This month\'s moves are used.' };
   if (s.pc < lv.pc) return { ok: false, reason: `Needs ${lv.pc} political capital.` };

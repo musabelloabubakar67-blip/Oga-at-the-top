@@ -27,7 +27,7 @@ export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: 
               <span className="font-serif text-lg">{d.name}</span>
               <span className="text-right">
                 <span className={`font-serif text-lg ${tone(d.grade)}`}>{d.grade}</span>
-                <span className="label block text-ink-soft">{d.from} → {d.to}</span>
+                <span className="label block text-ink-soft">{d.from.includes('→') ? `${d.from} · ${d.to}` : `${d.from} → ${d.to}`}</span>
               </span>
             </li>
           ))}

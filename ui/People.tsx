@@ -1,5 +1,7 @@
 'use client';
 
+import { mo } from '../engine/config';
+import { rivalsOf } from '../engine/rivals';
 import { canLand, LANDING_PC, risky } from '../engine/formers';
 import { canPortfolio, canReplaceVP, PORTFOLIO_PC, REPLACE_VP_PC, vpCandidates, vpTarget } from '../engine/vp';
 import { canVisit, predEffect, predMood, PRED_VISIT_PC } from '../engine/predecessor';
@@ -276,7 +278,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         {tab === 'opposition' && (
           <>
             <ul className={`mt-4 ${cards}`}>
-              {RIVALS.map((r) => {
+              {rivalsOf(s).map((r) => {
                 const v = s.opposition[r.id] ?? 0;
                 const inside = !!s.flags[`rival.${r.id}.in`];
                 const coopt = canRival(s, r.id, 'coopt', left);
@@ -537,7 +539,7 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
                   <span className="font-serif text-lg">{j.name}{j.chief ? ' · Chief Justice' : ''}</span>
                   <span className={`label ${j.lean === 'you' ? 'text-state' : j.lean === 'them' ? 'text-alarm' : 'text-ink-soft'}`}>{LEAN[j.lean]} · integrity {j.integrity}</span>
                 </p>
-                <p className="mt-1 text-sm leading-snug text-ink-soft">{j.blurb}{j.mine ? ' Appointed by you.' : ''} {j.retires - s.turn <= 96 ? `Retires in ${j.retires - s.turn} months.` : ''}</p>
+                <p className="mt-1 text-sm leading-snug text-ink-soft">{j.blurb}{j.mine ? ' Appointed by you.' : ''} {j.retires - s.turn <= 96 ? `Retires in ${mo(j.retires - s.turn)}.` : ''}</p>
               </>
             ) : (
               <>
@@ -606,6 +608,7 @@ function VicePresident({ s, dispatch, left }: { s: GameState; dispatch: Dispatch
         <button disabled={vp.sidelined || left <= 0} onClick={() => dispatch({ type: 'VP', op: 'sideline' })} className={btn(!vp.sidelined && left > 0, 'bad')}>Sideline the Vice President</button>
         <button onClick={() => setSwap(!swap)} className={btn(true)}>{swap ? 'Keep the ticket' : 'Change the running mate'}</button>
       </div>
+      {!port.ok && port.reason && <p className="mt-1 text-[13px] text-ink-soft">Real work: {port.reason}</p>}
       {swap && (
         <div className="mt-2">
           {(() => { const c = canReplaceVP(s, '', left); return c.reason && c.reason !== 'Not available.' ? <p className="text-[13px] text-ink-soft">{c.reason}</p> : null; })()}
@@ -629,7 +632,7 @@ function Formers({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left
           const can = canLand(s, f.name, left);
           return (
             <li key={f.name} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <span><span className="font-serif">{f.name}</span> <span className="text-ink-soft">· former {f.post} · witnessed {f.knows} · {24 - (s.turn - f.left)} months of risk left</span></span>
+              <span><span className="font-serif">{f.name}</span> <span className="text-ink-soft">· former {f.post} · witnessed {f.knows} · {mo(24 - (s.turn - f.left))} of risk left</span></span>
               <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'LAND_FORMER', name: f.name })} className={btn(can.ok)}>An embassy abroad · {LANDING_PC} capital</button>
             </li>
           );

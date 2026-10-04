@@ -84,3 +84,6 @@ export function termTurnOf(turn: number): number {
 export function dateLabel(turn: number, start: number = CFG.startYear): string {
   return `${MONTHS[monthOf(turn) - 1]} ${yearOf(turn, start)}`;
 }
+
+/** "1 month", "3 months". */
+export const mo = (n: number): string => `${n} ${n === 1 ? 'month' : 'months'}`;

@@ -1,5 +1,6 @@
 'use client';
 
+import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
 import { Cases } from './Cases';
 import { Inline, Overlay, Preview, usePreview, CloseButton } from './shell';
@@ -480,14 +481,14 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
                   <span className="font-serif text-xl">{d.name}</span>
                   <span className={`label ${i.seen ? 'text-alarm' : 'text-state'}`}>{i.seen ? 'captured' : `working at ${Math.round(perf.k * 100)}%`}</span>
                 </p>
-                <p className="label text-ink-soft">set up {dateLabel(i.founded ?? i.since, s.startYear)} · {Math.max(0, s.turn - (i.founded ?? i.since))} months running</p>
+                <p className="label text-ink-soft">set up {dateLabel(i.founded ?? i.since, s.startYear)} · {mo(Math.max(0, s.turn - (i.founded ?? i.since)))} running</p>
                 {(() => {
                   const months = s.turn - (i.founded ?? i.since);
                   const ramp = Math.min(1, 0.3 + 0.7 * months / d.ramp);
                   return ramp < 1 ? (
                     <div className="mt-1.5">
                       <div className="h-1.5 bg-ink/10"><div className="h-1.5 bg-state" style={{ width: `${ramp * 100}%` }} /></div>
-                      <p className="text-[13px] text-ink-soft">Still being set up: {Math.round(ramp * 100)}% of full strength, full in {Math.max(1, Math.ceil(d.ramp - months))} months.</p>
+                      <p className="text-[13px] text-ink-soft">Still being set up: {Math.round(ramp * 100)}% of full strength, full in {mo(Math.max(1, Math.ceil(d.ramp - months)))}.</p>
                     </div>
                   ) : null;
                 })()}
@@ -587,6 +588,7 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
   const done = (a: Action) => { dispatch(a); onClose(); };
   const inline = useContext(Inline);
   const [only, setOnly] = useState<'all' | 'aimed' | 'now'>('all');
+  const [finOpen, setFinOpen] = useState(false);
   const keep = (o: Order) => only === 'all' || (only === 'aimed' ? !!o.target : canOrder(s, o).ok);
   const list = inline ? 'mt-2 grid items-start gap-2 xl:grid-cols-2' : 'mt-2 space-y-2';
 
@@ -656,10 +658,10 @@ function PowersModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
               })}
               {group === 'politics' && only === 'all' && (
                 <li className="border border-ink/15 px-4 py-3">
-                  <p className="font-serif text-lg">Or someone from the talent pool as Minister of Finance</p>
-                  <Candidates s={s} role="fin" offers={candidatesFor(s, 'fin', 6)} dispatch={dispatch} left={left} label="Appoint · 10 capital · 1 move"
+                  <button onClick={() => setFinOpen(!finOpen)} className="w-full text-left font-serif text-lg">Or someone from the talent pool as Minister of Finance <span className="label ml-2 text-ink-soft">{finOpen ? 'hide' : 'show candidates'}</span></button>
+                  {finOpen && <Candidates s={s} role="fin" offers={candidatesFor(s, 'fin', 6)} dispatch={dispatch} left={left} label="Appoint · 10 capital · 1 move"
                     can={(name) => (left <= 0 ? { ok: false, reason: "This month's moves are used." } : s.pc < 10 ? { ok: false, reason: 'Needs 10 political capital.' } : { ok: true })}
-                    appoint={(name) => done({ type: 'REPLACE_FIN', name })} />
+                    appoint={(name) => done({ type: 'REPLACE_FIN', name })} />}
                 </li>
               )}
             </ul>
@@ -1017,7 +1019,7 @@ function NationModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
               <span className="font-serif text-lg">{d.name}</span>
               <span className="text-right">
                 <span className={`font-serif text-lg ${tone(d.grade)}`}>{d.grade}</span>
-                <span className="label block text-ink-soft">{d.from} → {d.to}</span>
+                <span className="label block text-ink-soft">{d.from.includes('→') ? `${d.from} · ${d.to}` : `${d.from} → ${d.to}`}</span>
               </span>
             </li>
           ))}

@@ -15,7 +15,7 @@ export interface Post { name: string; post: string; zone: ZoneId | null; weight:
 
 /** Where someone comes from, if it is known. */
 export function zoneOf(s: GameState, name: string): ZoneId | null {
-  return s.origins?.[name] ?? ORIGIN[name] ?? null;
+  return ORIGIN[name] ?? s.origins?.[name] ?? null;
 }
 
 export const sameHalf = (a: ZoneId, b: ZoneId) => NORTH.includes(a) === NORTH.includes(b);

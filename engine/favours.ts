@@ -1,5 +1,7 @@
 // What is owed, in both directions, and the businessmen who do most of the owing.
 
+import { mo } from './config';
+import { rivalOf } from './rivals';
 import { MILESTONE_BY_ID } from '../content/agenda';
 import { PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
 import { FINANCIER, TYCOONS, TYCOON_BY_ID, type Tycoon } from '../content/tycoons';
@@ -24,7 +26,7 @@ export interface Who { name: string; short: string; title: string }
 export function who(s: GameState, id: string): Who {
   const t = TYCOON_BY_ID[id];
   if (t) return { name: t.name, short: t.short, title: t.title };
-  const r = RIVAL_BY_ID[id];
+  const r = RIVAL_BY_ID[id] ? rivalOf(s, id) : undefined;
   if (r) return { name: r.name, short: r.short, title: r.party };
   const p = PERSON_BY_ID[id];
   if (p) {
@@ -159,7 +161,7 @@ export function canTycoon(s: GameState, id: string, op: TycoonOp, movesLeft: num
     if (t.want.naira && t.want.naira > s.nation.fiscalSpace && s.nation.debt >= 100) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
   }
   if (op === 'court') {
-    if (st.courted !== undefined && s.turn - st.courted < COURT_MONTHS) return { ok: false, reason: `You saw ${t.short} ${s.turn - st.courted === 0 ? 'this month' : `${s.turn - st.courted} months ago`}. Once a year is attention; more is a request.` };
+    if (st.courted !== undefined && s.turn - st.courted < COURT_MONTHS) return { ok: false, reason: `You saw ${t.short} ${s.turn - st.courted === 0 ? 'this month' : `${mo(s.turn - st.courted)} ago`}. Once a year is attention; more is a request.` };
     if (s.pc < COURT_PC) return { ok: false, reason: `Needs ${COURT_PC} political capital.` };
   }
   if (op === 'squeeze') {

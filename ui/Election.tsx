@@ -1,5 +1,6 @@
 'use client';
 
+import { breakdown } from '../engine/election';
 import { useEffect, useState } from 'react';
 import type { GameState } from '../engine/types';
 import { fill } from '../engine/text';
@@ -66,6 +67,20 @@ export function ElectionNight({ s, onDone }: { s: GameState; onDone: () => void 
               ? `Margin: ${result.margin.toFixed(1)} points. Approval on polling day was ${Math.round(result.approval)}%. The petition will be filed by Friday.`
               : `Margin: ${Math.abs(result.margin).toFixed(1)} points. Approval on polling day was ${Math.round(result.approval)}%. You have three months left in the Villa.`}
           </p>
+          {(() => {
+            const lines = breakdown(s, result.kind);
+            return (
+              <div className="mt-3">
+                <p className="label text-ink-soft">What decided it, in points of margin</p>
+                <ul className="mt-1 grid gap-x-6 text-sm sm:grid-cols-2">
+                  {lines.map((l) => (
+                    <li key={l.label} className="flex justify-between gap-3 border-b border-ink/10 py-0.5"><span>{l.label}</span><span className={l.value >= 0 ? 'text-state' : 'text-alarm'}>{l.value > 0 ? '+' : '−'}{Math.abs(l.value).toFixed(1)}</span></li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-[12.5px] text-ink-soft">Each state also has its own lean, its zone's approval and what you built there; the rest is the mood on the day.</p>
+              </div>
+            );
+          })()}
           {result.swing !== undefined && Math.abs(result.swing) >= 1 && (
             <p className="mt-2 text-sm text-ink-soft">
               The mood of the country on the day moved the vote {Math.abs(result.swing * 2).toFixed(1)} points {result.swing > 0 ? 'towards you' : 'away from you'}{Math.abs(result.swing * 2) > Math.abs(result.margin) ? ', more than the margin itself' : ''}.
@@ -87,7 +102,7 @@ export function ElectionNight({ s, onDone }: { s: GameState; onDone: () => void 
         {feed.map((r, i) => (
           <li key={r.id} className={`flex flex-wrap items-baseline gap-x-4 py-2.5 ${i === 0 && !done ? 'fade-in' : ''}`}>
             <span className="w-28 font-serif text-lg text-ivory">{r.name}</span>
-            <span className={`label w-24 ${r.won ? 'text-state-lit' : 'text-[#d06a5c]'}`}>{r.won ? 'Held' : 'Lost'} · {r.share.toFixed(0)}–{r.opp.toFixed(0)}</span>
+            <span className={`label w-32 whitespace-nowrap ${r.won ? 'text-state-lit' : 'text-[#d06a5c]'}`}>{r.won ? 'Held' : 'Lost'} · {r.share.toFixed(0)}–{r.opp.toFixed(0)}</span>
             {r.line && <span className="font-serif text-sm italic text-ivory/65">{r.line}</span>}
           </li>
         ))}

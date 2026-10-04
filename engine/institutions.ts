@@ -3,6 +3,7 @@
 // sets the output; a head who serves someone else captures it, and after a while
 // the capture shows, with the name of whoever is being served.
 
+import { mo } from './config';
 import { INSTITUTIONS, INSTITUTION_BY_ID, type InstitutionDef } from '../content/institutions';
 import { candidatesFor, release, specName, take } from './talent';
 import { CFG } from './config';
@@ -57,7 +58,7 @@ export function performance(s: GameState, id: string): { k: number; why: string[
   // A new institution takes months to reach full strength.
   const months = s.turn - (inst.founded ?? inst.since);
   const ramp = Math.min(1, 0.3 + 0.7 * months / d.ramp);
-  if (ramp < 1) { k *= ramp; why.push(`Still being set up: ${Math.round(ramp * 100)}% of full strength, full in ${Math.max(1, Math.ceil(d.ramp - months))} months`); }
+  if (ramp < 1) { k *= ramp; why.push(`Still being set up: ${Math.round(ramp * 100)}% of full strength, full in ${mo(Math.max(1, Math.ceil(d.ramp - months)))}`); }
   const f = FUNDING[inst.funding ?? 'standard'];
   if (f.out !== 1) { k *= f.out; why.push(`${f.name}: output ×${f.out}`); }
   if (id === 'graft' && s.flags['graft.leash']) { k *= 0.6; why.push('You stopped one of its cases, and every investigator noticed'); }

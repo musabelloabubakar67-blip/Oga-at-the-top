@@ -4,7 +4,7 @@ import { Overlay, CloseButton } from './shell';
 import { oilForecast } from '../engine/oilforecast';
 import { STANCE_NAME, fxFlow, fxInflation, fxScale, premium, realFall, yearFall } from '../engine/currency';
 import { useState } from 'react';
-import { BENCHMARKS, DEBTS, FUNDS, SECTORS } from '../content/treasury';
+import { BENCHMARKS, DEBTS, FUNDS, SECTORS, SECTOR_BY_ID } from '../content/treasury';
 import { dateLabel, yearOf } from '../engine/config';
 import { rateOf, servicePoints } from '../engine/ledger';
 import { naira } from '../engine/text';
@@ -97,7 +97,10 @@ export function BudgetModal({ s, dispatch, onClose }: { s: GameState; dispatch: 
 
       <h3 className="label mt-6 flex items-baseline justify-between border-b rule pb-1 text-ink-soft">
         <span>2 · Where does it go?</span>
-        <span className={left < 0 ? 'text-alarm' : 'text-ink'}>{left < 0 ? `${-left} over` : `${left} unallocated`}</span>
+        <span className={left < 0 ? 'text-alarm' : 'text-ink'}>{left < 0 ? `${-left} over` : `${left} unallocated`}{left < 0 && (
+          <button onClick={() => { const a = { ...alloc }; for (let i = 0; i < -left; i++) { const top = SECTORS.filter((x) => x.id !== 'debt' && (a[x.id] ?? 0) > 0).map((x) => x.id).sort((p, q) => ((a[q] ?? 0) - SECTOR_BY_ID[q].usual) - ((a[p] ?? 0) - SECTOR_BY_ID[p].usual))[0]; if (top) { a[top] = (a[top] ?? 0) - 1; set(top, -1); } } }}
+            className="ml-2 border border-alarm/50 px-1.5 py-0.5 normal-case tracking-normal hover:bg-alarm/10">Trim to fit</button>
+        )}</span>
       </h3>
       <p className="mt-2 text-sm text-ink-soft">Effects are measured against the usual level; each point above it does less than the one before, and money goes further where the problem is worse. Cutting below last year&apos;s level angers whoever depended on it.</p>
       <ul className="mt-2 divide-y divide-ink/10">

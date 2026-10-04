@@ -48,6 +48,30 @@ export function projectMargin(s: GameState): number {
   return 2 * twoWay - 100;
 }
 
+/** What decided the result, nationally, in points of margin. */
+export function breakdown(s: GameState, kind: 'reelection' | 'succession'): { label: string; value: number }[] {
+  const e = CFG.election;
+  const x = (label: string, share: number) => ({ label, value: Math.round(share * 2 * 10) / 10 });
+  const governors = ZONES.reduce((a, z) => a + governorEffect(s, z) * ZONE_WEIGHT[z], 0);
+  const rallies = ZONES.reduce((a, z) => a + Math.min(e.rallyCap, s.campaign.rallies[z] ?? 0) * e.rally * ZONE_WEIGHT[z], 0);
+  const r = strongestRival(s);
+  const lines = [
+    x(`Approval, ${Math.round(approval(s))}%`, (approval(s) - 50) * e.approval),
+    x(`The party machine (party at ${Math.round(s.blocs.party)})`, ((s.blocs.party - 50) / 50) * e.machine * machineWeight(s)),
+    x('Campaign money', Math.min(e.chestCap, s.campaign.chest * e.chestPer)),
+    x('Rallies', rallies),
+    x('Your governors', governors),
+    x('The businessmen', moneyEffect(s)),
+    x('Scandal', -s.pressures.scandalHeat / e.scandal),
+    x(s.flags['opposition.united'] ? 'A united opposition' : s.flags['opposition.split'] ? 'A split opposition' : 'The opposition', (s.flags['opposition.united'] ? e.united * (s.flags['opposition.broad'] ? 1.5 : 1) : 0) + (s.flags['opposition.split'] ? e.split : 0)),
+    x(`The strongest rival (strength ${Math.round(r.strength)})`, -(r.strength - 45) * e.rival),
+    x('A clean record', cleanRecord(s)),
+    x('Scars from the primary', -(s.counters.scar ?? 0) * e.scar),
+    kind === 'reelection' ? x('Incumbency', e.incumbency) : x(`Your candidate (strength ${Number(s.flags['succession.strength'] ?? -2).toFixed(1)}, less ${e.successorPenalty} for not being you)`, Number(s.flags['succession.strength'] ?? -2) - e.successorPenalty),
+  ];
+  return lines.filter((l) => Math.abs(l.value) >= 0.3).sort((a, b) => a.value - b.value);
+}
+
 /** State-by-state result for the president (re-election) or the president's chosen successor. */
 export function runElection(s: GameState, kind: 'reelection' | 'succession', steady = false): ElectionResult {
   const e = CFG.election;

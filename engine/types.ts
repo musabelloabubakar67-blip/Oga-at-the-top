@@ -481,6 +481,8 @@ export interface GameState {
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** What orders have built that keeps running, and who heads each. */
+  /** When a President takes office from the other side, the rival slot of the winning party goes to the party that lost. */
+  rivalSwap?: { id: string; name: string; short: string; party: string };
   /** The Vice President: the running mate, who may be the heir or a rival. */
   vp?: { name: string; short: string; zone: ZoneId; competence: number; loyalty: number; integrity: number; clout: number; ambition: number; rel: number; since: number; blurb: string; portfolio?: number; sidelined?: boolean; briefing?: number };
   /** Who held each witnessing post last month, and those who have left knowing something. */

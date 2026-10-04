@@ -63,7 +63,7 @@ export function verdict(s: GameState): Verdict {
     dim('Security', n.security - b.security, [24, 10, -4, -12], `Index ${b.security.toFixed(0)}`, n.security.toFixed(0)),
     dim('Power and infrastructure', n.power - b.power, [24, 10, -4, -12], `Index ${b.power.toFixed(0)}`, n.power.toFixed(0)),
     dim('Jobs and industry', n.jobs - b.jobs, [24, 10, -4, -12], `Index ${b.jobs.toFixed(0)}`, n.jobs.toFixed(0)),
-    dim('Institutions', (n.capacity - b.capacity + n.integrity - b.integrity) / 2, [18, 7, -3, -10], `Capacity ${b.capacity.toFixed(0)}, integrity ${b.integrity.toFixed(0)}`, `${n.capacity.toFixed(0)}, ${n.integrity.toFixed(0)}`),
+    dim('Institutions', (n.capacity - b.capacity + n.integrity - b.integrity) / 2, [18, 7, -3, -10], `Capacity ${b.capacity.toFixed(0)} → ${n.capacity.toFixed(0)}`, `integrity ${b.integrity.toFixed(0)} → ${n.integrity.toFixed(0)}`),
     dim('Public trust', app - b.approval, [8, 2, -6, -14], `Approval ${b.approval.toFixed(0)}%`, `${app.toFixed(0)}%`),
   ];
   const perf = dims.slice(0, 6).reduce((a, d) => a + d.score, 0) / 6;
@@ -168,6 +168,7 @@ export function verdict(s: GameState): Verdict {
     } : null,
     left,
     after,
-    defining: s.archive.filter((a) => a.sig === 3 && a.turn > 0 && !a.sealed).map((a) => a.headline).slice(-8),
+    // The election result is the verdict's first line; the list is for what you chose to do.
+    defining: s.archive.filter((a) => a.sig === 3 && a.turn > 0 && !a.sealed && a.eventId !== 'election').map((a) => a.headline).slice(-8),
   };
 }

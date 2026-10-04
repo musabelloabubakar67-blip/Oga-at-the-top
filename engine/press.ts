@@ -2,6 +2,7 @@
 // editors who do not agree about it. Every line is chosen for what the story
 // is about and whether it is good or bad for the government.
 
+import { rivalOf } from './rivals';
 import { MILESTONE_BY_ID } from '../content/agenda';
 import { COOL_LINES, GRUDGE_LINES, LOYAL_LINES, PEOPLE, PERSON_BY_ID, RIVAL_BY_ID } from '../content/people';
 import {
@@ -60,7 +61,7 @@ function simSeeds(s: GameState): NewsSeed[] {
   const rival = strongestRival(s);
   const prevRival = s.counters.rivalPrev ?? rival.strength;
   if (rival.strength - prevRival > 3) {
-    const r = RIVAL_BY_ID[rival.id];
+    const r = rivalOf(s, rival.id);
     out.push({ chronicle: `${r.name.toUpperCase()} GAINS GROUND IN NEW POLL`, street: `${r.short.toUpperCase()} DEY GATHER CROWD`, weight: 2.4, valence: -1, topic: 'politics', about: r.id, body: `${r.name} of the ${r.party} is now the President's strongest challenger. ${r.feeds}` });
   }
   s.counters.rivalPrev = rival.strength;
@@ -222,7 +223,7 @@ function headline(s: GameState, seed: NewsSeed, outlet: OutletId, stance: Stance
   }
   if (seed.hostile) return seed.hostile;
   const pool = good ? HOSTILE_GOOD : HOSTILE_BAD;
-  const r = RIVAL_BY_ID[strongestRival(s).id].short.toUpperCase();
+  const r = rivalOf(s, strongestRival(s).id).short.toUpperCase();
   const line = pick(s, `hh.${good}.${topic}`, pool[topic]) ?? pick(s, `hh.${good}.general`, pool.general);
   return line ? line.replace('{R}', r) : seed.chronicle;
 }
@@ -250,7 +251,7 @@ function quotesFor(s: GameState, seed: NewsSeed, stance: Stance): FrontPage['quo
   }
   // The broadsheet gives the opposition its say on bad news. The hostile paper has already made it the headline.
   if (stance === 'record' && !good && seed.valence) {
-    const r = RIVAL_BY_ID[strongestRival(s).id];
+    const r = rivalOf(s, strongestRival(s).id);
     // What the President has actually done comes first; the stock lines fill the gaps.
     const apt = (r.situational ?? []).filter((x) => test(s, x.when)).map((x) => x.text);
     const line = pick(s, `q.${r.id}.sit`, apt, 18) ?? pick(s, `q.${r.id}`, r.lines);

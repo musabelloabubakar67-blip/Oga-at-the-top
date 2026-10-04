@@ -4,6 +4,7 @@
 // can refuse a government they do not trust. Appointing someone takes them out of
 // the pool for every other job.
 
+import { ORIGIN } from '../content/federal';
 import { ADVISER_POOL } from '../content/names';
 import { PERSON_BY_ID } from '../content/people';
 import { BACKGROUNDS, NAMES_BY_ZONE, ROLE_SPECS, SPEC_NAME, TITLES, type Spec } from '../content/talent';
@@ -98,7 +99,7 @@ export function talent(s: GameState): Talent {
   const specOf: Record<string, Spec> = { Obidike: 'administration', Dankani: 'politics', Akinwale: 'media', Gwadabe: 'administration', Nwankwor: 'law', Gidado: 'politics' };
   for (const p of ADVISER_POOL) {
     t.pool.push({
-      id: `h${p.short}`, name: p.name, short: p.short, spec: specOf[p.short] ?? 'administration', zone: 'NC',
+      id: `h${p.short}`, name: p.name, short: p.short, spec: specOf[p.short] ?? 'administration', zone: ORIGIN[p.name] ?? 'NC',
       competence: p.competence, loyalty: p.loyalty, integrity: p.integrity, clout: p.clout, ambition: 1, patron: p.patron ?? 'president',
       rep: { competence: p.rep?.competence ?? p.competence, loyalty: p.rep?.loyalty ?? p.loyalty, integrity: p.integrity }, blurb: p.blurb ?? '', until: 999,
     });

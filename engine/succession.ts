@@ -2,6 +2,12 @@
 // the savings, the reforms, the half-built projects, the theatres, and the
 // consequences still on their way.
 
+import { PEOPLE } from '../content/people';
+import { zoneOf } from './federal';
+import { poolFor, replaceAdviser } from './advice';
+import { candidatesFor } from './talent';
+import { replaceMinisterWith } from './people';
+import { rivalOf } from './rivals';
 import { ORDER_BY_ID, TRACKS } from '../content/agenda';
 import { RIVAL_BY_ID } from '../content/people';
 import { runElection } from './election';
@@ -16,7 +22,7 @@ const initials = (name: string) => name.split(/\s+/).filter((w) => /^[A-Z]/.test
 
 /** Who holds the Villa after this presidency. */
 export function winnerOf(prev: GameState): Winner {
-  const rival = RIVAL_BY_ID[strongestRival(prev).id];
+  const rival = rivalOf(prev, strongestRival(prev).id);
   const own: Winner = { sameParty: true, party: prev.president.party, partyShort: prev.president.partyShort, how: '' };
   const other: Winner = { sameParty: false, party: rival.party, partyShort: initials(rival.party), rival: rival.id, how: '' };
   const ending = prev.ending ?? 'term_limit';
@@ -138,7 +144,45 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
     rel: w.sameParty ? 60 : 25, zone: prev.president.homeZone, home: prev.president.home,
   };
   s.predecessor = pred;
+  freshCabinet(s);
+  // From the other side: the rival slot of the party that won now belongs to the party that lost, under the outgoing Vice President.
+  if (!w.sameParty && w.rival) {
+    const lead = prev.vp ?? { name: `Senator ${prev.president.name.split(' ').slice(-1)[0]}`, short: prev.president.name.split(' ').slice(-1)[0] };
+    s.rivalSwap = { id: w.rival, name: lead.name, short: lead.short, party: prev.president.party };
+    s.opposition[w.rival] = Math.max(s.opposition[w.rival] ?? 30, 40);
+  } else {
+    s.rivalSwap = prev.rivalSwap;
+  }
   if (pred.kept >= 10 || pred.trail >= 4) s.flags['inherit.exposures'] = true;
   // What the last President did with the security vote decides what the drawer holds now.
   s.flags['pred.drawer'] = prev.flags['drawer.sealed'] ? 'sealed' : prev.flags['drawer.open'] ? 'took' : 'left';
+}
+
+/** A new President forms a new government: ministers and Villa staff from the talent pool, spread across the zones. */
+function freshCabinet(s: GameState): void {
+  const blocs = { ...s.blocs };
+  const tycoons = Object.fromEntries(Object.entries(s.tycoons).map(([k, v]) => [k, v.rel]));
+  const ministers = PEOPLE.filter((p) => p.group === 'minister');
+  const rels = Object.fromEntries(Object.entries(s.people).map(([k, v]) => [k, v.rel]));
+  const count: Record<string, number> = {};
+  const bump = (z?: string | null) => { if (z) count[z] = (count[z] ?? 0) + 1; };
+  bump(s.vp?.zone); bump(s.chars.fin ? zoneOf(s, s.chars.fin.name) : null);
+  const best = <T extends { c: { zone: string }; effective: number; refuses: string | null; fit: boolean }>(offers: T[]) =>
+    offers.filter((o) => !o.refuses && o.effective >= 3).sort((a, b) => (count[a.c.zone] ?? 0) - (count[b.c.zone] ?? 0) || Number(b.fit) - Number(a.fit) || b.effective - a.effective)[0];
+  for (const m of ministers) {
+    const o = best(candidatesFor(s, m.id, 99).filter((x) => x.fit));
+    if (!o) continue;
+    replaceMinisterWith(s, m.id, o);
+    bump(o.c.zone);
+  }
+  for (const role of ['cos', 'sap']) {
+    const o = best(poolFor(s, role));
+    if (!o || !s.chars[role]) continue;
+    replaceAdviser(s, role, o.c.name);
+    bump(o.c.zone);
+  }
+  // Forming a government is not a political event: undo the moods the replacements would otherwise move.
+  s.blocs = blocs;
+  for (const [k, v] of Object.entries(tycoons)) if (s.tycoons[k]) s.tycoons[k].rel = v;
+  for (const [k, v] of Object.entries(rels)) if (s.people[k] && !ministers.some((m) => m.id === k)) s.people[k].rel = v;
 }

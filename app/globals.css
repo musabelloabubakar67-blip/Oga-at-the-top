@@ -20,7 +20,8 @@
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
-html, body { height: 100%; }
+html { background: var(--color-pit); min-height: 100%; }
+body { min-height: 100%; }
 body {
   background: radial-gradient(1200px 700px at 50% -10%, #23262a 0%, var(--color-ground) 45%, var(--color-pit) 100%);
   background-attachment: fixed;

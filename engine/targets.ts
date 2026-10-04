@@ -3,6 +3,7 @@
 // target's zone. A hostile order is remembered by whoever it hit; and the same
 // weapon used again and again works less well each time.
 
+import { rivalOf } from './rivals';
 import { OUTLETS as PRESS } from '../content/press';
 import { PEOPLE, PERSON_BY_ID, RIVALS, RIVAL_BY_ID } from '../content/people';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
@@ -47,7 +48,7 @@ export function targetName(s: GameState, kind: TargetKind, id: string): { name: 
     return { name: s.people[id]?.name ?? p?.name ?? id, short: s.people[id]?.short ?? p?.short ?? id };
   }
   if (kind === 'tycoon') return { name: TYCOON_BY_ID[id]?.name ?? id, short: TYCOON_BY_ID[id]?.short ?? id };
-  if (kind === 'rival') return { name: RIVAL_BY_ID[id]?.name ?? id, short: RIVAL_BY_ID[id]?.short ?? id };
+  if (kind === 'rival') return RIVAL_BY_ID[id] ? { name: rivalOf(s, id).name, short: rivalOf(s, id).short } : { name: id, short: id };
   if (kind === 'state') { const n = STATE_BY_ID[id]?.name ?? id; return { name: `${n} State`, short: n }; }
   if (kind === 'paper') { const n = PRESS[id as keyof typeof PRESS]?.name ?? id; return { name: n, short: n }; }
   return { name: `the ${ZONE_NAME[id as ZoneId]}`, short: ZONE_NAME[id as ZoneId] };

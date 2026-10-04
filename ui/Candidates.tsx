@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { federalCharacter } from '../engine/federal';
 import { ZONE_NAME } from '../engine/vars';
 import { CHECK_PC, HUNT_PC, patronLabel, specName, type Offer } from '../engine/talent';
@@ -17,10 +18,21 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
   appoint: (name: string) => void; can: (name: string) => { ok: boolean; reason?: string }; label: string; left: number;
 }) {
   const fc = federalCharacter(s);
+  const [showAll, setShowAll] = useState(false);
+  const willing = offers.filter((o) => !o.refuses);
+  const unwilling = offers.length - willing.length;
+  const list = showAll ? offers : willing;
   return (
     <div className="mt-2">
+      {unwilling > 0 && (
+        <p className="mb-1 text-[13px] text-ink-soft">
+          {unwilling} more {unwilling === 1 ? 'person' : 'people'} would not take it.{' '}
+          <button onClick={() => setShowAll(!showAll)} className="underline hover:text-ink">{showAll ? 'Hide them' : 'Show who, and why'}</button>
+        </p>
+      )}
+      {!list.length && <p className="text-[13px] text-alarm">Nobody suitable will take it at the moment.</p>}
       <ul className="space-y-2">
-        {offers.map((o) => {
+        {list.map((o) => {
           const ok = can(o.c.name);
           const t = o.shown;
           return (

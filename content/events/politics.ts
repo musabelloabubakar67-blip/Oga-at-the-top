@@ -23,7 +23,7 @@ export const POLITICS: GameEvent[] = [
         id: 'carry', label: 'Carry the Senate along: three boards and a road',
         outcomes: [{
           result: 'All nominees are confirmed by voice vote before lunch. The Senate President describes them as "eminently qualified", and understands that he now owes you a small courtesy in return.',
-          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['pc', 3], ['person.sen_approp', 4]],
+          fx: [['bloc.party', 5], ['nation.integrity', -1.5], ['pc', 3], ['person.sen_pres', 4]],
           favour: ['sen_pres', 'owed', 1],
           flags: { 'senate.friendly': true },
           exposure: { kind: 'tolerated', amount: 0, witnesses: ['sen_pres'], trail: 0 },
