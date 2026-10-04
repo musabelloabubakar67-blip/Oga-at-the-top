@@ -851,7 +851,7 @@ function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; t
   );
 }
 
-function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Track; dispatch: Dispatch; priority: boolean }) {
+function TrackCard({ s, track, dispatch, priority, noteFor }: { s: GameState; track: Track; dispatch: Dispatch; priority: boolean; noteFor?: (id: string) => string | undefined }) {
   const foundations = track.milestones.filter((m) => (m.gen ?? 1) === 1);
   const settled = foundations.every((m) => s.agenda.done.includes(m.id) || (m.excludes ?? []).some((id) => s.agenda.done.includes(id)));
   const deepening = track.milestones.filter((m) => m.gen === 2);
@@ -873,7 +873,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
       {groups.filter((g) => g.rows.length).map((g) => (
         <section key={g.title} className="mt-3">
           <h4 className="label text-honour">{g.title}</h4>
-          <ol className="mt-2 space-y-3">{g.rows.map((m) => <ReformRow key={m.id} s={s} track={track} m={m} dispatch={dispatch} />)}</ol>
+          <ol className="mt-2 space-y-3">{g.rows.map((m) => <ReformRow key={m.id} s={s} track={track} m={m} dispatch={dispatch} note={noteFor?.(m.id)} />)}</ol>
         </section>
       ))}
     </div>
@@ -881,8 +881,7 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
 }
 
 function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
-  const [blockedOpen, setBlockedOpen] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(true);
   const [tracksOpen, setTracksOpen] = useState<Record<string, boolean>>({});
   const tracks = [...TRACKS].sort((a, b) => Number(s.agenda.tracks.includes(b.id)) - Number(s.agenda.tracks.includes(a.id)));
   const rows = tracks.flatMap((track) => track.milestones.map((m) => ({ track, m, status: milestoneStatus(s, m.id), can: canLaunch(s, m.id) })));
@@ -895,24 +894,36 @@ function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   const next = rows.filter((r) => r.status === 'next' && !featured.has(r.m.id));
   const ready = next.filter((r) => r.can.ok);
   const assembly = next.filter((r) => !r.can.ok && r.m.needs && !test(s, r.m.needs));
-  const blocked = next.filter((r) => !r.can.ok && !assembly.includes(r));
-  const render = (list: typeof rows) => (
-    <ul className="mt-2 grid items-start gap-3 md:grid-cols-2">
-      {list.map(({ track, m }) => <ReformRow key={m.id} s={s} track={track} m={m} dispatch={dispatch} showTrack note={m.id === attack ? `At risk of attack: ${who(s, loserOf(s, m.id)!).short} lost from this reform and may seek to weaken or repeal it.` : s.flags[`reversed.${m.id}`] ? 'Undone by a President. The country can restore it.' : undefined} />)}
-    </ul>
-  );
-  const sections = [{ title: 'Under way', rows: underWay }, { title: 'Emerging', rows: emerging }, { title: 'Needs attention', rows: attention }, { title: 'Ready now', rows: ready }, { title: 'Needs the Assembly', rows: assembly }];
+  // One list: every track folds, and its heading says what in it needs you.
+  const tally = (id: string): [number, string, string][] => {
+    const n = (list: typeof rows) => list.filter((r) => r.track.id === id).length;
+    const out: [number, string, string][] = [
+      [n(attention), 'needs attention', 'text-alarm'],
+      [n(underWay), 'under way', 'text-honour'],
+      [n(emerging), 'new', 'text-honour'],
+      [n(ready), 'ready', 'text-state-lit'],
+      [n(assembly), 'needs the Assembly', 'text-mute'],
+    ];
+    return out.filter(([k]) => k > 0);
+  };
+  const noteFor = (id: string) => id === attack ? `At risk of attack: ${who(s, loserOf(s, id)!).short} lost from this reform and may seek to weaken or repeal it.` : s.flags[`reversed.${id}`] ? 'Undone by a President. The country can restore it.' : undefined;
   return (
     <section>
       <p className="label text-mute">Your agenda · {s.agenda.active.length} of {agendaSlots(s)} reforms under way{s.agenda.active.length > CFG.agenda.easyLoad ? ` · beyond ${CFG.agenda.easyLoad}, each one costs ${CFG.agenda.loadPc} capital and ${CFG.agenda.loadParty} with the party a month` : ''}</p>
-      {sections.map((g) => <section key={g.title} className="mt-4"><h3 className="label text-honour">{g.title} · {g.rows.length}</h3>{g.rows.length ? render(g.rows) : <p className="mt-1 text-sm text-mute">None this month.</p>}</section>)}
-      <details className="mt-4" open={blockedOpen} onToggle={(e) => setBlockedOpen(e.currentTarget.open)}>
-        <summary className="label cursor-pointer text-honour">Blocked · {blocked.length}</summary>
-        {blockedOpen && (blocked.length ? render(blocked) : <p className="mt-1 text-sm text-mute">None this month.</p>)}
-      </details>
+      {underWay.length > 0 && (
+        <p className="mt-2 text-sm text-ivory/80">Under way: {underWay.map((r) => `${r.m.name} (${Math.round(Math.min(99, s.agenda.active.find((a) => a.id === r.m.id)?.progress ?? 0))}%)`).join(' · ')}</p>
+      )}
       <details className="mt-4" open={libraryOpen} onToggle={(e) => setLibraryOpen(e.currentTarget.open)}>
-        <summary className="label cursor-pointer text-honour">Full library · {TRACKS.length} tracks · {s.agenda.done.length} of {rows.length} delivered</summary>
-        {libraryOpen && <div className="mt-2 space-y-2">{tracks.map((t) => <details key={t.id} open={!!tracksOpen[t.id]} onToggle={(e) => { const open = e.currentTarget.open; setTracksOpen((old) => ({ ...old, [t.id]: open })); }}><summary className="cursor-pointer font-serif text-ivory">{t.name}{s.agenda.tracks.includes(t.id) ? ' · declared priority' : ''}</summary>{tracksOpen[t.id] && <TrackCard s={s} track={t} dispatch={dispatch} priority={s.agenda.tracks.includes(t.id)} />}</details>)}</div>}
+        <summary className="label cursor-pointer text-honour">Reform library · {TRACKS.length} tracks · {s.agenda.done.length} of {rows.length} delivered · {ready.length} ready now</summary>
+        {libraryOpen && <div className="mt-2 space-y-2">{tracks.map((t) => (
+          <details key={t.id} open={!!tracksOpen[t.id]} onToggle={(e) => { const open = e.currentTarget.open; setTracksOpen((old) => ({ ...old, [t.id]: open })); }}>
+            <summary className="cursor-pointer font-serif text-ivory">
+              {t.name}{s.agenda.tracks.includes(t.id) ? ' · declared priority' : ''}
+              {tally(t.id).map(([k, label, cls]) => <span key={label} className={`label ml-3 ${cls}`}>{k} {label}</span>)}
+            </summary>
+            {tracksOpen[t.id] && <TrackCard s={s} track={t} dispatch={dispatch} priority={s.agenda.tracks.includes(t.id)} noteFor={noteFor} />}
+          </details>
+        ))}</div>}
       </details>
       <Ventures s={s} dispatch={dispatch} />
     </section>
