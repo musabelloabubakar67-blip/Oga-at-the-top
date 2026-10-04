@@ -29,19 +29,20 @@ Everything the player can do shows its expected effect before and its measured e
 - **Elections and the end.** Midterm governorships, a re-election with a state-by-state count and a breakdown of every cause of the margin, or a succession where you groom and back an heir. The verdict grades you against what you inherited, keeps a private ledger of what you took, and decides life after office (elder statesman, investigated, exile, prison).
 - **Tooling.** A deterministic engine and a simulator that plays hundreds of presidencies with scripted strategies (reformer, machine politician, institutionalist, populist, kleptocrat, random).
 
-## 4. Balance today (simulator, 60 presidencies per strategy)
+## 4. Balance today (simulator, 40 presidencies per strategy, 4 October, with the cast and the nights)
 
 | Strategy | Re-elected |
 |---|---|
-| Reformer who times reforms well | about 80% |
-| Reformer taking reforms in any order | about 62% |
-| Clean institutionalist | about 62% |
-| Machine politician | about 42% |
-| Populist | about 38% |
-| Kleptocrat | about 13% |
+| Reformer who reads the advisers' record | about 90% |
+| Reformer who times reforms well | about 75% |
+| Reformer who trusts advisers | about 65% |
+| Populist | about 57% |
+| Clean institutionalist | about 55% |
+| Machine politician | about 53% (it steals narrow losses on election night, at a heavy cost) |
+| Kleptocrat | about 10% |
 | Does nothing | 0% |
 
-The owner has decided to leave the machine politician and the successor penalty where they are.
+Noise at 40 runs is about eight points either way. Before the autonomous cast the machine was about 40% and the kleptocrat about 23%: the people they leave cold now act against them.
 
 ## 5. What the playtests found
 
