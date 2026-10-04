@@ -475,7 +475,7 @@ export interface GameState {
   /** Each budget's oil forecast, checked against what oil did over the year. */
   oilForecasts?: { turn: number; said: number; by: string; sum: number; n: number }[];
   /** The Supreme Court. Seeded on first use. */
-  bench?: { seats: ({ name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string } | null)[]; packed: number; spent: string[] };
+  bench?: { seats: ({ name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string } | null)[]; packed: number; spent: string[]; /** Court of Appeal justices put forward as the named nominees run out. */ extra?: { name: string; short: string; lean: 'you' | 'free' | 'them'; integrity: number; blurb: string; senate: number; fx: [string, number][] }[]; seq?: number };
   /** Every order given, for wear-out. */
   orderLog?: { id: string; turn: number; target?: string }[];
   /** Who has been hit by a hostile order, and until when they will not forget. */

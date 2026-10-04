@@ -4,7 +4,8 @@
 // reform with an injunction. A bench packed with loyalists lets the President do
 // more and costs the country's trust; packing it is remembered.
 
-import { BENCH, NOMINEES, type Lean } from '../content/courts';
+import { BENCH, NOMINEES, type Lean, type NomineeDef } from '../content/courts';
+import { NAMES_BY_ZONE } from '../content/talent';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
 import { diff, snapshot } from './effects';
 import { rand } from './rng';
@@ -13,7 +14,7 @@ import type { Fx, GameState } from './types';
 import { applyFx, clamp, registerBench, senate } from './vars';
 
 export interface Justice { name: string; short: string; lean: Lean; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string }
-export interface Bench { seats: (Justice | null)[]; packed: number; spent: string[] }
+export interface Bench { seats: (Justice | null)[]; packed: number; spent: string[]; extra?: NomineeDef[]; seq?: number }
 
 export const NOMINATE_PC = 3;
 
@@ -44,11 +45,73 @@ export function benchVars(s: GameState): Record<string, number> {
   };
 }
 
+// The named nominees run out; the Court of Appeal does not. Each new name is drawn
+// from its own seeded sequence, so it is the same in every replay of the game.
+const MIN_CHOICE = 5;
+const ZONE_IDS = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'] as const;
+const BLURBS = {
+  free: [
+    'Fifteen years on the Court of Appeal. Writes plainly and is rarely reversed.',
+    'A former law faculty dean. Has views on the constitution and has published them.',
+    'Known for long hours and short judgments. Nobody has found the price.',
+    'Came up through the state high courts. Careful, and careful to be seen as careful.',
+  ],
+  freeWeak: [
+    'Respected on paper. Lawyers who appear before the court say the paper is not the whole story.',
+    'Has never written a dissent. Some call it collegiality.',
+  ],
+  you: [
+    'Was at law school with you and has stayed in touch. The Senate knows.',
+    'Recommended by your Attorney General, who describes the nominee as "sound".',
+  ],
+  youWeak: [
+    'Recommended by the party\'s legal committee. Rules the way the committee would.',
+    'Owes the appointment to the party and has said so at a fundraiser.',
+  ],
+};
+
+function prng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+function newNominee(s: GameState, b: Bench): NomineeDef {
+  b.seq = (b.seq ?? 0) + 1;
+  const r = prng((s.seed ?? 1) * 4099 + b.seq * 92821);
+  const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
+  const bank = NAMES_BY_ZONE[pick(ZONE_IDS)];
+  const female = r() < 0.4;
+  const taken = new Set([...NOMINEES.map((n) => n.name), ...(b.extra ?? []).map((n) => n.name), ...b.seats.map((j) => j?.name)]);
+  let first = pick(female ? bank.f : bank.m), last = pick(bank.last);
+  for (let i = 0; i < 6 && taken.has(`Justice ${first} ${last}`); i++) { first = pick(female ? bank.f : bank.m); last = pick(bank.last); }
+  const lean: Lean = r() < 0.3 ? 'you' : 'free';
+  const x = r();
+  const integrity = x < 0.1 ? 1 : x < 0.3 ? 2 : x < 0.65 ? 3 : x < 0.9 ? 4 : 5;
+  const weak = integrity <= 2;
+  const blurb = pick(lean === 'you' ? (weak ? BLURBS.youWeak : BLURBS.you) : (weak ? BLURBS.freeWeak : BLURBS.free));
+  // A friend of the President must get past the Senate; an honest friend is the hardest sell.
+  const senate = lean === 'you' ? 40 + 5 * integrity : 0;
+  const fx: [string, number][] = lean === 'you'
+    ? (weak ? [['bloc.party', 3], ['bloc.press', -4], ['nation.integrity', -2]] : [['bloc.press', -2]])
+    : integrity >= 4 ? [['bloc.press', 2], ['nation.integrity', 1]] : weak ? [] : [['bloc.establishment', 1]];
+  return { name: `Justice ${first} ${last}`, short: last, lean, integrity, senate, fx, blurb };
+}
+
+/** The named nominees who are friends of the President are this President's friends, not the next one's. */
+const named = (s: GameState) => NOMINEES.filter((n) => !(s.predecessor && n.lean === 'you'));
+
+/** Keeps at least five people who could be nominated. */
+function topUp(s: GameState, b: Bench): void {
+  const sitting = new Set(b.seats.map((j) => j?.name));
+  const free = () => [...named(s), ...(b.extra ?? [])].filter((n) => !b.spent.includes(n.name) && !sitting.has(n.name)).length;
+  while (free() < MIN_CHOICE) (b.extra ??= []).push(newNominee(s, b));
+}
+
 /** Who can be nominated now, and whether the Senate would confirm them. */
 export function nominees(s: GameState) {
   const b = bench(s);
   const sitting = new Set(b.seats.map((j) => j?.name));
-  return NOMINEES.filter((n) => !b.spent.includes(n.name) && !sitting.has(n.name)).map((n) => {
+  return [...named(s), ...(b.extra ?? [])].filter((n) => !b.spent.includes(n.name) && !sitting.has(n.name)).map((n) => {
     const sen = senate(s);
     return { ...n, confirms: sen >= n.senate, why: n.senate ? `The Senate confirms with support of ${n.senate} or better (now ${Math.round(sen)}).` : 'The Senate will confirm without a fight.' };
   });
@@ -71,10 +134,12 @@ export function nominate(s: GameState, seat: number, name: string): string {
   if (!n.confirms) {
     applyFx(s, ['pc', -3]);
     s.news.push({ chronicle: `SENATE REJECTS ${n.short.toUpperCase()} FOR SUPREME COURT`, street: `SENATE NO GREE FOR ${n.short.toUpperCase()}`, weight: 4, valence: -1, topic: 'politics', body: `${n.name} was rejected after a day of hearings. The seat stays empty.` });
+    topUp(s, b);
     return `The Senate rejects ${n.name}. The seat stays empty, and you have spent capital to be refused.`;
   }
   for (const f of n.fx) applyFx(s, f as Fx);
   b.seats[seat] = { name: n.name, short: n.short, lean: n.lean, integrity: n.integrity, blurb: n.blurb, retires: s.turn + 120, mine: true };
+  topUp(s, b);
   if (n.lean === 'you') {
     b.packed += 1;
     if (b.packed === 3) {
@@ -102,6 +167,7 @@ export function contested(id: string): boolean {
 
 export function courtTick(s: GameState): void {
   const b = (s.bench ??= seed(s));
+  topUp(s, b);
   // Retirements.
   b.seats.forEach((j, i) => {
     if (!j || j.retires > s.turn) return;
