@@ -140,6 +140,8 @@ export function getVar(s: GameState, path: string): number {
     case 'termTurn': return termTurnOf(s.turn);
     case 'exposure':
       if (p[1] === 'kept') return s.purseTaken.personal;
+      // Money taken for yourself, which is what an asset declaration would show.
+      if (p[1] === 'personal') return s.exposures.filter((e) => e.kind === 'personal').reduce((a, e) => a + e.amount, 0) + s.purse;
       if (p[1] === 'political') return s.exposures.filter((e) => e.kind === 'political').reduce((a, e) => a + e.amount, 0);
       return p[1] === 'total' ? s.exposures.reduce((a, e) => a + e.amount, 0) : s.exposures.length;
     case 'rel': return s.chars[p[1]]?.rel ?? 0;

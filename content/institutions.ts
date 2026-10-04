@@ -42,7 +42,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['nation.integrity', 0.06], ['pressure.scandalHeat', -0.15], ['bloc.party', -0.05]],
     crooked: [['nation.integrity', -0.04], ['pressure.scandalHeat', -0.3], ['bloc.press', -0.05]],
     fiscal: -0.004, abolishPc: 6, abolish: [['bloc.press', -5], ['nation.integrity', -3]],
-    ramp: 9, record: [{ label: 'Cases opened', per: 3 }, { label: 'Convictions', per: 0.6 }, { label: 'Money recovered', per: 6, unit: '₦bn' }],
+    ramp: 9, record: [{ label: 'Investigations opened', per: 3 }, { label: 'Money recovered', per: 6, unit: '₦bn' }],
   },
   {
     id: 'jobs', name: 'A national youth jobs corps', pc: 0, naira: 0.4,

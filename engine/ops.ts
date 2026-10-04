@@ -11,6 +11,7 @@ import { DEBT_BY_ID, FUND_BY_ID } from '../content/treasury';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { VENTURE_BY_ID } from '../content/ventures';
 import { delay, rescue, rescueCost } from './bets';
+import { charge } from './cases';
 import { tycoonDeal, who } from './favours';
 import { addOwed } from './ledger';
 import { addMark, deal, replaceMinister } from './people';
@@ -95,6 +96,7 @@ export function runOp(s: GameState, op: Op2): string {
     case 'betrescue': s.counters[`trouble.${a}`] = s.turn; return rescue(s, String(a));
     case 'betdelay': s.counters[`trouble.${a}`] = s.turn; return delay(s, String(a));
     case 'betseen': s.counters[`trouble.${a}`] = s.turn; return '';
+    case 'charge': charge(s, String(a), String(b), Number(c ?? 0)); return '';
     case 'sack': return replaceMinister(s, String(a), b === 'party' ? 'party' : 'technocrat').text;
     case 'finleave': {
       // The Finance Minister goes. The next is whichever of the other candidates is still available.
@@ -174,6 +176,7 @@ export function opText(s: GameState, op: Op2): string | null {
       return v ? `Costs ${naira(rescueCost(v))} and 3 capital. Odds of "${v.name}" improve by 12 points` : null;
     }
     case 'betdelay': return 'The opening is put back, giving you time to fix what is wrong';
+    case 'charge': return `${String(a) === 'pred' ? 'Your predecessor' : who(s, String(a)).name} is charged: the case goes to trial, and you can follow it`;
     case 'sack': return `${who(s, String(a)).name} is replaced by a ${b === 'party' ? 'party nominee' : 'technocrat'}`;
     case 'finleave': return 'The Finance Minister leaves the government';
     case 'forgive': return `${who(s, String(a)).short} lets the grievance go`;

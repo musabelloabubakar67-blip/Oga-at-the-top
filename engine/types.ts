@@ -467,7 +467,7 @@ export interface GameState {
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
-  assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
+  assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean; /** Expansions finished, and the month the one under way finishes. */ level?: number; expanding?: number; /** What it has done, in its own units. */ record?: Record<string, number> }[];
   /** Other things put in a state: abandoned sites, monuments. */
   placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
   /** The naira: official and street rates, reserves ($bn), the central bank's stance, the last year of rates. */
@@ -481,6 +481,8 @@ export interface GameState {
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** What orders have built that keeps running, and who heads each. */
+  /** Prosecutions under way and decided: who, for what, and where it stands. */
+  cases?: { id: string; who: string; name: string; what: string; opened: number; stage: 'charged' | 'trial'; months: number; trialFrom?: number; recover: number; by: 'agency' | 'prosecutors'; backed?: boolean; leaned?: boolean; outcome?: 'convicted' | 'acquitted' | 'dropped' | 'fled'; closed?: number }[];
   institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; spec?: string; fit?: boolean }; since: number; seen?: boolean; /** When it was set up, for ramp-up; `since` is when the head took over. */ founded?: number; funding?: 'lean' | 'standard' | 'generous'; /** What it has done since it was set up, in its own units. */ record?: Record<string, number> }[];
   /** Every adviser's forecasts, checked against what happened. */
   advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
@@ -556,6 +558,8 @@ export type Action =
   | { type: 'VENTURE_DELAY'; id: string }
   | { type: 'VENTURE_RESCUE'; id: string }
   | { type: 'VENTURE_REVIVE'; id: string }
+  | { type: 'CASE'; id: string; op: 'back' | 'drop' }
+  | { type: 'EXPAND_ASSET'; id: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

@@ -6,6 +6,7 @@ import { PEOPLE } from '../content/people';
 import { CFG, termTurnOf } from './config';
 import { bench, benchVars, contested } from './courts';
 import { activeShocks } from './shocks';
+import { convictionOdds, openCases, trialLength } from './cases';
 import { grievances, targetName, type TargetKind } from './targets';
 import type { GameState } from './types';
 import { who } from './favours';
@@ -22,6 +23,10 @@ export function upcoming(s: GameState): Coming[] {
   const toElection = CFG.electionTermTurn - tt;
   if (s.term === 1 && toElection > 0 && toElection <= 12) out.push({ months: toElection, text: `The election in ${toElection} ${toElection === 1 ? 'month' : 'months'}`, tone: 'neutral', go: 'country' });
   if (s.term === 2 && tt >= 12 && tt < 34 && !s.flags['succession.backed']) out.push({ months: 34 - tt, text: `The party picks its candidate in ${34 - tt} months: groom a successor`, tone: 'neutral', go: 'power', tab: 'succession' });
+  for (const c of openCases(s)) {
+    const left = c.stage === 'charged' ? 3 - c.months + trialLength(s) : Math.max(1, trialLength(s) - (s.turn - (c.trialFrom ?? s.turn)));
+    if (left <= 4) out.push({ months: left, text: `Verdict on ${c.name}: ${Math.round(convictionOdds(s, c).p * 100)}% to convict`, tone: 'neutral', go: 'power', tab: 'courts' });
+  }
   if (s.budget.due) out.push({ months: 0, text: s.budget.pending ? 'The Assembly has sent back its version of the budget' : 'The budget is waiting to be signed', tone: 'bad', go: 'treasury' });
   if (canSupplementary(s).ok) out.push({ months: 0, text: `Oil is $${Math.round(Math.abs(s.oil.price - s.budget.benchmark))} ${s.oil.price > s.budget.benchmark ? 'above' : 'below'} the budget: a supplementary budget is possible`, tone: 'neutral', go: 'treasury' });
 

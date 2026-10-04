@@ -155,7 +155,7 @@ export const SCANDAL: GameEvent[] = [
         outcomes: [{
           result: 'The Minister is dismissed and arraigned. He arrives at court in a wheelchair he did not need the previous week.',
           fx: [['nation.integrity', 5], ['bloc.press', 6], ['bloc.street', 4], ['bloc.party', -10], ['approval', 2.5], ['pressure.scandalHeat', -15], ['person.gov_ss', -10]],
-          ops: [['governors', -2]],
+          ops: [['charge', 'special', 'Workshops that never happened: ₦31bn', 0.031], ['governors', -2]],
           flags: { 'minister.special': 'prosecuted' },
           news: ['EX-MINISTER ARRAIGNED OVER ₦31BN', 'WORKSHOP MINISTER LANDS FOR COURT — ON WHEELCHAIR'],
           archive: 'Dismissed and prosecuted the Minister of Special Duties.', sig: 3,

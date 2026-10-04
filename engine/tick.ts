@@ -1,3 +1,4 @@
+import { caseTick } from './cases';
 import { CFG, dateLabel } from './config';
 import { capitalIncome } from './capital';
 import { describe } from './effects';
@@ -86,6 +87,7 @@ export function economyTick(s: GameState): void {
   policyTick(s);
   // What has been built keeps running.
   institutionTick(s);
+  caseTick(s);
   assetTick(s);
 
   // The example is followed: exposure erodes integrity slowly.

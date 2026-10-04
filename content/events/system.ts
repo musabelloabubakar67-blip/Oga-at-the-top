@@ -895,7 +895,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'The minister is dismissed at noon and arraigned within the month. The party is very quiet.',
           fx: [['nation.integrity', 4], ['approval', 2], ['bloc.press', 5], ['bloc.party', -6], ['pressure.scandalHeat', -10]],
-          ops: [['sack', '$WHO', 'technocrat'], ['seen', '$WHO'], ['storyend', 'minister']],
+          ops: [['charge', '$WHO', 'Eleven contracts to companies at two addresses', 0.04], ['sack', '$WHO', 'technocrat'], ['seen', '$WHO'], ['storyend', 'minister']],
           news: ['PRESIDENT SACKS {WHO_SHORT}; MINISTER TO FACE TRIAL', '{WHO_SHORT} DON ENTER WAHALA. PRESIDENT HAND AM OVER'],
           archive: 'Dismissed and prosecuted {WHO}.', sig: 3,
         }],
@@ -983,6 +983,7 @@ export const SYSTEM: GameEvent[] = [
     body: [
       'The anti-corruption agency has completed its investigation of {WHO}, who {WHO_TITLE}. Charges will be filed on Monday.',
       '{WHO_SHORT} telephoned at midnight. He did not ask for anything. He said he hoped you would remember who your friends are.',
+      { when: v('inst.graft', '>=', 0), text: 'It is the agency you set up that built this case. Its chief will learn what you decide, and so will every investigator under the chief.' },
     ],
     reads: [
       { role: 'sap', good: 'A governor who owes you his liberty is worth more than a governor who likes you, {SIR}. He is also a witness to what you did.' },
@@ -1012,7 +1013,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'The charges are filed. He is photographed on the steps of the court. He tells the cameras he is the victim of a witch-hunt directed from the Villa.',
           fx: [['person.$WHO', -16], ['nation.integrity', 2.5], ['bloc.press', 3], ['bloc.party', -4]],
-          ops: [['governors', -2]],
+          ops: [['charge', '$WHO', 'Theft of state funds while governor', 0.15], ['governors', -2]],
           news: ['{WHO_SHORT} ARRAIGNED ON CORRUPTION CHARGES', 'DEM DON CARRY {WHO_SHORT} GO COURT'],
           archive: 'Allowed the prosecution of {WHO} to proceed.', sig: 2,
         }],

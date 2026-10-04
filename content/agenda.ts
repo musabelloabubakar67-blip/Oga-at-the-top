@@ -151,7 +151,7 @@ const RAW: Track[] = [
       {
         id: 'c3', name: 'Public asset declarations, starting with yours', pc: 12, naira: 0, months: 2,
         lasting: 'Integrity rises a little every month you take nothing for yourself. Anything you do take is noticed half as much again.',
-        needs: { v: ['exposure.count', '==', 0] }, needsText: 'You cannot publish what is in the drawer.',
+        needs: { v: ['exposure.personal', '<', 1] }, needsText: 'A declaration would show money you have taken for yourself, or that is sitting in the drawer. Campaign money and political deals are not assets and do not block it.',
         blurb: 'Yours first, then the cabinet, then everyone on the federal payroll above director.',
         start: [['bloc.villa', -5]],
         done: [['nation.integrity', 7], ['approval', 3], ['bloc.press', 4]],

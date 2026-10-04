@@ -3,13 +3,14 @@
 // that fail leave a site behind. Each state's figures are its zone's, plus
 // what has been put there. What is put in a state shows in how it votes.
 
-import { ASSETS } from '../content/assets';
+import { ASSETS, EXPANSION } from '../content/assets';
 import { STATES, STATE_BY_ID } from '../content/states';
 import { VENTURE_BY_ID } from '../content/ventures';
 import { REHEAD_PC, headsFor, type Head } from './institutions';
 import { release, take } from './talent';
 import type { Fx, GameState } from './types';
 import { applyFx, clamp } from './vars';
+import { buildCost, payBuild } from './treasury';
 
 export function assets(s: GameState): NonNullable<GameState['assets']> {
   return s.assets ?? [];
@@ -28,6 +29,7 @@ export function assetPerformance(s: GameState, id: string): { k: number; why: st
   const captured = leans(a.head);
   if (captured) { k *= 0.6; why.push(`${a.head.name} runs it for someone else`); }
   if (a.head.integrity <= 2) { k *= 0.85; why.push('Its manager takes a cut'); }
+  if (a.level) { k *= 1 + EXPANSION.gain * a.level; why.push(`Expanded ${a.level === 1 ? 'once' : 'twice'}: +${Math.round(EXPANSION.gain * a.level * 100)}%`); }
   return { k, why, captured };
 }
 
@@ -41,7 +43,9 @@ export function assetFx(s: GameState, id: string): Fx[] {
 export function assetFiscal(s: GameState, id: string): number {
   const d = ASSETS[id];
   if (!d) return 0;
-  return d.fiscal > 0 ? d.fiscal * assetPerformance(s, id).k : d.fiscal;
+  const level = assets(s).find((x) => x.id === id)?.level ?? 0;
+  // Bigger costs more to keep running; what earns, earns with how well it runs.
+  return d.fiscal > 0 ? d.fiscal * assetPerformance(s, id).k : d.fiscal * (1 + 0.15 * level);
 }
 
 export function assetFiscalLines(s: GameState): { label: string; value: number; hint: string }[] {
@@ -51,8 +55,40 @@ export function assetFiscalLines(s: GameState): { label: string; value: number; 
   });
 }
 
+/** What a further expansion costs: a share of what the bet cost to build. */
+export function expansionCost(s: GameState, id: string): { naira: number; pc: number; months: number } {
+  return { naira: Math.round((VENTURE_BY_ID[id]?.naira ?? 0.5) * EXPANSION.share * 20) / 20, pc: EXPANSION.pc, months: EXPANSION.months };
+}
+
+export function canExpand(s: GameState, id: string): { ok: boolean; reason?: string } {
+  const a = assets(s).find((x) => x.id === id);
+  if (!a) return { ok: false };
+  if (a.expanding) return { ok: false, reason: 'An expansion is already being built.' };
+  if ((a.level ?? 0) >= EXPANSION.max) return { ok: false, reason: 'It is as large as the site allows.' };
+  const c = expansionCost(s, id);
+  if (s.pc < c.pc) return { ok: false, reason: `Needs ${c.pc} political capital.` };
+  if (buildCost(s, c.naira, true).treasury > s.nation.fiscalSpace + 0.3) return { ok: false, reason: 'There is not the money in the treasury.' };
+  return { ok: true };
+}
+
+export function expand(s: GameState, id: string): string {
+  const a = assets(s).find((x) => x.id === id)!;
+  const c = expansionCost(s, id);
+  s.pc = clamp(s.pc - c.pc, 0, 100);
+  payBuild(s, c.naira, true);
+  a.expanding = s.turn + c.months;
+  return `Work begins on expanding ${ASSETS[id].name.toLowerCase()}. In about ${c.months} months it will produce a quarter more.`;
+}
+
 export function assetTick(s: GameState): void {
   for (const a of assets(s)) {
+    if (a.expanding && s.turn >= a.expanding) {
+      a.expanding = undefined;
+      a.level = (a.level ?? 0) + 1;
+      s.news.push({ chronicle: `${ASSETS[a.id].name.toUpperCase()} EXPANDED`, street: `${ASSETS[a.id].name.replace(/^The /, '').toUpperCase()} DON BIG PASS BEFORE`, weight: 3, valence: 1, topic: 'bet', body: 'The expansion opened on schedule.' });
+    }
+    const k = assetPerformance(s, a.id).k;
+    for (const r of ASSETS[a.id].record) (a.record ??= {})[r.label] = (a.record[r.label] ?? 0) + r.per * k;
     for (const f of assetFx(s, a.id)) applyFx(s, f);
     if (!leans(a.head)) continue;
     const p = a.head.patron;

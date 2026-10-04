@@ -22,6 +22,7 @@ export const INSTITUTION_FILES: GameEvent[] = [
         outcomes: [{
           result: 'Charges are filed on a Tuesday. {WHO} resigns on the Wednesday. The agency\'s phone lines are busy for a week with people who suddenly remember things.',
           fx: [['nation.integrity', 4], ['bloc.press', 4], ['bloc.party', -4], ['person.$WHO', -25], ['approval', 1.5]],
+          ops: [['charge', '$WHO', 'Contracts, transfers and a house abroad', 0.06]],
           news: ['ANTI-GRAFT AGENCY CHARGES SERVING MINISTER', 'DEM DON CHARGE MINISTER. NA REAL THING?'],
           archive: 'Let the anti-corruption agency charge {WHO}.', sig: 3,
         }],

@@ -24,7 +24,7 @@ export const SITUATIONAL: Order[] = [
   // ---------------------------------------------------------------- the first hundred days
   {
     ...moment, id: 'assets', name: 'Publish your own assets on day one', pc: 0, naira: 0, cooldown: 0, window: 5,
-    when: all({ turn: [1, 6] }, v('exposure.count', '==', 0)),
+    when: all({ turn: [1, 6] }, v('exposure.personal', '<', 1)),
     blurb: 'Before anyone asks. It will never be this cheap again, and it binds you for the rest of the term.',
     result: 'The declaration is published in full. Three newspapers print it. The cabinet reads it with visible unease.',
     fx: [['nation.integrity', 4], ['bloc.press', 6], ['approval', 2], ['bloc.villa', -4]],

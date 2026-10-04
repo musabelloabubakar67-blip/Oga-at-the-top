@@ -1,5 +1,6 @@
 'use client';
 
+import { Cases } from './Cases';
 import { Inline, Overlay, CloseButton } from './shell';
 import { Aimed } from './Aimed';
 import { Candidates } from './Candidates';
@@ -504,7 +505,10 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
   const [seat, setSeat] = useState<number | null>(null);
   return (
     <div className="mt-4">
-      <p className="text-sm text-ink-soft">
+      <h3 className="label border-b rule pb-1 text-ink-soft">Prosecutions</h3>
+      <Cases s={s} dispatch={dispatch} />
+      <h3 className="label mt-5 border-b rule pb-1 text-ink-soft">The Supreme Court</h3>
+      <p className="mt-2 text-sm text-ink-soft">
         The Supreme Court hears the election petition on appeal, challenges to orders that hit someone hard, and applications to freeze reforms.
         {' '}A challenge decided today would go {f.against} against you, {f.for} for you{f.unsure ? `, ${f.unsure} for whoever reaches them first` : ''}.
         {' '}{v.loyal >= 4 ? 'Four or more owe you their seats: the petition cannot be lost.' : v.honest >= 4 ? 'Four or more cannot be reached: a dirty campaign can be annulled.' : 'Neither side has four.'}

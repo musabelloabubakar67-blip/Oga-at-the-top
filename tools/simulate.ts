@@ -34,6 +34,7 @@ import { built, canEstablish, canReplaceHead, headsFor } from '../engine/institu
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { fiscalFlow } from '../engine/treasury';
 import { dependence } from '../engine/dependence';
+import { assetFiscal, canExpand, expansionCost } from '../engine/places';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
 import type { Choice, DeskItem, Fx, GameEvent, GameState, ZoneId } from '../engine/types';
@@ -304,6 +305,10 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       // A failed bet is tried once more when its odds are now decent.
       if (canRevive(s, id).ok && ventureOdds(s, v) >= 0.5 && s.pc > reviveCost(s, v).pc + 12) { s = applyAction(s, { type: 'VENTURE_REVIVE', id }); revived++; }
     }
+    // What is built and earning gets more money when there is money to spare.
+    for (const a of s.assets ?? []) {
+      if (canExpand(s, a.id).ok && assetFiscal(s, a.id) > 0 && s.nation.fiscalSpace > expansionCost(s, a.id).naira + 1.5 && s.pc > 20) s = applyAction(s, { type: 'EXPAND_ASSET', id: a.id });
+    }
     // What each kind of President builds, and whom they put in charge.
     const builds: Record<string, [string[], 'rep' | 'party' | 'civil']> = {
       Reformer: [['delivery', 'power', 'tax', 'zone', 'fund'], 'rep'], Institutionalist: [['graft', 'delivery', 'policing'], 'rep'],
@@ -484,7 +489,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   const dims: Record<string, number> = {};
   let elApp = 0, elMargin = 0, elN = 0, elParty = 0;
   const margins: number[] = [];
-  let shocks = 0, dep = 0;
+  let shocks = 0, dep = 0, casesN = 0, convicted = 0, expanded = 0;
   const loose: Record<string, number> = {};
   let months = 0, reelected = 0, quiet = 0, unique = 0, app = 0, hard = 0, personal = 0;
   let assetsN = 0, abandonedN = 0, betsWon = 0, betsLost = 0, reforms = 0, arrears = 0, debt = 0, saved = 0, gone = 0, owing = 0;
@@ -500,6 +505,8 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
     if (s.flags['election.won']) reelected++;
     shocks += s.shocks?.seen.length ?? 0;
     dep += dependence(s).v;
+    expanded += (s.assets ?? []).reduce((x, a) => x + (a.level ?? 0), 0);
+    casesN += (s.cases ?? []).length; convicted += (s.cases ?? []).filter((c) => c.outcome === 'convicted').length;
     for (const id of s.agenda.done) if (/^[rhog][0-9]$/.test(id)) loose[id] = (loose[id] ?? 0) + 1;
     if (s.election) { elApp += s.election.approval; elMargin += s.election.margin; elN++; margins.push(s.election.margin); }
     unique += Object.keys(s.fired).length;
@@ -518,7 +525,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   console.log(`   after     ${Object.entries(afters).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · assets ${(assetsN / runs).toFixed(1)}, abandoned ${(abandonedN / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
-  console.log(`   oil dependence at the end ${(dep / runs).toFixed(0)}% · loose reforms ${Object.entries(loose).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' ') || 'none'}`);
+  console.log(`   expansions ${(expanded / runs).toFixed(2)} · cases ${(casesN / runs).toFixed(1)}, convicted ${(convicted / runs).toFixed(1)} · oil dependence at the end ${(dep / runs).toFixed(0)}% · loose reforms ${Object.entries(loose).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' ') || 'none'}`);
   if (revived) { console.log(`   failed bets revived ${(revived / runs).toFixed(2)} per presidency`); revived = 0; }
   console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)} · shocks ${(shocks / runs).toFixed(1)}\n`);
 }

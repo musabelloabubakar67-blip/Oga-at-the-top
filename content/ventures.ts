@@ -445,7 +445,7 @@ export const VENTURES: Venture[] = [
     when: done('c2'), opened: 'Anti-corruption courts with time limits',
     blurb: 'Forty years of it sits in property and accounts abroad. Foreign courts will return it to a government whose own hands are clean.',
     risks: [
-      { id: 'clean', label: 'Nothing in your own drawer', ok: v('exposure.count', '==', 0), cost: 0.3, warn: 'A foreign prosecutor has asked, politely, about certain transfers out of the Villa.', fail: 'The foreign courts looked at your own record and declined to help. The list that leaked had your people on it.', fix: 'This cannot be fixed once there is something in the drawer.' },
+      { id: 'clean', label: 'Nothing in your own drawer', ok: v('exposure.personal', '<', 1), cost: 0.3, warn: 'A foreign prosecutor has asked, politely, about certain transfers out of the Villa.', fail: 'The foreign courts looked at your own record and declined to help. The list that leaked had your people on it.', fix: 'This cannot be fixed once there is something in the drawer.' },
       reform('c4', 'An independent prosecutor', 0.22), minister('min_justice', 'Attorney General', 0.15),
     ],
     win: [['nation.fiscalSpace', 1.8], ['nation.integrity', 4], ['approval', 3], ['bloc.press', 4]],

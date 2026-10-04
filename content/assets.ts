@@ -17,9 +17,33 @@ export interface AssetDef {
   fx: Fx[];
   /** What it is called once it runs. */
   name: string;
+  /** What it counts, each month, at a manager of ordinary competence. */
+  record: { label: string; per: number; unit?: string }[];
 }
 
-export const ASSETS: Record<string, AssetDef> = {
+/** The running record of each asset. */
+const RECORDS: Record<string, AssetDef['record']> = {
+  refinery: [{ label: 'Barrels refined', per: 2.7, unit: 'million' }, { label: 'Petrol imports replaced', per: 9, unit: '₦bn' }],
+  steel: [{ label: 'Steel rolled', per: 40, unit: 'thousand tonnes' }, { label: 'People employed', per: 0.4, unit: 'thousand' }],
+  charter: [{ label: 'Firms registered', per: 30 }, { label: 'Residents', per: 2.5, unit: 'thousand' }],
+  cannabis: [{ label: 'Tonnes exported', per: 18 }, { label: 'Licensed farmers', per: 120 }],
+  lithium: [{ label: 'Lithium refined', per: 1.2, unit: 'thousand tonnes' }, { label: 'Export earnings', per: 14, unit: '₦bn' }],
+  rail: [{ label: 'Passengers carried', per: 160, unit: 'thousand' }, { label: 'Freight moved', per: 45, unit: 'thousand tonnes' }],
+  nuclear: [{ label: 'Electricity generated', per: 720, unit: 'GWh' }],
+  games: [{ label: 'Events hosted', per: 3 }, { label: 'Visitors', per: 40, unit: 'thousand' }],
+  export_power: [{ label: 'Electricity sold abroad', per: 260, unit: 'GWh' }, { label: 'Earned', per: 12, unit: '₦bn' }],
+  smelter: [{ label: 'Aluminium cast', per: 14, unit: 'thousand tonnes' }, { label: 'Export earnings', per: 15, unit: '₦bn' }],
+  gold: [{ label: 'Gold bought into the reserves', per: 0.4, unit: 'tonnes' }, { label: 'Royalties', per: 20, unit: '₦bn' }],
+  hub: [{ label: 'Containers handled', per: 25, unit: 'thousand' }, { label: 'Firms trading', per: 12 }],
+  rice: [{ label: 'Rice exported', per: 22, unit: 'thousand tonnes' }, { label: 'Farmers paid', per: 2, unit: 'thousand' }],
+  wheat: [{ label: 'Wheat harvested', per: 30, unit: 'thousand tonnes' }, { label: 'Hectares irrigated', per: 2.5, unit: 'thousand' }],
+  car: [{ label: 'Cars built', per: 1.8, unit: 'thousand' }, { label: 'People employed', per: 0.3, unit: 'thousand' }],
+  petrochem: [{ label: 'Fertiliser and plastics made', per: 60, unit: 'thousand tonnes' }, { label: 'Export earnings', per: 20, unit: '₦bn' }],
+  hospital: [{ label: 'Patients treated', per: 9, unit: 'thousand' }, { label: 'Patients who did not fly abroad', per: 0.8, unit: 'thousand' }],
+  coastal: [{ label: 'Vehicles a month on the road', per: 180, unit: 'thousand' }, { label: 'Hours of travel saved', per: 1.2, unit: 'million' }],
+};
+
+const DEFS: Record<string, Omit<AssetDef, 'record'>> = {
   refinery: { name: 'The rehabilitated refinery', sites: ['RI', 'DE', 'KD'], fiscal: 0.012, fx: [['pressure.fuelSupplyStress', -0.4], ['nation.jobs', 0.01]] },
   steel: { name: 'The steel complex', sites: ['KO', 'DE', 'ED'], fiscal: 0.01, fx: [['nation.jobs', 0.03]] },
   charter: { name: 'The charter city', sites: ['LA', 'OG', 'AK', 'CR', 'DE'], fiscal: 0.012, fx: [['nation.jobs', 0.04]] },
@@ -39,3 +63,8 @@ export const ASSETS: Record<string, AssetDef> = {
   hospital: { name: 'The hospital city', sites: ['FC', 'LA', 'EN', 'KN'], fiscal: -0.003, fx: [['bloc.press', 0.01]] },
   coastal: { name: 'The coastal highway', sites: ['LA', 'OG', 'ON', 'DE', 'BY', 'RI', 'AK', 'CR'], fiscal: -0.002, fx: [['nation.jobs', 0.02]] },
 };
+
+export const ASSETS: Record<string, AssetDef> = Object.fromEntries(Object.entries(DEFS).map(([id, d]) => [id, { ...d, record: RECORDS[id] ?? [] }]));
+
+/** Each expansion: more output for more money. */
+export const EXPANSION = { max: 2, gain: 0.25, months: 6, share: 0.4, pc: 3 };

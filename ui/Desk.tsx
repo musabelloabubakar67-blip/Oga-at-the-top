@@ -1,6 +1,7 @@
 'use client';
 
 import { useContext, useState } from 'react';
+import { Cases } from './Cases';
 import { Inline, Overlay, Preview, usePreview, CloseButton } from './shell';
 import { EVENTS } from '../content';
 import { ORDER_BY_ID, TRACKS, type Order } from '../content/agenda';
@@ -18,7 +19,7 @@ import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { forecastChallenge } from '../engine/courts';
-import { assetFiscal, assetFx, assetPerformance, assets, canSetManager, local } from '../engine/places';
+import { assetFiscal, assetFx, assetPerformance, assets, canExpand, canSetManager, expansionCost, local } from '../engine/places';
 import { runElection } from '../engine/election';
 import { upcoming } from '../engine/upcoming';
 import { bench } from '../engine/courts';
@@ -507,6 +508,12 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
                   {i.head.name}{i.head.spec ? `, ${i.head.spec}${i.head.fit ? '' : ' working outside their field'}` : ''} · {Math.max(0, s.turn - i.since)} months in post. {i.seen ? <span className="text-alarm">It has been serving someone other than you; output is cut and the patron is the better for it.</span> : null}
                 </p>
                 {perf.why.length > 0 && <p className="text-[13px] text-ink-soft">{perf.why.join('. ')}.</p>}
+                {i.id === 'graft' && (
+                  <div className="mt-2">
+                    <p className="label text-ink-soft">Its cases · every charge followed to a verdict</p>
+                    <Cases s={s} dispatch={dispatch} />
+                  </div>
+                )}
                 <span className="mt-1 block"><Expected items={year(monthlyFx(s, i.id))} label="A year of it" /></span>
                 {(() => {
                   const line = institutionFiscalLines(s).find((l) => l.label === d.name);
@@ -813,6 +820,7 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   const locked = VENTURES.filter((v) => v.opened && ventureStatus(s, v.id) === 'open' && !ventureVisible(s, v));
   const fresh = available.filter((v) => v.opened);
   const failed = VENTURES.filter((v) => ventureStatus(s, v.id) === 'lost');
+  const built = assets(s);
   return (
     <div className="mt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -848,6 +856,12 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
             );
           })}
         </ul>
+      )}
+      {built.length > 0 && (
+        <div className="mt-3">
+          <p className="label text-mute">Built and running · {built.length}</p>
+          <AssetCards s={s} dispatch={dispatch} left={movesLeft(s)} dark />
+        </div>
       )}
       {failed.length > 0 && (
         <div className="mt-3">
@@ -1516,9 +1530,71 @@ function CountryColumn({ s, next, onCountry }: { s: GameState; next: GameState |
 }
 
 /** Every state: its voters, its zone's mood, what has been put there, and how it would vote today. Then the assets that run in them. */
+/** Every big bet that worked: how it is running, what it has done, who runs it, and room to grow. */
+function AssetCards({ s, dispatch, left, dark }: { s: GameState; dispatch: Dispatch; left: number; dark?: boolean }) {
+  const [mgr, setMgr] = useState<string | null>(null);
+  const mine = assets(s);
+  const soft = dark ? 'text-ivory/60' : 'text-ink-soft';
+  const fmt = (v: number, unit?: string) => unit === '₦bn' ? `₦${Math.round(v).toLocaleString('en-GB')}bn` : `${v >= 100 ? Math.round(v).toLocaleString('en-GB') : (Math.round(v * 10) / 10).toLocaleString('en-GB')}${unit ? ` ${unit}` : ''}`;
+  return (
+    <ul className="mt-2 space-y-2">
+      {mine.map((a) => {
+        const perf = assetPerformance(s, a.id);
+        const fiscal = assetFiscal(s, a.id);
+        const d = ASSETS[a.id];
+        const ex = canExpand(s, a.id);
+        const cost = expansionCost(s, a.id);
+        return (
+          <li key={a.id} className={`border p-3 ${dark ? 'border-honour/30 bg-[#1a1d20] text-ivory' : 'border-ink/20'}`}>
+            <p className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-serif text-lg">{d.name}, {STATE_BY_ID[a.state].name}</span>
+              <span className={`label ${perf.captured ? (dark ? 'text-[#e08a7c]' : 'text-alarm') : soft}`}>running at {Math.round(perf.k * 100)}%{perf.captured ? ' · captured' : ''}{a.level ? ` · expanded ×${a.level}` : ''}</span>
+            </p>
+            <p className={`text-sm ${soft}`}>Managed by {a.head.name} since {dateLabel(a.since, s.startYear)}. {fiscal >= 0 ? 'Earns' : 'Costs'} {naira(Math.abs(fiscal) * 12)} a year.{perf.why.length ? ` ${perf.why.join('. ')}.` : ''}</p>
+            {d.record.length > 0 && (
+              <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                {d.record.map((r) => (
+                  <div key={r.label} className={`border px-2 py-1 ${dark ? 'border-ivory/10' : 'border-ink/10 bg-paper-dim/60'}`}>
+                    <p className={`label ${soft}`}>{r.label}, so far</p>
+                    <p className="font-serif text-lg">{fmt(a.record?.[r.label] ?? 0, r.unit)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Expected items={describe(assetFx(s, a.id).map(([t, x]) => [t, x * 12] as Fx))} label="A year" dark={dark} />
+            {a.expanding && <p className={`mt-1 text-[13px] ${soft}`}>An expansion is being built: it opens in {Math.max(1, a.expanding - s.turn)} months.</p>}
+            <div className="mt-1.5 flex flex-wrap gap-2 text-sm">
+              <button disabled={!ex.ok} title={ex.reason} onClick={() => dispatch({ type: 'EXPAND_ASSET', id: a.id })}
+                className={`border px-2.5 py-1 ${ex.ok ? (dark ? 'border-honour/50 text-honour hover:bg-honour/10' : 'border-state/60 hover:bg-state/10') : 'border-ink/10 opacity-45'}`}>
+                Invest more · {naira(cost.naira)}, {cost.pc} capital · +25% in {cost.months} months
+              </button>
+              <button onClick={() => setMgr(mgr === a.id ? null : a.id)} className={`border px-2.5 py-1 ${dark ? 'border-ivory/25 hover:border-ivory/50' : 'border-ink/30 hover:border-state'}`}>{mgr === a.id ? 'Keep the manager' : `Replace the manager · ${REHEAD_PC} capital`}</button>
+            </div>
+            {!ex.ok && ex.reason && <p className={`mt-1 text-[13px] ${soft}`}>{ex.reason}</p>}
+            {mgr === a.id && (
+              <ul className="mt-1 space-y-1">
+                {headsFor(s, 'asset').filter((h) => h.name !== a.head.name).map((h) => {
+                  const can = canSetManager(s, a.id, h.name, left);
+                  return (
+                    <li key={h.name}>
+                      <button disabled={!can.ok} title={can.reason} onClick={() => { dispatch({ type: 'SET_MANAGER', id: a.id, name: h.name }); setMgr(null); }}
+                        className={`w-full border px-2 py-1 text-left text-sm ${can.ok ? (dark ? 'border-ivory/20 hover:border-honour' : 'border-ink/20 hover:border-state') : 'border-ink/10 opacity-50'}`}>
+                        <span className="font-serif">{h.name}</span> <span className={soft}>· {h.spec ? `${h.spec} · ` : ''}said to be {repWords(h.rep)}{h.refuses ? ` · will not take it: ${h.refuses}` : ''}{h.blurb ? `. ${h.blurb}` : ''}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function StatesTable({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
   const [sort, setSort] = useState<'margin' | 'voters' | 'zone'>('margin');
-  const [mgr, setMgr] = useState<string | null>(null);
   const proj = runElection(structuredClone(s), s.term === 2 ? 'succession' : 'reelection', true);
   const rows = proj.states.map((r) => ({ ...r, margin: r.share - r.opp, local: local(s, r.id) }));
   rows.sort((a, b) => (sort === 'voters' ? b.voters - a.voters : sort === 'zone' ? a.zone.localeCompare(b.zone) || a.margin - b.margin : a.margin - b.margin));
@@ -1563,38 +1639,7 @@ function StatesTable({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; 
       {mine.length > 0 && (
         <>
           <h3 className="label mt-6 border-b rule pb-1 text-ink-soft">Assets: what your big bets built</h3>
-          <ul className="mt-2 space-y-2">
-            {mine.map((a) => {
-              const perf = assetPerformance(s, a.id);
-              const fiscal = assetFiscal(s, a.id);
-              return (
-                <li key={a.id} className="border border-ink/20 p-3">
-                  <p className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-serif text-lg">{ASSETS[a.id].name}, {STATE_BY_ID[a.state].name}</span>
-                    <span className={`label ${perf.captured ? 'text-alarm' : 'text-ink-soft'}`}>running at {Math.round(perf.k * 100)}%{perf.captured ? ' · captured' : ''}</span>
-                  </p>
-                  <p className="text-sm text-ink-soft">Managed by {a.head.name} since {dateLabel(a.since, s.startYear)}. {fiscal >= 0 ? 'Earns' : 'Costs'} {naira(Math.abs(fiscal) * 12)} a year.{perf.why.length ? ` ${perf.why.join('. ')}.` : ''}</p>
-                  <Expected items={describe(assetFx(s, a.id).map(([t, x]) => [t, x * 12] as Fx))} label="A year" />
-                  <button onClick={() => setMgr(mgr === a.id ? null : a.id)} className="label mt-1 text-state hover:underline">{mgr === a.id ? 'Close' : `Replace the manager · ${REHEAD_PC} capital`}</button>
-                  {mgr === a.id && (
-                    <ul className="mt-1 space-y-1">
-                      {headsFor(s, 'asset').filter((h) => h.name !== a.head.name).map((h) => {
-                        const can = canSetManager(s, a.id, h.name, left);
-                        return (
-                          <li key={h.name}>
-                            <button disabled={!can.ok} onClick={() => { dispatch({ type: 'SET_MANAGER', id: a.id, name: h.name }); setMgr(null); }}
-                              className={`w-full border px-2 py-1 text-left text-sm ${can.ok ? 'border-ink/20 hover:border-state' : 'border-ink/10 opacity-50'}`}>
-                              <span className="font-serif">{h.name}</span> <span className="text-ink-soft">· {h.spec ? `${h.spec} · ` : ''}said to be {repWords(h.rep)}{h.refuses ? ` · will not take it: ${h.refuses}` : ''}{h.blurb ? `. ${h.blurb}` : ''}</span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <AssetCards s={s} dispatch={dispatch} left={left} />
         </>
       )}
     </>

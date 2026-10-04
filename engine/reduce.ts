@@ -1,3 +1,5 @@
+import { backCase, canBack, canDrop, dropCase } from './cases';
+import { canExpand, expand } from './places';
 import { EVENTS } from '../content';
 import { MILESTONE_BY_ID, ORDERS, ORDER_BY_ID, type Order } from '../content/agenda';
 import { CAST, FINANCE_CANDIDATES } from '../content/names';
@@ -766,6 +768,11 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'LAUNCH': launch(s, action.id, action.grease); break;
     case 'VENTURE': launchVenture(s, action.id, action.site); break;
     case 'VENTURE_REVIVE': revive(s, action.id); break;
+    case 'EXPAND_ASSET': if (canExpand(s, action.id).ok) note(s, expand(s, action.id)); break;
+    case 'CASE':
+      if (action.op === 'back' && canBack(s, action.id).ok) note(s, backCase(s, action.id));
+      if (action.op === 'drop' && canDrop(s, action.id).ok) note(s, dropCase(s, action.id));
+      break;
     case 'SET_MANAGER': if (canSetManager(s, action.id, action.name, movesLeft(s)).ok) {
       const b = snapshot(s);
       s.desk.actionsUsed += 1;
