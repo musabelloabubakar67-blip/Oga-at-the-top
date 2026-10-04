@@ -163,10 +163,10 @@ function weighFor(role: string, fx: Fx): number {
 
 /** How an adviser sees the country, in a phrase. */
 export function worldview(a: Adviser): string {
-  const brief = a.role === 'fin' ? 'by the books first' : a.role === 'sap' ? 'by what the crowd will say' : a.role === 'nsa' ? 'security first, everything else after'
-    : a.role === 'cos' ? 'by what keeps the house quiet' : 'from inside their own ministry';
+  const brief = a.role === 'fin' ? 'Reads everything by the books first.' : a.role === 'sap' ? 'Reads everything by what the crowd will say.' : a.role === 'nsa' ? 'Puts security first and everything else after.'
+    : a.role === 'cos' ? 'Judges everything by what keeps the house quiet.' : 'Sees the country from inside their own ministry.';
   const camp = a.patron === 'president' ? '' : a.patron === 'self' ? ' Known to look after themselves, and to believe that is how things get done.' : ` Close to ${patronName(a.patron)}, and sincerely believes what is good for them is good for the country.`;
-  return `Sees things ${brief}.${camp}`;
+  return `${brief}${camp}`;
 }
 
 /** How much an adviser's camp would gain from an option, as they weigh it. Belief, not instruction. */
