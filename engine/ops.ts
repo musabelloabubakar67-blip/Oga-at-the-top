@@ -17,7 +17,7 @@ import { addOwed } from './ledger';
 import { addMark, deal, replaceMinister } from './people';
 import { naira } from './text';
 import { pay } from './treasury';
-import { pledgeOp } from './promises';
+import { pledge, pledgeOp, pledgeOptions } from './promises';
 import type { DebtId, FundId, GameState, Op2, ZoneId } from './types';
 import { clamp, favoursOwing } from './vars';
 
@@ -54,6 +54,11 @@ export function runOp(s: GameState, op: Op2): string {
         return out;
       }
       return '';
+    }
+    case 'pledgewant': {
+      const id = String(a);
+      const o = pledgeOptions(s, id, 99).find((x) => x.kind === 'want');
+      return o?.ok ? pledge(s, id, 'want', undefined, o.text, o.months) : '';
     }
     case 'honour': case 'breakp': case 'settlep':
       return pledgeOp(s, name, String(a));

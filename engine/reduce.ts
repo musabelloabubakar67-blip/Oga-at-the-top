@@ -19,6 +19,8 @@ import { CFG, dateLabel, termTurnOf } from './config';
 import { syncDebt } from './ledger';
 import { buildDesk, chiefOfStaffNote } from './director';
 import { dispatchTick } from './dispatches';
+import { agencyTick } from './agency';
+import { maybeCollation, nightChoose, nightEnd, nightTick, nightWait } from './night';
 import { canHonour, honour, pledge, pledgeOptions, pledgeTick } from './promises';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
@@ -699,6 +701,8 @@ function advance(s: GameState): void {
   midterm(s);
   wrongedTick(s);
   pledgeTick(s);
+  agencyTick(s);
+  nightTick(s);
   talentTick(s);
   courtTick(s);
   shockTick(s);
@@ -725,6 +729,7 @@ function advance(s: GameState): void {
 
 /** What is stopping the month from ending, if anything. */
 export function blocked(s: GameState): string | null {
+  if (s.night) return 'The night is not over';
   if (s.desk.lead && !s.desk.lead.resolved) return 'A file is waiting';
   if (s.budget.due) return 'The budget is waiting';
   return null;
@@ -735,7 +740,8 @@ function endMonth(s: GameState): void {
   const tt = termTurnOf(s.turn);
   if (s.term === 1 && tt === CFG.electionTermTurn && !s.election && !s.flags['ticket.lost']) {
     s.election = runElection(s, 'reelection');
-    s.phase = 'election';
+    // A close count is a night before it is a result.
+    s.phase = maybeCollation(s) ? 'desk' : 'election';
     return;
   }
   advance(s);
@@ -872,6 +878,9 @@ export function applyAction(state: GameState, action: Action): GameState {
       record(s, 'pledge.honour', 'honour', 'politics', 'Kept a promise of a ministry.', 1);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
+    case 'NIGHT': nightChoose(s, action.option); break;
+    case 'NIGHT_WAIT': nightWait(s); break;
+    case 'NIGHT_END': nightEnd(s); break;
     case 'PRED_VISIT': if (canVisit(s, movesLeft(s)).ok) {
       const b = snapshot(s);
       s.desk.actionsUsed += 1;

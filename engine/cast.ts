@@ -75,6 +75,8 @@ export const SELECTORS: Record<string, Selector> = {
   /** The two people promised the same post, once they have compared notes. */
   clashA: (s) => (s.flags['clash.live'] ? String(s.flags['clash.a']) : null),
   clashB: (s) => (s.flags['clash.live'] ? String(s.flags['clash.b']) : null),
+  /** Whoever has decided to call the President this month. */
+  caller: (s) => (s.flags['cast.caller'] && s.people[String(s.flags['cast.caller'])] ? String(s.flags['cast.caller']) : null),
   /** A governor with something to hide and nobody yet holding it over him. */
   troubledGovernor: (s) => {
     const list = PEOPLE.filter((p) => p.group === 'governor' && p.temper !== 'principled' && !s.people[p.id]?.gone && favoursOwed(s, p.id).length === 0 && standing(s, p.id) < 72)

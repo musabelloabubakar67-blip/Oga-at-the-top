@@ -26,6 +26,7 @@ import { movesLeft, sackCost } from '../engine/reduce';
 import { competenceShown, following, seenCompetence } from '../engine/people';
 import { currentWant, grudgeLine } from '../engine/wants';
 import { PowersButton } from './Desk';
+import { fears, lastMove, leverage } from '../engine/agency';
 import { PUBLIC, canHonour, pledgeName, pledgeOptions, word } from '../engine/promises';
 import { roleKey } from '../engine/context';
 import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord, worldview } from '../engine/advice';
@@ -497,6 +498,16 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                   {!want && !st.gone && (st.grants ?? 0) > 0 && <p className="mt-2 text-[13px] text-ink-soft">Satisfied for now. They will ask again.</p>}
                   <Wronged s={s} id={p.id} />
                   {grudgeLine(s, p.id) && <p className={`mt-1 text-[13px] ${st.grudge ? 'text-alarm' : 'text-ink-soft'}`}>{grudgeLine(s, p.id)}</p>}
+                  {!st.gone && (() => {
+                    const f = fears(p.id);
+                    const m = lastMove(s, p.id);
+                    return (
+                      <div className="mt-2 text-[13px] leading-snug text-ink-soft">
+                        <p><span className="label mr-1">Leverage</span>{leverage(p.id)}.{f && <> <span className="label mx-1">Fears</span>{personView(s, f).name} getting closer to you than they are.</>}</p>
+                        {m && s.turn - m.turn <= 12 && <p className="mt-0.5"><span className="label mr-1">On their own, {s.turn - m.turn <= 0 ? 'this month' : `${mo(s.turn - m.turn)} ago`}</span>{m.text}</p>}
+                      </div>
+                    );
+                  })()}
                   {!st.gone && <PromiseMenu s={s} to={p.id} dispatch={dispatch} left={left} />}
 
                   {!st.gone && (

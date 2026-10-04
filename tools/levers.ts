@@ -28,6 +28,8 @@ function measure(s: GameState): Row {
 /** A month played without a strategy: every file gets its first open choice, the usual budget is signed. */
 function month(s: GameState): GameState {
   if (s.phase === 'papers') s = applyAction(s, { type: 'DISMISS_PAPER' });
+  for (let i = 0; i < 30 && s.night && !s.night.done; i++) s = applyAction(s, { type: 'NIGHT_WAIT' });
+  if (s.night) s = applyAction(s, { type: 'NIGHT_END' });
   if (s.phase === 'election') s = applyAction(s, { type: 'ELECTION_DONE' });
   for (const it of [s.desk.lead, ...s.desk.minors]) {
     if (!it || it.resolved) continue;

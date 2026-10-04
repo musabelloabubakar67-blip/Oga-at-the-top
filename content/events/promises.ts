@@ -48,3 +48,27 @@ export const PROMISE_FILES: GameEvent[] = [
     ],
   },
 ];
+
+const phone = { slot: 'minor', channel: 'phone', office: 'Phone', intensity: 1 } as const;
+
+// ON THEIR OWN INITIATIVE
+// Someone in the cast has decided this is the month to ask.
+
+export const CAST_FILES: GameEvent[] = [
+  {
+    ...phone, id: 'cast.call', kind: 'chain', category: 'politics', tone: 'dry',
+    cast: { A: 'caller' },
+    from: '{A}',
+    title: 'About the thing we discussed',
+    body: [
+      'Your Excellency, I will not take your time. You know what I have been asking for: {A_WANT} I am not asking today. I am asking when.',
+    ],
+    reads: [{ role: 'sap', good: 'A promise costs nothing today, {SIR}. It costs a great deal later if it is not kept, and {A_SHORT} keeps count.' }],
+    choices: [
+      { id: 'promise', label: 'Promise it, within nine months', outcomes: [{ result: '{A_SHORT} thanks you and writes the date down while you are still speaking.', ops: [['pledgewant', '$A']], archive: 'Promised a politician what they asked for, within nine months.' }] },
+      { id: 'grant', label: 'Give it now', outcomes: [{ result: '{A_SHORT} had expected to be asked to wait, and is briefly lost for words.', ops: [['grant', '$A']], archive: 'Gave a politician what they asked for, on the phone.' }] },
+      { id: 'no', label: '"Not this year."', outcomes: [{ result: 'There is a pause. {A_SHORT} says they understand. They do not.', fx: [['person.$A', -4]], archive: 'Told a politician their request would wait.' }] },
+    ],
+    ignored: { result: 'You did not call back. {A_SHORT} tells two colleagues you did not call back.', fx: [['person.$A', -3]], archive: 'Did not return a politician\'s call about what they wanted.' },
+  },
+];

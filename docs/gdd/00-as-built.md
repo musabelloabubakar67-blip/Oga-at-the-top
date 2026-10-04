@@ -20,6 +20,9 @@ Everything the player can do shows its expected effects before, and its measured
 
 **The screen** (desktop first; `ui/Desk.tsx`, `ui/shell.tsx`, `ui/StateMap.tsx`, `ui/Aimed.tsx`, `engine/upcoming.ts`). A rail on the left switches between six sections: the desk, orders, reforms and bets, power, the country and the Treasury, with a count on each that needs attention (unanswered files, new orders, empty seats on the court, the budget). A bar across the top shows the date, approval, capital, the treasury, moves and the re-election outlook, and holds the button that ends the month. Below it, a coming-up strip lists what will bite soon (the election, the succession, the budget, retirements and vacancies on the court, reforms that could be frozen, orders about to be challenged, grudges ending, shocks ending, reforms about to land, bets about to open); each item opens the section it concerns.
 - **The desk** has three columns: the brief (the Chief of Staff's briefing, what was just done, the consequences report), what needs deciding (the lead file, the budget, the phone, shocks under way) and the country (capital, gauges, blocs, the record).
+- **Dispatches** (`engine/dispatches.ts`). A large three-month movement in state capacity, integrity, power, security, jobs (2 points), inflation (1.5) or revenue (₦400bn) becomes a dispatch in the report, announced by the office that would announce it, crediting or blaming the past decision that most pushed that figure, from the archive, by size, weight and recency. At most two a month; the same figure not again for six months.
+- **What people are saying** (`engine/narrative.ts`). The papers' coverage is remembered (decaying 10% a month) by topic and tone and reduced to one line about the government, shown with the papers and in the briefing.
+- **Powers that bear on this** (`engine/context.ts`). A troubled gauge, a worry in the briefing, a decided file and each adviser's card offer up to three open orders that help with it, judged from each order's own effects, opening the usual order card. The Orders screen remains the full toolbox.
 - **The Chief of Staff's briefing** (`engine/attention.ts`) answers what deserves the President's attention this month, from what every system already knows: up to three things that can hurt the government (the Chief of Staff's weighted worries, then what the coming-up list says will bite), two openings (powers in their last month or new this month, the largest favour owed to you, good news on the calendar), and the story everyone is shouting about, shown only when the paper's lead is about something whose figures are calm. Each line opens the screen and tab where it is dealt with. A Chief of Staff of competence 2 or less sees only two threats.
 - **Previews.** Pointing at an order shows where it would leave approval, capital and the treasury in the top bar, and the gauges and blocs on the desk (the order is applied to a copy of the state; files with chance outcomes are not previewed).
 - **Orders** can be filtered to those aimed at someone or those possible now; institutions come last.
@@ -207,6 +210,31 @@ Every appointment draws on one pool of people (owner, 4 October): ministers (any
 - **Refusals.** A person of integrity 4 or more refuses a government whose integrity is under 32. Some of the most able refuse a President under 38% approval. Anyone whose patron is cold to you (under 35) or holds a grievance against you refuses. The reason is shown.
 - **It refreshes.** People stay available for 6 to 15 months, then move on, and new ones arrive. Someone who leaves a job goes back into the pool for eight months. Searching for more (3 capital and a move) brings three people in the job's field, one of them at least competence 4.
 
+### Promises (`engine/promises.ts`, the Promises tab under Politics and each person's card)
+
+The President's word is a currency that can be spent before it is earned. A promise costs a move and is one of: to a governor or senator, that they will name the next holder of a ministry; to a minister, that they keep their post for a year; to anyone (a politician or a businessman), what they currently want within nine months; to the public, no new taxes for a year, the subsidy kept for a year, or a reform or big bet under way delivered by a date.
+
+- **Made:** goodwill now, +8 standing (public: approval +1.5, the street +3), scaled by your record with them: +25% for each promise kept, −25% for each broken, and nothing at all once broken outnumbers kept by two.
+- **Kept** when what was promised happens (the want granted, the reform delivered, the bet opened), or, for the post, the taxes and the subsidy, when the year passes without it being broken: +6 standing (public: approval +1.5, street +3, press +2).
+- **Delayed:** in the last three months a reminder arrives and standing falls a point a month; due promises are in the Chief of Staff's briefing.
+- **Broken** at the deadline, or at once if the minister is removed, a tax is ordered, the subsidy goes or the bet fails: −18 standing and a grudge for two years; a public promise broken costs approval 3, the street 5, the press 4, and makes the papers.
+- **Contradictions.** Two promises about the same post (a ministry to two governors, or a ministry to a governor and its minister told they stay) work until the two compare notes: 8% a month, then a file (`promise.clash`) in which the President keeps one, buys both off (10 capital, ₦300bn), or denies it (integrity −2, scandal +6, and both tell the papers). A ministry promise can be kept directly from the Promises tab: the promised person's nominee takes the post, and anyone else promised it is let down.
+
+### The cast acts on its own (`engine/agency.ts`)
+
+Each named politician has aims (their current want, their temperament), a rival they fear gaining the President's ear (authored for twelve of them), and leverage (a governor's senators and delegates, the Senate floor, a ministry and its leaks). Each month at most two of them act, each no more than once in five months, with a chance that rises with how much the world pushes them:
+
+- **Call** (one at a time): a phone message asking when they will get what they want; promise it, give it now, or say not this year.
+- **Undermine** the rival they fear, when that rival stands ten points closer to you: their tie falls, the rival cools on you, and it is in the papers.
+- **Back your rival** when below 35 and not loyal: the strongest rival gains strength (1.2 × clout/4), a governor costs the party.
+- **Leak**, a minister or senator below 40: scandal heat and the press.
+- **Court the Vice President**, when ambitious or transactional, below 50, and the Vice President is cool on you: their tie rises and the Vice President cools further.
+- **Offer help**, when above 72: a favour owed to you, unasked.
+- **Protest**, the principled, when scandal heat is above 55 or integrity below 28.
+- **A pact** between two cold, not loyal politicians: their tie rises; once it reaches 70 they move party votes together (party −1), and a pact between big figures cools the Vice President.
+
+Ties between people are kept from 0 to 100. Each move appears in the report with the person's name, in the papers, on their card ("on their own, two months ago…") and, when it cuts against you, in the Chief of Staff's briefing.
+
 ### Favours (`engine/favours.ts`)
 
 A ledger running both ways. People who owe the President can be called on once: to deliver a zone, whip the Senate, drive a ministry, fund the campaign, quieten the press, stand up in public, or forget what they witnessed. A favour can also be attached to a decision on the desk, where it saves political capital and softens the political damage.
@@ -310,6 +338,19 @@ Tone rule: grave files carry no jokes, and every paper prints them straight.
 **Asset declarations.** The reform, the day-one order and the big bet that need a clean record check only money taken for yourself or held in the drawer (`exposure.personal`), not campaign money or political deals.
 
 **Inherited premises.** The calendar restarts at month one for every President, so a file's premise is checked against the world it fires in, not the default start: the true-arrears file needs real contractor arrears; the security vote is not offered if the predecessor put it on the books, and says so if they left it untouched (`pred.drawer`); the transmission-corridor tender needs the corridors unbuilt; the refinery minister's "mechanical completion" stops once the refinery has been rebuilt or is being rebuilt; and the reactive files that say "you ordered" or "the law you signed" read `mine.<id>`, which is true only for what this President did. Lines that once said "you" about reforms a predecessor may have delivered are worded neutrally.
+
+## 0.5b Nights (`engine/night.ts`, `content/setpieces.ts`, `ui/Night.tsx`)
+
+A normal month is strategic; a night is not. The clock moves only when the President acts (each option takes minutes) or waits (30 minutes). Beats arrive at their time if the state of the world allows them, so the cast moves without waiting: a cold governor posts something unhelpful, a restless Vice President calls party leaders, the least loyal adviser stops answering, the Chief of Army Staff is unreachable unless the service chiefs were replaced recently. Options close as the night goes on, by the clock or because something happened. What is really going on is drawn at the start from the state of the world and told at dawn, with what each decision turned out to mean; every option has different effects by truth. At most one night every ten months, each kind once a term.
+
+| Night | When it can happen | What might really be going on |
+|---|---|---|
+| The rumour (00:40) | Security below 35, approval below 38, a theatre at 75, or the chiefs just replaced; 8% a month | A training exercise; a few officers testing the water; a failed attempt |
+| The count (21:30) | Every close re-election (margin under 4): it runs before the declaration | You had won; you had lost. Police at the collation centres turn a narrow loss into a win at a heavy cost; conceding turns a narrow win into a loss |
+| The deadline (21:00) | Labour anger 70 or more; 12% | The union was bluffing; the union meant it |
+| The naira's Friday (20:00) | Street premium over 30% or reserves under $10bn; 10% | A few traders; real flight |
+| The water (23:00) | August to October; 8% | A small release; a large one |
+| The video (22:00) | Scandal heat 50 or more; 8% | Real and recent; real and six years old; doctored |
 
 ## 0.5a Shocks (`content/shocks.ts`, `engine/shocks.ts`)
 

@@ -4,6 +4,7 @@
 import { EVENT_LIST } from '../content';
 import { measureLevers } from './levers';
 import { eraShifts } from '../engine/era';
+import { nightOptions } from '../engine/night';
 import { winnerOf } from '../engine/succession';
 import { SCENARIOS } from '../content/scenarios';
 import { TYCOONS } from '../content/tycoons';
@@ -197,6 +198,19 @@ function advisedChoice(bot: Bot, s: GameState, e: GameEvent, item: DeskItem, opt
   return [...options].sort((a, b) => value(b) - value(a))[0];
 }
 
+/** A night: the careful act early and in the open; the cynical take the shortcuts; nobody sleeps through it unless they are a cynic. */
+function playNight(bot: Bot, s: GameState): GameState {
+  const careful = ['call', 'chiefs', 'vpcall', 'cj', 'statement', 'personal', 'deal', 'evacuate', 'boats', 'verify', 'court', 'tv'];
+  const cynical = ['police', 'declare', 'guard', 'injunction', 'nowork', 'close', 'defend', 'pull', 'sleep', 'quiet'];
+  const pref = bot.name === 'Kleptocrat' || bot.name === 'Machine' ? [...cynical, ...careful] : careful;
+  for (let i = 0; i < 40 && s.night && !s.night.done; i++) {
+    const open = nightOptions(s);
+    const pick = pref.find((id) => open.some((o) => o.id === id) && !s.night!.chosen.includes(id));
+    s = applyAction(s, pick && s.night.chosen.length < 3 ? { type: 'NIGHT', option: pick } : { type: 'NIGHT_WAIT' });
+  }
+  return applyAction(s, { type: 'NIGHT_END' });
+}
+
 /** The state of each presidency on the eve of its first election, for --probe. */
 const eve: Record<string, Record<string, number>[]> = {};
 
@@ -210,6 +224,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
   while (s.phase !== 'verdict' && guard++ < 2000) {
     if (s.phase === 'papers') { s = applyAction(s, { type: 'DISMISS_PAPER' }); continue; }
     if (s.phase === 'election') { s = applyAction(s, { type: 'ELECTION_DONE' }); continue; }
+    if (s.night) { s = playNight(bot, s); continue; }
     for (const item of [s.desk.lead, ...s.desk.minors]) {
       if (!item || item.resolved) continue;
       const e = eventOf(s, item)!;
@@ -231,6 +246,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         console.log(`\n[${dateLabel(s.turn, s.startYear)}] ${e.title}  → ${best.label}`);
         for (const t of tr) console.log(`     trace: ${t.turn <= 0 ? 'previous administration' : dateLabel(t.turn, s.startYear)} — ${t.headline}`);
       }
+      // A call asking for something: give it if it is cheap, otherwise say no; a bot does not make promises it will not keep.
+      if (e.id === 'cast.call') best = options.find((c) => c.id === 'grant' && (currentWant(s, String(item.cast?.A))?.naira ?? 0) <= s.nation.fiscalSpace - 0.3 && (currentWant(s, String(item.cast?.A))?.pc ?? 0) <= s.pc - 15) ?? options.find((c) => c.id === 'no') ?? best;
       // A President who has built someone up backs them; the first name on the list is the one groomed.
       if (e.id === 'succession.choice' && bot.name !== 'Random' && bot.name !== 'Do-nothing') best = options.find((c) => c.id === 'a') ?? best;
       s = applyAction(s, { type: 'CHOOSE', eventId: e.id, choiceId: best.id });

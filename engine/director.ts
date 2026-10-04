@@ -150,6 +150,8 @@ export function concerns(s: GameState): Concern[] {
   if (hot.length) notes.push([13, 'The security reports are bad, {SIR}. I would look at where the forces are concentrated.', 'country', undefined, 'security']);
   if (s.oil.price < s.budget.benchmark - 10 && s.funds.buffer < 0.2) notes.push([12, 'Oil is well below what the budget assumed and there is nothing in the stabilisation account, {SIR}. The gap comes out of the treasury.', 'treasury', undefined, 'oil']);
 
+  // What the cast did on their own last month that cuts against you.
+  for (const c of (s.castLog ?? []).filter((x) => x.turn >= s.turn - 1 && ['rival', 'vp', 'pact', 'undermine', 'leak'].includes(x.act))) notes.push([c.act === 'rival' || c.act === 'vp' ? 15 : 11, c.text, 'power', undefined, 'people']);
   for (const p of duePledges(s)) notes.push([16 - (p.due - s.turn) * 2, `You promised ${pledgeName(s, p)}: "${p.text}." ${p.due - s.turn <= 0 ? 'It is due now' : `${p.due - s.turn === 1 ? 'One month' : `${p.due - s.turn} months`} left`}, {SIR}.`, 'power', 'promises', 'people']);
   return notes.sort((a, b) => b[0] - a[0]);
 }

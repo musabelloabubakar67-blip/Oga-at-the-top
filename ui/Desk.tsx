@@ -3,6 +3,7 @@
 import { attention, type Item } from '../engine/attention';
 import { categoryKey, powersFor, topicKey } from '../engine/context';
 import { narrative } from '../engine/narrative';
+import { NightScreen } from './Night';
 import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
 import { midName } from '../engine/text';
@@ -1523,6 +1524,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
       {panel === 'budget' && s.budget.due && <BudgetModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'drawer' && <DrawerModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'archive' && <ArchiveModal s={s} onClose={() => setPanel(null)} />}
+      {s.night && s.phase === 'desk' && <NightScreen s={s} dispatch={dispatch} />}
       {panel === 'paper' && s.papers.length > 0 && s.phase === 'desk' && <Papers pages={s.papers} say={narrative(s)} onDismiss={() => setPanel(null)} />}
     </Preview.Provider>
   );

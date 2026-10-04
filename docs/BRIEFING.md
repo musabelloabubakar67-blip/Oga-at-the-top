@@ -63,15 +63,17 @@ A second reviewer's feedback was folded into one plan on 4 October, with the own
 | W2 | **Advisers with a worldview.** Bias is belief, not a hidden trait. Every adviser weighs by their brief; some are openly close to a camp and sincerely count its gain as the country's, so they are right whenever the two agree. Overruled advisers cool on you; a disloyal one may leak. The record shows whom followed advice has helped. | Replaces the secret "serves a patron" switch. |
 | W3 | **The era you inherit.** The next presidency inherits changed politics, not just numbers: a divided party, a kingmaker governor, a businessman who now owns a newspaper, an agency that takes no instructions, a power the Supreme Court took away, a defeated reform that is now the received view. | Six rules read from the last presidency, shown on the handover certificate. |
 
-**Gate:** people play Phase 1 before Phase 2 starts.
+**Gate lifted by the owner (4 October):** everything below was built straight through, without a playtest; the owner is playtesting it.
 
-### 6.2 Phase 2: the bigger bets
+### 6.2 Phase 2: built 4 October, in order of difficulty
 
-- **W4. The cast acts on its own.** Up to two people a month pursue their own aims with five verbs (ally, fund, leak, undermine, bargain), shown as named news or phone messages, and as a templated file when it touches the President. Promises (the cast's bargains and the President's own, with deadlines) and a one-line "what people say about this government" come with it. New state: ties between people and each person's current aim.
-- **W5. Reforms that cause politics.** Winners as well as losers for the 20 most important reforms, two templated files ("the losers come calling", "the winners want more"), and new placeholders so old files mention the President's latest promise, project and scandal.
-- **W6. One set piece: a disputed election night.** Built on the existing election-night screen: results arrive in order, a governor holds back a state, the rival declares at 02:00, the commission chair stops answering; options close as states declare, and declaring, sending police, conceding or going to court are irreversible before the delayed states arrive. A coup night waits until the military exists as a political actor.
+- **Consequence theatre.** Large three-month movements become dispatches from the office that would announce them, crediting the past decision that most pushed the figure, by name and date. The papers' coverage becomes one line on what people are saying about the government.
+- **Contextual actions.** A troubled gauge, a worry in the briefing, a decided file and each adviser's card offer the open powers that help, judged from the orders' own effects. The Orders screen stays as the toolbox.
+- **Promises.** First-class: a ministry, a post kept, what someone wants, or public pledges (no new taxes, the subsidy, a reform by a date). Kept builds credibility with that person or the public; delayed brings reminders; broken makes a grudge or a headline. The same post promised twice becomes a file when the two compare notes.
+- **The cast acts on its own.** Each named politician has aims, a rival they fear, and leverage; each month one or two call, undermine their rival, back yours, leak, court the Vice President, offer help, protest, or make pacts with each other.
+- **Set pieces.** One night engine and six nights: coup rumours, the count on a close election night, a strike deadline, a Friday run on the naira, a dam release upstream, a viral video of a minister. Information arrives late, the cast moves on its own beats, options close, decisions cannot be undone, and the truth is told at dawn.
 
-Not doing: an interface for a unified people engine, new stat bars, cutting orders (the measurement found almost none always beaten), hundreds more files.
+Not done: an interface for a unified people engine, new stat bars, cutting orders (the measurement found almost none always beaten), hundreds more files.
 
 ### 6.3 Proposed and not taken (for now)
 
@@ -107,3 +109,4 @@ Kept current as work lands. Newest last.
 | 4 Oct 2026 | — | Paused by the owner: people will play first, and steps D, B, C and E go ahead only where play shows they are needed |
 | 4 Oct 2026 | Plan | The second reviewer's feedback folded into the plan in section 6, delivered with as little code as possible. The consolidation steps are dropped. |
 | 4 Oct 2026 | W1–W3 | Phase 1 built: the Chief of Staff's briefing, advisers with a worldview, the era you inherit. |
+| 4 Oct 2026 | Phase 2 | Built without a playtest at the owner's request: consequence theatre and what people are saying, contextual actions, promises, the autonomous cast, and six nights on one set-piece engine. |

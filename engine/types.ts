@@ -260,6 +260,21 @@ export interface FrontPage {
   grave?: boolean;
 }
 
+/** A night played by the clock. Information arrives late, others move without waiting, options close, and what is decided cannot be undone. The truth is drawn at the start and told at dawn. */
+export interface Night {
+  id: string;
+  /** Minutes after midnight; may start before it. */
+  clock: number;
+  truth: string;
+  /** Who is in it tonight, by role, as names. */
+  cast: Record<string, string>;
+  seen: string[];
+  chosen: string[];
+  closed: string[];
+  log: { at: number; text: string; kind: 'beat' | 'you' }[];
+  done?: { title: string; text: string; changes: Change[] };
+}
+
 /** A promise the President made: to a person, a businessman, or the public. */
 export type PledgeKind = 'slot' | 'keep' | 'want' | 'project' | 'notax' | 'subsidy';
 export interface Pledge { id: number; to: string; kind: PledgeKind; object?: string; text: string; made: number; due: number; status: 'open' | 'kept' | 'broken'; closed?: number; snap?: number; holder?: string; warned?: boolean; clash?: number }
@@ -489,6 +504,12 @@ export interface GameState {
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** Promises made, kept and broken. */
   pledges?: Pledge[];
+  /** How the cast feel about each other, 'a|b' to 0..100; 50 when never set. */
+  ties?: Record<string, number>;
+  /** A set piece under way: a night played by the clock. */
+  night?: Night;
+  /** What the cast did on their own, newest last. */
+  castLog?: { turn: number; who: string; act: string; text: string; other?: string }[];
   /** What orders have built that keeps running, and who heads each. */
   /** When a President takes office from the other side, the rival slot of the winning party goes to the party that lost. */
   rivalSwap?: { id: string; name: string; short: string; party: string };
@@ -609,6 +630,9 @@ export type Action =
   | { type: 'HEADHUNT'; role: string }
   | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
   | { type: 'HONOUR'; id: number }
+  | { type: 'NIGHT'; option: string }
+  | { type: 'NIGHT_WAIT' }
+  | { type: 'NIGHT_END' }
   | { type: 'ESTABLISH'; id: string; head: string }
   | { type: 'REPLACE_HEAD'; id: string; head: string }
   | { type: 'ABOLISH'; id: string }
