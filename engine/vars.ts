@@ -202,7 +202,10 @@ export function getVar(s: GameState, path: string): number {
       return f.rate;
     }
     case 'era': return s.era;
-    case 'pred': return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
+    case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;
+    case 'pred': if (p[1] === 'rel') return s.predecessor?.rel ?? 50;
+      if (p[1] === 'active') return s.predecessor && !s.flags['pred.gone'] ? 1 : 0;
+      return p[1] === 'same' ? (s.predecessor?.sameParty ? 1 : 0) : p[1] === 'kept' ? (s.predecessor?.kept ?? 0) : s.predecessor ? 1 : 0;
     case 'granted': return (s.people[p[1]]?.granted || s.tycoons[p[1]]?.granted) ? 1 : 0;
     default: return 0;
   }
@@ -306,6 +309,8 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
     case 'person': { const who = s.people[p[1]]; if (who) who.rel = clamp(who.rel + delta, 0, 100); return note(); }
     // Permanent structural shifts earned by reform: bonus.fiscal, bonus.inflation, bonus.power
     case 'bonus': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
+    case 'pred': if (s.predecessor) s.predecessor.rel = clamp((s.predecessor.rel ?? 50) + delta, 0, 100); return note();
+    case 'vp': if (s.vp) s.vp.rel = clamp(s.vp.rel + delta, 0, 100); return note();
     // Lasting security measures: drift.<zone> moves a theatre every month, sec.* changes how theatres behave.
     case 'drift':
       for (const z of p[1] === 'all' ? ZONES : [p[1] as ZoneId]) s.counters[`drift.${z}`] = (s.counters[`drift.${z}`] ?? 0) + delta;

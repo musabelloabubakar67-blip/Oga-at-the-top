@@ -481,6 +481,8 @@ export interface GameState {
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** What orders have built that keeps running, and who heads each. */
+  /** The Vice President: the running mate, who may be the heir or a rival. */
+  vp?: { name: string; short: string; zone: ZoneId; competence: number; loyalty: number; integrity: number; clout: number; ambition: number; rel: number; since: number; blurb: string; portfolio?: number; sidelined?: boolean; briefing?: number };
   /** Where appointees from the talent pool come from, by name. */
   origins?: Record<string, ZoneId>;
   /** Prosecutions under way and decided: who, for what, and where it stands. */
@@ -527,6 +529,10 @@ export interface Predecessor {
   kept: number;
   trail: number;
   ending: EndingKind;
+  /** How the former President regards the new one, 0 to 100, and where they come from. */
+  rel?: number;
+  zone?: ZoneId;
+  home?: string;
 }
 
 export interface Setup {
@@ -581,6 +587,8 @@ export type Action =
   | { type: 'REPLACE_ADVISER'; role: string; name: string }
   | { type: 'NOMINATE'; seat: number; name: string }
   | { type: 'GROOM'; id: string }
+  | { type: 'VP'; op: 'portfolio' | 'sideline' | 'replace'; name?: string }
+  | { type: 'PRED_VISIT' }
   | { type: 'GROOM_CREDIT'; id: string; reform: string }
   | { type: 'CHECK_CANDIDATE'; id: string }
   | { type: 'HEADHUNT'; role: string }

@@ -135,6 +135,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   const pred: Predecessor = {
     name: prev.president.name, party: prev.president.party, epithet: v.epithet, sameParty: w.sameParty,
     kept: prev.purseTaken.personal, trail: prev.exposures.reduce((a, x) => a + x.trail, 0), ending: prev.ending ?? 'term_limit',
+    rel: w.sameParty ? 60 : 25, zone: prev.president.homeZone, home: prev.president.home,
   };
   s.predecessor = pred;
   if (pred.kept >= 10 || pred.trail >= 4) s.flags['inherit.exposures'] = true;

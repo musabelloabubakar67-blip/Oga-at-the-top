@@ -55,6 +55,8 @@ function metaFor(target: string): Meta | null {
   const money = (d: number) => `${d > 0 ? '+' : '−'}₦${Math.abs(d) >= 1 ? `${Math.abs(d).toFixed(1)}tn` : `${Math.round(Math.abs(d) * 1000)}bn`}`;
   if (p[0] === 'debt' && DEBT_BY_ID[p[1] as DebtId]) return { label: `Owed: ${DEBT_BY_ID[p[1] as DebtId].name.toLowerCase()}`, upIsGood: false, steps: [0.5, 1.2], fmt: money };
   if (p[0] === 'fund' && FUND_BY_ID[p[1] as FundId]) return { label: FUND_BY_ID[p[1] as FundId].name, upIsGood: true, steps: [0.5, 1.2], fmt: money };
+  if (p[0] === 'pred') return { label: 'The former President', upIsGood: true, steps: [6, 12], fmt: pts };
+  if (p[0] === 'vp') return { label: 'The Vice President', upIsGood: true, steps: [6, 12], fmt: pts };
   if (p[0] === 'tycoon' && TYCOON_BY_ID[p[1]]) return { label: TYCOON_BY_ID[p[1]].short, upIsGood: true, steps: [8, 16], fmt: pts };
   // A lasting monthly change to a theatre, shown as a year of it.
   if (p[0] === 'drift') return { label: `Threat, ${p[1] === 'all' ? 'every theatre' : ZONE_NAME[p[1] as ZoneId]}, every year`, upIsGood: false, steps: [1.2, 2.4], fmt: (d) => pts(Math.round(d * 12 * 10) / 10) };

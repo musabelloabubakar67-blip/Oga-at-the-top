@@ -1,5 +1,7 @@
 'use client';
 
+import { canPortfolio, canReplaceVP, PORTFOLIO_PC, REPLACE_VP_PC, vpCandidates, vpTarget } from '../engine/vp';
+import { canVisit, predEffect, predMood, PRED_VISIT_PC } from '../engine/predecessor';
 import { federalCharacter, posts } from '../engine/federal';
 import { Cases } from './Cases';
 import { Inline, Overlay, CloseButton } from './shell';
@@ -153,6 +155,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         <p className="mt-3 text-sm leading-snug text-ink-soft">{INTRO[tab]}</p>
         {said && <p className="fade-in mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>}
 
+        {tab === 'advisers' && <VicePresident s={s} dispatch={dispatch} left={left} />}
         {tab === 'advisers' && (
           <ul className="mt-4 space-y-3">
             {Object.keys(s.chars).map((role) => {
@@ -267,6 +270,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </>
         )}
 
+        {tab === 'opposition' && <FormerPresident s={s} dispatch={dispatch} left={left} />}
         {tab === 'opposition' && (
           <>
             <ul className={`mt-4 ${cards}`}>
@@ -573,6 +577,70 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
 }
 
 /** Who could succeed you, what each would bring, and grooming them. */
+function VicePresident({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const vp = s.vp;
+  const [swap, setSwap] = useState(false);
+  if (!vp) return null;
+  const tg = vpTarget(s);
+  const port = canPortfolio(s, left);
+  const working = vp.portfolio !== undefined && s.turn - vp.portfolio < 24;
+  const heir = s.flags['succession.backed'] === 'vp';
+  return (
+    <div className="mt-4 border border-state/40 p-4">
+      <p className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="font-serif text-xl">{vp.name}</span>
+        <span className={`font-serif ${vp.rel < 35 ? 'text-alarm' : vp.rel >= 60 ? 'text-state' : ''}`}>{vp.rel >= 70 ? 'Your partner' : vp.rel >= 50 ? 'Loyal' : vp.rel >= 35 ? 'Restless' : 'Working against you'}</span>
+      </p>
+      <p className="label text-ink-soft">Vice President · {ZONE_NAME[vp.zone]} · since {dateLabel(vp.since, s.startYear)}{working ? ' · chairs the economic council' : ''}{vp.sidelined ? ' · sidelined' : ''}{heir ? ' · your chosen successor' : ''}</p>
+      <Bar v={vp.rel} bad={vp.rel < 35} />
+      <p className="mt-2 text-sm leading-snug">{vp.blurb}</p>
+      <p className="mt-1 text-[13px] leading-snug text-ink-soft">
+        Competence {vp.competence}, loyalty {vp.loyalty}, integrity {vp.integrity}, clout {vp.clout}{vp.ambition >= 2 ? ', and ambitious' : ''}. {tg.why.length ? `${tg.why.join('. ')}.` : ''}
+        {' '}Carries the {ZONE_NAME[vp.zone]} at your re-election. {working && vp.rel >= 50 ? `The council work adds to state capacity every month.` : ''} {vp.rel < 35 ? 'A cold, ambitious Vice President briefs against you and strains the party every month.' : ''}
+        {' '}The Vice President can be groomed as your successor from the succession tab, with a head start for every year at your side.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button disabled={!port.ok} title={port.reason} onClick={() => dispatch({ type: 'VP', op: 'portfolio' })} className={btn(port.ok, 'good')}>Give the Vice President real work · {PORTFOLIO_PC} capital</button>
+        <button disabled={vp.sidelined || left <= 0} onClick={() => dispatch({ type: 'VP', op: 'sideline' })} className={btn(!vp.sidelined && left > 0, 'bad')}>Sideline the Vice President</button>
+        <button onClick={() => setSwap(!swap)} className={btn(true)}>{swap ? 'Keep the ticket' : 'Change the running mate'}</button>
+      </div>
+      {swap && (
+        <div className="mt-2">
+          {(() => { const c = canReplaceVP(s, '', left); return c.reason && c.reason !== 'Not available.' ? <p className="text-[13px] text-ink-soft">{c.reason}</p> : null; })()}
+          <Candidates s={s} role="vp" offers={vpCandidates(s)} dispatch={dispatch} left={left} label={`Make running mate · ${REPLACE_VP_PC} capital · 1 move`}
+            appoint={(name) => { dispatch({ type: 'VP', op: 'replace', name }); setSwap(false); }} can={(name) => canReplaceVP(s, name, left)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormerPresident({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const p = s.predecessor;
+  if (!p) return null;
+  const gone = !!s.flags['pred.gone'];
+  const rel = p.rel ?? 50;
+  const can = canVisit(s, left);
+  return (
+    <div className="mt-4 border border-ink/25 p-4">
+      <p className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="font-serif text-xl">President {p.name} (former)</span>
+        <span className={`font-serif ${rel < 35 ? 'text-alarm' : rel >= 60 ? 'text-state' : ''}`}>{gone ? 'Out of the picture' : predMood(rel)}</span>
+      </p>
+      <p className="label text-ink-soft">{p.party}{p.sameParty ? ' · your own party' : ' · the other party'}{p.zone ? ` · ${ZONE_NAME[p.zone]}` : ''} · remembered as {p.epithet}</p>
+      {!gone && <Bar v={rel} bad={rel < 35} />}
+      <p className="mt-2 text-sm leading-snug">{gone ? 'Convicted, or abroad and out of reach. The influence went with the freedom.' : predEffect(s)}</p>
+      {!gone && (
+        <>
+          <p className="mt-1 text-[13px] leading-snug text-ink-soft">The former President asks for things through files: a post, a road, an audit left alone. How you answer moves this. A case against them ends the friendship; a conviction ends the influence.</p>
+          <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'PRED_VISIT' })} className={`mt-2 ${btn(can.ok, 'good')}`}>Call on the former President · {PRED_VISIT_PC} capital · +10</button>
+          {!can.ok && can.reason && <span className="ml-2 text-[13px] text-ink-soft">{can.reason}</span>}
+        </>
+      )}
+    </div>
+  );
+}
+
 function Federal({ s }: { s: GameState }) {
   const f = federalCharacter(s);
   const ps = posts(s);

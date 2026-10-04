@@ -76,6 +76,14 @@ function generate(s: GameState, t: Talent, spec?: Spec, floor = 1): Candidate {
   };
 }
 
+/** Someone from outside the pool, from one of these zones: a running mate, for instance. */
+export function generatePerson(s: GameState, spec: Spec, zones: ZoneId[], floor = 2): Candidate {
+  const t = talent(s);
+  let c = generate(s, t, spec, floor);
+  for (let i = 0; i < 30 && !zones.includes(c.zone); i++) c = generate(s, t, spec, floor);
+  return c;
+}
+
 function traitLine(rep: Candidate['rep']): string {
   const c = rep.competence >= 4 ? 'Said to be very good at the job' : rep.competence <= 2 ? 'Said to be out of their depth' : 'Said to be competent';
   const l = rep.loyalty >= 4 ? 'and loyal' : rep.loyalty <= 2 ? 'and their own person' : 'and reliable enough';

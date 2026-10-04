@@ -30,6 +30,7 @@ export function posts(s: GameState): Post[] {
     const c = s.chars[id];
     if (c) out.push({ name: c.name, post, zone: zoneOf(s, c.name), weight: 1 });
   }
+  if (s.vp) out.push({ name: s.vp.name, post: 'Vice President', zone: s.vp.zone, weight: 1 });
   for (const i of s.institutions ?? []) out.push({ name: i.head.name, post: 'Head of an institution', zone: zoneOf(s, i.head.name), weight: 0.5 });
   for (const a of s.assets ?? []) out.push({ name: a.head.name, post: 'Manager of an asset', zone: zoneOf(s, a.head.name), weight: 0.5 });
   return out;

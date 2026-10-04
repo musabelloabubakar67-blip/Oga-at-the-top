@@ -35,12 +35,13 @@ const CLOSES = 36;
 const TEMPER_INTEGRITY: Record<string, number> = { principled: 5, loyal: 3, ambitious: 3, transactional: 2 };
 
 export function candidateIds(s: GameState): string[] {
-  return [...PEOPLE.filter((p) => !s.people[p.id]?.gone).map((p) => p.id), ...(s.chars.fin ? ['fin'] : [])];
+  return [...(s.vp ? ['vp'] : []), ...PEOPLE.filter((p) => !s.people[p.id]?.gone).map((p) => p.id), ...(s.chars.fin ? ['fin'] : [])];
 }
 
 /** Where a possible successor comes from. */
 export function heirZone(s: GameState, id: string): ZoneId | null {
   if (id === 'fin') return s.chars.fin ? zoneOf(s, s.chars.fin.name) : null;
+  if (id === 'vp') return s.vp?.zone ?? null;
   const p = PERSON_BY_ID[id];
   if (!p) return null;
   return p.zone ?? zoneOf(s, personView(s, id).name);
@@ -50,7 +51,10 @@ export function candidate(s: GameState, id: string): Candidate {
   const groomed = s.counters[`groom.${id}`] ?? 0;
   const why: string[] = [];
   let clout: number, competence: number, integrity: number, rel: number, name: string, title: string;
-  if (id === 'fin') {
+  if (id === 'vp') {
+    const vp = s.vp!;
+    clout = vp.clout; competence = vp.competence; integrity = vp.integrity; rel = vp.rel; name = vp.name; title = 'Vice President';
+  } else if (id === 'fin') {
     const c = s.chars.fin;
     clout = 2; competence = c.competence; integrity = c.integrity; rel = 50 + (c.loyalty - 3) * 10; name = c.name; title = 'Minister of Finance';
   } else {
@@ -66,6 +70,7 @@ export function candidate(s: GameState, id: string): Candidate {
   const early = s.counters[`groomEarly.${id}`] ?? 0;
   if (early) { strength += Math.min(2, early) * 0.2; why.push('Built up since the first term: the country is used to the idea'); }
   if (clout >= 4) why.push('Has a structure of their own');
+  if (id === 'vp') { const years = Math.floor((s.turn - (s.vp?.since ?? s.turn)) / 12); const b = Math.min(1, 0.25 * years); strength += b; if (b) why.push(`${years} ${years === 1 ? 'year' : 'years'} as Vice President: already the government's second face (+${b})`); }
   const zone = heirZone(s, id);
   if (zone) {
     why.push(`Would carry the ${ZONE_NAME[zone]} as their home zone`);
@@ -75,7 +80,7 @@ export function candidate(s: GameState, id: string): Candidate {
   }
   if (clout <= 2) why.push('Has no structure: the party barely knows them');
   if (competence >= 4) why.push('A record that can be campaigned on');
-  if (id !== 'fin' && PERSON_BY_ID[id].group === 'minister') {
+  if (PERSON_BY_ID[id]?.group === 'minister') {
     const f = following(s, id);
     strength += f * 0.3;
     if (f >= 2) why.push('A following earned in office');
@@ -84,7 +89,7 @@ export function candidate(s: GameState, id: string): Candidate {
   const wrongs = grievances(s, id).length;
   let loyalty = rel - wrongs * 15 + groomed * 5 + credits * 4;
   if (wrongs) why.push(`Remembers ${wrongs === 1 ? 'what you did to them' : `${wrongs} things you did to them`}`);
-  if (id !== 'fin' && PERSON_BY_ID[id].temper === 'ambitious') { loyalty -= 10; why.push('Ambitious: gratitude will not last'); }
+  if (PERSON_BY_ID[id]?.temper === 'ambitious' || (id === 'vp' && (s.vp?.ambition ?? 0) >= 2)) { loyalty -= 10; why.push('Ambitious: gratitude will not last'); }
   return { id, name, title, strength: Math.round(clamp(strength, -2, 4) * 10) / 10, loyalty: clamp(Math.round(loyalty), 0, 100), integrity, groomed, why };
 }
 

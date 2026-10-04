@@ -96,6 +96,7 @@ export function runOp(s: GameState, op: Op2): string {
     case 'betrescue': s.counters[`trouble.${a}`] = s.turn; return rescue(s, String(a));
     case 'betdelay': s.counters[`trouble.${a}`] = s.turn; return delay(s, String(a));
     case 'betseen': s.counters[`trouble.${a}`] = s.turn; return '';
+    case 'vpbrief': if (s.vp) { s.vp.portfolio = s.turn; s.vp.sidelined = false; } return '';
     case 'charge': charge(s, String(a), String(b), Number(c ?? 0)); return '';
     case 'sack': return replaceMinister(s, String(a), b === 'party' ? 'party' : 'technocrat').text;
     case 'finleave': {
@@ -176,6 +177,7 @@ export function opText(s: GameState, op: Op2): string | null {
       return v ? `Costs ${naira(rescueCost(v))} and 3 capital. Odds of "${v.name}" improve by 12 points` : null;
     }
     case 'betdelay': return 'The opening is put back, giving you time to fix what is wrong';
+    case 'vpbrief': return 'The Vice President is given the economic council for two years';
     case 'charge': return `${String(a) === 'pred' ? 'Your predecessor' : who(s, String(a)).name} is charged: the case goes to trial, and you can follow it`;
     case 'sack': return `${who(s, String(a)).name} is replaced by a ${b === 'party' ? 'party nominee' : 'technocrat'}`;
     case 'finleave': return 'The Finance Minister leaves the government';

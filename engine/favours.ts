@@ -31,6 +31,7 @@ export function who(s: GameState, id: string): Who {
     const st = s.people[id];
     return { name: st?.name ?? p.name, short: st?.short ?? p.short, title: p.title };
   }
+  if (id === 'vp' && s.vp) return { name: s.vp.name, short: s.vp.short, title: 'Vice President' };
   const c = s.chars[id];
   if (c) return { name: c.name, short: c.short, title: c.role };
   return { name: id, short: id, title: '' };

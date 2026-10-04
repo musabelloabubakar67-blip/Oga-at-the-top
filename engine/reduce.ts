@@ -1,3 +1,5 @@
+import { canVisit, visit } from './predecessor';
+import { canPortfolio, canReplaceVP, givePortfolio, initVP, replaceVP, sideline } from './vp';
 import { backCase, canBack, canDrop, dropCase } from './cases';
 import { canExpand, expand } from './places';
 import { EVENTS } from '../content';
@@ -156,6 +158,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   s.chars.fin = { ...fin, rel: 40, notes: [] };
   seedAdvisers(s);
   seedMinisters(s, () => rand(s));
+  initVP(s);
   // Which Finance Minister was chosen on the certificate: that choice has its own files.
   s.flags['fin.pick'] = ['gwarzo', 'ekpenyong', 'lohor'][Math.max(0, FINANCE_CANDIDATES.indexOf(fin))];
 
@@ -830,6 +833,21 @@ export function applyAction(state: GameState, action: Action): GameState {
       s.desk.actionsUsed += 1;
       const t = groom(s, action.id);
       record(s, `groom.${action.id}`, 'groom', 'politics', t, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'VP': {
+      const b = snapshot(s);
+      let t = '';
+      if (action.op === 'portfolio' && canPortfolio(s, movesLeft(s)).ok) t = givePortfolio(s);
+      if (action.op === 'sideline' && s.vp && !s.vp.sidelined && movesLeft(s) > 0) t = sideline(s);
+      if (action.op === 'replace' && action.name && canReplaceVP(s, action.name, movesLeft(s)).ok) t = replaceVP(s, action.name);
+      if (t) { s.desk.actionsUsed += 1; record(s, 'vp', action.op, 'politics', t, 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; }
+    } break;
+    case 'PRED_VISIT': if (canVisit(s, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = visit(s);
+      record(s, 'pred.visit', 'visit', 'politics', t, 1);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
     case 'GROOM_CREDIT': if (canCredit(s, action.id, action.reform, movesLeft(s)).ok) {

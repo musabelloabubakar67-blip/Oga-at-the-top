@@ -66,7 +66,7 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession', ste
     const zone = s.zones[st.zone];
     const rallies = Math.min(e.rallyCap, s.campaign.rallies[st.zone] ?? 0);
     const home = kind === 'reelection'
-      ? (st.id === s.president.home ? e.home : st.zone === s.president.homeZone ? e.homeZone : 0)
+      ? (st.id === s.president.home ? e.home : st.zone === s.president.homeZone ? e.homeZone : s.vp && st.zone === s.vp.zone ? e.homeZone * 0.7 : 0)
       : (heirHome && st.zone === heirHome ? e.homeZone : 0);
     const noise = steady ? 0 : (rand(s) * 2 - 1) * e.noise;
     const third = steady ? 7.5 : 5 + rand(s) * 5;

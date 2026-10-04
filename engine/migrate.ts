@@ -3,6 +3,7 @@
 // A current save has any missing field filled from a fresh game, so adding a
 // field to the state does not strand anybody's presidency.
 
+import { initVP } from './vp';
 import { EVENTS } from '../content';
 import { MILESTONE_BY_ID } from '../content/agenda';
 import { seedAdvisers } from './advice';
@@ -95,6 +96,8 @@ export function migrate(raw: unknown): GameState | null {
     if (!s.counters['rules.policies']) policyRules(s);
     // Saves from before advisers had reputations and patrons.
     if (s.chars.cos && !s.chars.cos.rep) seedAdvisers(s);
+    // Saves from before there was a Vice President.
+    if (!s.vp) initVP(s);
     // Institutions set up before files could ask about them.
     for (const i of s.institutions ?? []) s.flags[`inst.${i.id}`] = true;
     // Reforms that have been taken off the agenda leave the books; their standing costs end with them.

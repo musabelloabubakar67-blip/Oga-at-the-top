@@ -39,7 +39,7 @@ export const NAMES_BY_ZONE: Record<ZoneId, { m: string[]; f: string[]; last: str
 export const ROLE_SPECS: Record<string, Spec[]> = {
   // Ministers
   min_power: ['engineering'], min_works: ['engineering', 'administration'], min_agric: ['economics', 'administration'],
-  min_justice: ['law'], min_defence: ['security'], min_service: ['administration'], fin: ['economics'],
+  min_justice: ['law'], min_defence: ['security'], min_service: ['administration'], fin: ['economics'], vp: ['politics', 'administration'],
   // Advisers
   cos: ['administration', 'politics'], sap: ['politics'], info: ['media', 'politics'], labmin: ['administration', 'law'], edu: ['administration'],
   // Institutions

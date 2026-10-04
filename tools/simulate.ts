@@ -34,6 +34,8 @@ import { built, canEstablish, canReplaceHead, headsFor } from '../engine/institu
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { fiscalFlow } from '../engine/treasury';
 import { dependence } from '../engine/dependence';
+import { canPortfolio } from '../engine/vp';
+import { canVisit } from '../engine/predecessor';
 import { federalCharacter, zoneOf } from '../engine/federal';
 import { personView } from '../engine/people';
 import { candidatesFor } from '../engine/talent';
@@ -262,6 +264,11 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       if (amount > 0.05 && amount <= spare && canPay(s, id, amount).ok) s = applyAction(s, { type: 'PAY_DEBT', id, amount });
     }
     if (bot.saves && s.nation.fiscalSpace > 3.4 && canFund(s, 'abroad', 1).ok) s = applyAction(s, { type: 'FUND', id: 'abroad', amount: 1 });
+    // Everyone but the cynics keeps the Vice President busy, and calls on a cold former President.
+    if (!skip('vp') && bot.name !== 'Random' && bot.name !== 'Do-nothing') {
+      if (canPortfolio(s, movesLeft(s)).ok && s.pc > 25 && movesLeft(s) > 1) s = applyAction(s, { type: 'VP', op: 'portfolio' });
+      if (s.predecessor && (s.predecessor.rel ?? 50) < 40 && canVisit(s, movesLeft(s)).ok && s.pc > 25 && movesLeft(s) > 1) s = applyAction(s, { type: 'PRED_VISIT' });
+    }
     // A careful President fills a shut-out zone, swapping out the weakest minister from a zone with plenty.
     if (!skip('fed') && bot.name !== 'Random' && bot.name !== 'Do-nothing' && s.turn % 3 === 0 && movesLeft(s) > 1) {
       const f = federalCharacter(s);
@@ -490,7 +497,7 @@ if (args.includes('--world')) {
     for (const bot of order) {
       const s = play(bot, 900 + w * 77 + order.indexOf(bot), false, { prev });
       const v = verdict(s);
-      console.log(`world ${w} · ${v.years} · ${bot.name.padEnd(10)} · ${s.president.partyShort.padEnd(5)} · ${v.epithet.padEnd(30)} · ${s.ending} · debt ${Math.round(s.nation.debt)}% · unpaid ₦${(s.debts.gas + s.debts.contractors + s.debts.pensions).toFixed(1)}tn · reforms ${s.agenda.done.length} · inflation ${Math.round(s.nation.inflation)}% · money men ${TYCOONS.map((x) => Math.round(s.tycoons[x.id].rel)).join('/')}`);
+      console.log(`world ${w} · ${v.years} · ${bot.name.padEnd(10)} · ${s.president.partyShort.padEnd(5)} · ${v.epithet.padEnd(30)} · ${s.ending} · debt ${Math.round(s.nation.debt)}% · unpaid ₦${(s.debts.gas + s.debts.contractors + s.debts.pensions).toFixed(1)}tn · reforms ${s.agenda.done.length} · inflation ${Math.round(s.nation.inflation)}% · vp ${Math.round(s.vp?.rel ?? 0)} · pred ${s.predecessor ? Math.round(s.predecessor.rel ?? 0) : '-'} · money men ${TYCOONS.map((x) => Math.round(s.tycoons[x.id].rel)).join('/')}`);
       prev = s;
     }
     console.log('');

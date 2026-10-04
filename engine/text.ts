@@ -37,6 +37,8 @@ export function fill(s: GameState, text: string): string {
       case 'BACKER': return TYCOON_BY_ID[String(s.flags.financier)]?.name ?? 'the man who paid for your campaign';
       case 'BACKER_SHORT': return TYCOON_BY_ID[String(s.flags.financier)]?.short ?? 'the financier';
       case 'PRED': return s.predecessor ? `President ${s.predecessor.name}` : 'your predecessor';
+      case 'VP': return s.vp?.name ?? 'the Vice President';
+      case 'VP_SHORT': return s.vp?.short ?? 'the Vice President';
       case 'PREDPARTY': return s.predecessor?.party ?? 'the last government';
       case 'OIL': return String(Math.round(s.oil.price));
       case 'BENCH': return String(s.budget.benchmark);
