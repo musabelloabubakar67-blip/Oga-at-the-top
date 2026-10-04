@@ -19,6 +19,7 @@ import { personView, relWord, scorecard, strongestRival } from './people';
 import { fill, naira } from './text';
 import type { FrontPage, GameState, NewsSeed, OutletId, Stance, Topic } from './types';
 import { ZONES, ZONE_NAME, applyFx, approval, hardship, standing, test } from './vars';
+import { mediaOwner } from './era';
 
 // ---------------------------------------------------------------- printing a line once
 
@@ -206,7 +207,7 @@ function stanceOf(s: GameState, outlet: OutletId): Stance {
   if (outlet === 'chronicle') return 'record';
   if (outlet === 'street') return 'street';
   if (outlet === 'rejoinder') return 'hostile';
-  const friendly = (s.tycoons.ty_media?.rel ?? 50) >= 50 || (s.counters.pressFriend ?? -1) > s.turn;
+  const friendly = (s.tycoons[mediaOwner(s)]?.rel ?? 50) >= 50 || (s.counters.pressFriend ?? -1) > s.turn;
   return friendly ? 'loyal' : 'hostile';
 }
 
@@ -337,7 +338,7 @@ function page(s: GameState, outlet: OutletId, seeds: NewsSeed[], first: boolean,
     figures: first ? figuresFor(s) : undefined,
     editorial: (() => { const e = editorialFor(s, outlet); return e ? tokens(e) : undefined; })(),
     special, series: lead.series,
-    owner: outlet === 'stakeholder' ? `${TYCOON_BY_ID.ty_media.name} · ${stance === 'loyal' ? 'with you' : 'against you'}` : outlet === 'rejoinder' ? `Backs ${RIVAL_BY_ID[strongestRival(s).id].name}` : undefined,
+    owner: outlet === 'stakeholder' ? `${TYCOON_BY_ID[mediaOwner(s)].name} · ${stance === 'loyal' ? 'with you' : 'against you'}` : outlet === 'rejoinder' ? `Backs ${RIVAL_BY_ID[strongestRival(s).id].name}` : undefined,
   };
 }
 

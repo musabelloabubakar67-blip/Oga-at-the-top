@@ -15,6 +15,7 @@ import { verdict } from './legacy';
 import { strongestRival } from './people';
 import type { ArchiveEntry, GameState, Predecessor } from './types';
 import { ZONES, approval, clamp, hardship } from './vars';
+import { eraShifts } from './era';
 
 export interface Winner { sameParty: boolean; party: string; partyShort: string; rival?: string; how: string }
 
@@ -64,7 +65,7 @@ export function handoverNotes(prev: GameState): string[] {
 }
 
 // What stays true of the country whoever is President.
-const WORLD_FLAG = /^(policy\.|uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
+const WORLD_FLAG = /^(law\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
 // Decisions that cannot be taken twice.
 const WORLD_ORDERS = ['tax', 'duties', 'subsidy_end', 'price_freeze', 'merge'];
 
@@ -146,6 +147,8 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   s.predecessor = pred;
   s.flags['party.origin'] = String(prev.flags['party.origin'] ?? prev.president.party);
   freshCabinet(s);
+  // What changed in politics, not just in the accounts.
+  for (const x of eraShifts(prev, w)) x.apply(s);
   // From the other side: the rival slot of the party that won now belongs to the party that lost, under the outgoing Vice President.
   if (!w.sameParty && w.rival) {
     const lead = prev.vp ?? { name: `Senator ${prev.president.name.split(' ').slice(-1)[0]}`, short: prev.president.name.split(' ').slice(-1)[0] };

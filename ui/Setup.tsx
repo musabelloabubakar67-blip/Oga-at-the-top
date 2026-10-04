@@ -58,7 +58,7 @@ const BACKGROUNDS: { id: Background; name: string; text: string }[] = [
 ];
 
 /** What the next President is handed, when the world carries on. */
-export interface Handover { party: string; partyShort: string; sameParty: boolean; how: string; notes: string[]; predecessor: string; epithet: string; /** Finance Ministers of the last government. */ served?: string[] }
+export interface Handover { party: string; partyShort: string; sameParty: boolean; how: string; notes: string[]; era?: { title: string; text: string }[]; predecessor: string; epithet: string; /** Finance Ministers of the last government. */ served?: string[] }
 
 export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup) => void; onBack: () => void; handover?: Handover }) {
   const [name, setName] = useState('');
@@ -132,6 +132,14 @@ export function SetupScreen({ onStart, onBack, handover }: { onStart: (s: Setup)
             <ul className="mt-2 list-disc space-y-1 pl-5 font-serif leading-snug">
               {handover.notes.map((n) => <li key={n}>{n}</li>)}
             </ul>
+            {handover.era && handover.era.length > 0 && (
+              <div className="mt-3">
+                <p className="label text-state">The era you inherit</p>
+                <ul className="mt-1 space-y-1.5">
+                  {handover.era.map((x) => <li key={x.title}><span className="font-serif text-lg">{x.title}.</span> <span className="text-sm leading-snug text-ink-soft">{x.text}</span></li>)}
+                </ul>
+              </div>
+            )}
           </section>
         ) : (
           <>

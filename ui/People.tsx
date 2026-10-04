@@ -25,7 +25,7 @@ import {
 import { movesLeft, sackCost } from '../engine/reduce';
 import { competenceShown, following, seenCompetence } from '../engine/people';
 import { currentWant, grudgeLine } from '../engine/wants';
-import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord } from '../engine/advice';
+import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord, worldview } from '../engine/advice';
 import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
@@ -172,6 +172,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     <span className="font-serif text-lg">{a.name}</span>
                     <span className="label text-ink-soft">{a.title}</span>
                   </p>
+                  <p className="mt-1 text-sm">{worldview(a)}</p>
                   <p className="mt-1 text-sm text-ink-soft">
                     Reputation: {a.rep.competence >= 4 ? 'able' : a.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {a.rep.loyalty >= 4 ? 'loyal' : a.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
                   </p>
@@ -179,7 +180,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     {r.checked === 0 ? 'No forecasts checked yet.' : `Forecasts checked: ${r.checked}. Close to what happened: ${r.close} (${Math.round((r.close / r.checked) * 100)}%). You followed their recommendation ${r.followed} ${r.followed === 1 ? 'time' : 'times'}.`}
                   </p>
                   {r.served.map(([who, n]) => (
-                    <p key={who} className="mt-1 text-sm text-alarm">Their recommendations have helped {patronName(who)} {n} {n === 1 ? 'time' : 'times'}.</p>
+                    <p key={who} className="mt-1 text-sm text-ink-soft">Advice you followed has helped {patronName(who)} {n} {n === 1 ? 'time' : 'times'}.</p>
                   ))}
                   {REPLACEABLE.includes(role) && (
                     <button onClick={() => setSwap(swap === role ? null : role)} className="mt-2 border border-ink/30 px-3 py-1 font-serif text-sm hover:border-state">

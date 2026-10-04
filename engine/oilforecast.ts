@@ -4,7 +4,7 @@
 // means more to spend). Each forecast is recorded and checked against what oil
 // actually did, so the player can learn how far to trust it.
 
-import { adviser, leans } from './advice';
+import { adviser } from './advice';
 import type { GameState } from './types';
 import { clamp } from './vars';
 
@@ -36,8 +36,8 @@ export function oilForecast(s: GameState): OilForecast {
   const year = Math.floor((s.turn - 1) / 12);
   // Competence sets how far off it can be; the error is fixed for the year, so asking again does not change it.
   const err = (hash(`oil.${year}.${a.name}`) - 0.5) * 2 * Math.max(1, 5 - a.competence) * 4;
-  // A minister serving someone else leans optimistic: a higher figure means more to spend, and more for the patron's projects.
-  const lean = leans(a) ? 6 : a.integrity <= 2 ? 3 : 0;
+  // A minister close to a camp sincerely expects good times: a higher figure means more to spend, including on the camp's projects.
+  const lean = a.patron !== 'president' ? 4 : a.integrity <= 2 ? 3 : 0;
   const mid = clamp(t.mid + err + lean, 35, 125);
   const width = 8 + Math.max(0, 4 - a.competence) * 3;
   const note = a.competence >= 4 ? 'A careful forecast.' : a.competence <= 2 ? 'The working papers are thin.' : 'An ordinary forecast.';

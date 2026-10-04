@@ -941,7 +941,8 @@ export function agendaSlots(s: GameState): number {
 export function launchCost(s: GameState, m: Milestone): number {
   const track = MILESTONE_BY_ID[m.id]?.track;
   const priority = !!track && s.agenda.tracks.includes(track.id);
-  return Math.round(m.pc * (priority ? 1 : CFG.agenda.offAgendaPc));
+  // A reform defeated under the last President has since become the received view.
+  return Math.round(m.pc * (priority ? 1 : CFG.agenda.offAgendaPc) * (s.flags[`era.wisdom.${m.id}`] ? 0.6 : 1));
 }
 
 /** How a reform's money is found: from the Infrastructure Fund first, where it applies. */
@@ -1157,6 +1158,7 @@ export function orderEcon(o: Order, s: GameState): { factor: number; note: strin
 export function canOrder(s: GameState, o: Order, level?: number): { ok: boolean; reason?: string } {
   const lv = orderLevel(o, level);
   if (o.situational && !s.offers.some((x) => x.id === o.id)) return { ok: false, reason: 'The moment has passed.' };
+  if (s.flags[`law.struck.${o.id}`]) return { ok: false, reason: 'The Supreme Court struck this power down under an earlier President. It is no longer the office\'s to use.' };
   if (o.when && !test(s, o.when)) return { ok: false, reason: o.lockedText ?? 'Not available.' };
   const last = s.counters[`order.${o.id}`];
   if (last !== undefined) {

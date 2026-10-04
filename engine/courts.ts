@@ -202,6 +202,7 @@ export function courtTick(s: GameState): void {
       applyFx(s, ['pc', -3]);
       applyFx(s, ['bloc.press', 2]);
       s.counters.struck = (s.counters.struck ?? 0) + 1;
+      s.counters[`struck.${def.id}`] = s.turn;
       s.news.push({ chronicle: `SUPREME COURT VOIDS ORDER AGAINST ${who.toUpperCase()}, ${against}–${forYou}`, street: `COURT SAY WETIN PRESIDENT DO ${who.toUpperCase()} NO LEGAL`, weight: 6, valence: -1, topic: 'politics', body: `${who} challenged the order and won. The court\'s judgment calls it "an exercise of power in search of a law".` });
       s.report.push({ kind: 'consequence', title: `Struck down: ${def.name}`, cause: 'The Supreme Court', text: `${who} went to court and won, ${against} to ${forYou}. Half the damage is undone and you look like a President who loses in court.`, changes: diff(before, snapshot(s)) });
     } else {

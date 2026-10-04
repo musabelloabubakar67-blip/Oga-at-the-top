@@ -10,6 +10,7 @@ import { Desk } from './Desk';
 import { ElectionNight } from './Election';
 import { Papers } from './Paper';
 import { handoverNotes, winnerOf } from '../engine/succession';
+import { eraShifts } from '../engine/era';
 import { SetupScreen, Title, type Handover } from './Setup';
 import { VerdictScreen } from './Verdict';
 
@@ -81,7 +82,7 @@ export function Game() {
 
   const handover: Handover | undefined = previous ? (() => {
     const w = winnerOf(previous);
-    return { party: w.party, partyShort: w.partyShort, sameParty: w.sameParty, how: w.how, notes: handoverNotes(previous), predecessor: previous.president.name, epithet: verdict(previous).epithet, served: [previous.chars.fin?.name, FINANCE_CANDIDATES[['gwarzo', 'ekpenyong', 'lohor'].indexOf(String(previous.flags['fin.pick']))]?.name].filter((x): x is string => !!x) };
+    return { party: w.party, partyShort: w.partyShort, sameParty: w.sameParty, how: w.how, notes: handoverNotes(previous), era: eraShifts(previous, w).map(({ title, text }) => ({ title, text })), predecessor: previous.president.name, epithet: verdict(previous).epithet, served: [previous.chars.fin?.name, FINANCE_CANDIDATES[['gwarzo', 'ekpenyong', 'lohor'].indexOf(String(previous.flags['fin.pick']))]?.name].filter((x): x is string => !!x) };
   })() : undefined;
 
   if (!ready) return <p className="label p-8 text-mute">Consultations are ongoing…</p>;

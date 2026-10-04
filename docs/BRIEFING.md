@@ -53,31 +53,25 @@ Two kinds of test were run: a scripted autopilot through the browser, and saves 
 
 ## 6. What we have decided to do
 
-### 6.1 Consolidate without losing depth (paused until people have played)
+A second reviewer's feedback was folded into one plan on 4 October, with the owner's rule that it is delivered with as little code as possible: calculate rather than store, route everything through files, prefer data to code, and add at most one new piece of saved state per workstream.
 
-Depth here means the number of strategies that work and how much choices interact, not the number of buttons. The test for each lever: *does it ever create a decision no other lever creates?* Three rules:
+### 6.1 Phase 1: no new systems (built)
 
-1. **Cut only what is always beaten.** A lever bots rarely use may be situational; it moves into the time-limited offers that appear only when their moment comes.
-2. **Share the way of acting, not the results.** One panel for people, but what an action costs and does stays specific to the person.
-3. **Never take away the player's choice of timing.** Buttons stay, folded; files are added for the moment acting matters most.
+| | What | How |
+|---|---|---|
+| W1 | **The President's attention.** The Chief of Staff's note becomes a briefing: up to three things that can hurt the government, two openings, and the story everyone is shouting about that probably does not matter. Each line opens the screen where it is dealt with. | Ranks what the game already knows. The "noise" line appears only when the figures under the papers' lead are calm. |
+| W2 | **Advisers with a worldview.** Bias is belief, not a hidden trait. Every adviser weighs by their brief; some are openly close to a camp and sincerely count its gain as the country's, so they are right whenever the two agree. Overruled advisers cool on you; a disloyal one may leak. The record shows whom followed advice has helped. | Replaces the secret "serves a patron" switch. |
+| W3 | **The era you inherit.** The next presidency inherits changed politics, not just numbers: a divided party, a kingmaker governor, a businessman who now owns a newspaper, an agency that takes no instructions, a power the Supreme Court took away, a defeated reform that is now the received view. | Six rules read from the last presidency, shown on the handover certificate. |
 
-Five steps, in order:
+**Gate:** people play Phase 1 before Phase 2 starts.
 
-| Step | What |
-|---|---|
-| A | The simulator reports how often each lever is used and what it achieves per point of capital |
-| D | Orders that are always beaten are cut; rare, situational ones stay as time-limited offers |
-| B | One way of dealing with people: court, reward, pressure, use, with the consequences specific to each person |
-| C | Big bets and institutions share one card: fund it, change who runs it, shut it, with an institution's head and patron kept |
-| E | Files that arrive when acting matters (a long court vacancy, a failing asset, a case worth backing), with the buttons still available |
+### 6.2 Phase 2: the bigger bets
 
-Checks after each step: every effect reachable before is still reachable; the strategies above keep distinct results and win rates (if they converge, the change flattened something and is reverted).
+- **W4. The cast acts on its own.** Up to two people a month pursue their own aims with five verbs (ally, fund, leak, undermine, bargain), shown as named news or phone messages, and as a templated file when it touches the President. Promises (the cast's bargains and the President's own, with deadlines) and a one-line "what people say about this government" come with it. New state: ties between people and each person's current aim.
+- **W5. Reforms that cause politics.** Winners as well as losers for the 20 most important reforms, two templated files ("the losers come calling", "the winners want more"), and new placeholders so old files mention the President's latest promise, project and scandal.
+- **W6. One set piece: a disputed election night.** Built on the existing election-night screen: results arrive in order, a governor holds back a state, the rival declares at 02:00, the commission chair stops answering; options close as states declare, and declaring, sending police, conceding or going to court are irreversible before the delayed states arrive. A coup night waits until the military exists as a political actor.
 
-### 6.2 Next, after consolidation
-
-- **The cast acts on its own.** People pursue agendas without being asked: the VP undermining the heir, ministers leaking against each other, a governor playing the President against the opposition. Step B is the foundation: one model for people means everyone can act with the same verbs, aimed at the President or at each other.
-- **Set pieces.** Election night is the best moment in the game because it breaks the monthly loop (declarations arrive slowly, the close ones last). Add a few crises played hour by hour: a coup rumour overnight, fuel-queue riots, a kidnapping with a deadline.
-- **Advisers with agendas.** Advisers already have forecast records. Some will skew advice towards their own interest in ways a careful player can detect, so that reading advice becomes a skill.
+Not doing: an interface for a unified people engine, new stat bars, cutting orders (the measurement found almost none always beaten), hundreds more files.
 
 ### 6.3 Proposed and not taken (for now)
 
@@ -95,13 +89,12 @@ Mobile-first layout (the audience is overwhelmingly on phones; the game is built
 
 ## 8. Questions for a fresh reviewer
 
-1. Is consolidation the right first move, or would you test with players before cutting anything?
-2. Of the three rules in 6.1, which do you think is most likely to fail in practice, and how would you catch it?
-3. "One way of dealing with people with four verbs": is that too abstract for a satire that lives on specifics? What would you do instead?
-4. What would make an hour-by-hour crisis feel different from a normal file, mechanically, not just in pacing?
-5. How should a player detect an adviser's bias without it becoming a puzzle with one answer?
-6. What is missing that would make someone play a second presidency?
-7. Where is the satire weakest: which system is a spreadsheet wearing a costume?
+1. The autonomous cast is limited to two moves a month so it does not bury the player. Is that the right lever, or should the briefing alone decide what reaches the President?
+2. Five verbs for the cast (ally, fund, leak, undermine, bargain): what is missing that Nigerian politics would make obvious?
+3. On a disputed election night, which single irreversible decision would you put at the centre, and what should the player know when making it?
+4. The era shifts are six rules. Which change in the political world would most make you want to play the next presidency, and is it on the list?
+5. Advisers now have open camps and sincere beliefs. Is there still a way for the player to "solve" them, and how would you stop it?
+6. Where is the satire weakest: which system is still a spreadsheet wearing agbada?
 
 ## Changes since this briefing was written
 
@@ -112,3 +105,5 @@ Kept current as work lands. Newest last.
 | 4 Oct 2026 | — | Briefing written; consolidation started |
 | 4 Oct 2026 | A | A measuring tool (`npm run simulate -- 5 --levers`) gives each order to a copy of a real game state and plays both copies on with the same seed. A first run on 48 states found almost no order that another order open in the same month always beats. The real weakness is different: many orders change little after 18 months. Correction: there are 20 standing orders, not 61; the other 55 already appear only when their moment comes. |
 | 4 Oct 2026 | — | Paused by the owner: people will play first, and steps D, B, C and E go ahead only where play shows they are needed |
+| 4 Oct 2026 | Plan | The second reviewer's feedback folded into the plan in section 6, delivered with as little code as possible. The consolidation steps are dropped. |
+| 4 Oct 2026 | W1–W3 | Phase 1 built: the Chief of Staff's briefing, advisers with a worldview, the era you inherit. |

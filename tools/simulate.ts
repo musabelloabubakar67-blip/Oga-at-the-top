@@ -3,6 +3,8 @@
 
 import { EVENT_LIST } from '../content';
 import { measureLevers } from './levers';
+import { eraShifts } from '../engine/era';
+import { winnerOf } from '../engine/succession';
 import { SCENARIOS } from '../content/scenarios';
 import { TYCOONS } from '../content/tycoons';
 import { eventOf } from '../engine/cast';
@@ -29,7 +31,7 @@ import { canCredit, canGroom, candidate, candidateIds, creditable } from '../eng
 import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canRevive, canVenture, newGame, reviveCost, ventureOdds } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
-import { adviserFor, canReplaceAdviser, forecast, poolFor, recommend, secondFor, trackRecord } from '../engine/advice';
+import { adviserFor, campGain, canReplaceAdviser, forecast, poolFor, recommend, secondFor, trackRecord } from '../engine/advice';
 import { REPLACEABLE } from '../content/names';
 import { built, canEstablish, canReplaceHead, headsFor } from '../engine/institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
@@ -165,12 +167,15 @@ function score(bot: Bot, c: Choice, s: GameState): number {
   return v + (s.turn % 7) * 1e-6;
 }
 
-/** An adviser who has been wrong, or whose advice keeps helping someone else, gets a second opinion. */
+/** An adviser who has been wrong, or whose camp gains from what they recommend, gets a second opinion. */
 function wantsSecond(s: GameState, e: GameEvent, item: DeskItem): boolean {
   const adv = adviserFor(s, e);
   if (!adv || item.second || movesLeft(s) <= 0 || !secondFor(s, adv.role)) return false;
   const rec = trackRecord(s, adv.role);
-  return rec.checked >= 3 && (rec.close / rec.checked < 0.6 || rec.served.length > 0);
+  const aid = (fx: Fx[] | undefined) => aidedFx(s, fx, {});
+  const pick = recommend(s, e, adv.role, aid, () => true);
+  const interested = !!pick && campGain(s, adv, e.choices.find((c) => c.id === pick)!) > 0.5;
+  return interested || (rec.checked >= 3 && rec.close / rec.checked < 0.6);
 }
 
 /** A President who decides on files from advice rather than the truth. */
@@ -364,11 +369,11 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         if (pick && canReplaceHead(s, i.id, pick.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_HEAD', id: i.id, head: pick.name });
       }
     }
-    // A President who reads the record replaces an adviser whose advice keeps helping someone else, choosing by reputation.
+    // A President who reads the record replaces an adviser whose forecasts keep missing, choosing by reputation.
     if (bot.advice === 'check') {
       for (const role of REPLACEABLE) {
         const r = trackRecord(s, role);
-        if (!r.served.length) continue;
+        if (r.checked < 6 || r.close / r.checked >= 0.5) continue;
         const pick = poolFor(s, role).filter((o) => !o.refuses).sort((x, y) => y.shown.competence - x.shown.competence)[0];
         if (pick && canReplaceAdviser(s, role, pick.c.name, movesLeft(s)).ok) s = applyAction(s, { type: 'REPLACE_ADVISER', role, name: pick.c.name });
       }
@@ -506,8 +511,10 @@ if (args.includes('--world')) {
     let prev: GameState | undefined;
     const order = [BOTS[1], BOTS[2], BOTS[5], BOTS[2]];
     for (const bot of order) {
+      const era = prev ? eraShifts(prev, winnerOf(prev)).map((x) => x.title) : [];
       const s = play(bot, 900 + w * 77 + order.indexOf(bot), false, { prev });
       const v = verdict(s);
+      if (era.length) console.log(`   era inherited: ${era.join(' · ')}`);
       console.log(`world ${w} · ${v.years} · ${bot.name.padEnd(10)} · ${s.president.partyShort.padEnd(5)} · ${v.epithet.padEnd(30)} · ${s.ending} · debt ${Math.round(s.nation.debt)}% · unpaid ₦${(s.debts.gas + s.debts.contractors + s.debts.pensions).toFixed(1)}tn · reforms ${s.agenda.done.length} · inflation ${Math.round(s.nation.inflation)}% · vp ${Math.round(s.vp?.rel ?? 0)} · pred ${s.predecessor ? Math.round(s.predecessor.rel ?? 0) : '-'} · money men ${TYCOONS.map((x) => Math.round(s.tycoons[x.id].rel)).join('/')}`);
       prev = s;
     }
@@ -527,7 +534,7 @@ if (args.includes('--trace')) {
 const everFired = new Set<string>();
 const fireCount: Record<string, number> = {};
 console.log(`${runs} presidencies per strategy\n`);
-for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split(",").includes(b.name))) {
+for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split(process.env.ONLY.includes("|") ? "|" : ",").includes(b.name))) {
   const endings: Record<string, number> = {};
   const epithets: Record<string, number> = {};
   const afters: Record<string, number> = {};

@@ -19,7 +19,7 @@ import { policyNow } from '../engine/policies';
 import { activeShocks } from '../engine/shocks';
 import { REHEAD_PC, type Head, institutionFiscalLines, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
-import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
+import { adviser, adviserFor, campGain, forecast, patronName, recommend, secondFor, trackRecord, worldview } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { forecastChallenge } from '../engine/courts';
 import { assetFiscal, assetFx, assetPerformance, assets, canExpand, canSetManager, expansionCost, local } from '../engine/places';
@@ -230,7 +230,7 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
             <p className="label text-ink-soft">{adv ? `Your options, and what ${adv.name} expects of each` : 'Your options, and what the advisers expect of each'}</p>
             {adv && (
               <p className="mt-1 text-[13px] leading-snug text-ink-soft">
-                {adv.title}. Reputation: {adv.rep.competence >= 4 ? 'able' : adv.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {adv.rep.loyalty >= 4 ? 'loyal' : adv.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
+                {adv.title}. {worldview(adv)} Reputation: {adv.rep.competence >= 4 ? 'able' : adv.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {adv.rep.loyalty >= 4 ? 'loyal' : adv.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
                 {' '}{record && record.checked ? `Their forecasts so far: ${record.close} of ${record.checked} close to what happened.` : 'No record yet to check them against.'}
                 {' '}A forecast is a forecast: what happens is shown after you decide.
                 {canSecond && <button onClick={() => dispatch({ type: 'SECOND_OPINION', eventId: e.id })} className="ml-1 underline hover:text-state">Ask {secondFor(s, adv.role)!.name} for a second opinion · 1 move</button>}
@@ -259,6 +259,7 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
                           {c.purse ? <Chip tone="alarm">₦{c.purse}bn from the drawer</Chip> : null}
                           {p.risky ? <Chip tone="alarm">Risky</Chip> : null}
                           {advised === c.id && adv ? <Chip>Recommended by {adv.short}</Chip> : null}
+                          {adv && adv.patron !== 'president' && campGain(s, adv, c) > 0.5 ? <Chip>{adv.patron === 'self' ? `Good for ${adv.short}` : `${patronName(adv.patron)} gains`}</Chip> : null}
                         </span>
                       </span>
                       <span className="mt-2 block space-y-1">

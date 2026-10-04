@@ -1,8 +1,10 @@
 // Advice. Before a decision the President sees a named adviser's forecast, not the
-// truth: competence decides how far off it can be, loyalty and patron decide which
-// way it leans. After the decision what actually happened is shown, and every
-// adviser's record of forecasts against outcomes is kept where the President can
-// read it. Nothing is hidden for long; it has to be checked.
+// truth: competence decides how far off it can be. Every adviser sees the country
+// through a worldview: their brief, and for some a camp they are known to be close
+// to. They believe what helps their camp helps the country, so they are right
+// whenever the two agree, and nobody is simply crooked. After the decision what
+// actually happened is shown, with whom the advice helped, and an adviser who is
+// ignored remembers it.
 
 import { candidatesFor, release, take, type Offer } from './talent';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
@@ -58,8 +60,8 @@ export function leans(a: Adviser): boolean {
 
 /**
  * At the start of a presidency: reputations are what the files say. One or two of
- * the inner circle are quietly serving someone else, and look exactly as loyal as
- * before; one may be thought abler than they are.
+ * the inner circle are known to be close to a businessman or a politician, and see
+ * the country partly through that camp; one may be thought abler than they are.
  */
 export function seedAdvisers(s: GameState): void {
   for (const c of Object.values(s.chars)) {
@@ -73,7 +75,7 @@ export function seedAdvisers(s: GameState): void {
     const role = pool.splice(Math.floor(rand(s) * pool.length), 1)[0];
     const c = s.chars[role];
     c.patron = patrons[Math.floor(rand(s) * patrons.length)];
-    c.loyalty = Math.max(1, c.loyalty - 2);
+    c.loyalty = Math.max(1, c.loyalty - 1);
   }
   if (rand(s) < 0.5) {
     const roles = Object.keys(s.chars).filter((r) => !LINKED[r]);
@@ -148,12 +150,29 @@ const goodFor = ([t, d]: Fx) => (FOR_YOU[t] ?? (t.startsWith('bloc.') ? 0.4 : t.
 /** Each adviser weighs by their brief: the Finance Minister by the books, the political adviser by the crowd. */
 const FISCAL = (t: string) => t === 'nation.fiscalSpace' || t === 'nation.debt' || t === 'bonus.fiscal' || t === 'nation.inflation' || t.startsWith('debt.') || t.startsWith('fund.');
 const POPULAR = (t: string) => t === 'approval' || t.startsWith('bloc.');
+const ORDERLY = (t: string) => t === 'bloc.villa' || t === 'bloc.party' || t.startsWith('pressure.');
 function weighFor(role: string, fx: Fx): number {
   const [t] = fx;
   const k = role === 'fin' ? (FISCAL(t) ? 2 : POPULAR(t) ? 0.5 : 1)
     : role === 'sap' ? (POPULAR(t) ? 1.5 : FISCAL(t) ? 0.7 : 1)
+    : role === 'nsa' ? (t === 'nation.security' || t.startsWith('theatre.') ? 2 : 1)
+    : role === 'cos' ? (ORDERLY(t) ? 1.5 : 1)
     : 1;
   return goodFor(fx) * k;
+}
+
+/** How an adviser sees the country, in a phrase. */
+export function worldview(a: Adviser): string {
+  const brief = a.role === 'fin' ? 'by the books first' : a.role === 'sap' ? 'by what the crowd will say' : a.role === 'nsa' ? 'security first, everything else after'
+    : a.role === 'cos' ? 'by what keeps the house quiet' : 'from inside their own ministry';
+  const camp = a.patron === 'president' ? '' : a.patron === 'self' ? ' Known to look after themselves, and to believe that is how things get done.' : ` Close to ${patronName(a.patron)}, and sincerely believes what is good for them is good for the country.`;
+  return `Sees things ${brief}.${camp}`;
+}
+
+/** How much an adviser's camp would gain from an option, as they weigh it. Belief, not instruction. */
+const CAMP = 0.5;
+export function campGain(s: GameState, a: Adviser, c: Choice): number {
+  return a.patron === 'president' ? 0 : patronGain(a, expectedOutcome(s, c), c);
 }
 
 /** One adviser's forecast of one choice. */
@@ -167,14 +186,12 @@ export function forecast(s: GameState, e: GameEvent, c: Choice, role: string, ai
   const seed = `${e.id}.${c.id}.${role}.${s.turn}`;
   // Competence: how far off it can be.
   const spread = Math.max(0, 4 - a.competence) * 0.3;
-  // Loyalty and patron: which way it leans, on the option the patron would choose.
-  const favoured = leans(a) ? favouredChoice(s, e, a) : null;
+  // Worldview: an option their camp likes looks better to them, sincerely.
+  const believes = campGain(s, a, c) > 0.5;
   const shade = (fx: Fx[], tag: string): Fx[] => fx
     .map(([t, d], i): Fx => {
       let v = d * (1 + (hash(`${seed}.${tag}.${i}`) * 2 - 1) * spread);
-      const good = goodFor([t, d]) >= 0;
-      if (favoured === c.id) v *= good ? 1.3 : 0.4;
-      else if (favoured) v *= good ? 0.7 : 1.2;
+      if (believes) v *= goodFor([t, d]) >= 0 ? 1.15 : 0.8;
       return [t, Math.round(v * 1000) / 1000];
     })
     // The weak miss what they were not looking for: the worst risk goes unmentioned half the time.
@@ -182,30 +199,17 @@ export function forecast(s: GameState, e: GameEvent, c: Choice, role: string, ai
   return { now: shade(now, 'now'), later: shade(later, 'later') };
 }
 
-/** The option a disloyal adviser's patron would want. */
-function favouredChoice(s: GameState, e: GameEvent, a: Adviser): string | null {
-  let best: string | null = null;
-  let top = 0.5;
-  for (const c of e.choices) {
-    const g = patronGain(a, expectedOutcome(s, c), c);
-    if (g > top) { top = g; best = c.id; }
-  }
-  return best;
-}
-
-/** What the adviser recommends: what is best for you, as they see it, or what is best for whoever they really serve. */
+/** What the adviser recommends: what is best for the country as they see it, their camp's gain counted as the country's. */
 export function recommend(s: GameState, e: GameEvent, role: string, aidFx: (fx: Fx[] | undefined) => Fx[], usable: (c: Choice) => boolean): string | null {
   const a = adviser(s, role);
   if (!a) return null;
   const options = e.choices.filter(usable);
   if (!options.length) return null;
-  const favoured = leans(a) ? favouredChoice(s, e, a) : null;
-  if (favoured && options.some((c) => c.id === favoured)) return favoured;
   let best = options[0].id;
   let top = -Infinity;
   for (const c of options) {
     const f = forecast(s, e, c, role, aidFx);
-    const v = [...f.now, ...f.later].reduce((x, fx) => x + weighFor(role, fx), 0) - (c.pc ?? 0) * 0.3 - (c.purse ? 3 : 0);
+    const v = [...f.now, ...f.later].reduce((x, fx) => x + weighFor(role, fx), 0) - (c.pc ?? 0) * 0.3 - (c.purse && a.patron !== 'self' ? 3 : 0) + campGain(s, a, c) * CAMP;
     if (v > top) { top = v; best = c.id; }
   }
   return best;
@@ -221,15 +225,26 @@ export function missBy(forecastFx: Fx[], actualFx: Fx[]): number {
   return [...new Set([...Object.keys(f), ...Object.keys(t)])].reduce((v, k) => v + Math.abs((f[k] ?? 0) - (t[k] ?? 0)), 0);
 }
 
-/** After a decision: what the adviser said, what happened, and whom it served. */
+/** After a decision: what the adviser said, what happened, and whom the advice helped. An adviser who is ignored remembers it. */
 export function logAdvice(s: GameState, e: GameEvent, c: Choice, role: string, said: { now: Fx[]; later: Fx[] }, recommended: string | null, actual: Outcome, aidFx: (fx: Fx[] | undefined) => Fx[]): void {
   const a = adviser(s, role);
   if (!a) return;
   const real = [...aidFx(actual.fx), ...(c.naira ? [['nation.fiscalSpace', -c.naira] as Fx] : []), ...(actual.later ?? []).flatMap((l) => l.fx)];
   const miss = missBy([...said.now, ...said.later], real);
-  const served = leans(a) && recommended === c.id && patronGain(a, actual, c) > 0 ? a.patron : undefined;
+  const served = a.patron !== 'president' && recommended === c.id && patronGain(a, actual, c) > 0 ? a.patron : undefined;
   (s.advice ??= []).push({ role, turn: s.turn, event: e.id, choice: c.id, followed: recommended === c.id, miss, served });
   if (s.advice.length > 120) s.advice.shift();
+  if (recommended && recommended !== c.id) ignored(s, a, e);
+}
+
+/** Overruled: the adviser cools, and one who owes you little may tell a journalist they warned you. */
+function ignored(s: GameState, a: Adviser, e: GameEvent): void {
+  const ch = s.chars[a.role];
+  if (!ch) return;
+  ch.rel = Math.max(-100, ch.rel - 3);
+  if (a.loyalty > 2 || ch.rel >= 35 || rand(s) >= 0.2) return;
+  s.pressures.scandalHeat = Math.min(100, s.pressures.scandalHeat + 2);
+  s.news.push({ chronicle: `VILLA INSIDERS SAY PRESIDENT OVERRULED ${a.short.toUpperCase()} ON "${e.title.toUpperCase()}"`, street: `${a.short.toUpperCase()} WARN AM. PRESIDENT NO HEAR`, weight: 2.2, valence: -1, topic: 'politics', body: `People close to ${a.name}, ${a.title}, say the advice was clear and was not taken.` });
 }
 
 /** An adviser's record: forecasts checked against what happened, and whom their advice served. */
