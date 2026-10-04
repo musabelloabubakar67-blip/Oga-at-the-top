@@ -18,6 +18,7 @@ import { SCENARIO_BY_ID } from '../content/scenarios';
 import { CFG, dateLabel, termTurnOf } from './config';
 import { syncDebt } from './ledger';
 import { buildDesk, chiefOfStaffNote } from './director';
+import { dispatchTick } from './dispatches';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
 import { callFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
@@ -688,6 +689,7 @@ function advance(s: GameState): void {
     s.news.push({ chronicle: '{NAME} SWORN IN FOR SECOND TERM, PROMISES TO "CONSOLIDATE"', street: 'FOUR MORE YEARS: "THIS TIME NO EXCUSE" — NIGERIANS', weight: 7, valence: 1, topic: 'politics' });
   }
 
+  const before = { ...s.nation };
   applyLedger(s);
   agendaTick(s);
   ventureTick(s);
@@ -698,6 +700,7 @@ function advance(s: GameState): void {
   talentTick(s);
   courtTick(s);
   shockTick(s);
+  dispatchTick(s, before);
 
   const tt = termTurnOf(s.turn);
   if (s.term === 2 && tt === CFG.electionTermTurn + 1 && !s.succession) {

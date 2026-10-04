@@ -108,14 +108,17 @@ function Page({ page }: { page: FrontPage }) {
 }
 
 /** The morning's papers: two of them, on the same story. */
-export function Papers({ pages, onDismiss }: { pages: FrontPage[]; onDismiss: () => void }) {
+export function Papers({ pages, onDismiss, say }: { pages: FrontPage[]; onDismiss: () => void; say?: string | null }) {
   const [show, setShow] = useState(0);
   if (!pages.length) return null;
   return (
     <div className="fade-in fixed inset-0 z-40 overflow-y-auto bg-pit/85 px-3 py-6 sm:py-10" role="dialog" aria-label="This month's front pages">
       <div className="slide-in mx-auto max-w-6xl">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="label text-ivory/80">The papers on your desk this morning{pages.length > 1 ? ': two, on the same story' : ''}</p>
+          <div>
+            <p className="label text-ivory/80">The papers on your desk this morning{pages.length > 1 ? ': two, on the same story' : ''}</p>
+            {say && <p className="mt-1 font-serif italic text-ivory/70">What the motor parks are saying: {say}.</p>}
+          </div>
           {pages.length > 1 && (
             <div className="flex gap-2 lg:hidden">
               {pages.map((p, i) => (

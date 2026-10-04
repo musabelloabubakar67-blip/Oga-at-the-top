@@ -1,6 +1,7 @@
 'use client';
 
 import { attention, type Item } from '../engine/attention';
+import { narrative } from '../engine/narrative';
 import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
 import { midName } from '../engine/text';
@@ -1267,6 +1268,7 @@ function Briefing({ s, go }: { s: GameState; go: (v: View, tab?: string) => void
           )}
         </div>
       )}
+      {narrative(s) && <p className="mt-3 text-sm italic text-ivory/60">What people are saying about us: {narrative(s)}.</p>}
       <p className="label mt-2 text-mute">{s.chars.cos?.name}, Chief of Staff</p>
     </div>
   );
@@ -1492,7 +1494,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
       {panel === 'budget' && s.budget.due && <BudgetModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'drawer' && <DrawerModal s={s} dispatch={dispatch} onClose={() => setPanel(null)} />}
       {panel === 'archive' && <ArchiveModal s={s} onClose={() => setPanel(null)} />}
-      {panel === 'paper' && s.papers.length > 0 && s.phase === 'desk' && <Papers pages={s.papers} onDismiss={() => setPanel(null)} />}
+      {panel === 'paper' && s.papers.length > 0 && s.phase === 'desk' && <Papers pages={s.papers} say={narrative(s)} onDismiss={() => setPanel(null)} />}
     </Preview.Provider>
   );
 }

@@ -11,6 +11,7 @@ import { ElectionNight } from './Election';
 import { Papers } from './Paper';
 import { handoverNotes, winnerOf } from '../engine/succession';
 import { eraShifts } from '../engine/era';
+import { narrative } from '../engine/narrative';
 import { SetupScreen, Title, type Handover } from './Setup';
 import { VerdictScreen } from './Verdict';
 
@@ -105,7 +106,7 @@ export function Game() {
     <>
       <Desk s={state} dispatch={dispatch} onQuit={() => setScreen('title')} />
       {state.phase === 'papers' && state.papers.length > 0 && (
-        <Papers pages={state.papers} onDismiss={() => dispatch({ type: 'DISMISS_PAPER' })} />
+        <Papers pages={state.papers} say={narrative(state)} onDismiss={() => dispatch({ type: 'DISMISS_PAPER' })} />
       )}
     </>
   );

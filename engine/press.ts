@@ -20,6 +20,7 @@ import { fill, naira } from './text';
 import type { FrontPage, GameState, NewsSeed, OutletId, Stance, Topic } from './types';
 import { ZONES, ZONE_NAME, applyFx, approval, hardship, standing, test } from './vars';
 import { mediaOwner } from './era';
+import { talkTick } from './narrative';
 
 // ---------------------------------------------------------------- printing a line once
 
@@ -355,6 +356,7 @@ export function buildPapers(s: GameState): void {
   const seeds: NewsSeed[] = [...s.news, ...simSeeds(s), ...storySeeds(s)];
   if (special) seeds.push(special);
   seeds.sort((a, b) => b.weight - a.weight);
+  talkTick(s, seeds);
   if (seeds.length < 3) seeds.push(...stateSeeds(s).sort((a, b) => b.weight - a.weight));
   for (let i = 0; seeds.length < 3 && i < FILLERS.length; i++) {
     const j = (i + s.seed) % FILLERS.length;
