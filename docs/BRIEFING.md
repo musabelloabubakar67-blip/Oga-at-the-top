@@ -48,12 +48,12 @@ The owner has decided to leave the machine politician and the successor penalty 
 Two kinds of test were run: a scripted autopilot through the browser, and saves built at the right moment (mid-term, an inherited term, a second term) then played by hand-written scripts.
 
 - **Correctness is in good shape.** Every system works end to end in the browser, from charges through verdicts to a succession election. About twenty bugs were found and fixed, mostly about an inherited presidency (the old cabinet carrying over, the winning party's own leader listed as a rival) and about feedback that left things out.
-- **Legibility is the problem.** The same symptom kept appearing: the Orders page was 5,900 pixels long on the first day; the succession tab listed nineteen heirs with identical buttons; disabled buttons explained themselves only on hover; a lost succession election was explained in one sentence. Each was patched, but the cause is structural: the game has 42 kinds of player action and about 61 standing orders, and most levers come down to "spend capital, nudge a number".
+- **Legibility is the problem.** The same symptom kept appearing: the Orders page was 5,900 pixels long on the first day; the succession tab listed nineteen heirs with identical buttons; disabled buttons explained themselves only on hover; a lost succession election was explained in one sentence. Each was patched, but the cause is structural: the game has 42 kinds of player action and 75 executive orders (20 always available, 55 that appear only when their moment comes and then lapse), and most levers come down to "spend capital, nudge a number".
 - **What the tests could not tell us** is whether the game is fun. Bots and scripts prove that things work. No human outside the project has played a full term.
 
 ## 6. What we have decided to do
 
-### 6.1 Consolidate without losing depth (in progress)
+### 6.1 Consolidate without losing depth (paused until people have played)
 
 Depth here means the number of strategies that work and how much choices interact, not the number of buttons. The test for each lever: *does it ever create a decision no other lever creates?* Three rules:
 
@@ -66,7 +66,7 @@ Five steps, in order:
 | Step | What |
 |---|---|
 | A | The simulator reports how often each lever is used and what it achieves per point of capital |
-| D | Standing orders cut from about 61 to about 25; situational ones become time-limited offers |
+| D | Orders that are always beaten are cut; rare, situational ones stay as time-limited offers |
 | B | One way of dealing with people: court, reward, pressure, use, with the consequences specific to each person |
 | C | Big bets and institutions share one card: fund it, change who runs it, shut it, with an institution's head and patron kept |
 | E | Files that arrive when acting matters (a long court vacancy, a failing asset, a case worth backing), with the buttons still available |
@@ -110,3 +110,5 @@ Kept current as work lands. Newest last.
 | Date | Step | What changed |
 |---|---|---|
 | 4 Oct 2026 | — | Briefing written; consolidation started |
+| 4 Oct 2026 | A | A measuring tool (`npm run simulate -- 5 --levers`) gives each order to a copy of a real game state and plays both copies on with the same seed. A first run on 48 states found almost no order that another order open in the same month always beats. The real weakness is different: many orders change little after 18 months. Correction: there are 20 standing orders, not 61; the other 55 already appear only when their moment comes. |
+| 4 Oct 2026 | — | Paused by the owner: people will play first, and steps D, B, C and E go ahead only where play shows they are needed |
