@@ -481,7 +481,7 @@ export interface GameState {
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** What orders have built that keeps running, and who heads each. */
-  institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean }[];
+  institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; spec?: string; fit?: boolean }; since: number; seen?: boolean; /** When it was set up, for ramp-up; `since` is when the head took over. */ founded?: number; funding?: 'lean' | 'standard' | 'generous'; /** What it has done since it was set up, in its own units. */ record?: Record<string, number> }[];
   /** Every adviser's forecasts, checked against what happened. */
   advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
   /** What is happening to the country from outside, and what already has. */
@@ -579,6 +579,7 @@ export type Action =
   | { type: 'ESTABLISH'; id: string; head: string }
   | { type: 'REPLACE_HEAD'; id: string; head: string }
   | { type: 'ABOLISH'; id: string }
+  | { type: 'FUND_INSTITUTION'; id: string; level: 'lean' | 'standard' | 'generous' }
   | { type: 'REPLACE_FIN'; name: string }
   | { type: 'END_MONTH' }
   | { type: 'ELECTION_DONE' };

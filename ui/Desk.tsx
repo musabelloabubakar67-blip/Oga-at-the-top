@@ -13,7 +13,7 @@ import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
 import { policyNow } from '../engine/policies';
 import { activeShocks } from '../engine/shocks';
-import { REHEAD_PC, type Head, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
+import { REHEAD_PC, type Head, institutionFiscalLines, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, forecast, recommend, secondFor, trackRecord } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
@@ -476,11 +476,51 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
             return (
               <li key={i.id} className={`border px-4 py-3 ${i.seen ? 'border-alarm/50' : 'border-state/40'}`}>
                 <p className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-serif text-lg">{d.name}</span>
-                  <span className="label text-ink-soft">since {dateLabel(i.since, s.startYear)}</span>
+                  <span className="font-serif text-xl">{d.name}</span>
+                  <span className={`label ${i.seen ? 'text-alarm' : 'text-state'}`}>{i.seen ? 'captured' : `working at ${Math.round(perf.k * 100)}%`}</span>
                 </p>
-                <p className="text-sm">Headed by {i.head.name.replace(/^A /, 'a ')}. {i.seen ? <span className="text-alarm">Captured: it has been serving someone else.</span> : <>Working at {Math.round(perf.k * 100)}%.</>} {perf.why.join('. ')}</p>
+                <p className="label text-ink-soft">set up {dateLabel(i.founded ?? i.since, s.startYear)} · {Math.max(0, s.turn - (i.founded ?? i.since))} months running</p>
+                {(() => {
+                  const months = s.turn - (i.founded ?? i.since);
+                  const ramp = Math.min(1, 0.3 + 0.7 * months / d.ramp);
+                  return ramp < 1 ? (
+                    <div className="mt-1.5">
+                      <div className="h-1.5 bg-ink/10"><div className="h-1.5 bg-state" style={{ width: `${ramp * 100}%` }} /></div>
+                      <p className="text-[13px] text-ink-soft">Still being set up: {Math.round(ramp * 100)}% of full strength, full in {Math.max(1, Math.ceil(d.ramp - months))} months.</p>
+                    </div>
+                  ) : null;
+                })()}
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {d.record.map((r) => {
+                    const v = i.record?.[r.label] ?? 0;
+                    const shown = r.unit === '₦bn' ? `₦${Math.round(v)}bn` : r.unit === 'thousand' ? `${Math.round(v).toLocaleString('en-GB')},000` : r.unit === 'thousand tonnes' ? `${Math.round(v).toLocaleString('en-GB')},000 t` : `${Math.round(v).toLocaleString('en-GB')}`;
+                    return (
+                      <div key={r.label} className="border border-ink/10 bg-paper-dim/60 px-2 py-1.5">
+                        <p className="label text-ink-soft">{r.label}</p>
+                        <p className="font-serif text-xl">{shown}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-sm">
+                  <span className="label mr-1 text-ink-soft">Head</span>
+                  {i.head.name}{i.head.spec ? `, ${i.head.spec}${i.head.fit ? '' : ' working outside their field'}` : ''} · {Math.max(0, s.turn - i.since)} months in post. {i.seen ? <span className="text-alarm">It has been serving someone other than you; output is cut and the patron is the better for it.</span> : null}
+                </p>
+                {perf.why.length > 0 && <p className="text-[13px] text-ink-soft">{perf.why.join('. ')}.</p>}
                 <span className="mt-1 block"><Expected items={year(monthlyFx(s, i.id))} label="A year of it" /></span>
+                {(() => {
+                  const line = institutionFiscalLines(s).find((l) => l.label === d.name);
+                  return line ? <p className="text-[13px] text-ink-soft">{line.value >= 0 ? 'Raises' : 'Costs'} {naira(Math.abs(line.value) * 12)} a year. {line.hint}</p> : null;
+                })()}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[13px]">
+                  <span className="label mr-1 text-ink-soft">Funding</span>
+                  {(['lean', 'standard', 'generous'] as const).map((lv) => (
+                    <button key={lv} onClick={() => dispatch({ type: 'FUND_INSTITUTION', id: i.id, level: lv })}
+                      className={`border px-2 py-0.5 ${(i.funding ?? 'standard') === lv ? 'border-state bg-state/10' : 'border-ink/20 hover:border-state'}`}>
+                      {lv === 'lean' ? 'Lean (output ×0.7, cost ×0.6)' : lv === 'standard' ? 'Standard' : 'Generous (output ×1.25, cost ×1.5)'}
+                    </button>
+                  ))}
+                </div>
                 <span className="mt-1 flex flex-wrap gap-2">
                   <button onClick={() => setRehead(rehead === i.id ? null : i.id)} className="border border-ink/30 px-3 py-1 text-sm hover:border-state">{rehead === i.id ? 'Keep the head' : `Replace the head · ${REHEAD_PC} capital · 1 move`}</button>
                   <button disabled={!ab.ok} title={ab.reason} onClick={() => dispatch({ type: 'ABOLISH', id: i.id })} className={`border px-3 py-1 text-sm ${ab.ok ? 'border-ink/30 hover:border-alarm' : 'border-ink/10 opacity-45'}`}>Wind it up · {d.abolishPc} capital</button>

@@ -32,7 +32,7 @@ import { floatNow, initCurrency } from './currency';
 import { canSetManager, setManager } from './places';
 import { canNominate, courtTick, nominate } from './courts';
 import { aimFx, aimText, targetsFor, wearFactor, wrong, wrongedTick, type TargetKind } from './targets';
-import { abolish, canAbolish, canEstablish, canReplaceHead, establish, replaceHead } from './institutions';
+import { abolish, built, canAbolish, canEstablish, canReplaceHead, establish, replaceHead, setFunding } from './institutions';
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { LINKED, REPLACE_PC, adviserFor, canReplaceAdviser, replaceAdviser, forecast, logAdvice, recommend, secondFor, seedAdvisers } from './advice';
 import { POLICY_BY_ID, canRepeal, economyStrength, policyName, repeal } from './policies';
@@ -810,6 +810,7 @@ export function applyAction(state: GameState, action: Action): GameState {
       record(s, `institution.${action.id}`, 'rehead', 'action', t, 2);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
+    case 'FUND_INSTITUTION': if (built(s).some((i) => i.id === action.id)) note(s, setFunding(s, action.id, action.level)); break;
     case 'ABOLISH': if (canAbolish(s, action.id).ok) {
       const b = snapshot(s);
       const t = abolish(s, action.id);

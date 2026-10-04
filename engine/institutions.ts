@@ -54,6 +54,13 @@ export function performance(s: GameState, id: string): { k: number; why: string[
   }
   const captured = leans(inst.head);
   if (captured) k *= 0.6;
+  // A new institution takes months to reach full strength.
+  const months = s.turn - (inst.founded ?? inst.since);
+  const ramp = Math.min(1, 0.3 + 0.7 * months / d.ramp);
+  if (ramp < 1) { k *= ramp; why.push(`Still being set up: ${Math.round(ramp * 100)}% of full strength, full in ${Math.max(1, Math.ceil(d.ramp - months))} months`); }
+  const f = FUNDING[inst.funding ?? 'standard'];
+  if (f.out !== 1) { k *= f.out; why.push(`${f.name}: output ×${f.out}`); }
+  if (id === 'graft' && s.flags['graft.leash']) { k *= 0.6; why.push('You stopped one of its cases, and every investigator noticed'); }
   return { k, why, captured };
 }
 
@@ -73,7 +80,10 @@ export function institutionFiscalLines(s: GameState): { label: string; value: nu
     const d = INSTITUTION_BY_ID[i.id];
     const { k } = performance(s, i.id);
     const value = d.fiscal > 0 ? d.fiscal * k : d.fiscal;
-    return { label: d.name, value, hint: d.fiscal > 0 ? `Revenue it raises, under ${i.head.name.replace(/^A /, 'a ')}.` : 'What it costs to run.' };
+    const f = FUNDING[i.funding ?? 'standard'];
+    const ghosts = i.id === 'jobs' && s.flags['jobs.ghosts'] ? 1.3 : 1;
+    const v = d.fiscal > 0 ? value : value * f.cost * ghosts;
+    return { label: d.name, value: v, hint: d.fiscal > 0 ? `Revenue it raises, under ${i.head.name.replace(/^A /, 'a ')}.` : `What it costs to run, ${f.name.toLowerCase()}${ghosts > 1 ? ', including the ghost workers on its payroll' : ''}.` };
   }).filter((l) => Math.abs(l.value) >= 0.0005);
 }
 
@@ -85,6 +95,19 @@ export function institutionInflationLines(s: GameState): { label: string; value:
 export function institutionTick(s: GameState): void {
   for (const i of built(s)) {
     for (const f of monthlyFx(s, i.id)) applyFx(s, f);
+    // What it did this month, in its own units.
+    const d0 = INSTITUTION_BY_ID[i.id];
+    const k0 = performance(s, i.id).k;
+    const crooked = i.head.integrity <= 2 || leans(i.head);
+    i.record ??= {};
+    for (const r of d0.record) {
+      let add = r.per * k0;
+      if (i.id === 'graft' && r.label === 'Convictions' && crooked) add *= 0.2;
+      if (i.id === 'graft' && r.label === 'Money recovered' && crooked) add *= 0.3;
+      i.record[r.label] = Math.min(r.cap ?? Infinity, (i.record[r.label] ?? 0) + add);
+    }
+    // The delivery office chases every reform under way.
+    if (i.id === 'delivery') for (const a of s.agenda.active) a.progress += 1.5 * k0;
     if (!leans(i.head)) continue;
     const p = i.head.patron;
     if (s.tycoons[p]) s.tycoons[p].rel = clamp(s.tycoons[p].rel + 0.5, 0, 100);
@@ -121,10 +144,23 @@ export function establish(s: GameState, id: string, headName: string): { text: s
   for (const f of d.start ?? []) applyFx(s, f);
   // A party nominee pleases the party the day they are named.
   if (head.name === 'A party nominee') applyFx(s, ['bloc.party', 3]);
-  (s.institutions ??= []).push({ id, head, since: s.turn });
+  (s.institutions ??= []).push({ id, head, since: s.turn, founded: s.turn, funding: 'standard', record: {} });
   // Files can ask whether an institution exists.
   s.flags[`inst.${id}`] = true;
   return { text: `${d.name} is set up, headed by ${head.name.replace(/^A /, 'a ')}.`, changes: diff(before, snapshot(s)) };
+}
+
+export const FUNDING: Record<'lean' | 'standard' | 'generous', { name: string; out: number; cost: number }> = {
+  lean: { name: 'Lean funding', out: 0.7, cost: 0.6 },
+  standard: { name: 'Standard funding', out: 1, cost: 1 },
+  generous: { name: 'Generous funding', out: 1.25, cost: 1.5 },
+};
+
+export function setFunding(s: GameState, id: string, level: 'lean' | 'standard' | 'generous'): string {
+  const inst = built(s).find((i) => i.id === id);
+  if (!inst) return '';
+  inst.funding = level;
+  return `${INSTITUTION_BY_ID[id].name} moves to ${FUNDING[level].name.toLowerCase()}.`;
 }
 
 export const REHEAD_PC = 4;

@@ -28,6 +28,10 @@ export interface InstitutionDef {
   /** Undoing it. */
   abolishPc: number;
   abolish: Fx[];
+  /** Months to reach full strength. */
+  ramp: number;
+  /** What it counts, each month, at full strength: label, amount, and how to show the running total. */
+  record: { label: string; per: number; unit?: string; cap?: number }[];
 }
 
 export const INSTITUTIONS: InstitutionDef[] = [
@@ -38,6 +42,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['nation.integrity', 0.06], ['pressure.scandalHeat', -0.15], ['bloc.party', -0.05]],
     crooked: [['nation.integrity', -0.04], ['pressure.scandalHeat', -0.3], ['bloc.press', -0.05]],
     fiscal: -0.004, abolishPc: 6, abolish: [['bloc.press', -5], ['nation.integrity', -3]],
+    ramp: 9, record: [{ label: 'Cases opened', per: 3 }, { label: 'Convictions', per: 0.6 }, { label: 'Money recovered', per: 6, unit: '₦bn' }],
   },
   {
     id: 'jobs', name: 'A national youth jobs corps', pc: 0, naira: 0.4,
@@ -46,6 +51,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['nation.jobs', 0.05], ['bloc.street', 0.03], ['pressure.wageGrievance', -0.12]],
     crooked: [['nation.integrity', -0.02]],
     fiscal: -0.02, abolishPc: 6, abolish: [['bloc.street', -8], ['approval', -2]],
+    ramp: 6, record: [{ label: 'Young people enrolled', per: 45, unit: 'thousand', cap: 1000 }, { label: 'Classrooms and drains repaired', per: 120 }],
   },
   {
     id: 'power', name: 'A presidential task force on power', pc: 6, naira: 0.3,
@@ -53,6 +59,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['nation.power', 0.07]],
     crooked: [['nation.integrity', -0.03]],
     fiscal: -0.008, abolishPc: 3, abolish: [['bloc.establishment', -2]],
+    ramp: 8, record: [{ label: 'Megawatts restored', per: 70 }],
   },
   {
     id: 'zone', name: 'A special economic zone at the ports', pc: 6, naira: 0.5,
@@ -61,6 +68,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     crooked: [['nation.integrity', -0.03]],
     fiscal: 0.012, needs: { label: 'Reliable power (45 or better)', v: ['nation.power', '>=', 45], else: 0.5 },
     abolishPc: 4, abolish: [['bloc.establishment', -4], ['nation.jobs', -2]],
+    ramp: 12, record: [{ label: 'Firms moved in', per: 0.7 }, { label: 'Jobs in the zone', per: 1.8, unit: 'thousand' }],
   },
   {
     id: 'tax', name: 'A large-taxpayer office', pc: 8, naira: 0,
@@ -68,12 +76,14 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['bloc.establishment', -0.05]],
     crooked: [['nation.integrity', -0.04]],
     fiscal: 0.015, abolishPc: 2, abolish: [['bloc.establishment', 3]],
+    ramp: 8, record: [{ label: 'Large companies audited', per: 5 }, { label: 'Additional tax collected', per: 15, unit: '₦bn' }],
   },
   {
     id: 'delivery', name: 'A presidential delivery office', pc: 6, naira: 0,
     blurb: 'Twenty people who track every promise and chase every ministry. The ministries will call it interference, which is the point.',
     fx: [['nation.capacity', 0.04], ['bloc.establishment', -0.02]],
     fiscal: -0.003, abolishPc: 2, abolish: [['nation.capacity', -1]],
+    ramp: 6, record: [{ label: 'Promises tracked', per: 12, cap: 240 }, { label: 'Months taken off reforms under way', per: 0.6 }],
   },
   {
     id: 'reserve', name: 'A strategic grain reserve agency', pc: 0, naira: 0.3,
@@ -81,6 +91,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['bloc.street', 0.02]],
     crooked: [['nation.integrity', -0.04], ['pressure.scandalHeat', 0.1]],
     fiscal: -0.01, inflation: 0.4, abolishPc: 3, abolish: [['bloc.street', -3]],
+    ramp: 10, record: [{ label: 'Grain in the silos', per: 18, unit: 'thousand tonnes', cap: 400 }],
   },
   {
     id: 'policing', name: 'A community policing trust, with the governors', pc: 4, naira: 0.3,
@@ -89,6 +100,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     fx: [['theatre.NW', -0.03], ['theatre.NC', -0.03], ['theatre.NE', -0.03], ['theatre.SW', -0.03], ['theatre.SE', -0.03], ['theatre.SS', -0.03]],
     crooked: [['nation.integrity', -0.02]],
     fiscal: -0.01, abolishPc: 4, abolish: [['bloc.party', -4]],
+    ramp: 9, record: [{ label: 'Community police posts opened', per: 14 }, { label: 'Officers trained', per: 0.9, unit: 'thousand' }],
   },
   {
     id: 'fund', name: 'A sovereign wealth authority', pc: 4, naira: 0,
@@ -97,6 +109,7 @@ export const INSTITUTIONS: InstitutionDef[] = [
     crooked: [['nation.integrity', -0.03], ['fund.growth', -0.03]],
     fiscal: 0, needs: { label: 'Money in the treasury (₦1tn or more)', v: ['nation.fiscalSpace', '>=', 1], else: 0 },
     abolishPc: 2, abolish: [['bloc.establishment', -3]],
+    ramp: 6, record: [{ label: 'Invested for the long run', per: 50, unit: '₦bn' }],
   },
 ];
 

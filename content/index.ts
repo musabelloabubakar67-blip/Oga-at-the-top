@@ -14,9 +14,10 @@ import { SHOCK_FILES } from './shocks';
 import { CABINET } from './events/cabinet';
 import { ATTACKS } from './events/attacks';
 import { REFINERY } from './events/refinery';
+import { INSTITUTION_FILES } from './events/institutions';
 
 export const EVENT_LIST: GameEvent[] = [
-  ...SUBSIDY, ...LABOUR, ...SCANDAL, ...POLITICS, ...RECURRING, ...ABSURD, ...SECOND, ...MINOR, ...REACTIVE, ...SYSTEM, ...TRIBUNAL, ...SHOCK_FILES, ...CABINET, ...ATTACKS, ...REFINERY,
+  ...SUBSIDY, ...LABOUR, ...SCANDAL, ...POLITICS, ...RECURRING, ...ABSURD, ...SECOND, ...MINOR, ...REACTIVE, ...SYSTEM, ...TRIBUNAL, ...SHOCK_FILES, ...CABINET, ...ATTACKS, ...REFINERY, ...INSTITUTION_FILES,
 ];
 
 export const EVENTS: Record<string, GameEvent> = Object.fromEntries(EVENT_LIST.map((e) => [e.id, e]));

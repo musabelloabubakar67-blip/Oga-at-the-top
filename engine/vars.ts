@@ -179,6 +179,12 @@ export function getVar(s: GameState, path: string): number {
     // Where a re-election would stand today, as the desk's outlook reads it.
     case 'outlook': return outlookOf(s);
     case 'bench': return benchOf(s)[p[1]] ?? 0;
+    case 'inst': {
+      const i = (s.institutions ?? []).find((x) => x.id === p[1]);
+      if (!i) return -1;
+      if (p[2] === 'honest') return i.head.integrity >= 3 && !(i.head.patron !== 'president' && i.head.loyalty <= 3) ? 1 : 0;
+      return s.turn - (i.founded ?? i.since);
+    }
     case 'grieve': return (s.wronged ?? []).filter((w) => w.who === p[1] && w.until > s.turn).length;
     case 'wronged': return (s.wronged ?? []).filter((w) => w.until > s.turn).length;
     case 'fx': {
