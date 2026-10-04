@@ -579,6 +579,7 @@ export type Action =
   | { type: 'REPLACE_ADVISER'; role: string; name: string }
   | { type: 'NOMINATE'; seat: number; name: string }
   | { type: 'GROOM'; id: string }
+  | { type: 'GROOM_CREDIT'; id: string; reform: string }
   | { type: 'CHECK_CANDIDATE'; id: string }
   | { type: 'HEADHUNT'; role: string }
   | { type: 'ESTABLISH'; id: string; head: string }

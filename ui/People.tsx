@@ -24,7 +24,7 @@ import { REPLACEABLE } from '../content/names';
 import { naira } from '../engine/text';
 import type { Action, Favour, GameState } from '../engine/types';
 import { grievances } from '../engine/targets';
-import { GROOM_MAX, GROOM_PC, canGroom, candidate, candidateIds, shortlist } from '../engine/successor';
+import { CREDIT_PC, GROOM_MAX, GROOM_PC, canCredit, canGroom, candidate, candidateIds, creditable, groomWindow, shortlist } from '../engine/successor';
 import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees } from '../engine/courts';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
@@ -130,7 +130,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
     ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
-    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ...(s.term === 2 ? [['succession', 'The succession'] as [Tab, string]] : []), ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
+    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['succession', 'The succession'] as [Tab, string], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
   ];
 
   return (
@@ -574,10 +574,15 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
   const backed = s.flags['succession.backed'];
   const list = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => b.groomed - a.groomed || b.strength - a.strength);
   const top = new Set(shortlist(s).map((c) => c.id));
+  const shut = groomWindow(s);
+  const reforms = creditable(s);
+  const [pickR, setPickR] = useState<Record<string, string>>({});
   return (
     <div className="mt-4">
       <p className="text-sm text-ink-soft">
-        {backed ? `You have backed ${String(s.flags['successor.name'] ?? 'a successor')}.` : 'The party chooses its candidate in month 37. The three names it is talking about are marked; grooming someone puts them on the list.'}
+        {backed ? `You have backed ${String(s.flags['successor.name'] ?? 'a successor')}.` : 'The party chooses its candidate in month 37 of the second term. The three names it is talking about are marked; grooming someone puts them on the list.'}
+        {' '}You can start a year into the first term: an heir built up over two terms carries more weight, but before your own re-election the ambitious notice more and wonder whether you mean to run. Crediting them with a reform you delivered gives them a record to campaign on.
+        {shut ? <span className="text-alarm"> {shut}</span> : null}
         {' '}Strength is points of share at the election, before the usual cost of not being you (−3). Loyalty above 75 protects you whatever you did; an honest successor (integrity 4 or 5) will not protect much theft on loyalty alone.
       </p>
       <ul className="mt-3 space-y-2">
@@ -598,10 +603,26 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
               {!backed && (
                 <button disabled={!can.ok} onClick={() => dispatch({ type: 'GROOM', id: c.id })}
                   className={`mt-2 border px-3 py-1 text-sm ${can.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>
-                  Groom · {GROOM_PC} capital · strength +0.5, loyalty +5{c.groomed ? ` (${c.groomed}/${GROOM_MAX})` : ''}
+                  Give them a platform · {GROOM_PC} capital · strength +0.4, loyalty +5{c.groomed ? ` (${c.groomed}/${GROOM_MAX})` : ''}
                 </button>
               )}
               {!backed && !can.ok && can.reason && <span className="ml-2 text-[13px] text-ink-soft">{can.reason}</span>}
+              {!backed && !shut && reforms.length > 0 && (() => {
+                const r = pickR[c.id] ?? reforms[0].id;
+                const cr = canCredit(s, c.id, r, left);
+                return (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                    <select value={r} onChange={(e) => setPickR({ ...pickR, [c.id]: e.target.value })} className="max-w-xs border border-ink/25 bg-paper px-2 py-1">
+                      {reforms.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                    </select>
+                    <button disabled={!cr.ok} title={cr.reason} onClick={() => dispatch({ type: 'GROOM_CREDIT', id: c.id, reform: r })}
+                      className={`border px-3 py-1 ${cr.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>
+                      Give them the credit · {CREDIT_PC} capital · strength +0.3, loyalty +4
+                    </button>
+                    {!cr.ok && cr.reason && <span className="text-[13px] text-ink-soft">{cr.reason}</span>}
+                  </div>
+                );
+              })()}
             </li>
           );
         })}

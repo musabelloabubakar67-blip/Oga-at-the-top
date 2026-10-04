@@ -28,7 +28,7 @@ import { buildPapers } from './press';
 import { rand, randInt } from './rng';
 import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from './security';
 import { shockTick } from './shocks';
-import { canGroom, groom } from './successor';
+import { canCredit, canGroom, credit, groom } from './successor';
 import { CHECK_PC, HUNT_PC, candidate, candidatesFor, check, headhunt, release, take, talentTick } from './talent';
 import { floatNow, initCurrency } from './currency';
 import { canSetManager, setManager } from './places';
@@ -830,6 +830,13 @@ export function applyAction(state: GameState, action: Action): GameState {
       s.desk.actionsUsed += 1;
       const t = groom(s, action.id);
       record(s, `groom.${action.id}`, 'groom', 'politics', t, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'GROOM_CREDIT': if (canCredit(s, action.id, action.reform, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = credit(s, action.id, action.reform);
+      record(s, `groom.${action.id}`, 'credit', 'politics', t, 2);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
     case 'NOMINATE': if (canNominate(s, action.seat, action.name, movesLeft(s)).ok) {

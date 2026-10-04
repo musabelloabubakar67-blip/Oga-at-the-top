@@ -24,7 +24,7 @@ import { bench, canNominate, nominees } from '../engine/courts';
 import { ASSETS } from '../content/assets';
 import { runElection } from '../engine/election';
 import { STATE_BY_ID } from '../content/states';
-import { canGroom, candidate, candidateIds } from '../engine/successor';
+import { canCredit, canGroom, candidate, candidateIds, creditable } from '../engine/successor';
 import { aidedFx, applyAction, availability, canAct, canDrawer, canLaunch, canOrder, canRevive, canVenture, newGame, reviveCost, ventureOdds } from '../engine/reduce';
 import { canFocus } from '../engine/security';
 import { currentWant } from '../engine/wants';
@@ -218,6 +218,8 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         console.log(`\n[${dateLabel(s.turn, s.startYear)}] ${e.title}  → ${best.label}`);
         for (const t of tr) console.log(`     trace: ${t.turn <= 0 ? 'previous administration' : dateLabel(t.turn, s.startYear)} — ${t.headline}`);
       }
+      // A President who has built someone up backs them; the first name on the list is the one groomed.
+      if (e.id === 'succession.choice' && bot.name !== 'Random' && bot.name !== 'Do-nothing') best = options.find((c) => c.id === 'a') ?? best;
       s = applyAction(s, { type: 'CHOOSE', eventId: e.id, choiceId: best.id });
       if (s.phase === 'verdict') return s;
     }
@@ -387,9 +389,13 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       }
     }
     // The succession: build up whoever would be strongest and most grateful; the kleptocrat also prepares a way out.
-    if (!skip('succ') && s.term === 2 && bot.name !== 'Do-nothing' && bot.name !== 'Random' && movesLeft(s) > 1) {
-      const pick = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => (b.strength + b.loyalty / 40) - (a.strength + a.loyalty / 40))[0];
-      if (pick && canGroom(s, pick.id, movesLeft(s)).ok && s.pc > 25) s = applyAction(s, { type: 'GROOM', id: pick.id });
+    if (!skip('succ') && bot.name !== 'Do-nothing' && bot.name !== 'Random' && movesLeft(s) > 1) {
+      const pick = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => (b.groomed - a.groomed) * 2 + (b.strength + b.loyalty / 40) - (a.strength + a.loyalty / 40))[0];
+      // In the first term only with capital to spare; in the second, as a priority.
+      const spare = s.term === 2 ? 25 : (process.env.EARLY === '0' ? 999 : 40);
+      if (pick && canGroom(s, pick.id, movesLeft(s)).ok && s.pc > spare) s = applyAction(s, { type: 'GROOM', id: pick.id });
+      const r = creditable(s)[0];
+      if (pick && r && s.term === 2 && movesLeft(s) > 1 && s.pc > 25 && canCredit(s, pick.id, r.id, movesLeft(s)).ok) s = applyAction(s, { type: 'GROOM_CREDIT', id: pick.id, reform: r.id });
     }
     // Aimed orders: each style reaches for its own weapons, at whoever is least friendly (the default target).
     if (!skip('aim')) {
@@ -493,7 +499,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   const dims: Record<string, number> = {};
   let elApp = 0, elMargin = 0, elN = 0, elParty = 0;
   const margins: number[] = [];
-  let shocks = 0, dep = 0, casesN = 0, convicted = 0, expanded = 0;
+  let shocks = 0, dep = 0, casesN = 0, convicted = 0, expanded = 0, succRun = 0, succWon = 0, succMargin = 0, succBacked = 0, succStr = 0;
   const loose: Record<string, number> = {};
   let months = 0, reelected = 0, quiet = 0, unique = 0, app = 0, hard = 0, personal = 0;
   let assetsN = 0, abandonedN = 0, betsWon = 0, betsLost = 0, reforms = 0, arrears = 0, debt = 0, saved = 0, gone = 0, owing = 0;
@@ -510,6 +516,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
     shocks += s.shocks?.seen.length ?? 0;
     dep += dependence(s).v;
     expanded += (s.assets ?? []).reduce((x, a) => x + (a.level ?? 0), 0);
+    if (s.succession) { succRun++; if (s.succession.won) succWon++; const st = s.succession.states; const v = st.reduce((a, x) => a + x.voters, 0); succMargin += st.reduce((a, x) => a + (x.share - x.opp) * x.voters, 0) / v; succBacked += s.flags['succession.backed'] ? 1 : 0; succStr += Number(s.flags['succession.strength'] ?? -2); }
     casesN += (s.cases ?? []).length; convicted += (s.cases ?? []).filter((c) => c.outcome === 'convicted').length;
     for (const id of s.agenda.done) if (/^[rhog][0-9]$/.test(id)) loose[id] = (loose[id] ?? 0) + 1;
     if (s.election) { elApp += s.election.approval; elMargin += s.election.margin; elN++; margins.push(s.election.margin); }
@@ -529,7 +536,7 @@ for (const bot of BOTS.filter((b) => !process.env.ONLY || process.env.ONLY.split
   console.log(`   after     ${Object.entries(afters).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   epithets  ${Object.entries(epithets).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${pct(n)}`).join(' · ')}`);
   console.log(`   reforms ${(reforms / runs).toFixed(1)} · bets won ${(betsWon / runs).toFixed(1)}, lost ${(betsLost / runs).toFixed(1)} · assets ${(assetsN / runs).toFixed(1)}, abandoned ${(abandonedN / runs).toFixed(1)} · debt service ${(debt / runs).toFixed(0)}% · unpaid ₦${(arrears / runs).toFixed(1)}tn · saved ₦${(saved / runs).toFixed(1)}tn · defections ${(gone / runs).toFixed(1)} · still owes ${(owing / runs).toFixed(1)}`);
-  console.log(`   expansions ${(expanded / runs).toFixed(2)} · cases ${(casesN / runs).toFixed(1)}, convicted ${(convicted / runs).toFixed(1)} · oil dependence at the end ${(dep / runs).toFixed(0)}% · loose reforms ${Object.entries(loose).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' ') || 'none'}`);
+  console.log(`   succession elections ${succRun}, party won ${succRun ? Math.round(succWon / succRun * 100) : 0}%, margin ${(succMargin / Math.max(1, succRun)).toFixed(1)}, backed ${succBacked}, strength ${(succStr / Math.max(1, succRun)).toFixed(1)} · expansions ${(expanded / runs).toFixed(2)} · cases ${(casesN / runs).toFixed(1)}, convicted ${(convicted / runs).toFixed(1)} · oil dependence at the end ${(dep / runs).toFixed(0)}% · loose reforms ${Object.entries(loose).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${pct(n)}`).join(' ') || 'none'}`);
   if (revived) { console.log(`   failed bets revived ${(revived / runs).toFixed(2)} per presidency`); revived = 0; }
   console.log(`   distinct events per presidency ${(unique / runs).toFixed(0)} · shocks ${(shocks / runs).toFixed(1)}\n`);
 }
