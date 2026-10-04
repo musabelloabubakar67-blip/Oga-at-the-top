@@ -481,6 +481,8 @@ export interface GameState {
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
   /** What orders have built that keeps running, and who heads each. */
+  /** Where appointees from the talent pool come from, by name. */
+  origins?: Record<string, ZoneId>;
   /** Prosecutions under way and decided: who, for what, and where it stands. */
   cases?: { id: string; who: string; name: string; what: string; opened: number; stage: 'charged' | 'trial'; months: number; trialFrom?: number; recover: number; by: 'agency' | 'prosecutors'; backed?: boolean; leaned?: boolean; outcome?: 'convicted' | 'acquitted' | 'dropped' | 'fled'; closed?: number }[];
   institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; spec?: string; fit?: boolean }; since: number; seen?: boolean; /** When it was set up, for ramp-up; `since` is when the head took over. */ founded?: number; funding?: 'lean' | 'standard' | 'generous'; /** What it has done since it was set up, in its own units. */ record?: Record<string, number> }[];

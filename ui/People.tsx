@@ -1,5 +1,6 @@
 'use client';
 
+import { federalCharacter, posts } from '../engine/federal';
 import { Cases } from './Cases';
 import { Inline, Overlay, CloseButton } from './shell';
 import { Aimed } from './Aimed';
@@ -29,9 +30,10 @@ import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed';
+type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed' | 'federal';
 
 const INTRO: Record<Tab, string> = {
+  federal: 'Where the people you appoint come from, zone by zone.',
   governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on their hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
   senator: 'Reforms that need a law are voted on in the Senate, and your own senators decide whether they pass. Bills pass when the Senate stands at 50 or better; constitutional changes need more. The budget goes through them every December.',
   minister: 'A minister\'s competence sets how fast the reforms in the brief move, and whether the big bets in it can work. Each is judged from the day they took the job.',
@@ -130,7 +132,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
     ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
-    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['succession', 'The succession'] as [Tab, string], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
+    ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['succession', 'The succession'] as [Tab, string], ['federal', 'Federal character'] as [Tab, string], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`],
   ];
 
   return (
@@ -190,6 +192,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 
         {tab === 'succession' && <Succession s={s} dispatch={dispatch} left={left} />}
         {tab === 'courts' && <Courts s={s} dispatch={dispatch} left={left} />}
+        {tab === 'federal' && <Federal s={s} />}
 
         {tab === 'owed' && (
           <div className="mt-4">
@@ -570,6 +573,35 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
 }
 
 /** Who could succeed you, what each would bring, and grooming them. */
+function Federal({ s }: { s: GameState }) {
+  const f = federalCharacter(s);
+  const ps = posts(s);
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-ink-soft">
+        The constitution asks that federal appointments reflect the country, and every zone keeps count. The big posts (six ministers, Finance, the Chief of Staff and the political adviser, and at half weight the heads of institutions and managers of assets) are counted by where the holder comes from. A zone below its share cools on you every month; a zone with nobody at all cools faster, and its governor takes it personally. Replace people from the ministers, advisers and institutions screens; every candidate shows their zone.
+        {f.nepotism ? <span className="text-alarm"> Your own zone holds {f.home} of the posts: the papers have a word for it, and use it every month.</span> : ''}
+      </p>
+      <table className="mt-3 w-full text-left text-sm">
+        <thead><tr className="label text-ink-soft"><th className="py-1">Zone</th><th className="text-right">Posts</th><th className="text-right">Even share</th><th className="pl-3">Who</th><th className="text-right">Approval a year</th></tr></thead>
+        <tbody className="divide-y divide-ink/10">
+          {f.zones.map((z) => (
+            <tr key={z.zone}>
+              <td className="py-1.5 font-serif">{ZONE_NAME[z.zone]}{z.zone === s.president.homeZone ? ' (home)' : ''}</td>
+              <td className={`text-right tabular-nums ${z.count === 0 ? 'text-alarm' : ''}`}>{z.count}</td>
+              <td className="text-right tabular-nums text-ink-soft">{z.fair.toFixed(1)}</td>
+              <td className="pl-3 text-[13px] text-ink-soft">{z.names.join(', ') || '—'}<span className="block">{z.why}</span></td>
+              <td className={`text-right tabular-nums ${z.effect < 0 ? 'text-alarm' : z.effect > 0 ? 'text-state' : ''}`}>{z.effect > 0 ? '+' : ''}{(z.effect * 12).toFixed(1)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {ps.some((p) => !p.zone) && <p className="mt-2 text-[13px] text-ink-soft">Not counted, origin not on record: {ps.filter((p) => !p.zone).map((p) => p.name).join(', ')}.</p>}
+      <p className="mt-2 text-[13px] text-ink-soft">The succession follows the same rule: after a President from one half of the country, the party expects a candidate from the other.</p>
+    </div>
+  );
+}
+
 function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
   const backed = s.flags['succession.backed'];
   const list = candidateIds(s).map((id) => candidate(s, id)).sort((a, b) => b.groomed - a.groomed || b.strength - a.strength);

@@ -140,7 +140,8 @@ export function candidatesFor(s: GameState, role: string, n = 10): Offer[] {
   return t.pool.filter((c) => !t.taken.includes(c.id))
     .map((c) => ({ c, fit: fits(c, role), effective: competenceIn(c, role), refuses: refusal(s, c), shown: c.checked ? { competence: c.competence, loyalty: c.loyalty, integrity: c.integrity } : c.rep }))
     .sort((a, b) => Number(b.fit) - Number(a.fit) || b.shown.competence - a.shown.competence || b.shown.integrity - a.shown.integrity)
-    .slice(0, n);
+    // The best of each zone is always on the list, so a cabinet can be balanced.
+    .filter((o, i, all) => i < n || all.findIndex((x) => x.c.zone === o.c.zone) === i);
 }
 
 export function candidate(s: GameState, id: string): Candidate | undefined {
@@ -151,6 +152,8 @@ export function candidate(s: GameState, id: string): Candidate | undefined {
 export function take(s: GameState, id: string): void {
   const t = talent(s);
   if (!t.taken.includes(id)) t.taken.push(id);
+  const c = t.pool.find((x) => x.id === id);
+  if (c) (s.origins ??= {})[c.name] = c.zone;
 }
 
 /** Someone leaving a job goes back into the pool for a while, unless they were sacked in disgrace. */

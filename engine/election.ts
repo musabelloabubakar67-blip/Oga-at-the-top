@@ -1,4 +1,4 @@
-import { PERSON_BY_ID } from '../content/people';
+import { heirZone } from './successor';
 import { STATES } from '../content/states';
 import { TYCOONS } from '../content/tycoons';
 import { CFG } from './config';
@@ -58,7 +58,7 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession', ste
     - (strongestRival(s).strength - 45) * e.rival + moneyEffect(s) + cleanRecord(s);
   const backing = kind === 'succession' ? Number(s.flags['succession.strength'] ?? -2) - e.successorPenalty : 0;
   // A successor carries their own zone, as the President carried theirs.
-  const heirZone = kind === 'succession' ? PERSON_BY_ID[String(s.flags['succession.backed'] ?? '')]?.zone : undefined;
+  const heirHome = kind === 'succession' && s.flags['succession.backed'] ? heirZone(s, String(s.flags['succession.backed'])) : null;
   // Nobody controls the mood of the country on the day. Usually small; now and then it decides a close race.
   const swing = steady ? 0 : (rand(s) + rand(s) - 1) * e.swing;
 
@@ -67,7 +67,7 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession', ste
     const rallies = Math.min(e.rallyCap, s.campaign.rallies[st.zone] ?? 0);
     const home = kind === 'reelection'
       ? (st.id === s.president.home ? e.home : st.zone === s.president.homeZone ? e.homeZone : 0)
-      : (heirZone && st.zone === heirZone ? e.homeZone : 0);
+      : (heirHome && st.zone === heirHome ? e.homeZone : 0);
     const noise = steady ? 0 : (rand(s) * 2 - 1) * e.noise;
     const third = steady ? 7.5 : 5 + rand(s) * 5;
     const twoWay = clamp(

@@ -1267,7 +1267,7 @@ export function sackCost(s: GameState, id?: string): number {
 function minister(s: GameState, id: string, kind: 'technocrat' | 'party', name?: string): void {
   const cost = sackCost(s, id);
   if (movesLeft(s) <= 0 || s.pc < cost || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
-  const pick = name ? candidatesFor(s, id, 12).find((o) => o.c.name === name) : undefined;
+  const pick = name ? candidatesFor(s, id, 99).find((o) => o.c.name === name) : undefined;
   if (name && (!pick || pick.refuses)) return;
   const before = snapshot(s);
   s.pc -= cost;

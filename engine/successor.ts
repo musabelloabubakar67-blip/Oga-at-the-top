@@ -9,7 +9,8 @@ import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { termTurnOf } from './config';
 import { following, personView } from './people';
 import { grievances } from './targets';
-import type { GameState } from './types';
+import type { GameState, ZoneId } from './types';
+import { sameHalf, zoneOf } from './federal';
 import { ZONE_NAME, clamp, standing } from './vars';
 
 export interface Candidate {
@@ -37,6 +38,14 @@ export function candidateIds(s: GameState): string[] {
   return [...PEOPLE.filter((p) => !s.people[p.id]?.gone).map((p) => p.id), ...(s.chars.fin ? ['fin'] : [])];
 }
 
+/** Where a possible successor comes from. */
+export function heirZone(s: GameState, id: string): ZoneId | null {
+  if (id === 'fin') return s.chars.fin ? zoneOf(s, s.chars.fin.name) : null;
+  const p = PERSON_BY_ID[id];
+  if (!p) return null;
+  return p.zone ?? zoneOf(s, personView(s, id).name);
+}
+
 export function candidate(s: GameState, id: string): Candidate {
   const groomed = s.counters[`groom.${id}`] ?? 0;
   const why: string[] = [];
@@ -57,8 +66,13 @@ export function candidate(s: GameState, id: string): Candidate {
   const early = s.counters[`groomEarly.${id}`] ?? 0;
   if (early) { strength += Math.min(2, early) * 0.2; why.push('Built up since the first term: the country is used to the idea'); }
   if (clout >= 4) why.push('Has a structure of their own');
-  const zone = id !== 'fin' ? PERSON_BY_ID[id].zone : undefined;
-  if (zone) why.push(`Would carry the ${ZONE_NAME[zone]} as their home zone`);
+  const zone = heirZone(s, id);
+  if (zone) {
+    why.push(`Would carry the ${ZONE_NAME[zone]} as their home zone`);
+    // The unwritten rule: after a President from one half of the country, the ticket goes to the other.
+    if (sameHalf(zone, s.president.homeZone)) { strength -= 1.5; why.push(`From the same half of the country as you: the party's rotation says it is the other half's turn (−1.5)`); }
+    else { strength += 0.5; why.push('From the other half of the country, as the rotation expects (+0.5)'); }
+  }
   if (clout <= 2) why.push('Has no structure: the party barely knows them');
   if (competence >= 4) why.push('A record that can be campaigned on');
   if (id !== 'fin' && PERSON_BY_ID[id].group === 'minister') {

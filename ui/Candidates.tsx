@@ -1,5 +1,7 @@
 'use client';
 
+import { federalCharacter } from '../engine/federal';
+import { ZONE_NAME } from '../engine/vars';
 import { CHECK_PC, HUNT_PC, patronLabel, specName, type Offer } from '../engine/talent';
 import type { Action, GameState } from '../engine/types';
 
@@ -14,6 +16,7 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
   s: GameState; role: string; offers: Offer[]; dispatch: (a: Action) => void;
   appoint: (name: string) => void; can: (name: string) => { ok: boolean; reason?: string }; label: string; left: number;
 }) {
+  const fc = federalCharacter(s);
   return (
     <div className="mt-2">
       <ul className="space-y-2">
@@ -24,7 +27,7 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
             <li key={o.c.id} className={`border-l-2 pl-3 ${o.refuses ? 'border-alarm/50' : 'border-honour'}`}>
               <p className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-serif">{o.c.name}</span>
-                <span className={`label ${o.fit ? 'text-state' : 'text-ink-soft'}`}>{specName(o.c)}{o.fit ? ' · right field' : ' · outside their field (−1)'}</span>
+                <span className={`label ${o.fit ? 'text-state' : 'text-ink-soft'}`}>{specName(o.c)}{o.fit ? ' · right field' : ' · outside their field (−1)'} · {ZONE_NAME[o.c.zone]}{(() => { const z = fc.zones.find((x) => x.zone === o.c.zone)!; return z.count === 0 ? ' · would end its exclusion' : z.count - z.fair >= 0.5 ? ` · already has ${z.count}` : ''; })()}</span>
               </p>
               <p className="text-[13px] leading-snug text-ink-soft">{o.c.blurb}</p>
               <p className="text-[13px] leading-snug">

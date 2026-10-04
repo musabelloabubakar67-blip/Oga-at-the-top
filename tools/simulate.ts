@@ -34,6 +34,9 @@ import { built, canEstablish, canReplaceHead, headsFor } from '../engine/institu
 import { INSTITUTION_BY_ID } from '../content/institutions';
 import { fiscalFlow } from '../engine/treasury';
 import { dependence } from '../engine/dependence';
+import { federalCharacter, zoneOf } from '../engine/federal';
+import { personView } from '../engine/people';
+import { candidatesFor } from '../engine/talent';
 import { assetFiscal, canExpand, expansionCost } from '../engine/places';
 import { activePolicies, canRepeal, policyNow, repealCost } from '../engine/policies';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
@@ -259,6 +262,20 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       if (amount > 0.05 && amount <= spare && canPay(s, id, amount).ok) s = applyAction(s, { type: 'PAY_DEBT', id, amount });
     }
     if (bot.saves && s.nation.fiscalSpace > 3.4 && canFund(s, 'abroad', 1).ok) s = applyAction(s, { type: 'FUND', id: 'abroad', amount: 1 });
+    // A careful President fills a shut-out zone, swapping out the weakest minister from a zone with plenty.
+    if (!skip('fed') && bot.name !== 'Random' && bot.name !== 'Do-nothing' && s.turn % 3 === 0 && movesLeft(s) > 1) {
+      const f = federalCharacter(s);
+      const out = f.zones.find((z) => z.count === 0);
+      if (out) {
+        const crowded = new Set(f.zones.filter((z) => z.count >= 2).map((z) => z.zone));
+        const mins = PEOPLE.filter((p) => p.group === 'minister' && !s.people[p.id]?.gone).map((p) => ({ id: p.id, v: personView(s, p.id) }))
+          .filter((m) => { const z = zoneOf(s, m.v.name); return z && crowded.has(z); }).sort((a, b) => (a.v.competence ?? 3) - (b.v.competence ?? 3));
+        for (const m of mins) {
+          const o = candidatesFor(s, m.id, 99).find((x) => x.c.zone === out.zone && x.fit && !x.refuses && x.effective >= (m.v.competence ?? 3));
+          if (o && s.pc > 20) { s = applyAction(s, { type: 'REPLACE_MINISTER', id: m.id, kind: 'technocrat', name: o.c.name }); break; }
+        }
+      }
+    }
     // Everyone but the cynics makes time for a businessman who has turned cold.
     if (!skip('court') && bot.name !== 'Random' && bot.name !== 'Do-nothing') {
       for (const t of TYCOONS) if (movesLeft(s) > 1 && s.pc > 18 && s.tycoons[t.id].rel < 50 && canTycoon(s, t.id, 'court', movesLeft(s)).ok) s = applyAction(s, { type: 'TYCOON', id: t.id, op: 'court' });
