@@ -326,7 +326,7 @@ function page(s: GameState, outlet: OutletId, seeds: NewsSeed[], first: boolean,
     outlet, stance, turn: s.turn, date: dateLabel(s.turn, s.startYear),
     // A reaction gets a strap that says whose it is. A plain report does not pretend to be one.
     strap: partisan && !lead.grave ? (head !== tokens(lead.chronicle) ? strapList[(s.turn + s.seed) % strapList.length] : strapPool.flat[0]) : undefined,
-    lead: head,
+    lead: head, topic: lead.topic, grave: lead.grave,
     // A partisan paper leads on the reaction. The facts go underneath.
     fact: partisan && head !== tokens(lead.chronicle) ? tokens(lead.chronicle) : undefined,
     standfirst: comment ? tokens(comment) : '',

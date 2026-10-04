@@ -1,5 +1,6 @@
 'use client';
 
+import { mo } from '../engine/config';
 import { canBack, canDrop, cases, convictionOdds, prosecutor, trialLength } from '../engine/cases';
 import type { Action, GameState } from '../engine/types';
 
@@ -30,7 +31,7 @@ export function Cases({ s, dispatch, compact }: { s: GameState; dispatch: Dispat
                   <span className="font-serif text-lg">{c.name}</span>
                   <span className={`label ${o.p >= 0.5 ? 'text-state' : 'text-alarm'}`}>{Math.round(o.p * 100)}% to convict</span>
                 </p>
-                <p className="text-[13px] text-ink-soft">{c.what}. {c.stage === 'charged' ? 'Charged; the trial opens soon' : 'On trial'} · verdict in about {left} months · prosecuted by {prosecutor(s)}{c.backed ? ' · you have backed it in public' : ''}.</p>
+                <p className="text-[13px] text-ink-soft">{c.what}. {c.stage === 'charged' ? 'Charged; the trial opens soon' : 'On trial'} · verdict in about {mo(left)} · prosecuted by {prosecutor(s)}{c.backed ? ' · you have backed it in public' : ''}.</p>
                 <div className="mt-1 h-1.5 bg-ink/10"><div className="h-1.5 bg-state" style={{ width: `${Math.round(done * 100)}%` }} /></div>
                 {!compact && (
                   <ul className="mt-1.5 grid gap-x-4 text-[12.5px] sm:grid-cols-2">

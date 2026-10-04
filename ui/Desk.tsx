@@ -1,5 +1,6 @@
 'use client';
 
+import { attention, type Item } from '../engine/attention';
 import { mo } from '../engine/config';
 import { useContext, useState } from 'react';
 import { midName } from '../engine/text';
@@ -1231,6 +1232,45 @@ const NAV: [View, string, string][] = [
   ['treasury', 'The Treasury', 'What is owed and saved'],
 ];
 
+/** The Chief of Staff's briefing: what deserves the President's attention this month. */
+function Briefing({ s, go }: { s: GameState; go: (v: View, tab?: string) => void }) {
+  const a = attention(s);
+  const row = (x: Item, tone: string) => (
+    <li key={x.text}>
+      <button onClick={() => go(x.go, x.tab)} className={`w-full border-l-2 py-1 pl-3 text-left font-serif leading-snug hover:bg-ivory/5 ${tone}`}>{x.text}</button>
+    </li>
+  );
+  return (
+    <div className="border-l-2 border-honour/60 pl-4">
+      {a.hurt.length === 0 && a.open.length === 0 ? (
+        <p className="font-serif text-lg italic leading-snug text-ivory/90">“{fill(s, 'A quiet month so far, {SIR}. I do not trust it.')}”</p>
+      ) : (
+        <div className="space-y-3">
+          {a.hurt.length > 0 && (
+            <div>
+              <p className="label text-[#e8a597]">{a.hurt.length === 1 ? 'One thing that can hurt us' : `${a.hurt.length === 2 ? 'Two' : 'Three'} things that can hurt us`}</p>
+              <ul className="mt-1 space-y-1 text-ivory/90">{a.hurt.map((x) => row(x, 'border-alarm/60'))}</ul>
+            </div>
+          )}
+          {a.open.length > 0 && (
+            <div>
+              <p className="label text-[#9fd3b6]">{a.open.length === 1 ? 'One opening' : 'Two openings'}</p>
+              <ul className="mt-1 space-y-1 text-ivory/90">{a.open.map((x) => row(x, 'border-state-lit/60'))}</ul>
+            </div>
+          )}
+          {a.noise && (
+            <div>
+              <p className="label text-mute">What everyone is shouting about</p>
+              <p className="mt-1 font-serif italic leading-snug text-ivory/70">{a.noise}</p>
+            </div>
+          )}
+        </div>
+      )}
+      <p className="label mt-2 text-mute">{s.chars.cos?.name}, Chief of Staff</p>
+    </div>
+  );
+}
+
 export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch; onQuit: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
   const [view, setView] = useState<View>('desk');
@@ -1315,10 +1355,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_300px] lg:grid-cols-2">
                 <section className="min-w-0 space-y-5">
                   <h2 className="label text-mute">The brief</h2>
-                  <div className="border-l-2 border-honour/60 pl-4">
-                    <p className="font-serif text-lg italic leading-snug text-ivory/90">“{s.desk.note}”</p>
-                    <p className="label mt-1.5 text-mute">{s.chars.cos?.name}, Chief of Staff</p>
-                  </div>
+                  <Briefing s={s} go={go} />
                   {s.lastAction && (
                     <div className="fade-in border border-ivory/10 p-4">
                       <p className="label text-mute">Just done</p>

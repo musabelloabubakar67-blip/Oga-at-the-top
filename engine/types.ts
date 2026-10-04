@@ -255,6 +255,9 @@ export interface FrontPage {
   editorial?: string;
   /** Who owns the paper, when that explains the coverage. */
   owner?: string;
+  /** What the lead story is about, and whether it is grave: for the Chief of Staff's briefing. */
+  topic?: Topic;
+  grave?: boolean;
 }
 
 export interface Favour { id: number; who: string; dir: 'owed' | 'owing'; size: number; why: string; turn: number }
