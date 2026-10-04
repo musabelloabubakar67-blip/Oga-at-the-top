@@ -85,6 +85,23 @@ export const PREDECESSOR_FILES: GameEvent[] = [
       { id: 'no', label: 'Thank him and keep him off the platform', outcomes: [{ result: 'He understands, he says. He tells the elders he offered.', fx: [['pred.rel', -6]], flags: { 'pred.campaigns': 'declined' }, archive: 'Declined the former President\'s offer to campaign.', sig: 1 }] },
     ],
   },
+  // ---------------------------------------------------------------- what the Assembly built
+  {
+    id: 'budget.projects', kind: 'standalone', slot: 'lead', category: 'scandal', tone: 'dry', intensity: 3, max: 1, weight: 10,
+    when: { all: [v('counter.proj.commissioned', '>=', 150), { turn: [18] }, { not: { flag: 'projects.audited' } }] },
+    office: 'Office of the Auditor-General', stamp: 'CONFIDENTIAL',
+    title: 'The constituency projects',
+    body: [
+      'A newspaper has spent six months visiting the members\' constituency projects in your budgets: boreholes, town halls, skills centres, "empowerment" buses. It has found most of them. Many are a signboard in a field.',
+      'The Auditor-General offers to verify every project before the next tranche is released. The Appropriations chairman says this would be "an assault on the independence of the legislature".',
+    ],
+    reads: [{ role: 'sap', good: 'Every senator has a signboard in a field somewhere, {SIR}. Audit the signboards and you audit the Senate.' }],
+    choices: [
+      { id: 'audit', label: 'Verify every project before another naira is released', pc: 6, outcomes: [{ result: 'The verification starts. A third of the projects are found to exist. Contractors discover that signboards are no longer enough, and some of the boreholes start producing water.', fx: [['nation.integrity', 3], ['bloc.press', 3], ['person.sen_approp', -12]], ops: [['senators', -5]], flags: { 'projects.audited': true }, later: [{ after: [6, 9], fx: [['nation.fiscalSpace', 0.08], ['bloc.street', 2]], label: 'Unfinished projects are finished or the money returned.', note: ['CONSTITUENCY PROJECTS: ₦80BN RETURNED AFTER AUDIT', 'BOREHOLE WEY NO GET WATER, DEM DON FIX AM'] }], news: ['FG ORDERS VERIFICATION OF EVERY CONSTITUENCY PROJECT', 'DEM WAN COUNT SENATORS PROJECT ONE BY ONE'], archive: 'Ordered every constituency project verified before payment.', sig: 2 }] },
+      { id: 'publish', label: 'Publish the list, project by project, and let voters judge', outcomes: [{ result: 'The list goes online, with each senator\'s name beside each project. Several senators visit their constituencies for the first time in a year.', fx: [['bloc.press', 4], ['nation.integrity', 1.5]], ops: [['senators', -3]], flags: { 'projects.published': true }, archive: 'Published every constituency project with its sponsor.', sig: 2 }] },
+      { id: 'leave', label: 'It is the Assembly\'s business', outcomes: [{ result: 'You leave it to the Assembly, which thanks you. The newspaper runs the series anyway.', fx: [['pressure.scandalHeat', 5], ['bloc.press', -2]], ops: [['senators', 2]], flags: { 'projects.left': true }, archive: 'Left the constituency projects to the Assembly.', sig: 1 }] },
+    ],
+  },
   // ---------------------------------------------------------------- the Vice President
   {
     id: 'vp.camp', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'dry', intensity: 3, max: 1, weight: 11,

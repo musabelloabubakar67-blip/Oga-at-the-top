@@ -460,7 +460,7 @@ export interface GameState {
   succession: ElectionResult | null;
   ending: EndingKind | null;
   counters: Record<string, number>;
-  agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number }[] };
+  agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number; against?: string[] }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
   /** Everyone who could be appointed to anything. Created on first use. */
   talent?: { pool: { id: string; name: string; short: string; spec: 'economics' | 'security' | 'law' | 'administration' | 'engineering' | 'politics' | 'media'; zone: ZoneId; competence: number; loyalty: number; integrity: number; clout: number; ambition: number; patron: string; rep: { competence: number; loyalty: number; integrity: number }; blurb: string; until: number; checked?: boolean }[]; taken: string[]; seq: number };
@@ -483,6 +483,9 @@ export interface GameState {
   /** What orders have built that keeps running, and who heads each. */
   /** The Vice President: the running mate, who may be the heir or a rival. */
   vp?: { name: string; short: string; zone: ZoneId; competence: number; loyalty: number; integrity: number; clout: number; ambition: number; rel: number; since: number; blurb: string; portfolio?: number; sidelined?: boolean; briefing?: number };
+  /** Who held each witnessing post last month, and those who have left knowing something. */
+  holders?: Record<string, string>;
+  formers?: { name: string; post: string; slot: string; left: number; knows: number; quiet?: boolean; spoke?: number }[];
   /** Where appointees from the talent pool come from, by name. */
   origins?: Record<string, ZoneId>;
   /** Prosecutions under way and decided: who, for what, and where it stands. */
@@ -589,6 +592,7 @@ export type Action =
   | { type: 'GROOM'; id: string }
   | { type: 'VP'; op: 'portfolio' | 'sideline' | 'replace'; name?: string }
   | { type: 'PRED_VISIT' }
+  | { type: 'LAND_FORMER'; name: string }
   | { type: 'GROOM_CREDIT'; id: string; reform: string }
   | { type: 'CHECK_CANDIDATE'; id: string }
   | { type: 'HEADHUNT'; role: string }

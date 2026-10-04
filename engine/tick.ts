@@ -1,3 +1,4 @@
+import { formersTick } from './formers';
 import { predTick } from './predecessor';
 import { vpTick } from './vp';
 import { federalTick } from './federal';
@@ -94,6 +95,7 @@ export function economyTick(s: GameState): void {
   federalTick(s);
   vpTick(s);
   predTick(s);
+  formersTick(s);
   assetTick(s);
 
   // The example is followed: exposure erodes integrity slowly.

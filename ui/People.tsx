@@ -1,5 +1,6 @@
 'use client';
 
+import { canLand, LANDING_PC, risky } from '../engine/formers';
 import { canPortfolio, canReplaceVP, PORTFOLIO_PC, REPLACE_VP_PC, vpCandidates, vpTarget } from '../engine/vp';
 import { canVisit, predEffect, predMood, PRED_VISIT_PC } from '../engine/predecessor';
 import { federalCharacter, posts } from '../engine/federal';
@@ -156,6 +157,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
         {said && <p className="fade-in mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2 font-serif leading-snug">{said}</p>}
 
         {tab === 'advisers' && <VicePresident s={s} dispatch={dispatch} left={left} />}
+        {tab === 'advisers' && <Formers s={s} dispatch={dispatch} left={left} />}
         {tab === 'advisers' && (
           <ul className="mt-4 space-y-3">
             {Object.keys(s.chars).map((role) => {
@@ -611,6 +613,28 @@ function VicePresident({ s, dispatch, left }: { s: GameState; dispatch: Dispatch
             appoint={(name) => { dispatch({ type: 'VP', op: 'replace', name }); setSwap(false); }} can={(name) => canReplaceVP(s, name, left)} />
         </div>
       )}
+    </div>
+  );
+}
+
+function Formers({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left: number }) {
+  const list = risky(s);
+  if (!list.length) return null;
+  return (
+    <div className="mt-4 border border-alarm/40 p-4">
+      <p className="label text-alarm">Former officials who know things</p>
+      <p className="mt-1 text-[13px] leading-snug text-ink-soft">They left posts that witnessed what went into the drawer. For two years after leaving, any of them may talk; the more they saw, the likelier. A soft landing keeps them quiet.</p>
+      <ul className="mt-2 space-y-1.5">
+        {list.map((f) => {
+          const can = canLand(s, f.name, left);
+          return (
+            <li key={f.name} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span><span className="font-serif">{f.name}</span> <span className="text-ink-soft">· former {f.post} · witnessed {f.knows} · {24 - (s.turn - f.left)} months of risk left</span></span>
+              <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'LAND_FORMER', name: f.name })} className={btn(can.ok)}>An embassy abroad · {LANDING_PC} capital</button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

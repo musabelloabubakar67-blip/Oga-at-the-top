@@ -13,7 +13,7 @@ import { dependence, nonOilPoints } from '../engine/dependence';
 import { activePolicies, canRepeal, economyStrength, policyName, policyNow, repealCost } from '../engine/policies';
 import { describe } from '../engine/effects';
 import {
-  budgetPoints, canBudget, canFund, canPay, canSecuritise, canSupplementary, effectiveIncrease, erosion, evenSites, fiscalFlow, fundCosts, oilGap, paddingDemand, potency, releaseRate, vetoHolds,
+  budgetPoints, projectFinishRate, canBudget, canFund, canPay, canSecuritise, canSupplementary, effectiveIncrease, erosion, evenSites, fiscalFlow, fundCosts, oilGap, paddingDemand, potency, releaseRate, vetoHolds,
 } from '../engine/treasury';
 import type { Action, DebtId, FundId, GameState, SectorId, ZoneId } from '../engine/types';
 import { ZONES, ZONE_NAME, senate } from '../engine/vars';
@@ -222,6 +222,11 @@ function ThisYear({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
   return (
     <div className="mt-4">
       <p className="text-sm text-ink-soft">The {s.budget.year} budget, on oil at ${s.budget.benchmark}. Increases are spent as fast as each minister can manage. You can rush a line out (all of it, at a premium, with procurement skipped) or hold half of it back to keep the cash.</p>
+      {(s.counters['proj.commissioned'] ?? 0) > 0 && (() => {
+        const c = Math.round(s.counters['proj.commissioned'] ?? 0);
+        const f = Math.round(s.counters['proj.finished'] ?? 0);
+        return <p className="mt-2 text-sm"><span className="label mr-1 text-ink-soft">Members' projects</span>{c.toLocaleString('en-GB')} commissioned since you took office, {f.toLocaleString('en-GB')} finished, {(c - f).toLocaleString('en-GB')} described as ongoing. About {Math.round(projectFinishRate(s) * 100)}% of new ones get finished at today's integrity and state capacity{s.flags['projects.audited'] ? ', helped by the audit' : ''}.</p>;
+      })()}
       <ul className="mt-3 divide-y divide-ink/10">
         {SECTORS.map((x) => {
           const v = s.budget.alloc[x.id] ?? 0;

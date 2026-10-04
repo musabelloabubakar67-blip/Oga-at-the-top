@@ -46,7 +46,7 @@ import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
 import { BudgetModal, TreasuryModal } from './Treasury';
 import { PEOPLE, RIVAL_BY_ID } from '../content/people';
-import { strongestRival } from '../engine/people';
+import { personView, strongestRival } from '../engine/people';
 import { standing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
@@ -748,6 +748,16 @@ function TrackCard({ s, track, dispatch, priority }: { s: GameState; track: Trac
                     <Expected items={describe(m.done)} later dark />
                     <PolicyPreview s={s} id={m.id} />
                     {m.lasting && <p className="text-[12.5px] leading-snug text-ivory/70"><span className="label mr-1 text-mute">For as long as it stands</span>{m.lasting}</p>}
+                    {(() => {
+                      const lost = s.agenda.failed.filter((f) => f.id === m.id).pop();
+                      if (!lost) return null;
+                      const who = (lost.against ?? []).map((id) => ({ id, v: personView(s, id), now: standing(s, id) }));
+                      return (
+                        <p className="text-[12.5px] leading-snug text-alarm/90">
+                          <span className="label mr-1">Defeated before</span>{dateLabel(lost.turn, s.startYear)}. {who.length ? `It fell because ${who.map((w) => `${w.v.short} (now ${w.now >= 50 ? 'with you' : 'still not'})`).join(', ')} did not deliver. ` : 'The party as a whole was not with you. '}It needs the Senate at 50 again; win the holdouts over first, or grease it.
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <button

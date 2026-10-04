@@ -1,3 +1,4 @@
+import { canLand, land } from './formers';
 import { canVisit, visit } from './predecessor';
 import { canPortfolio, canReplaceVP, givePortfolio, initVP, replaceVP, sideline } from './vp';
 import { backCase, canBack, canDrop, dropCase } from './cases';
@@ -843,6 +844,13 @@ export function applyAction(state: GameState, action: Action): GameState {
       if (action.op === 'replace' && action.name && canReplaceVP(s, action.name, movesLeft(s)).ok) t = replaceVP(s, action.name);
       if (t) { s.desk.actionsUsed += 1; record(s, 'vp', action.op, 'politics', t, 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; }
     } break;
+    case 'LAND_FORMER': if (canLand(s, action.name, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      s.desk.actionsUsed += 1;
+      const t = land(s, action.name);
+      record(s, 'former.land', 'land', 'temptation', t, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'PRED_VISIT': if (canVisit(s, movesLeft(s)).ok) {
       const b = snapshot(s);
       s.desk.actionsUsed += 1;
@@ -1030,9 +1038,9 @@ function agendaTick(s: GameState): void {
       const rec = record(s, `reform.${m.id}`, 'failed', 'action', `Defeated in the National Assembly: ${m.name}.`, 3);
       applyFx(s, ['pc', -6], rec.touches);
       applyFx(s, ['bloc.press', -3], rec.touches);
-      s.agenda.failed.push({ id: m.id, turn: s.turn });
       if (min) addMark(s, min.id, -1, `Lost in the Assembly: ${m.name}`);
       const against = PEOPLE.filter((p) => p.group === 'senator' && standing(s, p.id) < 50).map((p) => personView(s, p.id).short);
+      s.agenda.failed.push({ id: m.id, turn: s.turn, against: PEOPLE.filter((p) => p.group === 'senator' && standing(s, p.id) < 50).map((p) => p.id) });
       const why = against.length
         ? `${against.join(' and ')} did not deliver ${against.length === 1 ? 'the' : 'their'} votes.`
         : 'The party as a whole was not with you when it came to the vote.';

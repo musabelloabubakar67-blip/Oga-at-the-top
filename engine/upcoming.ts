@@ -1,3 +1,4 @@
+import { risky } from './formers';
 // What is coming: the things that will bite in the next few months, gathered
 // from every system so the player does not have to open each screen to find them.
 
@@ -23,6 +24,8 @@ export function upcoming(s: GameState): Coming[] {
   const toElection = CFG.electionTermTurn - tt;
   if (s.term === 1 && toElection > 0 && toElection <= 12) out.push({ months: toElection, text: `The election in ${toElection} ${toElection === 1 ? 'month' : 'months'}`, tone: 'neutral', go: 'country' });
   if (s.term === 2 && tt >= 12 && tt < 34 && !s.flags['succession.backed']) out.push({ months: 34 - tt, text: `The party picks its candidate in ${34 - tt} months: groom a successor`, tone: 'neutral', go: 'power', tab: 'succession' });
+  const loose = risky(s).length;
+  if (loose) out.push({ months: 0, text: `${loose} former ${loose === 1 ? 'official knows' : 'officials know'} what went into the drawer`, tone: 'bad', go: 'power', tab: 'advisers' });
   for (const c of openCases(s)) {
     const left = c.stage === 'charged' ? 3 - c.months + trialLength(s) : Math.max(1, trialLength(s) - (s.turn - (c.trialFrom ?? s.turn)));
     if (left <= 4) out.push({ months: left, text: `Verdict on ${c.name}: ${Math.round(convictionOdds(s, c).p * 100)}% to convict`, tone: 'neutral', go: 'power', tab: 'courts' });

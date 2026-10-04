@@ -169,6 +169,11 @@ function sectorDelta(s: GameState, id: SectorId, held: boolean): number {
   return raw * potency(s, id).k;
 }
 
+/** The share of members' projects that are ever finished. */
+export function projectFinishRate(s: GameState): number {
+  return clamp(0.15 + s.nation.integrity / 120 + s.nation.capacity / 300 + (s.flags['projects.audited'] ? 0.15 : 0), 0.15, 0.9);
+}
+
 /** What each sector does, every month, for the year. */
 function budgetTick(s: GameState): void {
   const months = s.turn - (s.counters.budgetTurn ?? 0);
@@ -187,6 +192,12 @@ function budgetTick(s: GameState): void {
     if (st && !st.gone) st.rel = clamp(st.rel + 0.2 * pad, 0, 100);
   }
   if (pad > 0) s.nation.integrity = clamp(s.nation.integrity - 0.05 * pad, 0, 100);
+  // The members' projects themselves: boreholes, town halls, "empowerment" buses. How many get finished depends on how much is stolen.
+  const points = s.budget.alloc.padding ?? 0;
+  if (points > 0 && !held) {
+    s.counters['proj.commissioned'] = (s.counters['proj.commissioned'] ?? 0) + points * 3;
+    s.counters['proj.finished'] = (s.counters['proj.finished'] ?? 0) + points * 3 * projectFinishRate(s);
+  }
   // Works money is spent somewhere. Where it goes above an even share, the zone notices; where it goes below, so does that one.
   const sites = s.budget.sites;
   if (sites && !held) {
