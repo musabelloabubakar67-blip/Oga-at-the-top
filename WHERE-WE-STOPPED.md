@@ -35,7 +35,7 @@ Other simulator modes: `-- 12 --scenarios`, `-- 4 --world`, `-- --trace`. Run th
 - Six named debts, four funds, an oil price, an annual budget, the states' share of revenue.
 - Six security theatres with drivers and a focus.
 - Sixteen named politicians (governors, senators, ministers with scorecards), five businessmen, three rivals who act, and a two-way ledger of favours.
-- 70 reforms in 14 tracks. Ten tracks are sequential. Four can be taken in any order, and nine of their items are tempting but bad for the country.
+- 70 reforms in 14 tracks. Ten tracks are sequential. Four can be taken in any order; their items change how a system behaves while they stand, most as standing policies, and three serve the President more than the country.
 - 32 big bets with named conditions for success, 16 of them opened by reforms.
 - 132 event files. All of them read the systems above, offer choices that depend on them, and write back to named people and balances.
 - Four newspapers, two printed each month.
@@ -95,6 +95,8 @@ Added after the budget (owner, 3 October): the rice reserve fix, the refinery mi
 The budget was rebuilt (owner, 3 October): inflation shrinks it, points have diminishing returns and are worth more where the problem is worse, ministries spend only part of each increase (by the minister's competence and the cash in hand) and lines can be rushed or held, works money is sited by zone, the Assembly sends back its own version with insertions (sign, split or veto), cuts below last year are felt, and a supplementary budget can be passed when oil moves $12. Chapter 0, Oil and the budget. Balance after it (100 each): flawless reformer 82%, any-order reformer 52%, populist 36%, institutionalist 60%, machine 63%, kleptocrat 23%.
 
 Balance after phases 4b to 6 (100 each): flawless reformer 80%, any-order reformer 67%, institutionalist 64%, machine 63%, kleptocrat 29%, populist 28%. Machine was 67% before rival attacks drew sympathy back. The populist moves between 23% and 35% with small changes (noise at 100 runs is about ±5); it loses on hardship (73 to 79), which may be the right lesson or may be too harsh: the owner's call. After office: reformers end as elder statesmen, the machine mostly on trial or investigated, the kleptocrat in exile (it moves money abroad), the populist investigated about half the time.
+
+Batch of 4 October (owner): shocks at even odds and impossible to miss; a talent pool of 48 for every appointment, with refusals, flattering files and background checks; institutions with an inside (ramp-up, a running record, funding dial, heads per job, their own files); oil dependence computed from its causes (75% at the start, about 40% after two strong reforming terms; it scales oil gaps and windfalls, adds budget points and non-oil dollars); the four any-order tracks rewritten with items that matter (census, governors' compact, gas buses, wage deal, northern border, amnesty, loot register, crop exports, cheap remittances, and the kept items given lasting effects); failed big bets revivable once; inherited presidencies' files checked against the world they fire in (`mine.<id>`, `pred.drawer`). Not built from the talent-pool discussion: a sacked appointee who talks to the press. Balance for this batch: a 60-run pass is in progress; see the next commit.
 
 Parked: the Vice President, the military as a political actor, lenders with conditions, the exchange rate, intelligence that can be wrong.
 
