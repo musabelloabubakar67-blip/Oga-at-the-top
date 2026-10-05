@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from '../../engine/contracts';
 import type { GameEvent } from '../../engine/types';
 
 // STORYLINES: The University Agreement, and the Minimum Wage.
@@ -458,7 +459,9 @@ export const LABOUR: GameEvent[] = [
           result: 'The strike is suspended for three weeks while the union considers the meaning of "due course".',
           fx: [['pressure.wageGrievance', 3]],
           news: ['DOCTORS SUSPEND STRIKE FOR 21 DAYS', 'DOCTORS GIVE GOVERNMENT THREE WEEKS'],
-          archive: 'Paid half of the doctors\' arrears.',
+          // "In due course" is now a dated public commitment, due for review in three months (once per administration).
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'doctors.balance.$ADMIN', responsible: { office: 'adviser:fin' }, object: 'pay-doctors-allowance-balance', text: 'Pay the remaining ₦19bn of the resident doctors\' allowances, promised "in due course".', afterMonths: 3, visibility: 'public' }] },
+          archive: 'Paid half of the doctors\' arrears and promised the rest.',
         }],
       },
       {

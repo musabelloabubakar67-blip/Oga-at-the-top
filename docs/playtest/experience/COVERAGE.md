@@ -54,11 +54,11 @@ Baseline `4227861`. Contract v0.
 | 04.A8 | Respect vacancies and the game's constitutional appointment processes; avoid wholesale presidential replacement of every court. |  | planned | |
 | 04.T9 | A capable independent institution can help the country and constrain its founder in the same campaign. | joint | planned | |
 | 04.T10 | A constitutional change alters future legal or governing behaviour. A court outcome explains its reasoning and relevant evidence. | joint | planned | |
-| 05.A1 | Store persistent requests with a specific object, requester, status, terms and history. Separate underlying ambitions from individual requests. |  | planned | |
-| 05.A2 | Refusal closes the request. Renewed pressure requires a changed offer, appeal, threat, coalition move or other material development. |  | planned | |
+| 05.A1 | Store persistent requests with a specific object, requester, status, terms and history. Separate underlying ambitions from individual requests. |  | in progress | First authored requests with object, requester and response (road, Appropriations understanding); records.check.ts. Old want loop still active (R3). |
+| 05.A2 | Refusal closes the request. Renewed pressure requires a changed offer, appeal, threat, coalition move or other material development. |  | in progress | Authored requests close on refusal with a stated response; renewal on material change waits on R3. |
 | 05.A3 | Differentiate responses by motive, personality, leverage, legitimacy and explanation. Do not create a universal grudge from two unrelated refusals. |  | planned | |
 | 05.A4 | Replace time-window rotation as the principal model of unresolved requests. |  | planned | |
-| 05.A5 | Preserve promise objects. An unrelated concession must not fulfil a promise; substitutions require recipient agreement. |  | planned | |
+| 05.A5 | Preserve promise objects. An unrelated concession must not fulfil a promise; substitutions require recipient agreement. |  | in progress | Promises stored as commitments with precise text (Dandume ministry, elders' terms, Gwarzo terms); later files note them by original id. |
 | 05.A6 | Reconcile bilateral favours through explicit offset, partial settlement, forgiveness or negotiated replacement. Track remaining size and terms consistently for politicians and tycoons. |  | planned | |
 | 05.A7 | Add contextual uses: withdraw a demand, broker contact, amend a provision, deliver an agreement, supply actual evidence, release a partner from a term, secure project support and forgive an obligation. |  | planned | |
 | 05.A8 | Retain existing mobilisation, whipping, acceleration, money, investment, coverage, endorsement and witness-related uses where appropriate. |  | planned | |
@@ -67,14 +67,14 @@ Baseline `4227861`. Contract v0.
 | 05.A11 | Make reconciliation address the dispute rather than automatically erasing all grievances after any grant. |  | planned | |
 | 05.T12 | A refused request cannot return unchanged as an unresolved ask. | joint | planned | |
 | 05.T13 | Mutual debts can settle partly or fully, with a traceable residual. Favour support has an identifiable target and effect. | joint | planned | |
-| 05.T14 | Precise commitments remain precise through grants, replacements, succession and negotiations. | joint | planned | |
+| 05.T14 | Precise commitments remain precise through grants, replacements, succession and negotiations. | joint | in progress | Commitments survive succession and are re-openable per administration (records.check.ts); grants and replacements wait on R3/R5. |
 | 06.A1 | Give political actors positions on particular issues, with projects they pursue. General relationship warmth does not determine every position. |  | planned | |
 | 06.A2 | Turn pacts into coordinated demands and delivery commitments with a shared objective. |  | planned | |
 | 06.A3 | Negotiate legislation through provisions, implementation dates, geography, revenue distribution, oversight and appointments. |  | planned | |
 | 06.A4 | Preserve concessions in the resulting agreement and implementation; passing a law begins delivery of its settlement. |  | planned | |
 | 06.A5 | Delegate objectives, budget, authority, limits and reporting standards to ministers. Routine work proceeds without repeated presidential clicks. |  | planned | |
 | 06.A6 | Escalate exceptions, missed targets, funding disputes and breaches. Evaluate written ministerial targets on their actual deadline, including the government’s contribution to failure. |  | planned | |
-| 06.A7 | Build a unified commitments register for public promises, political settlements, targets, contracts, deadlines and financial obligations. |  | planned | |
+| 06.A7 | Build a unified commitments register for public promises, political settlements, targets, contracts, deadlines and financial obligations. |  | in progress | Authored commitments now exist (six files); register screen not built yet. |
 | 06.T8 | A major bill passes through negotiation and produces enforceable obligations plus differentiated later reactions. | joint | planned | |
 | 06.T9 | A six-month target creates an actual review with outcomes for delivery, failure, withheld funding or disputed evidence. | joint | planned | |
 | 07.A1 | Audit every event, choice, outcome, recurrence and headline on the authoritative build. Historical inventory counts are not a cap or current truth. |  | planned | |

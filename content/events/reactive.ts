@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION, type DomainOutcome } from '../../engine/contracts';
 import type { GameEvent } from '../../engine/types';
 
 // REACTIVE FILES
@@ -6,6 +7,8 @@ import type { GameEvent } from '../../engine/types';
 // well above generic events, so the desk reflects the presidency being run.
 
 const phone = { slot: 'minor', channel: 'phone', office: 'Phone', intensity: 1 } as const;
+// The road commitment opened in minor.governor_call, addressed by its original id.
+const roadDone = (text: string): DomainOutcome => ({ version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'road.ss.finish.$ADMIN', text }] });
 
 export const REACTIVE: GameEvent[] = [
   {
@@ -579,6 +582,7 @@ export const REACTIVE: GameEvent[] = [
           result: 'You cut the ribbon. He makes a speech in which the road is mostly his. The crowd knows better.',
           fx: [['zone.SS.approval', 5], ['bloc.party', 4], ['approval', 1], ['person.gov_ss', 4]],
           news: ['PRESIDENT COMMISSIONS FEDERAL ROAD', 'ROAD WEY PRESIDENT PROMISE DON FINISH. E SHOCK US'],
+          domain: roadDone('Finished and commissioned by the President, with the governor speaking.'),
           archive: 'Commissioned the federal road you funded at a governor\'s request.',
         }],
       },
@@ -588,6 +592,7 @@ export const REACTIVE: GameEvent[] = [
           result: 'He is delighted and, for the first time, slightly in your debt.',
           fx: [['bloc.party', 7], ['pc', 3], ['person.gov_ss', 10]],
           favour: ['gov_ss', 'owed', 1],
+          domain: roadDone('Finished. The governor commissioned it and took the credit, with the President\'s agreement.'),
           archive: 'Let the governor take the credit for a road you funded.',
         }],
       },
@@ -595,6 +600,7 @@ export const REACTIVE: GameEvent[] = [
     ignored: {
       result: 'He commissions it himself and does not mention you.',
       fx: [['bloc.party', 2]],
+      domain: roadDone('Finished. The governor commissioned it alone; the President did not reply.'),
       archive: 'Did not attend the commissioning of a road you funded.',
     },
   },

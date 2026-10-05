@@ -2,6 +2,29 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 3 — the first authored records (S8)
+
+- **Baseline:** `4227861`. Fast-forwarded to `40cb5b5`; no conflicts.
+- **Branch:** `redesign/claude-experience`, head after `40cb5b5`.
+- **Contract version consumed:** 1.0.0 with the S8 tokens. Verbs used: `request.open`, `request.close`, `commitment.open`, `commitment.note`. No episode records yet (repetition routing is R2).
+- **Files:** `content/events/minor.ts`, `reactive.ts`, `labour.ts`, `system.ts`, `cabinet.ts`, `politics.ts`, `secondterm.ts`; `tests/experience/records.check.ts`; documents.
+- **What the six files now record:**
+
+| File | Record | Id | Closed or noted by |
+|---|---|---|---|
+| `minor.governor_call` | Koroye's request for the road: withdrawn (called back), granted (funded), refused (message ignored, at month end) | `road.ss.$ADMIN` | Same outcome |
+| `minor.governor_call` → `road` | Public commitment of the Works minister to finish the road within 12 months | `road.ss.finish.$ADMIN` | `react.road_done`, all three paths, by the original id |
+| `doctors.strike` → `part` | Public commitment of the Finance Minister to pay the remaining ₦19bn, due in 3 months | `doctors.balance.$ADMIN` | Review waits on R4/S1 |
+| `owe.decamp` → `stall` | Private promise of a ministry for Dandume "after the budget", 6 months | `dandume.ministry.$ADMIN` | `owe.decamp.leaves`: given late, or not given and read out at a press conference |
+| `fin.gwarzo.offer` → `keep` | Public commitment that the Finance Minister controls the budget timetable and may refuse unfunded spending | `fin.terms.gwarzo.$ADMIN` | `fin.gwarzo.budget`: honoured (back) or broken (overrule), with different results and headlines; guarded by a flag set only with the record |
+| `fin.lohor.committee` | Zango's request (granted or refused) and, if granted, a private commitment to put the committee's projects first | `approp.understanding.$ADMIN`, `approp.projects.$ADMIN` | Next budget, once R4 can judge it |
+| `ticket.elders` → `terms` | Private commitment to concede the secretariat and consult the elders on second-term appointments, 16 months | `elders.terms.$ADMIN` | `second.promise`: honoured, partly honoured, broken, or renegotiated by favours; guarded by a flag set only with the record (an executive order sets `promise.second_term` without one) |
+
+- **Identity notes:** Dandume is a rival and may not hold a resolvable office, so his promise is recorded with the President as responsible and him named in the text. Requesters and responsible parties otherwise use `gov_ss`, `sen_approp`, `min_works`, `adviser:fin` and `president`.
+- **Checks and results:** `tsc` clean; content lint passed (0 warnings); `npm run check:experience` passed (2 checks: 6 dossiers, 11 record checks); `npm run check:contracts` passed (13); `simulate 2 --world` ran eight chained presidencies through the real reducer without a failure.
+- **Record checks cover:** each choice opens or closes the record its text implies; follow-ups address the original id after months have passed; the month-end path for an ignored message; a budget file that must not touch a record never opened; the order-set flag that has no record; a successor opening the same records again.
+- **Unresolved:** commitment reviews (S1/R4), follow-up identity (S4) and episode routing (R2) are still needed before recurring files can carry records. S3 and S6 also outstanding.
+
 ## Delivery 2 — consuming contract 1.0.0 (S2, S5, S7)
 
 - **Baseline:** `4227861`. Fast-forwarded to `b07f3e8` from `redesign/codex-systems`; no merge commit, no conflicts.

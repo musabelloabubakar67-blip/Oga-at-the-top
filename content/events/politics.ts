@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from '../../engine/contracts';
 import type { GameEvent } from '../../engine/types';
 
 // Party, Assembly and survival: screening, letters, defections, the ticket,
@@ -346,7 +347,9 @@ export const POLITICS: GameEvent[] = [
           result: 'You concede the party secretariat and "consultation" on second-term appointments. The elders issue a communiqué affirming their "unalloyed loyalty".',
           fx: [['bloc.party', 10], ['nation.integrity', -1.5]],
           ops: [['governors', 5], ['senators', 4]],
-          flags: { 'ticket.deal': true, 'promise.second_term': true },
+          // `elders.terms` is set only together with the record, so the second term can address it safely.
+          flags: { 'ticket.deal': true, 'promise.second_term': true, 'elders.terms': true },
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'elders.terms.$ADMIN', responsible: { office: 'president' }, object: 'elders-second-term-terms', text: 'Concede the party secretariat to the elders, and consult them on second-term appointments.', afterMonths: 16, visibility: 'private' }] },
           news: ['PARTY ELDERS ENDORSE PRESIDENT FOR SECOND TERM', 'ELDERS DON COLLECT. PRESIDENT GET TICKET'],
           archive: 'Agreed terms with the party elders for the ticket.', sig: 2,
         }],

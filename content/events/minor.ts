@@ -1,9 +1,17 @@
+import { CONTRACT_VERSION, type DomainEffect, type DomainOutcome } from '../../engine/contracts';
 import type { GameEvent } from '../../engine/types';
 
 // Minor matters. They arrive on the phone, take one tap, and can be left on
 // read. Leaving them on read is a decision and is recorded as one.
 
 const phone = { slot: 'minor', channel: 'phone', office: 'Phone', intensity: 1 } as const;
+const domain = (...effects: DomainEffect[]): DomainOutcome => ({ version: CONTRACT_VERSION, effects });
+
+// The governor's road: one request per administration (the file fires once).
+const ROAD_REQUEST: DomainEffect = {
+  type: 'request.open', id: 'road.ss.$ADMIN', requester: { office: 'gov_ss' }, object: 'federal-road-in-governor-state',
+  text: 'Fund and finish the stalled federal road in his state.',
+};
 
 export const MINOR: GameEvent[] = [
   {
@@ -21,6 +29,7 @@ export const MINOR: GameEvent[] = [
         outcomes: [{
           result: 'You speak for twelve minutes. The road is mentioned once. He tells four other governors that you called.',
           fx: [['bloc.party', 3], ['person.gov_ss', 4]],
+          domain: domain(ROAD_REQUEST, { type: 'request.close', id: 'road.ss.$ADMIN', status: 'withdrawn', response: 'Raised once in a twelve-minute call and not pressed. Access, not the road, was the point.' }),
           archive: 'Returned the Governors\' Forum chairman\'s call.',
         }],
       },
@@ -32,6 +41,12 @@ export const MINOR: GameEvent[] = [
           favour: ['gov_ss', 'owed', 1],
           flags: { 'road.funded': true },
           follow: [{ event: 'react.road_done', after: [10, 14] }],
+          // The road is now a public commitment of the Works ministry, due within the year.
+          domain: domain(
+            ROAD_REQUEST,
+            { type: 'request.close', id: 'road.ss.$ADMIN', status: 'granted', response: 'Funded the same day.' },
+            { type: 'commitment.open', id: 'road.ss.finish.$ADMIN', responsible: { office: 'min_works' }, object: 'finish-federal-road-in-governor-state', text: 'Finish the federal road in the Governors\' Forum chairman\'s state.', afterMonths: 12, visibility: 'public' },
+          ),
           archive: 'Funded a federal road at a governor\'s request.',
         }],
       },
@@ -39,6 +54,7 @@ export const MINOR: GameEvent[] = [
     ignored: {
       result: 'You did not call. He has told four other governors that you did not call.',
       fx: [['bloc.party', -3], ['person.gov_ss', -5]],
+      domain: domain(ROAD_REQUEST, { type: 'request.close', id: 'road.ss.$ADMIN', status: 'refused', response: 'The message was not returned.' }),
       archive: 'Left the Governors\' Forum chairman\'s message unanswered.',
     },
   },

@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from '../../engine/contracts';
 import type { Cond, GameEvent } from '../../engine/types';
 
 // FILES THAT COME FROM THE PRESIDENT'S OWN SITUATION
@@ -151,6 +152,8 @@ export const SYSTEM: GameEvent[] = [
           fx: [['bloc.party', -2], ['rival.strong', 4]],
           ops: [['grow', 'strong']],
           follow: [{ event: 'owe.decamp.leaves', after: [5, 8], when: v('owing.strong', '>', 0) }],
+          // "After the budget" is now a dated private promise; the follow-up addresses it by this id.
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'dandume.ministry.$ADMIN', responsible: { office: 'president' }, object: 'ministry-for-dandume', text: 'Give Senator Garba Dandume a ministry "after the budget", as promised when he returned to the party.', afterMonths: 6, visibility: 'private' }] },
           archive: 'Put Senator Dandume off.',
         }],
       },
@@ -174,12 +177,13 @@ export const SYSTEM: GameEvent[] = [
     choices: [
       {
         id: 'give', label: 'You will have it by Wednesday',
-        outcomes: [{ result: 'He has it by Wednesday.', fx: [['nation.capacity', -3], ['nation.integrity', -2]], ops: [['settle', 'strong']], archive: 'Gave Senator Dandume his ministry, under threat.' }],
+        outcomes: [{ result: 'He has it by Wednesday.', fx: [['nation.capacity', -3], ['nation.integrity', -2]], ops: [['settle', 'strong']], domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Given, late, under the threat of a press conference.' }] }, archive: 'Gave Senator Dandume his ministry, under threat.' }],
       },
     ],
     ignored: {
       result: 'The press conference is held. He announces his departure, and reads out a list of things you promised him.',
       fx: [['rival.strong', 16], ['bloc.party', -6], ['bloc.press', -3]], flags: { 'rival.strong.in': false }, ops: [['settle', 'strong']],
+      domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Not given. He left the party and read the promise out at a press conference.' }] },
       news: ['DANDUME QUITS RULING PARTY AGAIN', 'DANDUME DON GO AGAIN. E READ PRESIDENT PROMISE FOR TV'],
       archive: 'Lost Senator Dandume a second time.',
     },

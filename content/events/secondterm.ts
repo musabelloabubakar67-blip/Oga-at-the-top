@@ -1,6 +1,16 @@
-import type { GameEvent } from '../../engine/types';
+import { CONTRACT_VERSION } from '../../engine/contracts';
+import type { GameEvent, Outcome } from '../../engine/types';
 
 // The second term, the succession, the handover, and good fortune.
+
+/**
+ * The elders' terms agreed before the primary (`ticket.elders`) are stored as a commitment.
+ * When it exists, each way of answering the elders writes what happened to it.
+ */
+const withEldersTerms = (base: Outcome, note: string): Outcome[] => [
+  { ...base, when: { flag: 'elders.terms' }, domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'elders.terms.$ADMIN', text: note }] } },
+  base,
+];
 
 export const SECOND: GameEvent[] = [
   {
@@ -20,47 +30,47 @@ export const SECOND: GameEvent[] = [
     choices: [
       {
         id: 'honour', label: 'Honour the understanding',
-        outcomes: [{
+        outcomes: withEldersTerms({
           result: 'The list is accepted with two changes. The new cabinet is described by the Federal Chronicle as "a reunion".',
           fx: [['bloc.party', 8], ['nation.capacity', -4], ['nation.integrity', -2], ['bloc.press', -3]],
           ops: [['governors', 4], ['senators', 2]],
           flags: { 'promise.second_term': false },
           news: ['PRESIDENT UNVEILS SECOND-TERM CABINET', 'NEW CABINET, SAME OLD FACES'],
           archive: 'Gave the second-term cabinet to the party elders as promised.', sig: 2,
-        }],
+        }, 'Honoured: the elders\' list became the second-term cabinet, with two changes.'),
       },
       {
         id: 'half', label: 'Give them the agencies, keep the cabinet', pc: 6,
-        outcomes: [{
+        outcomes: withEldersTerms({
           result: 'After a long evening they accept nine agencies and four ministries. The economic team is yours.',
           fx: [['bloc.party', 2], ['nation.capacity', -1.5], ['nation.integrity', -1]],
           flags: { 'promise.second_term': false },
           news: ['PRESIDENT RETAINS ECONOMIC TEAM IN NEW CABINET', 'ELDERS COLLECT AGENCIES, PRESIDENT HOLD CABINET'],
           archive: 'Gave the party elders agencies but kept the cabinet.', sig: 2,
-        }],
+        }, 'Partly honoured: the elders received nine agencies and four ministries; the economic team stayed the President\'s.'),
       },
       {
         id: 'refuse', label: 'Tell them the election is over', pc: 12,
-        outcomes: [{
+        outcomes: withEldersTerms({
           result: 'You appoint your own cabinet. The elders leave without tea. {CHAIR} tells a reporter that "power is transient", and looks at his watch.',
           fx: [['bloc.party', -14], ['nation.capacity', 3], ['nation.integrity', 2], ['bloc.press', 4]],
           ops: [['governors', -6], ['senators', -3]],
           flags: { 'promise.second_term': false, 'promise.broken': true },
           news: ['PRESIDENT NAMES "CABINET OF TECHNOCRATS"', 'PRESIDENT DON USE ELDERS FINISH, DUMP THEM'],
           archive: 'Broke the pre-primary understanding with the party elders.', sig: 3,
-        }],
+        }, 'Broken: the President appointed the cabinet without them and told the elders the election was over.'),
       },
       {
         id: 'ledger', label: 'Go round the table and remind each of them what they owe you',
         requires: { v: ['favours', '>=', 2] },
-        outcomes: [{
+        outcomes: withEldersTerms({
           result: 'You go round the table, by name, with dates. By the end the list has shrunk to three agencies and one ministry nobody wanted. The cabinet is yours. Every account you held is now closed.',
           fx: [['bloc.party', -3], ['nation.capacity', 3], ['nation.integrity', 1.5], ['bloc.press', 3]],
           ops: [['spendall']],
           flags: { 'promise.second_term': false },
           news: ['PRESIDENT NAMES OWN CABINET; ELDERS "SATISFIED"', 'ELDERS COME COLLECT, PRESIDENT REMIND DEM WHO OWE WHO'],
           archive: 'Spent every favour owed to keep the second-term cabinet out of the elders\' hands.', sig: 3,
-        }],
+        }, 'Renegotiated by favours: the President called in every debt and the elders settled for three agencies and one ministry.'),
       },
     ],
   },

@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from '../../engine/contracts';
 import type { Cond, GameEvent } from '../../engine/types';
 
 // THE CABINET
@@ -24,15 +25,25 @@ export const CABINET: GameEvent[] = [
     'An international development bank has offered Dr Gwarzo a vice-presidency. The offer is generous and expires in a fortnight.',
     'The minister has not asked for anything. The Chief of Staff thinks she is waiting to be asked to stay.',
   ], [{ role: 'cos', good: 'Ministers who can do the job are rarer than ministers who want it, {SIR}. Keeping this one will cost you something the party will notice.' }], [
-    { id: 'keep', label: 'Match it: a free hand over the budget', pc: 8, outcomes: [{ result: 'You give the minister control of the budget timetable and the right to refuse unfunded spending. The party grumbles. The minister stays.', fx: [['bloc.establishment', 4], ['bloc.party', -4], ['bonus.fiscal', 0.008], ['rel.fin', 20]], news: ['FINANCE MINISTER STAYS, WITH WIDER POWERS', 'GWARZO NO GO AGAIN. SHE DON GET MORE POWER'], archive: 'Kept the Finance Minister by giving her a free hand over the budget.', sig: 2 }] },
+    { id: 'keep', label: 'Match it: a free hand over the budget', pc: 8, outcomes: [{ result: 'You give the minister control of the budget timetable and the right to refuse unfunded spending. The party grumbles. The minister stays.', fx: [['bloc.establishment', 4], ['bloc.party', -4], ['bonus.fiscal', 0.008], ['rel.fin', 20]], flags: { 'fin.terms': true }, news: ['FINANCE MINISTER STAYS, WITH WIDER POWERS', 'GWARZO NO GO AGAIN. SHE DON GET MORE POWER'],
+      // Her terms are a public commitment by the President, tested by the election budget a year later.
+      domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'fin.terms.gwarzo.$ADMIN', responsible: { office: 'president' }, object: 'finance-minister-budget-authority', text: 'The Finance Minister controls the budget timetable and may refuse spending that is not funded.', afterMonths: 24, visibility: 'public' }] },
+      archive: 'Kept the Finance Minister by giving her a free hand over the budget.', sig: 2 }] },
     { id: 'go', label: 'Thank her and let her go', outcomes: [{ result: 'Dr Gwarzo leaves with a handshake and a farewell dinner. Her successor is sworn in the same week.', fx: [['bloc.establishment', -5]], ops: [['finleave']], news: ['FINANCE MINISTER RESIGNS FOR INTERNATIONAL POST', 'GWARZO DON TRAVEL. ANOTHER PERSON DON ENTER'], archive: 'Let the Finance Minister leave for an international post.', sig: 2 }] },
   ]),
   fin('budget', 'gwarzo', 28, 32, 'Her budget or yours', [
     'The election is a year away. The party wants a spending budget. Dr Gwarzo has written to you: she will not sign one she cannot fund.',
     'Her letter is two pages long and does not use the word "resign". It does not need to.',
   ], [{ role: 'sap', good: 'A spending budget wins votes, {SIR}. A Finance Minister resigning over it loses some. I cannot tell you which is bigger.' }], [
-    { id: 'back', label: 'Back the minister', outcomes: [{ result: 'The budget is funded and dull. The party calls it a mistake in an election year. The markets call it the first budget they have believed in a decade.', fx: [['approval', -1], ['bloc.establishment', 5], ['bloc.party', -5], ['bonus.fiscal', 0.01]], news: ['FG BUDGET: NO ELECTION-YEAR SPLURGE', 'BUDGET NO GET SWEET. MINISTER WIN'], archive: 'Backed the Finance Minister against an election-year budget.', sig: 2 }] },
-    { id: 'overrule', label: 'Overrule her and let her go', outcomes: [{ result: 'The spending budget passes. Dr Gwarzo resigns the same afternoon, in a statement of nine words.', fx: [['approval', 2], ['bloc.street', 4], ['bloc.establishment', -6], ['bonus.fiscal', -0.012]], ops: [['finleave']], news: ['FINANCE MINISTER RESIGNS OVER ELECTION BUDGET', 'GWARZO DON RESIGN. BUDGET DON SWEET'], archive: 'Overruled the Finance Minister on the election budget; she resigned.', sig: 3 }] },
+    // If she stayed on stated terms, this is the test of them; the note goes on the original commitment.
+    { id: 'back', label: 'Back the minister', outcomes: [
+      { when: { flag: 'fin.terms' }, result: 'The budget is funded and dull. The terms you gave her held at the first real test. The party calls it a mistake in an election year. The markets call it the first budget they have believed in a decade.', fx: [['approval', -1], ['bloc.establishment', 6], ['bloc.party', -5], ['bonus.fiscal', 0.01]], news: ['FG BUDGET: NO ELECTION-YEAR SPLURGE', 'BUDGET NO GET SWEET. MINISTER WIN'], domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'fin.terms.gwarzo.$ADMIN', text: 'Honoured: she refused the unfunded election budget and the President backed her.' }] }, archive: 'Backed the Finance Minister against an election-year budget, as her terms required.', sig: 2 },
+      { result: 'The budget is funded and dull. The party calls it a mistake in an election year. The markets call it the first budget they have believed in a decade.', fx: [['approval', -1], ['bloc.establishment', 5], ['bloc.party', -5], ['bonus.fiscal', 0.01]], news: ['FG BUDGET: NO ELECTION-YEAR SPLURGE', 'BUDGET NO GET SWEET. MINISTER WIN'], archive: 'Backed the Finance Minister against an election-year budget.', sig: 2 },
+    ] },
+    { id: 'overrule', label: 'Overrule her and let her go', outcomes: [
+      { when: { flag: 'fin.terms' }, result: 'The spending budget passes. Dr Gwarzo resigns the same afternoon, in a statement of nine words, two of which are "the terms". Investors read the other seven.', fx: [['approval', 2], ['bloc.street', 4], ['bloc.establishment', -8], ['bonus.fiscal', -0.012]], ops: [['finleave']], news: ['FINANCE MINISTER RESIGNS, SAYS PRESIDENT BROKE HIS WORD ON BUDGET', 'GWARZO DON RESIGN. SHE SAY PRESIDENT NO KEEP AGREEMENT'], domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'fin.terms.gwarzo.$ADMIN', text: 'Broken: the President overruled her on the election budget and she resigned.' }] }, archive: 'Broke the terms you gave the Finance Minister; she resigned over the election budget.', sig: 3 },
+      { result: 'The spending budget passes. Dr Gwarzo resigns the same afternoon, in a statement of nine words.', fx: [['approval', 2], ['bloc.street', 4], ['bloc.establishment', -6], ['bonus.fiscal', -0.012]], ops: [['finleave']], news: ['FINANCE MINISTER RESIGNS OVER ELECTION BUDGET', 'GWARZO DON RESIGN. BUDGET DON SWEET'], archive: 'Overruled the Finance Minister on the election budget; she resigned.', sig: 3 },
+    ] },
   ]),
   // ---------------------------------------------------------------- Ekpenyong
   fin('list', 'ekpenyong', 6, 10, 'The party\'s list', [
@@ -60,8 +71,20 @@ export const CABINET: GameEvent[] = [
     'Senator Lohor proposes an understanding with the Appropriations Committee: their projects go in early, and the budget passes on time every year.',
     'The minister calls it "legislative cooperation". The committee chairman calls it "the usual".',
   ], [{ role: 'sap', good: 'It works, {SIR}. That is the trouble with it.' }], [
-    { id: 'agree', label: 'Agree to the understanding', outcomes: [{ result: 'The understanding is reached over dinner. The budget will pass on time. Nobody writes anything down.', fx: [['person.sen_approp', 10], ['person.sen_pres', 4], ['nation.integrity', -2], ['bonus.fiscal', -0.008]], quiet: 'An understanding reached over dinner and never written down.', archive: 'Agreed an understanding with the Appropriations Committee.', sig: 1 }] },
-    { id: 'refuse', label: 'Refuse: the budget goes through on its merits', outcomes: [{ result: 'The budget will go through on its merits, which is to say slowly. Senator Lohor says nothing and makes a note.', fx: [['person.sen_approp', -6], ['rel.fin', -10]], quiet: 'A refusal given in a private meeting.', archive: 'Refused a budget understanding with the Appropriations Committee.', sig: 1 }] },
+    { id: 'agree', label: 'Agree to the understanding', outcomes: [{ result: 'The understanding is reached over dinner. The budget will pass on time. Nobody writes anything down.', fx: [['person.sen_approp', 10], ['person.sen_pres', 4], ['nation.integrity', -2], ['bonus.fiscal', -0.008]], quiet: 'An understanding reached over dinner and never written down.',
+      // Nothing is written down by them; the game keeps it as a private commitment so the next budget can be judged against it.
+      domain: { version: CONTRACT_VERSION, effects: [
+        { type: 'request.open', id: 'approp.understanding.$ADMIN', requester: { office: 'sen_approp' }, object: 'appropriations-projects-first', text: 'Members\' constituency projects go into the budget first; in return the budget passes on time.' },
+        { type: 'request.close', id: 'approp.understanding.$ADMIN', status: 'granted', response: 'Agreed over dinner, through the Finance Minister.' },
+        { type: 'commitment.open', id: 'approp.projects.$ADMIN', responsible: { office: 'president' }, object: 'appropriations-projects-first', text: 'Put the Appropriations Committee\'s projects into the budget first, in return for its passage on time.', afterMonths: 12, visibility: 'private' },
+      ] },
+      archive: 'Agreed an understanding with the Appropriations Committee.', sig: 1 }] },
+    { id: 'refuse', label: 'Refuse: the budget goes through on its merits', outcomes: [{ result: 'The budget will go through on its merits, which is to say slowly. Senator Lohor says nothing and makes a note.', fx: [['person.sen_approp', -6], ['rel.fin', -10]], quiet: 'A refusal given in a private meeting.',
+      domain: { version: CONTRACT_VERSION, effects: [
+        { type: 'request.open', id: 'approp.understanding.$ADMIN', requester: { office: 'sen_approp' }, object: 'appropriations-projects-first', text: 'Members\' constituency projects go into the budget first; in return the budget passes on time.' },
+        { type: 'request.close', id: 'approp.understanding.$ADMIN', status: 'refused', response: 'The budget goes through on its merits.' },
+      ] },
+      archive: 'Refused a budget understanding with the Appropriations Committee.', sig: 1 }] },
   ]),
   fin('senate', 'lohor', 16, 20, 'The Senate wants its man', [
     'The Senate President has asked that Senator Lohor also chair the party\'s campaign finance committee. The minister has not said no.',
