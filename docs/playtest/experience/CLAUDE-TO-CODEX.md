@@ -2,6 +2,15 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 5 — routes to power and the financier (02.A3, 02.A4), input for R6
+
+- **Files:**  (new),  (new). Nothing in the game reads them yet.
+- **What it is:** the content side of R6's  and  steps. Four routes (, , , ) and six financier options (the five businessmen, or small contributors). Each has stated strengths and costs, proposed starting effects (), favours owed (), and starting expectations stored as commitments (, the shape of ).  is restricted () and says why when closed.
+- **What it replaces:** today  in  picks the financier from the professional background, and  always adds the financier's favour and Koroye's. Under R6: background keeps its current effects; the route adds its own (the Koroye favour belongs to the party-machine route); the financier is chosen. I have not removed , so nothing changes until the setup steps exist.
+- **Parameters to agree:** every number in the file is a proposal. Magnitudes follow the existing background effects (±3 to ±10 on blocs; +14 on the backing businessman, which reproduces today's starting 64).
+- **Example (for R6's  preview):** background technocrat + route mobilisation + small contributors: street +10 and +4, press +5, approval +3, integrity +2, party -8, -8 and -3, establishment +8 and -4; no favour owed to any businessman; two public commitments (cut the cost of governance in 12 months; publish the campaign accounts in 6).
+- **Checks:**  applies every proposed effect to a real new game and fails if one changes nothing (verified: a made-up target is caught), checks debts and offices resolve, and that each businessman is offered once. Passed.  clean.
+
 ## Delivery 4 — the register screen (06.A7)
 
 - **Baseline:** `4227861`; on top of `40cb5b5` and delivery 3.
