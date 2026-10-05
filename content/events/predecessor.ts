@@ -20,8 +20,8 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     reads: [{ role: 'sap', good: 'The former President still holds the elders, {SIR}. A board seat would say thank you without saying yes.' }],
     choices: [
       { id: 'minister', label: 'Make the son a Minister of State', outcomes: [{ result: 'The son is sworn in. The father attends, and tells everyone at the reception what a good listener you are.', fx: [['pred.rel', 18], ['bloc.party', 3], ['nation.integrity', -2], ['bloc.press', -3]], flags: { 'pred.son': 'minister' }, later: [{ after: [10, 14], fx: [['pressure.scandalHeat', 6]], label: 'The Minister of State\'s department awards its contracts to his friends.', note: ['MINISTER OF STATE\'S CONTRACTS UNDER SCRUTINY', 'OGA PIKIN DON START TO CHOP'] }], news: ['FORMER PRESIDENT\'S SON NAMED MINISTER OF STATE', 'PAPA PIKIN DON ENTER CABINET'], archive: 'Made the former President\'s son a Minister of State.', sig: 2 }] },
-      { id: 'board', label: 'A seat on a parastatal board instead', outcomes: [{ result: 'The son chairs the board of an agency nobody visits. The father understands the message and accepts it, mostly.', fx: [['pred.rel', 6], ['nation.integrity', -0.5]], flags: { 'pred.son': 'board' }, archive: 'Gave the former President\'s son a board seat.', sig: 1 }] },
-      { id: 'refuse', label: 'Decline, politely and in writing', outcomes: [{ result: 'The letter is courteous. The reply, when it comes, is from the father\'s spokesman, to a newspaper.', fx: [['pred.rel', -15], ['nation.integrity', 1]], flags: { 'pred.son': 'refused' }, archive: 'Declined to appoint the former President\'s son.', sig: 1 }] },
+      { id: 'board', label: 'A seat on a parastatal board instead', outcomes: [{ result: 'The son chairs the board of an agency nobody visits. The father understands the message and accepts it, mostly.', fx: [['pred.rel', 6], ['nation.integrity', -0.5]], flags: { 'pred.son': 'board' }, news: ['FORMER PRESIDENT\'S SON NAMED TO CHAIR AGENCY BOARD', 'BABA PIKIN DON GET BOARD CHAIR'], archive: 'Gave the former President\'s son a board seat.', sig: 1 }] },
+      { id: 'refuse', label: 'Decline, politely and in writing', outcomes: [{ result: 'The letter is courteous. The reply, when it comes, is from the father\'s spokesman, to a newspaper.', fx: [['pred.rel', -15], ['nation.integrity', 1]], flags: { 'pred.son': 'refused' }, news: ['{PRED}\'S CAMP SAYS PRESIDENCY SNUBBED FAMILY', 'FORMER PRESIDENT PEOPLE DEY VEX OVER THE PIKIN'], archive: 'Declined to appoint the former President\'s son.', sig: 1 }] },
     ],
   },
   {
@@ -51,8 +51,8 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     ],
     reads: [{ role: 'sap', good: 'It is a real road, {SIR}, and the people on it are real voters. It is also a birthday present.' }],
     choices: [
-      { id: 'finish', label: 'Finish it before the birthday', naira: 0.15, outcomes: [{ result: 'The road is finished in time. The former President cuts the ribbon and thanks you by name in the speech, twice.', fx: [['pred.rel', 10], ['nation.jobs', 0.5]], flags: { 'pred.road': true }, archive: 'Finished the road to the former President\'s home town.', sig: 1 }] },
-      { id: 'queue', label: 'It waits its turn with the other roads', outcomes: [{ result: 'The road waits. The birthday is celebrated at a hotel in Abuja instead, and the speeches mention patience.', fx: [['pred.rel', -8]], flags: { 'pred.road': false }, archive: 'Left the former President\'s road in the queue.', sig: 1 }] },
+      { id: 'finish', label: 'Finish it before the birthday', naira: 0.15, outcomes: [{ result: 'The road is finished in time. The former President cuts the ribbon and thanks you by name in the speech, twice.', fx: [['pred.rel', 10], ['nation.jobs', 0.5]], flags: { 'pred.road': true }, news: ['ROAD TO FORMER PRESIDENT\'S HOME TOWN COMPLETED', 'BABA ROAD DON FINISH BEFORE BIRTHDAY'], archive: 'Finished the road to the former President\'s home town.', sig: 1 }] },
+      { id: 'queue', label: 'It waits its turn with the other roads', outcomes: [{ result: 'The road waits. The birthday is celebrated at a hotel in Abuja instead, and the speeches mention patience.', fx: [['pred.rel', -8]], flags: { 'pred.road': false }, quiet: 'Leaving a road in the queue is not announced.', archive: 'Left the former President\'s road in the queue.', sig: 1 }] },
     ],
   },
   {
@@ -71,9 +71,9 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     ],
     reads: [{ role: 'sap', good: 'Answer him and you make it a fight between equals, {SIR}. Ignore him and the governors decide you are afraid of him.' }],
     choices: [
-      { id: 'visit', label: 'Fly down and call on him', pc: 3, outcomes: [{ result: 'You spend an afternoon on his veranda. He tells you everything you are doing wrong, and seems lighter for it.', fx: [['pred.rel', 15], ['bloc.party', 2]], flags: { 'pred.visited': true }, later: [{ after: [3, 5], fx: [['bloc.party', 1]], label: 'The former President tells the elders you came to him.' }], archive: 'Called on the former President after a hostile lecture.', sig: 1 }] },
-      { id: 'answer', label: 'Have your spokesman answer, point by point', outcomes: [{ result: 'The rebuttal is accurate and long. The former President\'s reply is short and quoted more.', fx: [['pred.rel', -8], ['bloc.press', -1], ['bloc.party', -2]], flags: { 'pred.feud': true }, archive: 'Answered the former President in public.', sig: 1 }] },
-      { id: 'ignore', label: 'Say nothing', outcomes: [{ result: 'You say nothing. The lecture is printed as a pamphlet.', fx: [['bloc.party', -2], ['bloc.press', -1]], flags: { 'pred.ignored': true }, archive: 'Ignored the former President\'s criticism.', sig: 1 }] },
+      { id: 'visit', label: 'Fly down and call on him', pc: 3, outcomes: [{ result: 'You spend an afternoon on his veranda. He tells you everything you are doing wrong, and seems lighter for it.', fx: [['pred.rel', 15], ['bloc.party', 2]], flags: { 'pred.visited': true }, later: [{ after: [3, 5], fx: [['bloc.party', 1]], label: 'The former President tells the elders you came to him.' }], news: ['PRESIDENT CALLS ON {PRED} AFTER CRITICAL LECTURE', 'PRESIDENT GO SEE BABA FOR HIM HOUSE'], archive: 'Called on the former President after a hostile lecture.', sig: 1 }] },
+      { id: 'answer', label: 'Have your spokesman answer, point by point', outcomes: [{ result: 'The rebuttal is accurate and long. The former President\'s reply is short and quoted more.', fx: [['pred.rel', -8], ['bloc.press', -1], ['bloc.party', -2]], flags: { 'pred.feud': true }, news: ['PRESIDENCY ANSWERS {PRED}, POINT BY POINT', 'VILLA DON ANSWER BABA. BABA GO ANSWER BACK'], archive: 'Answered the former President in public.', sig: 1 }] },
+      { id: 'ignore', label: 'Say nothing', outcomes: [{ result: 'You say nothing. The lecture is printed as a pamphlet.', fx: [['bloc.party', -2], ['bloc.press', -1]], flags: { 'pred.ignored': true }, quiet: 'Silence. The pamphlet of the lecture is the only news.', archive: 'Ignored the former President\'s criticism.', sig: 1 }] },
     ],
   },
   {
@@ -86,8 +86,8 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     ],
     reads: [{ role: 'sap', good: 'The old man still fills a stadium in his own zone, {SIR}. Elsewhere he reminds people of the last government.' }],
     choices: [
-      { id: 'home', label: 'Yes: in his home zone', outcomes: [{ result: 'He campaigns in his zone for three weeks and draws crowds bigger than yours.', fx: [['pred.rel', 5], ['bloc.party', 3]], flags: { 'pred.campaigns': 'home' }, archive: 'Accepted the former President\'s help in his home zone.', sig: 1 }] },
-      { id: 'no', label: 'Thank him and keep him off the platform', outcomes: [{ result: 'He understands, he says. He tells the elders he offered.', fx: [['pred.rel', -6]], flags: { 'pred.campaigns': 'declined' }, archive: 'Declined the former President\'s offer to campaign.', sig: 1 }] },
+      { id: 'home', label: 'Yes: in his home zone', outcomes: [{ result: 'He campaigns in his zone for three weeks and draws crowds bigger than yours.', fx: [['pred.rel', 5], ['bloc.party', 3]], flags: { 'pred.campaigns': 'home' }, news: ['{PRED} TO CAMPAIGN FOR PRESIDENT IN HOME ZONE', 'BABA DON ENTER CAMPAIGN FOR PRESIDENT'], archive: 'Accepted the former President\'s help in his home zone.', sig: 1 }] },
+      { id: 'no', label: 'Thank him and keep him off the platform', outcomes: [{ result: 'He understands, he says. He tells the elders he offered.', fx: [['pred.rel', -6]], flags: { 'pred.campaigns': 'declined' }, quiet: 'A private conversation. He tells the elders, not the press.', archive: 'Declined the former President\'s offer to campaign.', sig: 1 }] },
     ],
   },
   // ---------------------------------------------------------------- what the Assembly built
@@ -120,8 +120,8 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     reads: [{ role: 'cos', good: 'Give the Vice President something to do, {SIR}, or the Vice President will find something.' }],
     choices: [
       { id: 'brief', label: 'Hand the Vice President the economic council', pc: 3, outcomes: [{ result: 'The Vice President takes the council and is too busy to attend launches for a while.', fx: [['vp.rel', 12]], ops: [['vpbrief']], archive: 'Gave the Vice President a portfolio to end a rival campaign.', sig: 2 }] },
-      { id: 'warn', label: 'Have the party chairman call the governors', outcomes: [{ result: 'The governors stop attending. The offices stay open.', fx: [['vp.rel', -10], ['bloc.party', -2]], flags: { 'vp.warned': true }, archive: 'Warned the governors off the Vice President\'s support group.', sig: 1 }] },
-      { id: 'leave', label: 'Leave it', outcomes: [{ result: 'You leave it. The group holds a rally in the Vice President\'s home zone the following month.', fx: [['bloc.party', -3]], flags: { 'vp.camp': true }, later: [{ after: [4, 6], fx: [['bloc.party', -3], ['vp.rel', -5]], label: 'The Vice President\'s support group now has a chairman in every zone.' }], archive: 'Left the Vice President\'s support group alone.', sig: 1 }] },
+      { id: 'warn', label: 'Have the party chairman call the governors', outcomes: [{ result: 'The governors stop attending. The offices stay open.', fx: [['vp.rel', -10], ['bloc.party', -2]], flags: { 'vp.warned': true }, quiet: 'The chairman\'s calls to the governors are made in private.', archive: 'Warned the governors off the Vice President\'s support group.', sig: 1 }] },
+      { id: 'leave', label: 'Leave it', outcomes: [{ result: 'You leave it. The group holds a rally in the Vice President\'s home zone the following month.', fx: [['bloc.party', -3]], flags: { 'vp.camp': true }, later: [{ after: [4, 6], fx: [['bloc.party', -3], ['vp.rel', -5]], label: 'The Vice President\'s support group now has a chairman in every zone.' }], quiet: 'Doing nothing is not news. The rally that follows is reported when it happens.', archive: 'Left the Vice President\'s support group alone.', sig: 1 }] },
     ],
   },
   {
@@ -135,8 +135,8 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     ],
     reads: [{ role: 'sap', good: 'Dropping a running mate costs you the zone for a season, {SIR}. Keeping a disloyal one costs you for four years.' }],
     choices: [
-      { id: 'keep', label: 'Say publicly that the ticket stays as it is', outcomes: [{ result: 'You say it at a rally. {VP_SHORT} is grateful, and a little surprised.', fx: [['vp.rel', 15], ['bloc.party', -1]], flags: { 'vp.kept': true }, archive: 'Kept the Vice President on the ticket.', sig: 1 }] },
-      { id: 'open', label: 'Say nothing yet', outcomes: [{ result: 'You say nothing. The question stays open, and so do the governors\' offers.', fx: [['vp.rel', -5]], flags: { 'vp.open': true }, archive: 'Left the question of the running mate open.', sig: 1 }] },
+      { id: 'keep', label: 'Say publicly that the ticket stays as it is', outcomes: [{ result: 'You say it at a rally. {VP_SHORT} is grateful, and a little surprised.', fx: [['vp.rel', 15], ['bloc.party', -1]], flags: { 'vp.kept': true }, news: ['PRESIDENT: {VP_SHORT} STAYS ON THE TICKET', 'PRESIDENT SAY E AND {VP_SHORT} STILL DEY TOGETHER'], archive: 'Kept the Vice President on the ticket.', sig: 1 }] },
+      { id: 'open', label: 'Say nothing yet', outcomes: [{ result: 'You say nothing. The question stays open, and so do the governors\' offers.', fx: [['vp.rel', -5]], flags: { 'vp.open': true }, quiet: 'Saying nothing.', archive: 'Left the question of the running mate open.', sig: 1 }] },
     ],
   },
 ];

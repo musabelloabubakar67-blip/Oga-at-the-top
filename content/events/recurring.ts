@@ -7,7 +7,8 @@ import type { GameEvent } from '../../engine/types';
 export const RECURRING: GameEvent[] = [
   {
     id: 'grid.collapse', kind: 'recurring', slot: 'lead', category: 'infrastructure', tone: 'dry', intensity: 2,
-    when: { all: [{ turn: [3] }, { v: ['nation.power', '<', 50] }, { v: ['agenda.p2', '==', 0] }] }, weight: 10, weightInv: 'nation.power', cooldown: 18, max: 3,
+    // Not while the great blackout (the shock) is under way: that is the same grid, already down.
+    when: { all: [{ turn: [3] }, { v: ['nation.power', '<', 50] }, { v: ['agenda.p2', '==', 0] }, { v: ['shock.blackout', '!=', 1] }] }, weight: 10, weightInv: 'nation.power', cooldown: 18, max: 3,
     office: 'Federal Ministry of Power', stamp: 'URGENT',
     title: 'The national grid has collapsed',
     body: [

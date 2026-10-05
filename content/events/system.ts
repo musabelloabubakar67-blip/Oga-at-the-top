@@ -772,7 +772,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'You send no reply. The series continues.',
           fx: [['tycoon.ty_media', -3], ['counter.letrun', 1]],
-          archive: 'Declined Otunba Oyewole\'s offer to kill a story.',
+          quiet: 'A decision not to answer. The series itself is already in the papers.', archive: 'Declined Otunba Oyewole\'s offer to kill a story.',
         }],
       },
     ],
@@ -817,7 +817,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'Unnamed sources describe the minister as "a good administrator with no political base". The minister knows exactly which unnamed sources.',
           fx: [['person.$WHO', -10], ['bloc.press', -2], ['bloc.villa', 2], ['counter.briefed', 1]],
-          archive: 'Had the Villa brief against {WHO}.',
+          quiet: 'Unattributed briefing. It reaches the papers only as anonymous comment.', archive: 'Had the Villa brief against {WHO}.',
         }],
       },
       {
@@ -825,7 +825,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'You do nothing. The minister goes on delivering. The office in Abuja takes a second floor.',
           fx: [['person.$WHO', 3], ['rival.alt', 2], ['counter.ambition', 1]],
-          archive: 'Left {WHO} to it.',
+          quiet: 'Nothing is done, so there is nothing to report.', archive: 'Left {WHO} to it.',
         }],
       },
     ],
@@ -863,7 +863,7 @@ export const SYSTEM: GameEvent[] = [
           // the minister's scorecard as a variable); the flag records that a target is outstanding.
           fx: [['person.$WHO', -4], ['nation.capacity', 1], ['counter.targets', 1]],
           flags: { 'target.$WHO': true },
-          archive: 'Put {WHO} on a written target, to be reviewed in six months.',
+          quiet: 'The target is signed in private. It becomes news only if it is missed.', archive: 'Put {WHO} on a written target, to be reviewed in six months.',
         }],
       },
       {
@@ -872,7 +872,7 @@ export const SYSTEM: GameEvent[] = [
           result: 'The minister stays. Word reaches the sponsor that the President held the line. Both of them now owe you.',
           fx: [['bloc.party', 3], ['nation.capacity', -2], ['person.$WHO', 10]],
           favour: ['$WHO', 'owed', 2],
-          archive: 'Kept {WHO} in post despite the scorecard.',
+          quiet: 'Keeping a minister is not news. The sponsor hears of it privately.', archive: 'Kept {WHO} in post despite the scorecard.',
         }],
       },
     ],
@@ -955,7 +955,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'Three hours, alone. You promise nothing specific and mean most of it. {WHO_SHORT} goes home thoughtful.',
           fx: [['person.$WHO', 12]],
-          archive: 'Talked {WHO} out of defecting, for now.',
+          quiet: 'A meeting at night, without an announcement.', archive: 'Talked {WHO} out of defecting, for now.',
         }],
       },
       {
@@ -972,7 +972,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'You say, in public, that the party is bigger than any individual. The individual concerned takes the hint.',
           fx: [['person.$WHO', -8], ['bloc.party', -2], ['rival.strong', 3]],
-          archive: 'Did nothing to stop {WHO} from talking to the opposition.',
+          news: ['{WHO_SHORT} FREE TO LEAVE: "THE PARTY IS BIGGER THAN ANY INDIVIDUAL" — PRESIDENCY', 'PRESIDENT SAY MAKE {WHO_SHORT} GO IF E WAN GO'], archive: 'Did nothing to stop {WHO} from talking to the opposition.',
         }],
       },
     ],
