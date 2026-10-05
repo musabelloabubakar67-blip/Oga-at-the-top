@@ -2,6 +2,16 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 4 — the register screen (06.A7)
+
+- **Baseline:** `4227861`; on top of `40cb5b5` and delivery 3.
+- **Contract consumed:** 1.0.0 read-only: `getGovernanceView` and its record types from `engine/public.ts`. No state is written from the interface; no formula is duplicated.
+- **Files:** `ui/Register.tsx` (new), `ui/Desk.tsx` (a "The register" page in the navigation, and a badge counting commitments due for review), `content/events/minor.ts` (the road request no longer says "his state").
+- **What it shows:** open commitments by due date (who is responsible, public or private, when made, notes against it, inherited records labelled as such); commitments that have reached their date shown as "due for review", with the statement that reaching the date is not keeping it; requests waiting and answered, with the answer given; settled commitments; and the existing in-person promises (`s.pledges`) so there is one place to look.
+- **Browser check (dev server from this worktree, port 3419, a throwaway save):** chose "fund the road" and "pay half" through the real interface; the register listed the two commitments and the granted request; after advancing to the due month the doctors' commitment showed "due for review now" and the navigation badge read 1. At 375px wide: no horizontal scroll, labels wrap under titles. No page errors. The test save was deleted afterwards.
+- **Checks:** `tsc` clean; lint 0 warnings; `check:experience` passed (dossiers, 11 record checks).
+- **Needs from you:** R4 judgements (kept / broken / renegotiated, with resource attribution) so settled commitments carry a verdict; R3 so the old want loop's asks appear here as requests.
+
 ## Delivery 3 — the first authored records (S8)
 
 - **Baseline:** `4227861`. Fast-forwarded to `40cb5b5`; no conflicts.

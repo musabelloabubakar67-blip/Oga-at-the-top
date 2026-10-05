@@ -51,7 +51,9 @@ import { ZONES, ZONE_NAME, approval, test } from '../engine/vars';
 import { blocView, gauges, outlook, previewChoice, recordOf, resolveRead, traceFor } from '../engine/view';
 import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
+import { Register } from './Register';
 import { BudgetModal, TreasuryModal } from './Treasury';
+import { getGovernanceView } from '../engine/public';
 import { PEOPLE, RIVAL_BY_ID } from '../content/people';
 import { personView, strongestRival } from '../engine/people';
 import { standing } from '../engine/vars';
@@ -1318,13 +1320,14 @@ function Delta({ d, upIsGood, unit }: { d: number; upIsGood: boolean; unit: stri
   return <span className={isGood ? good(true) : bad(true)}>{d > 0 ? '▲' : '▼'} {n}</span>;
 }
 
-type View = 'desk' | 'orders' | 'reforms' | 'power' | 'country' | 'treasury';
+type View = 'desk' | 'orders' | 'reforms' | 'power' | 'register' | 'country' | 'treasury';
 
 const NAV: [View, string, string][] = [
   ['desk', 'The desk', 'What happened, what needs deciding'],
   ['orders', 'Orders', 'The powers of the office'],
   ['reforms', 'Reforms and bets', 'The agenda and big bets'],
   ['power', 'Power', 'People, money, courts, rivals'],
+  ['register', 'The register', 'What is promised, asked and due'],
   ['country', 'The country', 'Map, states, security, scorecard'],
   ['treasury', 'The Treasury', 'What is owed and saved'],
 ];
@@ -1397,6 +1400,8 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
     orders: s.offers.filter((x) => x.since === s.turn).length,
     power: bench(s).seats.filter((j) => !j).length,
     treasury: s.budget.due ? 1 : 0,
+    // Commitments that have reached their date and await judgement.
+    register: getGovernanceView(s).commitments.filter((c) => c.status === 'review-due').length,
   };
 
   return (
@@ -1579,6 +1584,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                 <Inline.Provider value={true}><NationModal s={s} dispatch={dispatch} onClose={() => {}} /></Inline.Provider>
               </div>
             )}
+            {view === 'register' && <Register s={s} />}
             {view === 'treasury' && <Inline.Provider value={true}><TreasuryModal s={s} dispatch={dispatch} start="books" onClose={() => {}} onBudget={() => setPanel('budget')} /></Inline.Provider>}
           </main>
         </div>

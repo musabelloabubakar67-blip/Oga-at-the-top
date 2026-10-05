@@ -74,7 +74,7 @@ Baseline `4227861`. Contract v0.
 | 06.A4 | Preserve concessions in the resulting agreement and implementation; passing a law begins delivery of its settlement. |  | planned | |
 | 06.A5 | Delegate objectives, budget, authority, limits and reporting standards to ministers. Routine work proceeds without repeated presidential clicks. |  | planned | |
 | 06.A6 | Escalate exceptions, missed targets, funding disputes and breaches. Evaluate written ministerial targets on their actual deadline, including the government’s contribution to failure. |  | planned | |
-| 06.A7 | Build a unified commitments register for public promises, political settlements, targets, contracts, deadlines and financial obligations. |  | in progress | Authored commitments now exist (six files); register screen not built yet. |
+| 06.A7 | Build a unified commitments register for public promises, political settlements, targets, contracts, deadlines and financial obligations. |  | in progress | ui/Register.tsx: register page reading getGovernanceView (open commitments by due date, due-for-review with honest empty judgement, requests and answers, settled records, in-person promises, inherited records labelled); nav badge counts reviews due. Browser-checked at desktop and 375px. Kept/broken judgement waits on R4. |
 | 06.T8 | A major bill passes through negotiation and produces enforceable obligations plus differentiated later reactions. | joint | planned | |
 | 06.T9 | A six-month target creates an actual review with outcomes for delivery, failure, withheld funding or disputed evidence. | joint | planned | |
 | 07.A1 | Audit every event, choice, outcome, recurrence and headline on the authoritative build. Historical inventory counts are not a cap or current truth. |  | planned | |

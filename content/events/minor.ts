@@ -10,7 +10,7 @@ const domain = (...effects: DomainEffect[]): DomainOutcome => ({ version: CONTRA
 // The governor's road: one request per administration (the file fires once).
 const ROAD_REQUEST: DomainEffect = {
   type: 'request.open', id: 'road.ss.$ADMIN', requester: { office: 'gov_ss' }, object: 'federal-road-in-governor-state',
-  text: 'Fund and finish the stalled federal road in his state.',
+  text: 'Fund and finish the stalled federal road in the governor\'s state.',
 };
 
 export const MINOR: GameEvent[] = [
