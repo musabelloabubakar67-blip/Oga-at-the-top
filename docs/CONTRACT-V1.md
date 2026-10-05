@@ -25,7 +25,17 @@ const outcome: Outcome = {
 };
 ```
 
-IDs are persistent and cannot be reopened by repeating the same ID. Author a request open at the point it arises, then close that existing record at decision time. The compact example shows a self-contained one-off file; repeating it will correctly fail as a duplicate. Use a distinct episode ID for a genuine new episode. Dynamic cast replacement already substitutes `$WHO` inside an office reference when a file has the matching cast token.
+IDs are persistent and cannot be reopened by repeating the same ID. Author a request open at the point it arises, then close that existing record at decision time. Static example IDs will fail if opened twice. Use scoped IDs for authored occurrences as described below. Dynamic cast replacement substitutes `$WHO` inside an office reference when a file has the matching cast token.
+
+## Record ID tokens (S8)
+
+Materialisation substitutes `$ADMIN` with the current administration ID and `$MONTH` with the zero-based world month. It does this in every domain effect's `id`, in `request.open.episodeId`, and in `GameEvent.episode.episodeId`. It works for files without cast selectors and for ignored outcomes. It leaves prose, object names and actor references unchanged. Cast keys ADMIN and MONTH are reserved.
+
+Use `doctors.balance.$ADMIN` for a commitment opened only once per administration. Use `road.$WHO.$ADMIN.$MONTH` when the same file can open another occurrence later in that administration. Choose a distinct prefix for each authored record; scoping does not protect two unrelated effects that deliberately share a prefix. Existing duplicate-ID validation remains strict, including two opens in the same month. No record is overwritten and no automatic random suffix is added.
+
+An opening and its closure in the same outcome can share the same tokenised ID. A later-month follow-up must address the original stored ID: its own `$MONTH` refers to the follow-up month, not the opening month. Carrying that occurrence identity across queued beats remains part of R2/S4; this delivery does not supply `$EPISODE`.
+
+These are additive authoring tokens under contract 1.0.0; schema and effect vocabulary are unchanged. Materialisation is deterministic and does not mutate content, game state or RNG.
 
 `ActorRef` is `{ office: string }` or `{ person: string }`. Legacy office keys include `gov_nw`, `min_works`, `ty_trade`, `vp`, `president` and `adviser:fin`. Resolve an office to a stable person with `resolveActor`. A stored request/commitment retains that individual after office replacement. Legacy identities are explicitly prefixed; cross-role named-candidate identity reconciliation is part of R5, not invented from matching names.
 

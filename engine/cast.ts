@@ -4,6 +4,7 @@ import { reformName } from './reforms';
 // fills it from the state when the file is drawn.
 
 import { EVENTS } from '../content';
+import { clockOf } from './governance';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { THEATRE_BY_ZONE } from '../content/theatres';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
@@ -125,13 +126,32 @@ function tokens(s: GameState, key: string, id: string): [string, string][] {
 
 /** The event as it reads in this game: names filled in and effects pointed at the right people. */
 export function materialise(s: GameState, e: GameEvent, cast: Record<string, string> | undefined): GameEvent {
-  if (!e.cast || !cast || !Object.keys(cast).length) return e;
-  let json = JSON.stringify(e);
-  for (const [key, id] of Object.entries(cast)) {
-    for (const [tok, text] of tokens(s, key, id)) json = json.split(tok).join(esc(text));
-    json = json.split(`$${key}`).join(id);
+  let out = e;
+  if (e.cast && cast && Object.keys(cast).length) {
+    let json = JSON.stringify(e);
+    for (const [key, id] of Object.entries(cast)) {
+      if (key === 'ADMIN' || key === 'MONTH') throw new Error('ADMIN and MONTH are reserved record-id tokens');
+      for (const [tok, text] of tokens(s, key, id)) json = json.split(tok).join(esc(text));
+      json = json.split(`$${key}`).join(id);
+    }
+    out = JSON.parse(json) as GameEvent;
   }
-  return JSON.parse(json) as GameEvent;
+  // Scope record keys even on files without a cast. Never replace prose or actor references.
+  const clock = clockOf(s);
+  const scope = (id: string) => id.replaceAll('$ADMIN', clock.administrationId).replaceAll('$MONTH', String(clock.worldMonth));
+  const outcome = (o: GameEvent['choices'][number]['outcomes'][number]) => o.domain ? {
+    ...o, domain: { ...o.domain, effects: o.domain.effects.map((effect) => ({
+      ...effect, id: scope(effect.id),
+      ...(effect.type === 'request.open' && effect.episodeId !== undefined ? { episodeId: scope(effect.episodeId) } : {}),
+    })) },
+  } : o;
+  if (!out.episode && !out.ignored?.domain && !out.choices.some((c) => c.outcomes.some((o) => o.domain))) return out;
+  return {
+    ...out,
+    ...(out.episode ? { episode: { ...out.episode, episodeId: scope(out.episode.episodeId) } } : {}),
+    choices: out.choices.map((c) => ({ ...c, outcomes: c.outcomes.map(outcome) })),
+    ...(out.ignored ? { ignored: outcome(out.ignored) } : {}),
+  };
 }
 
 export function eventOf(s: GameState, item: DeskItem | null | undefined): GameEvent | undefined {

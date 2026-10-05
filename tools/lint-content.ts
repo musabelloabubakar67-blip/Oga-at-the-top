@@ -103,6 +103,7 @@ for (const e of EVENT_LIST) {
   if (e.slot === 'lead') leads++; else minors++;
   if (e.cast) cast++;
   const tokens = tokensFor(e);
+  for (const key of Object.keys(e.cast ?? {})) if (key === 'ADMIN' || key === 'MONTH') err(e, `cast key ${key} is reserved for record-id scoping`);
   for (const sel of Object.values(e.cast ?? {})) if (!SELECTORS[sel]) err(e, `cast uses an unknown selector: ${sel}`);
   checkCond(e, e.when);
   checkText(e, e.title, tokens); checkText(e, e.office, tokens); checkText(e, e.from, tokens); checkText(e, e.statement, tokens);

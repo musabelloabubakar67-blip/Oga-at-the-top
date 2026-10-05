@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { getVar } from '../engine/vars';
+import { materialise } from '../engine/cast';
 import { EVENTS } from '../content';
 import { FINANCE_CANDIDATES } from '../content/names';
 import { migrate } from '../engine/migrate';
@@ -131,6 +132,75 @@ check('typed effects execute through actual CHOOSE, without changing input state
     assert.equal(next.governance!.requests['choose-ask'].origin.choiceId, 'no');
     assert.equal(JSON.stringify(s), before);
   } finally { delete EVENTS[file.id]; }
+});
+
+check('scoped ids execute repeatedly through CHOOSE and survive succession', () => {
+  const id = 'records.$ADMIN.$MONTH';
+  const file: GameEvent = {
+    id: 'contract.scoped', slot: 'lead', kind: 'recurring', category: 'politics', tone: 'dry',
+    intensity: 1, office: 'President', title: 'Scoped records', body: ['Decide.'],
+    choices: [{ id: 'record', label: 'Record', outcomes: [{
+      result: 'Recorded.', archive: 'Recorded.',
+      domain: effect(
+        { type: 'episode.open', id, family: 'test', subject: 'road', stage: 'asked', classification: 'decision', note: 'Asked.' },
+        { type: 'request.open', id, requester: { office: 'min_works' }, episodeId: id, object: 'road', text: 'Build it.' },
+        { type: 'request.close', id, status: 'refused', response: 'No.' },
+        { type: 'episode.resolve', id, note: 'Closed.' },
+        { type: 'commitment.open', id, responsible: { office: 'adviser:fin' }, object: 'balance', text: 'Pay.', afterMonths: 3, visibility: 'public' },
+      ),
+    }] }],
+  };
+  const source = JSON.stringify(file);
+  EVENTS[file.id] = file;
+  const choose = (s: ReturnType<typeof fresh>) => {
+    s.phase = 'desk';
+    s.desk.lead = { eventId: file.id };
+    return applyAction(s, { type: 'CHOOSE', eventId: file.id, choiceId: 'record' });
+  };
+  try {
+    let s = choose(fresh());
+    const first = Object.keys(s.governance!.requests)[0];
+    assert.equal(first, 'records.administration:0.0');
+    assert.equal(s.governance!.requests[first].episodeId, first);
+    assert.equal(s.governance!.requests[first].status, 'refused');
+    s.turn++;
+    s = choose(s);
+    assert.equal(Object.keys(s.governance!.requests).length, 2);
+    // Duplicate same-month execution remains invalid; scoping is not an overwrite.
+    s.desk.lead = { eventId: file.id };
+    assert.throws(() => choose(s));
+    s.turn = 49; s.ending = 'defeated';
+    const successor = choose(newGame({ ...setup, name: 'Successor' }, s));
+    assert.equal(Object.keys(successor.governance!.requests).length, 3);
+    assert.ok(successor.governance!.requests['records.administration:1.48']);
+    assert.equal(successor.governance!.commitments[first].due, 3);
+    assert.equal(JSON.stringify(file), source);
+  } finally { delete EVENTS[file.id]; }
+});
+
+check('record scoping handles cast, private ignored outcomes and episode bindings without mutating views', () => {
+  const s = fresh();
+  const file: GameEvent = {
+    id: 'contract.materialise', slot: 'minor', kind: 'recurring', category: 'politics', tone: 'dry',
+    cast: { WHO: 'failingMinister' }, intensity: 1, office: 'President', title: 'Test', body: ['$ADMIN is literal prose.'],
+    episode: { family: 'test', subject: 'road', episodeId: 'episode.$ADMIN.$MONTH', classification: 'decision' },
+    ignored: { result: 'Leave it.', archive: 'Left.', domain: effect({ type: 'episode.resolve', id: 'episode.$ADMIN.$MONTH', note: 'Closed.' }) },
+    choices: [{ id: 'yes', label: 'Yes', outcomes: [{ result: 'Yes.', archive: 'Yes.',
+      domain: effect({ type: 'commitment.open', id: 'promise.$WHO.$ADMIN', responsible: { office: '$WHO' }, object: 'road', text: '$MONTH remains literal prose.', afterMonths: 2, visibility: 'private' }),
+    }] }],
+  };
+  const before = JSON.stringify(s), source = JSON.stringify(file);
+  const rendered = materialise(s, file, { WHO: 'min_works' });
+  assert.equal(rendered.episode!.episodeId, 'episode.administration:0.0');
+  assert.equal(rendered.ignored!.domain!.effects[0].id, rendered.episode!.episodeId);
+  const promise = rendered.choices[0].outcomes[0].domain!.effects[0];
+  assert.equal(promise.id, 'promise.min_works.administration:0');
+  assert.ok(promise.type === 'commitment.open');
+  assert.deepEqual(promise.responsible, { office: 'min_works' });
+  assert.equal(promise.text, '$MONTH remains literal prose.');
+  assert.equal(rendered.body[0], '$ADMIN is literal prose.');
+  assert.equal(JSON.stringify(s), before);
+  assert.equal(JSON.stringify(file), source);
 });
 
 check('shock lifecycle reads active, expired and legacy saved records without mutation', () => {

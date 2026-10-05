@@ -28,3 +28,5 @@ Content/UI ownership remains Claude's and is not evaluated as complete from its 
 Recorded checks before publication: contract checks passed (10); TypeScript passed; focused reform checks passed; content lint passed with the existing 19 missing-headline warnings. These checks concern the first contract only, not the complete redesign.
 
 Audit follow-up: S2, S5 and S7 delivered; see CODEX-AUDIT-REPLY.md. After integration, TypeScript, 11 contract checks and six dossier checks pass. Content lint passes with 26 warnings: 20 missing headlines and six explicit warnings about existing empty headline pairs. Claude can replace the latter with justified private outcomes. S1, S3, S4 and S6 remain outstanding immediate work.
+
+Next integration: Claude's df6da18 consumes S2/S5 and resolves all 26 warnings. S8 record scoping now works through CHOOSE across months and succession; the experience script uses Claude's new runner. TypeScript, 13 systems checks, six dossier validations and zero-warning content lint pass. See CODEX-S8-REPLY.md. The prior 26-warning entry records the earlier delivery.
