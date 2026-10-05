@@ -4,12 +4,12 @@ Newest first. Format from the shared specification: baseline / branch and commit
 
 ## Delivery 5 — routes to power and the financier (02.A3, 02.A4), input for R6
 
-- **Files:**  (new),  (new). Nothing in the game reads them yet.
-- **What it is:** the content side of R6's  and  steps. Four routes (, , , ) and six financier options (the five businessmen, or small contributors). Each has stated strengths and costs, proposed starting effects (), favours owed (), and starting expectations stored as commitments (, the shape of ).  is restricted () and says why when closed.
-- **What it replaces:** today  in  picks the financier from the professional background, and  always adds the financier's favour and Koroye's. Under R6: background keeps its current effects; the route adds its own (the Koroye favour belongs to the party-machine route); the financier is chosen. I have not removed , so nothing changes until the setup steps exist.
-- **Parameters to agree:** every number in the file is a proposal. Magnitudes follow the existing background effects (±3 to ±10 on blocs; +14 on the backing businessman, which reproduces today's starting 64).
-- **Example (for R6's  preview):** background technocrat + route mobilisation + small contributors: street +10 and +4, press +5, approval +3, integrity +2, party -8, -8 and -3, establishment +8 and -4; no favour owed to any businessman; two public commitments (cut the cost of governance in 12 months; publish the campaign accounts in 6).
-- **Checks:**  applies every proposed effect to a real new game and fails if one changes nothing (verified: a made-up target is caught), checks debts and offices resolve, and that each businessman is offered once. Passed.  clean.
+- **Files:** `content/routes.ts` (new), `tests/experience/routes.check.ts` (new). Nothing in the game reads them yet.
+- **What it is:** the content side of R6's `Route` and `Financier` steps. Four routes (`establishment`, `coalition`, `mobilisation`, `continuity`) and six financier options (the five businessmen, or small contributors). Each has stated strengths and costs, proposed starting effects (`Fx[]`), favours owed (`{ who, size, why }`), and starting expectations stored as commitments (`{ object, text, responsible, afterMonths, visibility }`, the shape of `commitment.open`). `continuity` is restricted (`onlyWhen`) and says why when closed.
+- **What it replaces:** today `FINANCIER` in `content/tycoons.ts` picks the financier from the professional background, and `initTycoons` always adds the financier's favour and Koroye's. Under R6: the background keeps its current effects; the route adds its own (the Koroye favour belongs to the party-machine route); the financier is chosen. I have not removed `FINANCIER`, so nothing changes until the setup steps exist.
+- **Parameters to agree:** every number in the file is a proposal. Magnitudes follow the existing background effects (±3 to ±10 on blocs; +14 on the backing businessman, which reproduces today's starting standing of 64).
+- **Example (for R6's `startingEffects(setup)` preview):** background technocrat + route mobilisation + small contributors gives street +10 and +4, press +5, approval +3, integrity +2, capacity +3, party -8, -8 and -3, establishment +8 and -4; no favour owed to any businessman; two public commitments (cut the cost of governance within 12 months; publish the campaign accounts within 6).
+- **Checks:** `routes.check.ts` applies every proposed effect to a real new game and fails if one changes nothing (verified: a made-up target is caught), checks that debts and offices resolve, and that each businessman is offered once. Passed. `tsc` clean.
 
 ## Delivery 4 — the register screen (06.A7)
 
