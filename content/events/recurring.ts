@@ -80,6 +80,8 @@ export const RECURRING: GameEvent[] = [
       'The marketers say they cannot import at the regulated price. The national oil company says there is 30 days\' supply in the country. Neither statement has been verified.',
       { when: { v: ['tycoon.ty_fuel', '<', 40] }, text: 'Chief Tonye Amangala\'s depots, which hold a third of the country\'s petrol, are among those reporting no stock.' },
       { when: { v: ['tycoon.ty_fuel', '>=', 60] }, text: 'Chief Tonye Amangala has kept his own depots supplied at a loss, and has mentioned it.' },
+      { when: { flag: 'reserve.empty' }, text: 'The strategic reserve is empty. It was released in an earlier scarcity and has not been refilled, so it cannot cushion this one.' },
+      { when: { v: ['count.petrol.scarcity', '>=', 2] }, text: 'This is not the first scarcity under this government. Whatever ended the last one did not change the regulated price, and the regulated price is what empties the depots.' },
     ],
     statement: 'There is sufficient product in stock. Nigerians are advised to avoid panic buying.',
     trace: [['pressure.fuelSupplyStress', 1], ['flag:policy.subsidy', 1]],
@@ -98,6 +100,7 @@ export const RECURRING: GameEvent[] = [
       },
       {
         id: 'reserve', label: 'Release the strategic reserve',
+        requires: { not: { flag: 'reserve.empty' } }, locked: 'The reserve is empty. It was released in an earlier scarcity and has not been refilled.',
         outcomes: [{
           result: 'The reserve is released. The queues ease for three weeks. The reserve is now empty.',
           fx: [['pressure.fuelSupplyStress', -12], ['bloc.establishment', -2]],
@@ -105,6 +108,17 @@ export const RECURRING: GameEvent[] = [
           later: [{ after: [3, 5], fx: [['pressure.fuelSupplyStress', 18]], label: 'The strategic petrol reserve is exhausted.' }],
           news: ['FG RELEASES STRATEGIC FUEL RESERVE', 'RESERVE DON FINISH. WETIN NEXT?'],
           archive: 'Released the strategic petrol reserve.',
+        }],
+      },
+      {
+        id: 'refill', label: 'Pay the marketers, and refill the strategic reserve in the same contract', naira: 0.7,
+        requires: { flag: 'reserve.empty' },
+        outcomes: [{
+          result: 'The claims are paid on condition that the first cargoes go into the state depots. The queues clear in a fortnight, and for the first time since it was emptied the reserve holds thirty days of petrol.',
+          fx: [['pressure.fuelSupplyStress', -34], ['approval', 1], ['tycoon.ty_fuel', 6], ['bloc.establishment', 2]],
+          flags: { 'reserve.empty': false },
+          news: ['FG PAYS MARKETERS, REFILLS STRATEGIC FUEL RESERVE', 'QUEUE DON CLEAR, AND RESERVE DON FULL AGAIN'],
+          archive: 'Paid the fuel marketers and refilled the strategic reserve.',
         }],
       },
       {
@@ -412,11 +426,12 @@ export const RECURRING: GameEvent[] = [
   },
   {
     id: 'court.injunction', kind: 'recurring', slot: 'lead', category: 'politics', tone: 'dry', intensity: 2,
-    when: { turn: [10] }, weight: 6, cooldown: 30, max: 2,
+    // Only when there is something of yours to suspend: the open contracting rules (c1) are in force.
+    when: { all: [{ turn: [10] }, { v: ['agenda.c1', '==', 1] }] }, weight: 6, max: 1,
     office: 'Office of the Attorney General of the Federation', stamp: 'URGENT',
-    title: 'A court has suspended your executive order',
+    title: 'A court has suspended the open contracting rules',
     body: [
-      'A Federal High Court has granted an interim injunction suspending your executive order on procurement transparency, on the application of a contractors\' association.',
+      'A Federal High Court has granted an interim injunction suspending the open contracting rules your government put in force, on the application of a contractors\' association.',
       'The Attorney General considers the ruling weak and expects to win on appeal in four to six months.',
       'Several ministries have asked whether the order still applies in the meantime.',
       { when: { v: ['debt.contractors', '>', 1] }, text: 'The same association is owed more than a trillion naira by the government. It says so in the second paragraph of its affidavit.' },
@@ -431,9 +446,9 @@ export const RECURRING: GameEvent[] = [
         outcomes: [{
           result: 'The order is suspended pending appeal. You win in the Court of Appeal five months later, and the order returns with the court\'s authority behind it.',
           fx: [['nation.integrity', 2], ['bloc.establishment', 2]],
-          later: [{ after: [5, 6], fx: [['nation.integrity', 2], ['nation.capacity', 1.5]], label: 'The Court of Appeal restores the procurement order.', note: ['APPEAL COURT UPHOLDS PRESIDENT\'S PROCUREMENT ORDER', 'COURT SAY PRESIDENT DEY RIGHT'] }],
+          later: [{ after: [5, 6], fx: [['nation.integrity', 2], ['nation.capacity', 1.5]], label: 'The Court of Appeal restores the open contracting rules.', note: ['APPEAL COURT RESTORES OPEN CONTRACTING RULES', 'COURT SAY PRESIDENT DEY RIGHT'] }],
           news: ['FG TO APPEAL INJUNCTION, WILL COMPLY MEANWHILE', 'PRESIDENT OBEY COURT ORDER. YES, YOU READ AM WELL'],
-          archive: 'Obeyed a court injunction against an executive order and appealed.', sig: 2,
+          archive: 'Obeyed a court injunction against the open contracting rules and appealed.', sig: 2,
         }],
       },
       {

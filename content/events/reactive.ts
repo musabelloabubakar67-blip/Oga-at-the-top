@@ -172,6 +172,7 @@ export const REACTIVE: GameEvent[] = [
       'Since the oil company was made to publish its accounts and remit in full, reported pipeline vandalism has risen fourfold. Reported losses match, almost exactly, the amount it now has to remit.',
       'The company requests a ₦300bn "pipeline security" contract, to be awarded without tender, to firms it will nominate.',
       { when: { v: ['theatre.SS', '>', 55] }, text: 'The Niger Delta is dangerous enough that some of the breaks are real. That is what makes the rest of them deniable.' },
+      { when: { flag: 'oil.metered' }, text: 'The export terminals are already metered. The losses the company reports do not show up at the meters. They show up only in its own accounts.' },
     ],
     trace: [['bonus.fiscal', 1]],
     reads: [
@@ -181,12 +182,23 @@ export const REACTIVE: GameEvent[] = [
     choices: [
       {
         id: 'meter', label: 'Meter every terminal and publish daily volumes', pc: 8, naira: 0.2,
+        requires: { not: { flag: 'oil.metered' } }, locked: 'The terminals are already metered.',
         outcomes: [{
           result: 'Meters are installed at every export terminal. The "vandalism" stops within the quarter, having been measured.',
           fx: [['nation.integrity', 3], ['bonus.fiscal', 0.02], ['bloc.establishment', -4], ['theatre.SS', -3], ['tycoon.ty_fuel', -5]],
           flags: { 'oil.metered': true },
-          news: ['OIL THEFT COLLAPSES AS TERMINALS ARE METERED', 'DEM PUT METER. THE "VANDALS" DON DISAPPEAR'],
+          news: ['OIL COMPANY\'S "VANDALISM" FALLS AFTER TERMINALS ARE METERED', 'DEM PUT METER. THE "VANDALS" DON DISAPPEAR'],
           archive: 'Metered every oil terminal and published daily volumes.', sig: 3,
+        }],
+      },
+      {
+        id: 'compare', label: 'Publish the meter readings beside the company\'s loss claims', pc: 5,
+        requires: { flag: 'oil.metered' },
+        outcomes: [{
+          result: 'The two columns are published side by side, terminal by terminal. Where the meters show oil leaving, the company reports it lost. The claims stop the following month, and the company\'s audit committee asks for a meeting with its own managers.',
+          fx: [['nation.integrity', 3], ['bonus.fiscal', 0.015], ['bloc.establishment', -3], ['bloc.press', 3], ['tycoon.ty_fuel', -4]],
+          news: ['METER DATA CONTRADICTS OIL COMPANY\'S VANDALISM CLAIMS', 'METER SAY OIL COMOT. COMPANY SAY VANDALS. WHO DEY LIE?'],
+          archive: 'Published terminal meter readings against the oil company\'s claimed losses.', sig: 2,
         }],
       },
       {

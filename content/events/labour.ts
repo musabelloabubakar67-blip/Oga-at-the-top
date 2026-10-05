@@ -181,10 +181,13 @@ export const LABOUR: GameEvent[] = [
     id: 'uni.strike', kind: 'chain', slot: 'lead', category: 'labour', tone: 'dry', intensity: 4,
     when: { not: { flag: 'uni.agreement', is: 'implemented' } }, max: 2,
     office: 'Federal Ministry of Education', stamp: 'URGENT',
-    title: 'Universities: the strike enters its third month',
+    title: 'Universities: the strike goes on',
     body: [
-      'All federal universities have been closed for nine weeks. 1.8 million students are at home.',
-      'Student union leaders have blocked the Lagos–Ibadan expressway and the airport road in Abuja.',
+      { when: { v: ['count.uni.strike', '<', 2] }, text: 'All federal universities have been closed for nine weeks, into the strike\'s third month. 1.8 million students are at home.' },
+      { when: { v: ['count.uni.strike', '<', 2] }, text: 'Student union leaders have blocked the Lagos–Ibadan expressway and the airport road in Abuja.' },
+      // The second time is later and worse: say what has been lost since.
+      { when: { v: ['count.uni.strike', '>=', 2] }, text: 'The strike is in its sixth month. A cohort of final-year students has missed its convocation, and more than two hundred lecturers have taken posts abroad since the universities closed.' },
+      { when: { v: ['count.uni.strike', '>=', 2] }, text: 'The students have stopped blocking roads. Many have found work, and some will not come back to finish.' },
       'The Honourable Minister has invoked "no work, no pay". The union has replied that this is the status quo.',
       { when: { v: ['theatre.SW', '>', 55] }, text: 'The blockade of the expressway has held traffic still for hours at a time. The gangs who work that road have had their best month.' },
     ],

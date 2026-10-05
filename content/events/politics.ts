@@ -58,9 +58,14 @@ export const POLITICS: GameEvent[] = [
     office: 'Office of the Special Adviser, Media and Publicity', stamp: 'ROUTINE',
     title: 'An open letter from {ELDER}',
     body: [
-      '{ELDER} has published an eighteen-page open letter titled "Before It Is Too Late".',
-      'It accuses the administration of "drift", recalls his own period of service favourably, and was released to the press before it reached the Villa.',
-      'He remains a member of your party. He has written such letters to every President since the return to civil rule, usually in the second year.',
+      { when: { v: ['count.elder.letter', '<', 2] }, text: '{ELDER} has published an eighteen-page open letter titled "Before It Is Too Late".' },
+      { when: { v: ['count.elder.letter', '<', 2] }, text: 'It accuses the administration of "drift", recalls his own period of service favourably, and was released to the press before it reached the Villa.' },
+      { when: { v: ['count.elder.letter', '<', 2] }, text: 'He remains a member of your party. He has written such letters to every President since the return to civil rule, usually in the second year.' },
+      // The second letter answers what was done with the first.
+      { when: { v: ['count.elder.letter', '>=', 2] }, text: '{ELDER} has written again. The second letter is shorter than the first and was sent to the governors before the press.' },
+      { when: { all: [{ v: ['count.elder.letter', '>=', 2] }, { flag: 'elder.first', is: 'visit' }] }, text: 'It recalls your visit to his library warmly, and says that being listened to attentively has turned out to be all he received.' },
+      { when: { all: [{ v: ['count.elder.letter', '>=', 2] }, { flag: 'elder.first', is: 'rebut' }] }, text: 'It quotes your rebuttal back to you, paragraph by paragraph, against what has happened since.' },
+      { when: { all: [{ v: ['count.elder.letter', '>=', 2] }, { flag: 'elder.first', is: 'ignore' }] }, text: 'It begins with the two lines your office sent last time, printed in full, and observes that fatherly counsel is easier to thank than to take.' },
       { when: { v: ['govs', '<', 3] }, text: 'Three of your own governors are quoted in it, anonymously and at length.' },
     ],
     reads: [
@@ -73,6 +78,7 @@ export const POLITICS: GameEvent[] = [
           result: 'You are received in his library. He tells the press afterwards that {MRP} "listened attentively", which is his highest praise.',
           fx: [['bloc.party', 4], ['bloc.establishment', 3], ['pc', -2]],
           ops: [['governors', 2]],
+          flags: { 'elder.first': 'visit' },
           news: ['PRESIDENT VISITS ELDER STATESMAN AFTER LETTER', 'PRESIDENT GO BEG BABA'],
           archive: 'Visited the elder statesman after his open letter.',
         }],
@@ -83,6 +89,7 @@ export const POLITICS: GameEvent[] = [
           result: 'The rebuttal runs to twenty-two pages. He replies within the week, at twenty-six.',
           fx: [['bloc.party', -4], ['bloc.press', -2], ['bloc.establishment', -3]],
           later: [{ after: [3, 5], fx: [['bloc.party', -3], ['approval', -1]], label: 'The elder statesman publishes a third letter.', note: ['ELDER STATESMAN WRITES PRESIDENT AGAIN', 'BABA DON WRITE LETTER NUMBER THREE'] }],
+          flags: { 'elder.first': 'rebut' },
           news: ['PRESIDENCY REPLIES ELDER STATESMAN', 'LETTER FIGHT: VILLA VS BABA, ROUND TWO'],
           archive: 'Issued a rebuttal to the elder statesman\'s open letter.',
         }],
@@ -92,6 +99,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'A two-line statement is issued. He is reported to be drafting.',
           fx: [['bloc.party', -1]],
+          flags: { 'elder.first': 'ignore' },
           news: ['PRESIDENCY THANKS ELDER FOR "FATHERLY ADVICE"', 'VILLA TO BABA: "NOTED"'],
           archive: 'Acknowledged the elder statesman\'s open letter in two lines.',
         }],
@@ -100,7 +108,8 @@ export const POLITICS: GameEvent[] = [
   },
   {
     id: 'senate.fight', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'farce', intensity: 2,
-    when: { turn: [8] }, weight: 9,
+    // There must be a tax bill in the Senate: the tax reform (t1) is under way.
+    when: { all: [{ turn: [8] }, { v: ['active.t1', '==', 1] }] }, weight: 9,
     office: 'Office of the Chief of Staff', stamp: 'URGENT',
     title: 'An incident during the tax debate',
     body: [
@@ -108,7 +117,7 @@ export const POLITICS: GameEvent[] = [
       'One invited the other to "meet me outside". The other accepted. The Sergeant-at-Arms intervened at the door.',
       'Neither senator had read the bill. The disagreement concerned seating.',
       'The bill has been stepped down to allow tempers to cool.',
-      { when: { v: ['active.t1', '==', 1] }, text: 'This is the bill behind your tax reform. Every week it sits is a week the reform does not move.' },
+      'This is the bill behind your tax reform. Every week it sits is a week the reform does not move.',
     ],
     reads: [
       { role: 'sap', good: 'The bill is not dead, {SIR}, it is embarrassed. {SENPRES} needs a way to bring it back without it looking like your idea.' },
@@ -161,7 +170,13 @@ export const POLITICS: GameEvent[] = [
     office: 'Office of the Special Adviser, Political Matters', stamp: 'CONFIDENTIAL',
     title: 'Defections',
     body: [
-      'Eleven members of the House and two state party chairmen have announced their defection to the {OPPARTY}.',
+      { when: { v: ['count.party.decamp', '<', 2] }, text: 'Eleven members of the House and two state party chairmen have announced their defection to the {OPPARTY}.' },
+      // The second wave is smaller, and it remembers how the first was handled.
+      { when: { v: ['count.party.decamp', '>=', 2] }, text: 'A second wave: seven more members of the House, a senator and a deputy governor have announced their defection to the {OPPARTY}.' },
+      { when: { all: [{ v: ['count.party.decamp', '>=', 2] }, { flag: 'decamp.first', is: 'call' }] }, text: 'Two of them came back after your telephone calls last time. Being called once, it turns out, was not the same as being kept.' },
+      { when: { all: [{ v: ['count.party.decamp', '>=', 2] }, { flag: 'decamp.first', is: 'seats' }] }, text: 'The suit against the first group has still not been heard. This group has read the cause list.' },
+      { when: { all: [{ v: ['count.party.decamp', '>=', 2] }, { flag: 'decamp.first', is: 'logistics' }] }, text: 'Three of them came back last time for "the benefits of membership". The benefits have been spent, and so has their loyalty.' },
+      { when: { all: [{ v: ['count.party.decamp', '>=', 2] }, { flag: 'decamp.first', is: 'go' }] }, text: 'You let the first group go. The House majority was seven after they left. This group would leave it at two.' },
       { when: { v: ['rival.strong', '>', 40] }, text: 'Senator Dandume\'s people met them at the airport. He built half of your party\'s structure and is taking it back a ward at a time.' },
       { when: { v: ['govs', '<', 3] }, text: 'None of your governors tried to stop them. Fewer than half of the six are still firmly with you.' },
       'Each cited "irreconcilable division in the party at the national level", the form of words required by the Constitution for a legislator to defect and keep the seat.',
@@ -175,9 +190,10 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'call', label: 'Call each of them personally', pc: 6,
         outcomes: [{
-          result: 'Four of the legislators return, describing their defection as "a misunderstanding". The two chairmen do not pick up.',
+          result: 'Four of the legislators return, describing their defection as "a misunderstanding". The rest do not pick up.',
           fx: [['bloc.party', 6]],
           ops: [['senators', 2]],
+          flags: { 'decamp.first': 'call' },
           news: ['FOUR LAWMAKERS RETURN TO RULING PARTY', 'DEFECTORS DON COME BACK. NA SO DEM DEY DO'],
           archive: 'Personally called defecting legislators back to the party.',
         }],
@@ -187,6 +203,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: 'The suit is filed. It will be heard in due course, which is after the next election.',
           fx: [['bloc.party', -3], ['bloc.press', -1]],
+          flags: { 'decamp.first': 'seats' },
           news: ['RULING PARTY SUES DEFECTORS', 'PARTY RUN GO COURT. SEE YOU IN 2035'],
           archive: 'Sued defecting legislators for their seats.',
         }],
@@ -194,9 +211,10 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'logistics', label: 'Remind them of the benefits of membership', purse: 6,
         outcomes: [{
-          result: 'Nine legislators and one chairman rediscover their faith in the party\'s manifesto.',
+          result: 'All but two of them rediscover their faith in the party\'s manifesto.',
           fx: [['bloc.party', 10], ['nation.integrity', -1.5]],
           exposure: { kind: 'political', amount: 6, witnesses: ['sen_lead', 'chair'], trail: 1 },
+          flags: { 'decamp.first': 'logistics' },
           news: ['DEFECTORS RETURN, AFFIRM LOYALTY TO PRESIDENT', 'THEY RETURN OVERNIGHT. HOW MUCH?'],
           archive: 'Paid defecting legislators to return.',
         }],
@@ -204,8 +222,15 @@ export const POLITICS: GameEvent[] = [
       {
         id: 'go', label: 'Let them go',
         outcomes: [{
+          when: { v: ['count.party.decamp', '>=', 2] },
+          result: 'The Presidency wishes them well again. The party\'s majority in the House is down to two, and every vote from now on is a negotiation.',
+          fx: [['bloc.party', -6], ['pc', -5], ['nation.integrity', 0.5], ['rival.strong', 5], ['person.sen_lead', -4]],
+          news: ['SECOND WAVE OF DEFECTIONS CUTS RULING PARTY\'S HOUSE MAJORITY TO TWO', 'PRESIDENT SAY MAKE DEM GO. HOUSE MAJORITY DON THIN'],
+          archive: 'Let a second wave of legislators defect; the House majority fell to two.',
+        }, {
           result: 'The Presidency wishes them well. The party\'s majority in the House is now seven.',
           fx: [['bloc.party', -6], ['pc', -4], ['nation.integrity', 0.5], ['rival.strong', 5]],
+          flags: { 'decamp.first': 'go' },
           news: ['PRESIDENCY UNMOVED BY DEFECTIONS', 'PRESIDENT: "MAKE DEM GO"'],
           archive: 'Let eleven legislators and two party chairmen defect.',
         }],
@@ -824,13 +849,22 @@ export const POLITICS: GameEvent[] = [
     ],
     choices: [
       {
-        id: 'programme', label: 'Accept the lender\'s programme', pc: 12, sign: true,
+        id: 'programme', label: 'Accept the lender\'s programme, petrol price condition included', pc: 12, sign: true,
         outcomes: [{
-          result: 'The programme is signed. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
-          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250], ['tycoon.ty_bank', 8], ['tycoon.ty_fuel', -10]],
-          flags: { 'policy.subsidy': 'removed', 'lender.programme': true },
+          when: { flag: 'policy.subsidy', is: 'removed' },
+          result: 'The programme is signed. The petrol condition is already met, which the lender notes approvingly in paragraph one. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
+          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -4], ['approval', -2], ['nation.capacity', 2], ['tycoon.ty_bank', 8]],
+          flags: { 'lender.programme': true },
           news: ['FG SIGNS THREE-YEAR FACILITY WITH LENDER', 'WE DON ENTER LENDER HAND. CONDITIONS FULL GROUND'],
           archive: 'Accepted a foreign lender\'s programme to avert default.', sig: 3,
+        }, {
+          result: 'The programme is signed. Its first condition takes effect at midnight: the petrol subsidy ends, by the lender\'s timetable rather than yours. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
+          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250], ['tycoon.ty_bank', 8], ['tycoon.ty_fuel', -10]],
+          flags: { 'policy.subsidy': 'removed', 'lender.programme': true },
+          // The same beats as any other removal: the pump price, labour's answer, and the dividend a year on.
+          follow: [{ event: 'subsidy.pump', after: 1 }, { event: 'subsidy.ultimatum', after: [2, 3] }, { event: 'subsidy.dividend', after: [12, 14], when: { flag: 'policy.subsidy', is: 'removed' } }],
+          news: ['FG SIGNS LENDER PROGRAMME; PETROL SUBSIDY ENDS AT MIDNIGHT', 'LENDER DON REMOVE SUBSIDY FOR US. FUEL DON COST'],
+          archive: 'Accepted a foreign lender\'s programme to avert default, ending the petrol subsidy as its first condition.', sig: 3,
         }],
       },
       {
@@ -838,7 +872,7 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           result: '{CBN} complies under protest and in writing. Bonds the market would not buy are bought by the central bank with money it creates. The overdraft is larger by ₦3.5tn, and the price of bread responds within the month.',
           fx: [['debt.bonds', -3], ['debt.ways', 3.5], ['nation.inflation', 3], ['bloc.establishment', -8], ['bloc.street', -4], ['tycoon.ty_bank', -12]],
-          news: ['CENTRAL BANK EXTENDS ₦6TN ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
+          news: ['CENTRAL BANK EXTENDS ₦3.5TN ADVANCE TO FG', 'DEM DON START TO PRINT MONEY. PRICE GO CRAZE'],
           archive: 'Ordered the central bank to finance the deficit.', sig: 3,
         }],
       },

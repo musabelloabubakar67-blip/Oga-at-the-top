@@ -99,6 +99,21 @@ The engine already has pieces of several contracts. These are the closest existi
 
 - **Requested:** causal records with `announced / authorised / financed / delivered` and `originator / completer`; `historyOf(subject)`; deterministic daily seed and shareable verdict data (no invented outcomes).
 
+## Small requests from the event audit (needed sooner than the full contracts)
+
+These come from `EVENT-AUDIT.md`. Each is narrow and unblocks a specific fix.
+
+| ID | Plan | Request | Why | Example |
+|---|---|---|---|---|
+| S1 | 06, 07 | `getVar('score.<personId>')` returning the minister's current scorecard score, and an op `['target', '<personId>', months]` that stores the score and due month; then `getVar('target.<personId>')` = 0 pending, 1 met, -1 missed, plus a scheduled review beat. | D1: "six months and a target in writing" never returns. I removed the instant +1 credit and set a `target.<id>` flag so nothing is lost; the review event is written as soon as this exists. | `min.failing` → `target` stores score 38, due month 18. At month 18 the review reads `target.min_works`: met if the score rose 10 points, with a line naming any budget line the government withheld. |
+| S2 | 18 | An explicit marker for an intentionally private outcome, for example `quiet: '<reason>'` on `Outcome`, honoured by the linter instead of the `news: ['', '']` workaround. | D12: six private outcomes in `content/events/cabinet.ts` use empty headline strings to silence the warning; 20 others raise "lead outcome has no headline". The plan asks for warnings resolved or blanks justified. | `fin.lohor.committee` → `agree`: `quiet: 'An understanding over dinner, never announced.'` |
+| S3 | 09, 11 | Fix `fundmove` to `'states'` in `engine/ops.ts`: the amount leaves the fund and is credited nowhere. | D5: `shock.flight` → `defend` ("spend the savings defending the naira") moves half the fund abroad to "states". A reserve sale is needed instead (R7). `fund.raid` and `fund.share` use `'states'` correctly in intent (money given to states), but nothing records the transfer. | Defending the naira: reserves sold, naira bought, fund reduced, recorded as an intervention. |
+| S4 | 07 | Carry the cast into queued follow-ups (`queue` entries currently store only `event`, `due`, `when`). | Without it a follow-up about "this minister" or "this governor" re-resolves its cast and may pick someone else. Today I work around it by templating event ids per person. | `{ event: 'min.target.review', after: 6, cast: { WHO: '$WHO' } }` |
+
+## Content fixes already made on this branch (no engine change)
+
+D2 (empty fuel reserve), D3 (double metering), D4 (₦6tn headline), D6 (Eurobond headline), D7 (injunction now needs the open contracting rules in force), D8 (tax debate needs the tax reform under way), D9 (the lender's programme says it ends the subsidy and runs the subsidy beats), D12 (two public cabinet outcomes given headlines), and D1 in part (no credit for being put on a target).
+
 ## What I am doing while these are pending
 
 - Full per-event audit of all 180 events at the baseline (`event-audit.json` is the starting table; status column moves from "not reviewed").

@@ -1,4 +1,4 @@
-# Experience coverage checklist
+ in progress | Refinery and university chains audited and kept; second strike beat now says what was lost |in progress | Fuel reserve (D2), double metering (D3), lender programme and subsidy (D9), invented order and bill (D7, D8) fixed on the branch |in progress | STORY-FAMILIES.md specifies each family; episode contract R2 pending |in progress | STORY-FAMILIES.md: 12 families mapped to every event |authored | EVENT-AUDIT.md: all 180 events individually, 14 confirmed defects |# Experience coverage checklist
 
 One row per bullet in the master action plan (sections 01 to 18). IDs are section.A (action) or section.T (acceptance test) and a running number within the section. Status starts at planned; it moves to authored, integrated or verified only with a commit and evidence. Engine-only bullets are listed so nothing is unassigned; their content and interface share is still mine.
 

@@ -40,7 +40,7 @@ export const CABINET: GameEvent[] = [
     'The list is very long. The consultancy is not described.',
   ], [{ role: 'sap', good: 'The party will remember it either way, {SIR}. It is cheaper to remember being given jobs than being refused them.' }], [
     { id: 'approve', label: 'Approve the list', outcomes: [{ result: 'Two thousand consultants are engaged. Several turn up.', fx: [['bloc.party', 6], ['person.gov_ss', 5], ['bonus.fiscal', -0.01], ['nation.integrity', -2], ['rel.fin', 10]], news: ['FINANCE MINISTRY ENGAGES 2,000 CONSULTANTS', 'PARTY PEOPLE DON GET WORK FOR FINANCE'], archive: 'Approved two thousand party members as Finance Ministry consultants.', sig: 2 }] },
-    { id: 'half', label: 'Approve half, quietly', outcomes: [{ result: 'A thousand are engaged. The other thousand are told they are on a waiting list, which they correctly understand to be a no.', fx: [['bloc.party', 2], ['bonus.fiscal', -0.005], ['nation.integrity', -1]], news: ['', ''], archive: 'Approved half the party\'s list of consultants.', sig: 1 }] },
+    { id: 'half', label: 'Approve half, quietly', outcomes: [{ result: 'A thousand are engaged. The other thousand are told they are on a waiting list, which they correctly understand to be a no.', fx: [['bloc.party', 2], ['bonus.fiscal', -0.005], ['nation.integrity', -1]], news: ['FINANCE MINISTRY ENGAGES 1,000 CONSULTANTS', 'HALF THE PARTY LIST DON GET WORK. THE OTHER HALF DEY WAIT'], archive: 'Approved half the party\'s list of consultants.', sig: 1 }] },
     { id: 'refuse', label: 'Refuse', outcomes: [{ result: 'The list goes back unsigned. Chief Ekpenyong takes it to the Governors\' Forum that evening.', fx: [['bloc.party', -3], ['person.gov_ss', -6], ['rel.fin', -15]], news: ['', ''], archive: 'Refused the party\'s list of consultants.', sig: 1 }] },
   ]),
   fin('bailout', 'ekpenyong', 16, 20, 'A loan for the governors', [
@@ -93,7 +93,7 @@ export const CABINET: GameEvent[] = [
     choices: [
       {
         id: 'offer', label: 'Make an offer: a bigger brief and a public promise', pc: 8,
-        outcomes: [{ result: '{WHO_SHORT} accepts the bigger brief and the promise, in that order. The letter goes back in the drawer, where both of you know it is kept.', fx: [['person.$WHO', 20], ['bloc.party', 2]], news: ['', ''], archive: 'Kept an ambitious minister with a bigger brief and a promise.', sig: 2 }],
+        outcomes: [{ result: '{WHO_SHORT} accepts the bigger brief and the promise, in that order. The letter goes back in the drawer, where both of you know it is kept.', fx: [['person.$WHO', 20], ['bloc.party', 2]], news: ['{WHO_SHORT} TAKES ON EXPANDED BRIEF', 'MINISTER NO RESIGN AGAIN. E DON COLLECT MORE WORK'], archive: 'Kept an ambitious minister with a bigger brief and a promise.', sig: 2 }],
       },
       {
         id: 'release', label: 'Let {WHO_SHORT} go',

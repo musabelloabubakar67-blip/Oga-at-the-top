@@ -350,7 +350,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'The bond is redeemed on the day. The Debt Office issues a one-line statement, which is how these things should go.',
           fx: [['debt.eurobond', -1.5], ['bloc.establishment', 5]],
-          news: ['NIGERIA REDEEMS $1BN EUROBOND ON SCHEDULE', 'WE DON PAY ONE BIG FOREIGN DEBT'],
+          news: ['NIGERIA REDEEMS ₦1.5TN EUROBOND ON SCHEDULE', 'WE DON PAY ONE BIG FOREIGN DEBT'],
           archive: 'Redeemed a maturing Eurobond from the treasury.', sig: 2,
         }],
       },
@@ -858,10 +858,12 @@ export const SYSTEM: GameEvent[] = [
       {
         id: 'target', label: 'Give {WHO_SHORT} six months and a target in writing',
         outcomes: [{
-          result: 'The minister signs the target in your presence and is visibly shaken to learn that it will be checked.',
+          result: 'The minister signs the target in your presence and is visibly shaken to learn that it will be checked. The Chief of Staff diarises the review for six months from today.',
+          // No credit until the target is met. The review itself waits on contract R4 (a stored target and
+          // the minister's scorecard as a variable); the flag records that a target is outstanding.
           fx: [['person.$WHO', -4], ['nation.capacity', 1], ['counter.targets', 1]],
-          ops: [['mark', '$WHO', 1, 'Put on a written target by the President']],
-          archive: 'Put {WHO} on a written target.',
+          flags: { 'target.$WHO': true },
+          archive: 'Put {WHO} on a written target, to be reviewed in six months.',
         }],
       },
       {
