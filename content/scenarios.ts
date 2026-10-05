@@ -1,3 +1,4 @@
+import type { ScenarioAssets } from '../engine/public';
 import type { BlocId, DebtId, FlagValue, FundId, Nation, Pressures, ZoneId } from '../engine/types';
 
 // STARTING SCENARIOS
@@ -5,7 +6,8 @@ import type { BlocId, DebtId, FlagValue, FundId, Nation, Pressures, ZoneId } fro
 // can produce: hand over a country in this condition and your successor starts
 // here.
 
-export interface Scenario {
+/** `assets`: the operating asset each inheritance starts with (see content/dossiers.ts); condition 0–1 scales its output. */
+export interface Scenario extends ScenarioAssets {
   id: string;
   name: string;
   difficulty: string;
@@ -45,14 +47,16 @@ const STANDARD_HISTORY: Scenario['history'] = [
 
 export const SCENARIOS: Scenario[] = [
   {
-    id: 'standard', name: 'The Standard Inheritance', difficulty: 'Normal',
+    id: 'standard', assets: [{ asset: 'wheat', site: 'KN', condition: 0.35 }], // working on a third of its hectares; pumps unserviced for four years
+    name: 'The Standard Inheritance', difficulty: 'Normal',
     blurb: 'Everything is fragile and nothing has broken yet. A petrol subsidy nobody admits to, two thirds of revenue going on interest, ₦2.5tn of unpaid bills, and a university agreement signed eleven years ago and never funded.',
     test: 'Whether you can fix any of it before it breaks.',
     history: STANDARD_HISTORY,
     farewell: 'OUTGOING ADMINISTRATION SAYS IT IS LEAVING THE ECONOMY "ON A SOUND FOOTING"',
   },
   {
-    id: 'boom', name: 'The Boom', difficulty: 'Easy to survive, hard to govern well',
+    id: 'boom', assets: [{ asset: 'coastal', site: 'LA', condition: 0.4 }], // the first stretch open and busy, the rest surveyed
+    name: 'The Boom', difficulty: 'Easy to survive, hard to govern well',
     blurb: 'Oil is at $98. The stabilisation account is full, the treasury is flush and the country is in a generous mood. Institutions are as weak as ever, every governor expects a share, and the price will not stay where it is.',
     test: 'Whether you save anything before the price falls, some time in your second year.',
     nation: { fiscalSpace: 3.4, integrity: 22, capacity: 30, inflation: 19 },
@@ -71,7 +75,8 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'OUTGOING ADMINISTRATION: "WE ARE LEAVING THE TREASURY FULL"',
   },
   {
-    id: 'morning', name: 'The Morning After', difficulty: 'Hard',
+    id: 'morning', assets: [{ asset: 'export_power', site: 'NI', condition: 0.8 }], // working, selling power for dollars
+    name: 'The Morning After', difficulty: 'Hard',
     blurb: 'Your predecessor defended the currency until the reserves ran out. The naira was let go in the final month. Inflation is above 30%, the treasury is all but empty, ₦3.5tn is unpaid, and a lender\'s programme is on the table with its conditions attached.',
     test: 'Whether you can stabilise a country with nothing in the account and nobody willing to wait.',
     nation: { inflation: 30, petrolPrice: 1150, fiscalSpace: 0.6, jobs: 32 },
@@ -90,7 +95,8 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'OUTGOING PRESIDENT: "HISTORY WILL VINDICATE THE DEFENCE OF THE NAIRA"',
   },
   {
-    id: 'scandal', name: 'After the Scandal', difficulty: 'Hard, political',
+    id: 'scandal', assets: [{ asset: 'hospital', site: 'FC', condition: 1 }], // open, staffed and good
+    name: 'After the Scandal', difficulty: 'Hard, political',
     blurb: 'Your predecessor was removed from office. Integrity and public trust are at the floor, the party is split between those who voted for the removal and those who did not, the press is in open season, and the street expects prosecutions.',
     test: 'Whether you clean house and keep a party, or keep the party and the stain.',
     nation: { integrity: 14, capacity: 30 },
@@ -107,7 +113,8 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'REMOVED PRESIDENT\'S FILES "ARE BEING STUDIED" — ATTORNEY GENERAL',
   },
   {
-    id: 'reformer', name: 'The Reformer\'s Handover', difficulty: 'Normal; a test of restraint',
+    id: 'reformer', assets: [{ asset: 'hub', site: 'LA', condition: 0.85 }], // twelve firms trading and a waiting list
+    name: 'The Reformer\'s Handover', difficulty: 'Normal; a test of restraint',
     blurb: 'Your predecessor ended the subsidy, cleared the gas debt, unified the tax system and lost the election for it. Revenue is rising and the books are sounder than they have been in twenty years. Prices are brutal, labour is furious, and the easy applause is in undoing all of it.',
     test: 'Whether you keep what was done long enough for it to pay.',
     nation: { inflation: 31, petrolPrice: 1480, integrity: 38, capacity: 42, fiscalSpace: 1.9, power: 37 },
@@ -126,7 +133,8 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'DEFEATED PRESIDENT: "I DID WHAT WAS NECESSARY. YOU ARE WELCOME"',
   },
   {
-    id: 'emergency', name: 'The Long Emergency', difficulty: 'Hard, and grave',
+    id: 'emergency', assets: [{ asset: 'rice', site: 'KB', condition: 0.7 }], // working, inside a theatre that is getting worse
+    name: 'The Long Emergency', difficulty: 'Hard, and grave',
     blurb: 'Security has collapsed across the North West, the North East and the farm belt. Defence takes most of the budget, the farms are emptying, food prices follow, and the governors want their own police.',
     test: 'Whether you can make the country safe before anything else becomes possible.',
     nation: { inflation: 28, jobs: 30, fiscalSpace: 1.2 },

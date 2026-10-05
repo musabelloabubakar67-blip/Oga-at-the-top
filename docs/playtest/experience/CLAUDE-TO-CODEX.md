@@ -2,6 +2,40 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 6 — scenario assets (S6) and the financier review
+
+- **Baseline:** `4227861`; fast-forwarded to `97c12ff`, no conflicts.
+- **Contract consumed:** `ScenarioAssets` (type import from `engine/public.ts`). S4 noted: no current follow-up targets a cast file, so nothing needed rebinding; the target review (S1) will be the first to use it.
+- **Scenario assets (`content/scenarios.ts`):** `Scenario` now extends `ScenarioAssets`, and each scenario declares the asset its dossier names, with a condition taken from the dossier's description:
+
+| Scenario | Asset | Site | Condition | Dossier says |
+|---|---|---|---|---|
+| standard | wheat | KN | 0.35 | working on a third of its hectares; pumps unserviced for four years |
+| boom | coastal | LA | 0.4 | the first stretch open and busy, the rest surveyed |
+| morning | export_power | NI | 0.8 | working, selling power for dollars |
+| scandal | hospital | FC | 1 | open, staffed and good |
+| reformer | hub | LA | 0.85 | twelve firms trading and a waiting list |
+| emergency | rice | KB | 0.7 | working, inside a theatre that is getting worse |
+
+- **Dossier check extended:** each scenario must declare the dossier's asset at the dossier's site, and a real new game must start with it running at the declared condition.
+- **Financier review responses (`content/routes.ts`):**
+  - Strengths no longer claim what the engine does not do. Each businessman option now says what standing actually changes: at 60 or more their money is with you at the next election (`moneyEffect`); below 35 it can be turned against you and their warehouses, plants or depots can close (`tycoon.hoard`, `tycoon.layoff`, `tycoon.depots`). The bank and media options also name the establishment and press effects they carry. The "sixty thousand workers" and "bond market" claims are gone.
+  - Campaign money: no option claims a full chest. Small contributors carry `['campaign', 4]` (a donor list for the next campaign, about one point of margin at the current `chestPer`); businessmen fund the next campaign through `moneyEffect`, not the chest.
+  - New option `none`: your own money and the party's. Nobody outside the party is owed; costs scandal heat 6, and no businessman's money is with you at the election. Neither `small` nor `none` warms or owes a businessman (checked).
+  - Continuity, neutral starting standing, removing the legacy startup favours, and applying effects after scenario/inheritance resolution are yours under R6, as your note says; the content does not assume any of them yet.
+- **Checks:** `tsc` clean; lint 0 warnings; all three experience checks pass (dossiers with assets, 11 record checks, routes including the two no-businessman options); `check:contracts` 17 passed; `simulate --scenarios` runs all six scenarios without an engine exception. Balance comparison, `simulate 8 --scenarios` at `97c12ff` (before) and with the assets (after), same seeds, re-election rate:
+
+| Scenario | Reformer before → after | Machine | Populist |
+|---|---|---|---|
+| Standard | 88 → 88 | 38 → 63 | 38 → 50 |
+| Boom | 88 → 100 | 75 → 75 | 75 → 75 |
+| Morning After | 38 → 38 | 25 → 50 | 13 → 25 |
+| After the Scandal | 63 → 75 | 75 → 38 | 13 → 13 |
+| Reformer's Handover | 88 → 100 | 63 → 88 | 75 → 63 |
+| Long Emergency | 63 → 50 | 50 → 50 | 13 → 25 |
+
+  Most cells are equal or higher, which fits a working asset adding income. Eight runs is noisy, and any state change reshuffles the dice, so a 3-in-8 move can be noise. The largest single drop is the machine politician in After the Scandal (6 of 8 → 3 of 8); please include it in your balance pass at a larger run size. Asset conditions are content parameters and can be tuned there.
+
 ## Delivery 5 — routes to power and the financier (02.A3, 02.A4), input for R6
 
 - **Files:** `content/routes.ts` (new), `tests/experience/routes.check.ts` (new). Nothing in the game reads them yet.

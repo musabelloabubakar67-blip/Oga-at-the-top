@@ -46,6 +46,14 @@ for (const d of DOSSIERS) {
   for (const c of d.claims) if (!c.checkedBy) fail(where, `claim "${c.claim}" has no source for its finding`);
 
   const s = newGame(setup(d.scenario));
+
+  // The asset the dossier names is the one the scenario declares, and a new game starts with it running.
+  const declared = SCENARIOS.find((x) => x.id === d.scenario)?.assets ?? [];
+  if (!declared.some((a) => a.asset === d.asset.asset && a.site === d.asset.site)) fail(where, `scenario does not declare ${d.asset.asset} at ${d.asset.site}`);
+  const running = (s.assets ?? []).find((a) => a.id === d.asset.asset);
+  const want = declared.find((a) => a.asset === d.asset.asset)?.condition ?? 1;
+  if (!running) fail(where, `a new game does not start with ${d.asset.asset}`);
+  else if (running.state !== d.asset.site || Math.abs((running.condition ?? 1) - want) > 1e-9) fail(where, `${d.asset.asset} starts at ${running.state} in condition ${running.condition}, expected ${d.asset.site} at ${want}`);
   for (const o of d.obligations) {
     if (!o.state?.startsWith('debt.') || !o.amount) continue;
     const key = o.state.slice(5);

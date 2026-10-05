@@ -20,7 +20,7 @@ import { TYCOON_BY_ID } from './tycoons';
 const asks = (id: string) => `What will be asked in return: ${TYCOON_BY_ID[id].want.text.replace(/^./, (c) => c.toLowerCase())}`;
 
 export type RouteId = 'establishment' | 'coalition' | 'mobilisation' | 'continuity';
-export type FinancierId = 'ty_trade' | 'ty_maker' | 'ty_bank' | 'ty_fuel' | 'ty_media' | 'small';
+export type FinancierId = 'ty_trade' | 'ty_maker' | 'ty_bank' | 'ty_fuel' | 'ty_media' | 'small' | 'none';
 
 /** A favour the new government starts owing: who, how much (1–3), and why. */
 export interface StartingDebt { who: string; size: 1 | 2 | 3; why: string }
@@ -126,55 +126,66 @@ export const FINANCIERS: Financier[] = [
   {
     id: 'ty_trade', label: 'Chief (Dr) Obinna Ezeudu',
     terms: `Paid for the campaign through the import business. ${asks('ty_trade')}`,
-    strengths: 'A full campaign chest and an importer on your side when food prices bite.',
-    costs: 'A favour you owe in full, and a licence request that would cost the farmers.',
+    strengths: 'Ezeudu starts as your ally. While he stays one, his money is with you at the next election and his warehouses stay open.',
+    costs: 'A favour you owe in full, and a licence request that would cost the farmers. Refuse what is asked often enough and the same money can be turned against you.',
     fx: [['tycoon.ty_trade', 14]], owes: [{ who: 'ty_trade', size: 3, why: 'Ezeudu paid for your campaign.' }], commitments: [],
     usualRoute: 'establishment',
   },
   {
     id: 'ty_maker', label: 'Alhaji Kabir Birniwa',
     terms: `Paid for the campaign through the manufacturing group. ${asks('ty_maker')}`,
-    strengths: 'A manufacturer with sixty thousand workers who will hear that you are their candidate.',
-    costs: 'A favour you owe in full, and a request that would raise prices for everyone who buys what he makes.',
+    strengths: 'Birniwa starts as your ally. While he stays one, his money is with you at the next election and his plants stay open.',
+    costs: 'A favour you owe in full, and a request that would raise prices for everyone who buys what he makes. Refuse what is asked often enough and the same money can be turned against you.',
     fx: [['tycoon.ty_maker', 14]], owes: [{ who: 'ty_maker', size: 3, why: 'Birniwa paid for your campaign.' }], commitments: [],
     usualRoute: 'coalition',
   },
   {
     id: 'ty_bank', label: 'Mrs Folake Adetoro',
     terms: `Paid for the campaign through friends of the bank. ${asks('ty_bank')}`,
-    strengths: 'The banks start on your side, which steadies the bond market in your first year.',
-    costs: 'A favour you owe in full, and a request that hides a banking problem until it is larger.',
+    strengths: 'Adetoro starts as your ally and the establishment a little warmer. While she stays one, her money is with you at the next election.',
+    costs: 'A favour you owe in full, and a request that hides a banking problem until it is larger. Refuse what is asked often enough and the same money can be turned against you.',
     fx: [['tycoon.ty_bank', 14], ['bloc.establishment', 3]], owes: [{ who: 'ty_bank', size: 3, why: 'Adetoro paid for your campaign.' }], commitments: [],
     usualRoute: 'establishment',
   },
   {
     id: 'ty_fuel', label: 'Chief Tonye Amangala',
     terms: `Paid for the campaign through the fuel business. ${asks('ty_fuel')}`,
-    strengths: 'Depots that stay supplied while he is pleased with you.',
-    costs: 'A favour you owe in full, and a request that is the subsidy in another form.',
+    strengths: 'Amangala starts as your ally. While he stays one, his money is with you at the next election and his depots stay open.',
+    costs: 'A favour you owe in full, and a request that is the subsidy in another form. Refuse what is asked often enough and the same money can be turned against you.',
     fx: [['tycoon.ty_fuel', 14]], owes: [{ who: 'ty_fuel', size: 3, why: 'Amangala paid for your campaign.' }], commitments: [],
     usualRoute: 'coalition',
   },
   {
     id: 'ty_media', label: 'Otunba Gbenga Oyewole',
     terms: `Paid for the campaign and gave it airtime. ${asks('ty_media')}`,
-    strengths: 'A television station and The Daily Stakeholder that start as friends.',
-    costs: 'A favour you owe in full, and a request that would cost the treasury a fair price for the spectrum.',
+    strengths: 'Oyewole starts as your ally and the press a little warmer. While he stays one, his money is with you at the next election and The Daily Stakeholder is on your side.',
+    costs: 'A favour you owe in full, and a request that would cost the treasury a fair price for the spectrum. Refuse what is asked often enough and the same money can be turned against you.',
     fx: [['tycoon.ty_media', 14], ['bloc.press', 3]], owes: [{ who: 'ty_media', size: 3, why: 'Oyewole paid for your campaign.' }], commitments: [],
     usualRoute: 'mobilisation',
   },
   {
     id: 'small', label: 'Small contributors',
     terms: 'Two million people gave a little each, online and at rallies. Nobody paid enough to ask for anything.',
-    strengths: 'No businessman holds a debt over you, and the campaign\'s money is a story you can tell.',
-    costs: 'A thinner campaign chest, a party that funded none of it, and a public promise to publish where every naira came from.',
-    fx: [['bloc.street', 4], ['nation.integrity', 2], ['bloc.party', -3]],
+    strengths: 'No businessman holds a debt over you, and a list of donors who will give again to the next campaign.',
+    costs: 'No businessman\'s money is with you at the next election, the party funded none of it, and you have promised in public to say where every naira came from.',
+    // A small chest for the next campaign: 4 is worth about one point of margin at the election.
+    fx: [['bloc.street', 4], ['nation.integrity', 2], ['bloc.party', -3], ['campaign', 4]],
     owes: [],
     commitments: [{
       object: 'publish-campaign-accounts', text: 'Publish the campaign\'s accounts, contributor by contributor, within six months of taking office.',
       responsible: 'president', afterMonths: 6, visibility: 'public',
     }],
     usualRoute: 'mobilisation',
+  },
+  {
+    // The no-backer option the R6 request named: self-funded, with the party.
+    id: 'none', label: 'Your own money, and the party\'s',
+    terms: 'You paid for most of the campaign yourself, and the party paid the rest from its own funds. No businessman paid for anything.',
+    strengths: 'Nobody outside the party is owed anything, and the party regards the campaign as partly its own.',
+    costs: 'No businessman\'s money is with you at the next election, and people will ask how a public servant came to have that much money of their own.',
+    fx: [['bloc.party', 2], ['pressure.scandalHeat', 6]],
+    owes: [],
+    commitments: [],
   },
 ];
 

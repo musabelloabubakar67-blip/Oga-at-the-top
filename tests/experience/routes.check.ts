@@ -62,11 +62,16 @@ check('every financier states strengths and costs; each businessman appears once
     visible(f.id, f.fx);
     owesReal(f.id, f.owes);
     responsibleResolves(f.id, f.commitments);
-    if (f.id !== 'small') assert.ok(f.terms.includes(TYCOON_BY_ID[f.id].want.text.slice(1, 20)), `${f.id}: terms do not quote the standing demand`);
+    if (TYCOON_BY_ID[f.id]) assert.ok(f.terms.includes(TYCOON_BY_ID[f.id].want.text.slice(1, 20)), `${f.id}: terms do not quote the standing demand`);
   }
-  const small = FINANCIERS.find((f) => f.id === 'small')!;
-  assert.equal(small.owes.length, 0);
-  assert.ok(small.commitments.length > 0, 'small contributors should carry a stated cost');
+  // The two options without a businessman owe nobody, and neither falls back to one.
+  for (const id of ['small', 'none'] as const) {
+    const f = FINANCIERS.find((x) => x.id === id);
+    assert.ok(f, `${id} is not offered`);
+    assert.equal(f!.owes.length, 0, `${id} should owe nobody`);
+    assert.ok(!f!.fx.some(([target]) => target.startsWith('tycoon.')), `${id} should not warm a businessman`);
+  }
+  assert.ok(FINANCIERS.find((f) => f.id === 'small')!.commitments.length > 0, 'small contributors should carry a stated cost');
 });
 
 console.log(`${passed} route checks passed.`);

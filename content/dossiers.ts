@@ -6,10 +6,9 @@
 // starting state in `content/scenarios.ts` (and the default treasury where the
 // scenario does not override it).
 //
-// Status: authored content. The transition screens that show it, and the
-// starting asset each dossier names, wait on contract R6 (setup split into
-// validated steps; scenarios able to start with an operating asset). Nothing in
-// the game reads this file yet.
+// Status: the starting asset each dossier names is declared on its scenario
+// (content/scenarios.ts, contract S6) and exists from the first month. The
+// transition screens that show the rest of the dossier wait on contract R6.
 
 export type ClaimStatus = 'confirmed' | 'partly true' | 'false' | 'disputed';
 
