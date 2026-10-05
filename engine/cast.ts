@@ -4,7 +4,7 @@ import { reformName } from './reforms';
 // fills it from the state when the file is drawn.
 
 import { EVENTS } from '../content';
-import { clockOf } from './governance';
+import { clockOf, ensureGovernance } from './governance';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { THEATRE_BY_ZONE } from '../content/theatres';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
@@ -88,11 +88,11 @@ export const SELECTORS: Record<string, Selector> = {
 };
 
 /** Chooses who a file is about. Null if any role cannot be filled, in which case the file does not arise. */
-export function resolveCast(s: GameState, e: GameEvent): Record<string, string> | null {
+export function resolveCast(s: GameState, e: GameEvent, bound: Record<string, string> = {}): Record<string, string> | null {
   if (!e.cast) return {};
   const out: Record<string, string> = {};
   for (const [key, sel] of Object.entries(e.cast)) {
-    const id = SELECTORS[sel]?.(s);
+    const id = bound[key] ?? SELECTORS[sel]?.(s);
     if (!id) return null;
     out[key] = id;
   }
@@ -156,6 +156,31 @@ export function materialise(s: GameState, e: GameEvent, cast: Record<string, str
 
 export function eventOf(s: GameState, item: DeskItem | null | undefined): GameEvent | undefined {
   if (!item) return undefined;
+  if (!boundCastCurrent(s, item)) return undefined;
   const e = EVENTS[item.eventId];
   return e ? materialise(s, e, item.cast) : undefined;
+}
+
+/** Capture the person behind a legacy office; non-person subjects keep their own IDs. */
+export function bindCast(s: GameState, cast: Record<string, string>): Pick<DeskItem, 'cast' | 'castPersons'> {
+  const g = ensureGovernance(s);
+  const castPersons: Record<string, string> = {};
+  for (const [key, id] of Object.entries(cast)) if (g.offices[id]) castPersons[key] = g.offices[id];
+  return { cast: { ...cast }, castPersons };
+}
+
+/** Never let an old office key redirect a queued review to a replacement. Read-only. */
+export function boundCastCurrent(s: GameState, item: Pick<DeskItem, 'cast' | 'castPersons'>): boolean {
+  if (!item.castPersons || !Object.keys(item.castPersons).length) return true;
+  const g = ensureGovernance(structuredClone(s));
+  return Object.entries(item.castPersons).every(([key, person]) => g.offices[item.cast?.[key] ?? ''] === person);
+}
+
+export function withdrawChangedFollowups(s: GameState): void {
+  for (const item of [s.desk.lead, ...s.desk.minors]) {
+    if (!item || item.resolved || boundCastCurrent(s, item)) continue;
+    const result = 'This follow-up no longer applies: the person it concerned has left the bound office. It is not reassigned to their replacement.';
+    item.resolved = { choiceId: 'withdrawn', label: 'Follow-up withdrawn', result };
+    s.report.push({ kind: 'consequence', title: 'Follow-up withdrawn', text: result, changes: [] });
+  }
 }

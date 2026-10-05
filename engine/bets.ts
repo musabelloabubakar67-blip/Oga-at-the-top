@@ -57,6 +57,7 @@ export function ventureVisible(s: GameState, v: Venture): boolean {
 }
 
 export function canVenture(s: GameState, v: Venture): { ok: boolean; reason?: string } {
+  if (s.assets?.some((a) => a.id === v.id)) return { ok: false, reason: 'This operating asset already exists. Expand its existing site instead.' };
   const st = ventureStatus(s, v.id);
   if (st !== 'open') return { ok: false };
   if (v.when && !test(s, v.when)) return { ok: false, reason: 'Not available.' };

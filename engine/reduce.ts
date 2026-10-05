@@ -7,7 +7,7 @@ import { canLand, land } from './formers';
 import { canVisit, visit } from './predecessor';
 import { canPortfolio, canReplaceVP, givePortfolio, initVP, replaceVP, sideline } from './vp';
 import { backCase, canBack, canDrop, dropCase } from './cases';
-import { canExpand, expand } from './places';
+import { canExpand, expand, initialiseScenarioAssets, type ScenarioAssets } from './places';
 import { EVENTS } from '../content';
 import { MILESTONE_BY_ID, ORDERS, ORDER_BY_ID, type Order } from '../content/agenda';
 import { CAST, FINANCE_CANDIDATES } from '../content/names';
@@ -18,7 +18,7 @@ import {
   canDelay, canRescue, canVenture, delay, launchVenture, openedBy, rescue, revive, ventureTick,
 } from './bets';
 import { movesTotal } from './capital';
-import { eventOf } from './cast';
+import { bindCast, eventOf, withdrawChangedFollowups } from './cast';
 import { SCENARIO_BY_ID } from '../content/scenarios';
 import { CFG, dateLabel, termTurnOf } from './config';
 import { syncDebt } from './ledger';
@@ -207,6 +207,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
     if (scenario.oil) s.oil = { price: scenario.oil, prev: scenario.oil, output: s.oil.output, path: scenario.oilPath };
     if (scenario.approval) for (const z of ZONES) s.zones[z].approval += scenario.approval;
     s.agenda.done = [...(scenario.done ?? [])];
+    initialiseScenarioAssets(s, scenario as typeof scenario & ScenarioAssets);
     s.archive = [...scenario.history.map(([ago, headline, touches]) => inherited(-ago, headline, touches)), ...s.archive];
     if (s.flags['policy.subsidy'] === 'removed') s.counters['order.subsidy_end'] = -999;
   }
@@ -358,6 +359,13 @@ export function favoursFor(s: GameState, e: GameEvent) {
 }
 
 function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, cost?: Choice, aid?: Aid): string {
+  // Bind before any operation can sack or replace the subject of this very decision.
+  const parent = s.desk.lead?.eventId === e.id ? s.desk.lead : s.desk.minors.find((m) => m.eventId === e.id);
+  const followBindings = new Map((o.follow ?? []).map((f) => {
+    const targetKeys = Object.keys(EVENTS[f.event]?.cast ?? {});
+    const cast = f.cast ?? Object.fromEntries(Object.entries(parent?.cast ?? {}).filter(([key]) => targetKeys.includes(key)));
+    return [f, Object.keys(cast).length ? bindCast(s, cast) : {}] as const;
+  }));
   if (o.domain) applyDomainOutcome(s, o.domain, { eventId: e.id, choiceId });
   const entry = record(s, e.id, choiceId, e.category, o.archive, o.sig ?? (e.slot === 'lead' ? 2 : 1), !!o.exposure);
   if (cost?.naira) applyFx(s, ['nation.fiscalSpace', -cost.naira], entry.touches);
@@ -404,7 +412,8 @@ function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, 
   for (const f of o.follow ?? []) {
     if (f.chance !== undefined && rand(s) >= f.chance) continue;
     const after = Array.isArray(f.after) ? randInt(s, f.after[0], f.after[1]) : f.after;
-    s.queue.push({ event: f.event, due: s.turn + after, when: f.when });
+    s.queue.push({ event: f.event, due: s.turn + after, when: f.when,
+      ...followBindings.get(f) });
   }
   // The minister whose brief it is carries the result on their record.
   const brief = e.slot === 'lead' ? ministerForEvent(e.category, e.id) : null;
@@ -936,6 +945,7 @@ export function applyAction(state: GameState, action: Action): GameState {
     } break;
     case 'END_MONTH': endMonth(s); break;
   }
+  withdrawChangedFollowups(s);
   // The Chief of Staff's note is written at the start of the month; rewrite it once what it was about has been dealt with.
   if (action.type === 'BUDGET' || action.type === 'BUDGET_RESOLVE' || action.type === 'CHOOSE') s.desk.note = chiefOfStaffNote(s);
   markCommitmentsDue(s);

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { getVar } from '../engine/vars';
-import { materialise } from '../engine/cast';
+import { bindCast, eventOf, materialise } from '../engine/cast';
+import { buildDesk } from '../engine/director';
+import { assetPerformance, assetTick, initialiseScenarioAssets, type ScenarioAssets } from '../engine/places';
+import { SCENARIO_BY_ID } from '../content/scenarios';
+import { canVenture } from '../engine/bets';
+import { VENTURE_BY_ID } from '../content/ventures';
 import { EVENTS } from '../content';
 import { FINANCE_CANDIDATES } from '../content/names';
 import { migrate } from '../engine/migrate';
@@ -218,6 +223,114 @@ check('shock lifecycle reads active, expired and legacy saved records without mu
   assert.equal(JSON.stringify(s), before);
   s.shocks.active = [];
   assert.equal(getVar(s, 'shock.blackout'), 2);
+});
+
+check('follow-up binds its selected person through CHOOSE and desk selection', () => {
+  const target: GameEvent = {
+    id: 'contracts.follow', kind: 'chain', slot: 'minor', category: 'politics', tone: 'dry', intensity: 1,
+    office: 'President', title: 'Review {WHO}', body: ['Review.'], cast: { WHO: 'weakMinister' },
+    ignored: { result: 'Left.', archive: 'Left.' },
+    choices: [{ id: 'yes', label: 'Yes', outcomes: [{ result: 'Done.', archive: 'Done.', fx: [['person.$WHO', 1]] }] }],
+  };
+  const source: GameEvent = {
+    ...target, id: 'contracts.source', kind: 'standalone',
+    choices: [{ id: 'yes', label: 'Yes', outcomes: [{ result: 'Wait.', archive: 'Wait.',
+      follow: [{ event: target.id, after: 1, cast: { WHO: '$WHO' } }] }] }],
+  };
+  EVENTS[source.id] = source; EVENTS[target.id] = target;
+  try {
+    const s = fresh(); s.phase = 'desk';
+    s.desk.minors = [{ eventId: source.id, cast: { WHO: 'min_works' } }];
+    const next = applyAction(s, { type: 'CHOOSE', eventId: source.id, choiceId: 'yes' });
+    const q = next.queue.find((q) => q.event === target.id)!;
+    assert.equal(q.cast!.WHO, 'min_works');
+    assert.equal(q.castPersons!.WHO, next.governance!.offices.min_works);
+    next.turn++;
+    buildDesk(next);
+    const item = next.desk.minors.find((m) => m.eventId === target.id)!;
+    assert.equal(item.cast!.WHO, 'min_works');
+    assert.equal(eventOf(next, item)!.choices[0].outcomes[0].fx![0][0], 'person.min_works');
+    // Replacing this officeholder while the file is on the desk must withdraw it.
+    next.people.min_works.name = 'Replacement';
+    const after = applyAction(next, { type: 'CHOOSE', eventId: target.id, choiceId: 'yes' });
+    assert.equal(after.desk.minors.find((m) => m.eventId === target.id)!.resolved!.choiceId, 'withdrawn');
+    assert.equal(after.choices[target.id], undefined);
+    assert.ok(after.report.some((r) => r.title === 'Follow-up withdrawn'));
+    // Matching keys inherit automatically, and bind before a sack in the same outcome.
+    delete source.choices[0].outcomes[0].follow![0].cast;
+    source.choices[0].outcomes[0].ops = [['sack', '$WHO', 'technocrat']];
+    const second = fresh(); second.phase = 'desk';
+    const originalPerson = second.governance!.offices.min_works;
+    second.desk.minors = [{ eventId: source.id, cast: { WHO: 'min_works' } }];
+    const sacked = applyAction(second, { type: 'CHOOSE', eventId: source.id, choiceId: 'yes' });
+    const queued = sacked.queue.find((q) => q.event === target.id)!;
+    assert.equal(queued.castPersons!.WHO, originalPerson);
+    assert.notEqual(sacked.governance!.offices.min_works, originalPerson);
+    sacked.turn++; buildDesk(sacked);
+    assert.ok(!sacked.desk.minors.some((m) => m.eventId === target.id));
+  } finally { delete EVENTS[source.id]; delete EVENTS[target.id]; }
+});
+
+check('queued follow-up cancels on replacement without selecting another person', () => {
+  const file: GameEvent = {
+    id: 'contracts.bound', kind: 'chain', slot: 'minor', category: 'politics', tone: 'dry', intensity: 1,
+    office: 'President', title: 'Review', body: ['Review.'], cast: { WHO: 'weakMinister' },
+    ignored: { result: 'Left.', archive: 'Left.' }, choices: [],
+  };
+  EVENTS[file.id] = file;
+  try {
+    const s = fresh();
+    s.queue = [{ event: file.id, due: s.turn, ...bindCast(s, { WHO: 'min_works' }) }];
+    s.people.min_works.name = 'Another holder';
+    buildDesk(s);
+    assert.ok(!s.desk.minors.some((m) => m.eventId === file.id));
+    assert.equal(s.queue.length, 0);
+    assert.ok(s.report.some((r) => r.title === 'Follow-up withdrawn'));
+  } finally { delete EVENTS[file.id]; }
+});
+
+check('scenario assets are validated, productive and inherited without false achievements', () => {
+  const scenario = SCENARIO_BY_ID.standard as typeof SCENARIO_BY_ID.standard & ScenarioAssets;
+  const original = scenario.assets;
+  try {
+    scenario.assets = [{ asset: 'wheat', site: 'KN', condition: 0.6 }];
+    const s = fresh();
+    assert.equal(s.assets![0].state, 'KN');
+    assert.equal(s.assets![0].condition, 0.6);
+    assert.ok(!s.ventures.won.includes('wheat'));
+    assert.equal(canVenture(s, VENTURE_BY_ID.wheat).ok, false);
+    const k = assetPerformance(s, 'wheat').k;
+    s.assets![0].condition = 1;
+    assert.ok(Math.abs(k / assetPerformance(s, 'wheat').k - 0.6) < 0.000001);
+    s.assets![0].condition = 0.6;
+    assetTick(s);
+    assert.ok(Object.values(s.assets![0].record!).some((v) => v > 0));
+    s.turn = 49; s.ending = 'defeated';
+    // An inherited world wins over a scenario template, even an invalid template.
+    scenario.assets = [{ asset: 'invalid', site: 'invalid' }];
+    const successor = newGame({ ...setup, name: 'Successor' }, s);
+    assert.equal(successor.assets![0].condition, 0.6);
+    assert.equal(successor.assets![0].state, 'KN');
+    const record = JSON.stringify(s.assets![0].record);
+    assetTick(successor);
+    assert.equal(JSON.stringify(s.assets![0].record), record);
+  } finally {
+    if (original === undefined) delete scenario.assets; else scenario.assets = original;
+  }
+});
+
+check('starting asset batch validates before modifying any state', () => {
+  const s = fresh(), before = JSON.stringify(s);
+  for (const specs of [
+    [{ asset: 'wheat', site: 'KN' }, { asset: 'unknown', site: 'KN' }],
+    [{ asset: 'wheat', site: 'KN' }, { asset: 'wheat', site: 'KN' }],
+    [{ asset: 'wheat', site: 'XX' }],
+    [{ asset: 'wheat', site: 'KN', condition: 1.1 }],
+    [{ asset: 'wheat', site: 'KN', condition: NaN }],
+  ]) {
+    assert.throws(() => initialiseScenarioAssets(s, { assets: specs }));
+    assert.equal(JSON.stringify(s), before);
+  }
 });
 
 // Static authoring contract must reject arbitrary effect strings.

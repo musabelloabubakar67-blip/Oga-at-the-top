@@ -102,7 +102,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   // What was built keeps running under the same heads, captured or not.
   s.institutions = (prev.institutions ?? []).map((i) => ({ ...i, head: { ...i.head } }));
   // What was built stays where it was built, with whoever runs it; the bench sits on.
-  s.assets = (prev.assets ?? []).map((a) => ({ ...a, head: { ...a.head } }));
+  s.assets = structuredClone(prev.assets ?? []);
   s.placed = (prev.placed ?? []).map((p) => ({ ...p }));
   s.sites = { ...(prev.sites ?? {}) };
   if (prev.fx) s.fx = { ...prev.fx, hist: [...prev.fx.hist] };

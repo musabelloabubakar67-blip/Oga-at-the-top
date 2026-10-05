@@ -88,6 +88,11 @@ function checkOutcome(e: GameEvent, o: Outcome, where: string, tokens: Set<strin
   for (const l of o.later ?? []) { checkFx(e, l.fx); checkCond(e, l.when); l.note?.forEach((n) => checkText(e, n, tokens)); }
   for (const f of o.follow ?? []) {
     if (!EVENTS[f.event]) err(e, `${where}: follow-up to unknown event ${f.event}`);
+    for (const [key, id] of Object.entries(f.cast ?? {})) {
+      if (!EVENTS[f.event]?.cast?.[key]) err(e, `${where}: follow-up binds undeclared cast key ${key}`);
+      if (!id.trim()) err(e, `${where}: follow-up cast ${key} has no subject`);
+      if (id.startsWith('$') && !e.cast?.[id.slice(1)]) err(e, `${where}: follow-up references unknown parent cast ${id}`);
+    }
     checkCond(e, f.when);
   }
   o.news?.forEach((n) => checkText(e, n, tokens));

@@ -16,6 +16,30 @@ export function assets(s: GameState): NonNullable<GameState['assets']> {
   return s.assets ?? [];
 }
 
+export interface StartingAssetSpec { asset: string; site: string; condition?: number }
+export interface ScenarioAssets { assets?: StartingAssetSpec[] }
+
+/** Historical operating assets are not bets won by the incoming President. */
+export function initialiseScenarioAssets(s: GameState, scenario: ScenarioAssets): void {
+  const specs = scenario.assets ?? [];
+  const ids = new Set(assets(s).map((a) => a.id));
+  for (const spec of specs) {
+    const def = ASSETS[spec.asset];
+    if (!def || !STATE_BY_ID[spec.site] || !def.sites.includes(spec.site)) throw new Error('Invalid starting asset or site');
+    if (ids.has(spec.asset)) throw new Error('Duplicate starting asset');
+    if (spec.condition !== undefined && (!Number.isFinite(spec.condition) || spec.condition < 0 || spec.condition > 1)) throw new Error('Asset condition must be between zero and one');
+    ids.add(spec.asset);
+  }
+  const manager = specs.length ? headsFor(s).find((h) => h.name === 'A career civil servant') : undefined;
+  if (specs.length && !manager) throw new Error('No starting asset manager');
+  for (const spec of specs) {
+    (s.assets ??= []).push({ id: spec.asset, state: spec.site, condition: spec.condition ?? 1,
+      head: structuredClone(manager!), since: 0 });
+    (s.sites ??= {})[spec.asset] = spec.site;
+    s.flags[`asset.${spec.asset}`] = true;
+  }
+}
+
 const leans = (h: Head) => h.patron !== 'president' && h.loyalty <= 3;
 
 /** How well an asset is running, and why. */
@@ -24,6 +48,9 @@ export function assetPerformance(s: GameState, id: string): { k: number; why: st
   if (!a) return { k: 0, why: [], captured: false };
   const why: string[] = [];
   let k = 0.5 + 0.15 * a.head.competence;
+  const condition = a.condition ?? 1;
+  k *= condition;
+  if (condition < 1) why.push(`Physical condition: ${Math.round(condition * 100)}% of output`);
   const zone = STATE_BY_ID[a.state]?.zone;
   if (zone && s.theatres[zone] >= 65) { k *= 0.6; why.push(`The ${ZONE_NAME[zone]} is dangerous: it runs at 60%`); }
   const captured = leans(a.head);

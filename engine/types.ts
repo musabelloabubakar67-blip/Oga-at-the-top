@@ -52,6 +52,8 @@ export interface Later {
 
 export interface Follow {
   event: string;
+  /** Explicit bound subjects. Cast tokens are expanded when this outcome is materialised. */
+  cast?: Record<string, string>;
   after: number | [number, number];
   chance?: number;
   when?: Cond;
@@ -360,6 +362,8 @@ export interface DeskItem {
   eventId: string;
   /** Who and what this file is about: token -> id. */
   cast?: Record<string, string>;
+  /** Stable individuals occupying the bound offices when a follow-up was queued. */
+  castPersons?: Record<string, string>;
   /** A second adviser asked for their forecast, at the cost of a move. */
   second?: string;
   resolved?: { choiceId: string; label: string; result: string; signed?: boolean; changes?: Change[] };
@@ -491,7 +495,7 @@ export interface GameState {
   chars: Record<string, Character>;
   flags: Record<string, FlagValue>;
   ledger: Scheduled[];
-  queue: { event: string; due: number; when?: Cond }[];
+  queue: { event: string; due: number; when?: Cond; cast?: Record<string, string>; castPersons?: Record<string, string> }[];
   fired: Record<string, number[]>;
   choices: Record<string, string>; // eventId -> last choiceId
   recent: { tone: Tone; category: Category; intensity: number }[];
@@ -511,7 +515,7 @@ export interface GameState {
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
-  assets?: { id: string; state: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean; /** Expansions finished, and the month the one under way finishes. */ level?: number; expanding?: number; /** What it has done, in its own units. */ record?: Record<string, number> }[];
+  assets?: { id: string; state: string; condition?: number; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean; /** Expansions finished, and the month the one under way finishes. */ level?: number; expanding?: number; /** What it has done, in its own units. */ record?: Record<string, number> }[];
   /** Other things put in a state: abandoned sites, monuments. */
   placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
   /** The naira: official and street rates, reserves ($bn), the central bank's stance, the last year of rates. */

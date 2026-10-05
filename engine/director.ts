@@ -1,5 +1,5 @@
 import { EVENTS, EVENT_LIST } from '../content';
-import { materialise, resolveCast } from './cast';
+import { boundCastCurrent, materialise, resolveCast } from './cast';
 import { CFG, termTurnOf } from './config';
 import { rand, weighted } from './rng';
 import { fill } from './text';
@@ -93,7 +93,7 @@ function drawLead(s: GameState): GameEvent | null {
   });
 }
 
-function takeQueued(s: GameState, slot: 'lead' | 'minor'): GameEvent | null {
+function takeQueued(s: GameState, slot: 'lead' | 'minor'): DeskItem | null {
   s.queue.sort((a, b) => a.due - b.due);
   for (let i = 0; i < s.queue.length; i++) {
     const q = s.queue[i];
@@ -102,7 +102,15 @@ function takeQueued(s: GameState, slot: 'lead' | 'minor'): GameEvent | null {
     if (!e || e.slot !== slot) continue;
     s.queue.splice(i, 1);
     const spent = (s.fired[e.id]?.length ?? 0) >= (e.max ?? Infinity);
-    if (!spent && test(s, q.when) && (e.cast ? !!resolveCast(s, e) && test(s, materialise(s, e, resolveCast(s, e)!).when) : test(s, e.when))) return e;
+    if (!boundCastCurrent(s, q)) {
+      s.report.push({ kind: 'consequence', title: 'Follow-up withdrawn', text: 'The person this follow-up concerned has left the bound office. The file is not reassigned to their replacement.', changes: [] });
+      i--; continue;
+    }
+    const cast = { ...(e.cast ? resolveCast(s, e, q.cast) ?? {} : {}), ...q.cast };
+    const complete = Object.keys(e.cast ?? {}).every((key) => !!cast[key]);
+    if (!spent && complete && test(s, q.when) && test(s, materialise(s, e, cast).when)) {
+      return { eventId: e.id, ...(Object.keys(cast).length ? { cast } : {}), ...(q.castPersons ? { castPersons: q.castPersons } : {}) };
+    }
     i--;
   }
   return null;
@@ -168,6 +176,7 @@ export function chiefOfStaffNote(s: GameState): string {
 
 export function buildDesk(s: GameState): void {
   let lead: GameEvent | null = null;
+  let queuedLead: DeskItem | null = null;
 
   const calendar = EVENT_LIST.filter((e) => e.slot === 'lead' && e.kind === 'calendar' && eligible(s, e));
   if (calendar.length) lead = calendar.sort((a, b) => b.intensity - a.intensity)[0];
@@ -176,7 +185,10 @@ export function buildDesk(s: GameState): void {
     const thresholds = EVENT_LIST.filter((e) => e.slot === 'lead' && e.kind === 'threshold' && eligible(s, e));
     if (thresholds.length) lead = thresholds.sort((a, b) => b.intensity - a.intensity)[0];
   }
-  if (!lead) lead = takeQueued(s, 'lead');
+  if (!lead) {
+    queuedLead = takeQueued(s, 'lead');
+    if (queuedLead) lead = EVENTS[queuedLead.eventId];
+  }
   if (!lead) {
     const lastQuiet = s.flags['desk.quiet'] === true;
     if (!lastQuiet && s.turn > 3 && rand(s) < CFG.director.quietChance) lead = null;
@@ -187,7 +199,7 @@ export function buildDesk(s: GameState): void {
 
   const minors: DeskItem[] = [];
   const queuedMinor = takeQueued(s, 'minor');
-  if (queuedMinor) { mark(s, queuedMinor); minors.push(item(s, queuedMinor)); }
+  if (queuedMinor) { mark(s, EVENTS[queuedMinor.eventId]); minors.push(queuedMinor); }
   const roll = rand(s);
   const want = roll < CFG.director.minorTwo ? 2 : roll < CFG.director.minorTwo + CFG.director.minorOne ? 1 : 0;
   while (minors.length < want) {
@@ -202,7 +214,7 @@ export function buildDesk(s: GameState): void {
   }
 
   s.desk = {
-    lead: lead ? item(s, lead) : null,
+    lead: queuedLead ?? (lead ? item(s, lead) : null),
     minors,
     actionsUsed: 0,
     drawerUsed: false,
