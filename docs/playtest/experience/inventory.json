@@ -1,0 +1,551 @@
+{
+ "baseline": "4227861",
+ "generated": "2026-10-05T18:35:34.883Z",
+ "events": {
+  "total": 180,
+  "registry": 180,
+  "byFile": {
+   "absurd.ts": 10,
+   "attacks.ts": 4,
+   "cabinet.ts": 10,
+   "institutions.ts": 4,
+   "labour.ts": 8,
+   "minor.ts": 18,
+   "politics.ts": 15,
+   "predecessor.ts": 8,
+   "promises.ts": 2,
+   "reactive.ts": 17,
+   "recurring.ts": 11,
+   "refinery.ts": 2,
+   "scandal.ts": 8,
+   "secondterm.ts": 13,
+   "subsidy.ts": 8,
+   "system.ts": 26,
+   "tribunal.ts": 3,
+   "shocks.ts": 13
+  },
+  "byKind": {
+   "standalone": 62,
+   "recurring": 49,
+   "threshold": 17,
+   "chain": 41,
+   "calendar": 11
+  },
+  "bySlot": {
+   "lead": 153,
+   "minor": 27
+  },
+  "byCategory": {
+   "scandal": 20,
+   "politics": 55,
+   "infrastructure": 13,
+   "ceremonial": 9,
+   "economy": 36,
+   "fortune": 13,
+   "labour": 14,
+   "temptation": 10,
+   "security": 10
+  },
+  "byTone": {
+   "absurd": 7,
+   "farce": 17,
+   "dry": 138,
+   "grave": 18
+  },
+  "cast": 21,
+  "repeating": 53,
+  "choices": 532,
+  "outcomes": 573,
+  "outcomesOnlyNumbers": 183,
+  "outcomesWithoutHeadline": 80,
+  "repeatedHeadlines": [
+   [
+    "",
+    16
+   ],
+   [
+    "PRESIDENT ANNOUNCES ENERGY MARKET REFORMS",
+    3
+   ],
+   [
+    "SUBSIDY IS GONE! PETROL NOW ₦1,450",
+    3
+   ],
+   [
+    "SUPREME COURT SAY THE REFORM STAND",
+    2
+   ],
+   [
+    "PRESIDENT BEGINS NATIONWIDE PROJECT TOUR",
+    2
+   ],
+   [
+    "PRESIDENT DEY COMMISSION EVERYTHING WEY GET RIBBON",
+    2
+   ],
+   [
+    "PRESIDENT SETTLES DISPUTED APPOINTMENT",
+    2
+   ],
+   [
+    "ONE PERSON HAPPY, ONE PERSON DON VEX",
+    2
+   ],
+   [
+    "OIL THEFT COLLAPSES AS TERMINALS ARE METERED",
+    2
+   ],
+   [
+    "EVERY SENATOR GET PROJECT. THIS TIME WE FIT CHECK AM",
+    2
+   ],
+   [
+    "NEPA TAKE LIGHT FOR WHOLE NIGERIA. AGAIN",
+    2
+   ],
+   [
+    "PRESIDENT SAY THIS FLOOD GO BE THE LAST",
+    2
+   ],
+   [
+    "FG APPROVES ₦1.9TN IN CONTRACTS DAYS TO HANDOVER",
+    2
+   ],
+   [
+    "FG BEGINS \"GRADUAL\" SUBSIDY EXIT",
+    2
+   ],
+   [
+    "PETROL UP AGAIN, AND THEY SAY NA JUST THE BEGINNING",
+    2
+   ],
+   [
+    "PRESIDENCY: SUBSIDY STAYS \"FOR NOW\"",
+    2
+   ],
+   [
+    "PETROL PRICE NO GO CHANGE — PRESIDENCY",
+    2
+   ],
+   [
+    "TRIBUNAL UPHOLDS PRESIDENT'S ELECTION, 5–0",
+    2
+   ],
+   [
+    "TRIBUNAL SAY PRESIDENT WIN. WE DON KNOW BEFORE",
+    2
+   ],
+   [
+    "TRIBUNAL DISMISSES PETITION: \"NOTHING TO ANSWER\"",
+    2
+   ],
+   [
+    "TRIBUNAL CLEAR PRESIDENT. THE ELECTION CLEAN",
+    2
+   ],
+   [
+    "SUPREME COURT UPHOLDS PRESIDENT, 4–3",
+    2
+   ],
+   [
+    "SUPREME COURT: PRESIDENT JUDGES DON SAVE AM",
+    2
+   ],
+   [
+    "TRIBUNAL ANNULS PRESIDENTIAL ELECTION",
+    2
+   ],
+   [
+    "TRIBUNAL DON CANCEL THE ELECTION. PRESIDENT DON GO",
+    2
+   ],
+   [
+    "TRIBUNAL ORDERS RE-RUN IN FOUR STATES; PRESIDENT HOLDS ON",
+    2
+   ],
+   [
+    "RE-RUN FOR FOUR STATE. PRESIDENT SURVIVE AM",
+    2
+   ],
+   [
+    "SPLIT TRIBUNAL UPHOLDS PRESIDENT, 3–2",
+    2
+   ],
+   [
+    "TRIBUNAL: PRESIDENT WIN BY THREE JUDGES TO TWO",
+    2
+   ],
+   [
+    "PRESIDENT ORDERS PROSECUTION OF PREDECESSOR'S OFFICIALS",
+    2
+   ],
+   [
+    "NEW PRESIDENT DON OPEN THE OLD PRESIDENT FILE",
+    2
+   ]
+  ],
+  "deviceHits": {
+   "committee": 30,
+   "ribbon": 8,
+   "percent": 3,
+   "denial": 4,
+   "goat": 3,
+   "generic_call": 1
+  }
+ },
+ "reforms": {
+  "tracks": 17,
+  "reforms": 196,
+  "loose": [
+   "federation",
+   "welfare",
+   "order",
+   "resources"
+  ],
+  "byGen": {
+   "1": 89,
+   "2": 89,
+   "3": 18
+  },
+  "popular": 5,
+  "reversals": 11,
+  "rivals": 8,
+  "repairs": 21,
+  "onBooks": 5,
+  "perTrack": [
+   "power 15",
+   "security 14",
+   "treasury 11",
+   "clean 11",
+   "service 11",
+   "food 12",
+   "industry 11",
+   "digital 11",
+   "people 13",
+   "schools 12",
+   "works 10",
+   "federation 11",
+   "welfare 11",
+   "order 9",
+   "resources 12",
+   "justice 11",
+   "cities 11"
+  ]
+ },
+ "orders": {
+  "total": 75,
+  "situational": 55
+ },
+ "ventures": {
+  "total": 33,
+  "openedByReform": 16,
+  "risks": 93
+ },
+ "people": {
+  "total": 16,
+  "byGroup": {
+   "governor": 6,
+   "senator": 4,
+   "minister": 6
+  }
+ },
+ "tycoons": 5,
+ "scenarios": [
+  "standard",
+  "boom",
+  "morning",
+  "scandal",
+  "reformer",
+  "emergency"
+ ],
+ "modules": {
+  "assets": {
+   "ASSETS": 18,
+   "EXPANSION": 5
+  },
+  "courts": {
+   "BENCH": 7,
+   "NOMINEES": 5
+  },
+  "institutions": {
+   "INSTITUTIONS": 9,
+   "INSTITUTION_BY_ID": 9
+  },
+  "talent": {
+   "BACKGROUNDS": 7,
+   "NAMES_BY_ZONE": 6,
+   "ROLE_SPECS": 23,
+   "SPEC_NAME": 7,
+   "TITLES": 7
+  },
+  "federal": {
+   "NORTH": 3,
+   "ORIGIN": 25
+  },
+  "press": {
+   "COMMENT": 4,
+   "EDITORIALS": 35,
+   "FILLERS": 34,
+   "HOSTILE_BAD": 12,
+   "HOSTILE_GOOD": 12,
+   "LOYAL_BAD": 12,
+   "LOYAL_GOOD": 12,
+   "MINISTER_EXCUSE": 6,
+   "MINISTER_PROUD": 5,
+   "OUTLETS": 4,
+   "SIDEBARS": 43,
+   "STORIES": 4,
+   "STORY_BY_ID": 4,
+   "STRAPS": 4,
+   "VILLA_LEAK": 4,
+   "WEAK_LINES": 5
+  },
+  "record": {
+   "IN_FORCE": 17,
+   "RECORD": 37
+  },
+  "setpieces": {
+   "NAMES": 28,
+   "NIGHTS": 6,
+   "NIGHT_BY_ID": 6
+  },
+  "shocks": {
+   "SHOCKS": 13,
+   "SHOCK_BY_ID": 13,
+   "SHOCK_FILES": 13
+  },
+  "theatres": {
+   "THEATRES": 6,
+   "THEATRE_BY_ZONE": 6
+  },
+  "treasury": {
+   "BENCHMARKS": 4,
+   "DEBTS": 6,
+   "DEBT_BY_ID": 6,
+   "FUNDS": 4,
+   "FUND_BY_ID": 4,
+   "SECTORS": 6,
+   "SECTOR_BY_ID": 6
+  },
+  "states": {
+   "STATES": 37,
+   "STATE_BY_ID": 37
+  },
+  "names": {
+   "ADVISER_POOL": 6,
+   "CAST": 7,
+   "DEFAULT_PARTY": 2,
+   "FINANCE_CANDIDATES": 3,
+   "NAMES": 28,
+   "REPLACEABLE": 5
+  }
+ },
+ "ui": [
+  {
+   "file": "Aimed.tsx",
+   "lines": 70,
+   "components": [
+    "Aimed",
+    "Row"
+   ]
+  },
+  {
+   "file": "Candidates.tsx",
+   "lines": 70,
+   "components": [
+    "Candidates"
+   ]
+  },
+  {
+   "file": "Cases.tsx",
+   "lines": 67,
+   "components": [
+    "Cases"
+   ]
+  },
+  {
+   "file": "Desk.tsx",
+   "lines": 1820,
+   "components": [
+    "Modal",
+    "Chip",
+    "Changes",
+    "Expected",
+    "PolicyPreview",
+    "FileModal",
+    "PhoneModal",
+    "PowersButton",
+    "OrderCard",
+    "Institutions",
+    "Fold",
+    "PowersModal",
+    "ReformRow",
+    "TrackCard",
+    "Agenda",
+    "Risks",
+    "Ventures",
+    "RecordPanel",
+    "NationModal",
+    "DrawerModal",
+    "ArchiveModal",
+    "CapitalIncome",
+    "Delta",
+    "Briefing",
+    "Desk",
+    "StatusBar",
+    "CountryColumn",
+    "AssetCards",
+    "StatesTable"
+   ]
+  },
+  {
+   "file": "Election.tsx",
+   "lines": 114,
+   "components": [
+    "ElectionNight"
+   ]
+  },
+  {
+   "file": "Game.tsx",
+   "lines": 114,
+   "components": [
+    "Game"
+   ]
+  },
+  {
+   "file": "Night.tsx",
+   "lines": 84,
+   "components": [
+    "Changes",
+    "NightScreen"
+   ]
+  },
+  {
+   "file": "Paper.tsx",
+   "lines": 142,
+   "components": [
+    "Page",
+    "Papers"
+   ]
+  },
+  {
+   "file": "People.tsx",
+   "lines": 850,
+   "components": [
+    "PromiseMenu",
+    "Promises",
+    "Fx",
+    "Owed",
+    "Owing",
+    "FavoursOf",
+    "Bar",
+    "PeopleModal",
+    "Wronged",
+    "Courts",
+    "VicePresident",
+    "Formers",
+    "FormerPresident",
+    "Federal",
+    "Succession"
+   ]
+  },
+  {
+   "file": "Setup.tsx",
+   "lines": 210,
+   "components": [
+    "Title",
+    "SetupScreen"
+   ]
+  },
+  {
+   "file": "shell.tsx",
+   "lines": 35,
+   "components": [
+    "Overlay",
+    "CloseButton"
+   ]
+  },
+  {
+   "file": "StateMap.tsx",
+   "lines": 94,
+   "components": [
+    "StateMap"
+   ]
+  },
+  {
+   "file": "Treasury.tsx",
+   "lines": 585,
+   "components": [
+    "Shell",
+    "BudgetModal",
+    "AssemblyVersion",
+    "ThisYear",
+    "Flow",
+    "Policies",
+    "Owed",
+    "Saved",
+    "TreasuryModal",
+    "Naira"
+   ]
+  },
+  {
+   "file": "Verdict.tsx",
+   "lines": 107,
+   "components": [
+    "VerdictScreen"
+   ]
+  }
+ ],
+ "actions": [
+  "DISMISS_PAPER",
+  "CHOOSE",
+  "ACT",
+  "DRAWER",
+  "LAUNCH",
+  "VENTURE",
+  "SET_MANAGER",
+  "VENTURE_DELAY",
+  "VENTURE_RESCUE",
+  "VENTURE_REVIVE",
+  "CASE",
+  "EXPAND_ASSET",
+  "PERSON",
+  "PAY_DEBT",
+  "SECURITISE",
+  "FUND",
+  "BUDGET",
+  "BUDGET_RESOLVE",
+  "BUDGET_RELEASE",
+  "SUPPLEMENTARY",
+  "FAVOUR",
+  "TYCOON",
+  "RIVAL",
+  "FOCUS",
+  "REPLACE_MINISTER",
+  "ORDER",
+  "REPEAL",
+  "SECOND_OPINION",
+  "REPLACE_ADVISER",
+  "NOMINATE",
+  "GROOM",
+  "VP",
+  "PRED_VISIT",
+  "LAND_FORMER",
+  "GROOM_CREDIT",
+  "CHECK_CANDIDATE",
+  "HEADHUNT",
+  "PLEDGE",
+  "HONOUR",
+  "REVERSE",
+  "NIGHT",
+  "NIGHT_WAIT",
+  "NIGHT_END",
+  "ESTABLISH",
+  "REPLACE_HEAD",
+  "ABOLISH",
+  "FUND_INSTITUTION",
+  "REPLACE_FIN",
+  "END_MONTH",
+  "ELECTION_DONE"
+ ]
+}

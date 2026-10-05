@@ -38,6 +38,8 @@ export const SHOCKS: ShockDef[] = [
     hit: [['zone.NC.approval', -1.2], ['zone.NE.approval', -0.6], ['nation.inflation', 0.5], ['nation.fiscalSpace', -0.04], ['theatre.NC', 0.5]],
     guards: [
       { label: 'Flood defences on the Niger and Benue held', when: done('w4'), share: 0.6 },
+      // The same defences, committed to in an earlier seasonal flood and still being built: one state, not two.
+      { label: 'The flood defences this government paid for were partly built', when: { all: [{ flag: 'flood.defences' }, { not: done('w4') }] }, share: 0.3 },
       { label: 'Grain in storage kept food moving', when: done('f3'), share: 0.15 },
       { label: 'The stabilisation account paid for relief at once', when: v('fund.buffer', '>=', 1), share: 0.1 },
       { label: 'Relief went out under federal control', when: answered('flood', 'relief'), share: 0.25 },
@@ -153,7 +155,8 @@ export const SHOCKS: ShockDef[] = [
     news: ['GLOBAL MANUFACTURERS SCOUT NIGERIA AS SUPPLY CHAINS MOVE', 'FOREIGN FACTORY DEY FIND WHERE TO LAND'],
   },
   {
-    id: 'bumper', good: true, name: 'The bumper harvest', months: 5, weight: 7, base: 0.6,
+    // One record harvest per presidency: not if the seasonal file `fortune.harvest` has already told it.
+    id: 'bumper', good: true, name: 'The bumper harvest', months: 5, weight: 7, base: 0.6, when: { never: 'fortune.harvest' },
     hit: [['nation.inflation', -0.6], ['bloc.street', 0.3]],
     guards: [
       { label: 'Storage and rural roads kept it from rotting', when: done('f3'), share: 0.4 },
@@ -177,7 +180,8 @@ export const SHOCKS: ShockDef[] = [
     news: ['COCOA, SESAME AND CASHEW PRICES HIT RECORD', 'COCOA DON COST PASS GOLD. FARMERS DEY SMILE'],
   },
   {
-    id: 'listing', good: true, name: 'The tech listing', months: 6, weight: 6, base: 0.55,
+    // The same Yaba company as `fortune.startup`: whichever comes first tells it.
+    id: 'listing', good: true, name: 'The tech listing', months: 6, weight: 6, base: 0.55, when: { never: 'fortune.startup' },
     hit: [['fx.reserves', 0.5], ['bloc.establishment', 0.4], ['nation.jobs', 0.15], ['bloc.press', 0.2]],
     guards: [
       { label: 'The payment rails it was built on', when: done('d4'), share: 0.25 },
@@ -189,7 +193,8 @@ export const SHOCKS: ShockDef[] = [
     news: ['LAGOS STARTUP LISTS ABROAD AT $9BN', 'OUR TECH COMPANY DON LIST ABROAD. NA BILLION DOLLAR'],
   },
   {
-    id: 'cup', good: true, name: 'The trophy', months: 2, weight: 5, base: 1,
+    // The same championship as `fortune.football`: whichever comes first tells it.
+    id: 'cup', good: true, name: 'The trophy', months: 2, weight: 5, base: 1, when: { never: 'fortune.football' },
     hit: [['approval', 1], ['bloc.street', 0.6]],
     guards: [],
     file: 'shock.cup',
@@ -265,6 +270,8 @@ export const SHOCK_FILES: GameEvent[] = [
   ], 'grave', 'economy'),
   file('blackout', 'The grid has collapsed', 'Federal Ministry of Power', [
     'The national grid went down at 2.14 this morning. Most of the country has no public power.',
+    // The grid's ordinary collapses are their own story; this one is different in scale, and says so.
+    { when: v('count.grid.collapse', '>=', 1), text: 'This is not one of the collapses the system recovers from by evening. The transmission company says the damage is to the system itself, and that restoration will be counted in weeks.' },
     { when: done('p2'), text: 'The rebuilt corridors are back first. The engineers say the rest will follow them.' },
     'Every month it limps, factories run on diesel or stop.',
   ], [
@@ -310,7 +317,7 @@ export const SHOCK_FILES: GameEvent[] = [
     'The rains were perfect and the farms were quiet. The harvest is the largest anyone at the ministry can remember.',
     { when: { not: done('f3') }, text: 'Without storage or roads, a good share of it will rot by the roadside, and farm-gate prices will collapse.' },
   ], [
-    { id: 'reserve', label: 'Buy the surplus into the grain reserve', naira: 0.2, outcomes: [{ result: 'The reserve buys at a floor price. Farmers are paid, and next year\'s lean season has a cushion.', fx: [['zone.NC.approval', 2], ['zone.NW.approval', 2]], flags: pick('bumper', 'reserve'), news: ['FG BUYS RECORD HARVEST INTO RESERVE', 'GOVERNMENT DON BUY FARMERS CORN'], archive: 'Bought a record harvest into the grain reserve.', sig: 2 }] },
+    { id: 'reserve', label: 'Buy the surplus into the grain reserve', naira: 0.2, outcomes: [{ result: 'The reserve buys at a floor price. Farmers are paid, and next year\'s lean season has a cushion.', fx: [['zone.NC.approval', 2], ['zone.NW.approval', 2]], flags: { ...pick('bumper', 'reserve'), 'grain.reserve': true }, news: ['FG BUYS RECORD HARVEST INTO RESERVE', 'GOVERNMENT DON BUY FARMERS CORN'], archive: 'Bought a record harvest into the grain reserve.', sig: 2 }] },
     { id: 'market', label: 'Let prices fall', outcomes: [{ result: 'Prices fall. City families eat better. Farmers sell at a loss.', fx: [['zone.NC.approval', -2]], flags: pick('bumper', 'market'), news: ['FOOD PRICES TUMBLE AFTER RECORD HARVEST', 'FOOD CHEAP. FARMERS DEY CRY'], archive: 'Let food prices fall after a record harvest.', sig: 1 }] },
   ], 'dry', 'fortune'),
   file('crops', 'The crops are worth more than ever', 'Federal Ministry of Agriculture', [

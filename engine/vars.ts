@@ -148,6 +148,12 @@ export function getVar(s: GameState, path: string): number {
     case 'leverage': return s.exposures.filter((x) => x.witnesses.includes(p[1])).length;
     case 'char': return (s.chars[p[1]] as unknown as Record<string, number>)?.[p[2]] ?? 0;
     case 'count': return s.fired[p.slice(1).join('.')]?.length ?? 0;
+    // Derive lifecycle from saved shock records; no extra flags to drift out of sync.
+    case 'shock': {
+      const id = p.slice(1).join('.');
+      if (s.shocks?.active.some((a) => a.id === id && a.until >= s.turn)) return 1;
+      return s.shocks?.seen.includes(id) ? 2 : 0;
+    }
     case 'counter': return s.counters[p.slice(1).join('.')] ?? 0;
     case 'campaign': return s.campaign.chest;
     case 'agenda': return s.agenda.done.includes(p[1]) ? 1 : 0;

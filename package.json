@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "check:experience": "tsx tests/experience/dossiers.check.ts",
+    "check:contracts": "tsx tools/check-contracts.ts",
     "lint:content": "tsx tools/lint-content.ts",
     "simulate": "tsx tools/simulate.ts"
   },

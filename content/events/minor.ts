@@ -181,6 +181,9 @@ export const MINOR: GameEvent[] = [
     body: [
       '{SIR}, the 1 October broadcast is due at the studio by six. I have two drafts.',
       'Draft A lists achievements. Draft B admits what has not worked and says what happens next. Draft A is longer.',
+      // A second year is judged against the first.
+      { when: { all: [{ v: ['count.minor.independence', '>=', 2] }, { flag: 'independence.last', is: 'b' }] }, text: 'Last year you apologised. Draft B opens with that apology and goes through what was done about each thing you named. Several journalists have kept last year\'s transcript.' },
+      { when: { all: [{ v: ['count.minor.independence', '>=', 2] }, { flag: 'independence.last', is: 'a' }] }, text: 'Last year\'s list of achievements has been checked by a fact-checking site, item by item. Draft A has quietly dropped four of them.' },
     ],
     choices: [
       {
@@ -190,11 +193,13 @@ export const MINOR: GameEvent[] = [
             when: { v: ['hardship', '<', 50] },
             result: 'The broadcast runs for 31 minutes. It is fair, and it is received as fair.',
             fx: [['approval', 1], ['bloc.party', 1]],
+            flags: { 'independence.last': 'a' },
             archive: 'Gave an Independence Day broadcast listing achievements.',
           },
           {
             result: 'The broadcast runs for 31 minutes. Viewers compare the list with their week.',
             fx: [['approval', -1.5], ['bloc.street', -2]],
+            flags: { 'independence.last': 'a' },
             news: ['PRESIDENT LISTS GAINS IN INDEPENDENCE BROADCAST', 'WHICH COUNTRY PRESIDENT DEY TALK ABOUT?'],
             archive: 'Gave an Independence Day broadcast listing achievements while prices rose.',
           },
@@ -203,8 +208,21 @@ export const MINOR: GameEvent[] = [
       {
         id: 'b', label: 'Draft B: candour',
         outcomes: [{
+          when: { all: [{ flag: 'independence.last', is: 'b' }, { v: ['hardship', '<', 50] }] },
+          result: 'You read last year\'s apology, then what was done about each item on it. It is the first broadcast anyone has checked against the one before, and it survives the check.',
+          fx: [['approval', 2], ['bloc.press', 3], ['bloc.street', 2]],
+          news: ['PRESIDENT REPORTS BACK ON LAST YEAR\'S PLEDGES', 'LAST YEAR E SAY SORRY. THIS YEAR E SHOW WETIN E DO'],
+          archive: 'Reported back on last year\'s Independence Day apology.',
+        }, {
+          when: { flag: 'independence.last', is: 'b' },
+          result: 'You read last year\'s apology, then what was done about each item on it. The list of what was done is shorter than the apology. The country notices the arithmetic.',
+          fx: [['approval', -1], ['bloc.press', 1], ['bloc.street', -1]],
+          news: ['PRESIDENT REVISITS LAST YEAR\'S APOLOGY', 'SORRY AGAIN? THE LIST NEVER CHANGE'],
+          archive: 'Revisited last year\'s Independence Day apology with little to show.',
+        }, {
           result: 'You speak for eleven minutes. You say the word "sorry" once. Nobody can remember the last time that word was in the broadcast.',
           fx: [['approval', 1.5], ['bloc.press', 3], ['bloc.street', 2], ['bloc.party', -1]],
+          flags: { 'independence.last': 'b' },
           news: ['"WE HAVE NOT DONE ENOUGH" — PRESIDENT', 'PRESIDENT TALK TRUE FOR ONCE. ELEVEN MINUTES'],
           archive: 'Gave a candid Independence Day broadcast.',
         }],

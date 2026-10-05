@@ -17,7 +17,7 @@ type Ref = { id: string };
 const err = (e: Ref, m: string) => errors.push(`${e.id}: ${m}`);
 
 const TARGET = /^(pred\.rel|vp\.rel|nation\.(inflation|petrolPrice|fiscalSpace|debt|security|power|capacity|integrity|jobs)|pressure\.(fuelSupplyStress|wageGrievance|scandalHeat)|bloc\.(villa|party|street|establishment|press)|zone\.(NW|NE|NC|SW|SE|SS)\.(approval|security)|approval|pc|purse|rel\.\w+|counter\.\w+|campaign|bonus\.(fiscal|inflation|power|security|capacity|integrity|jobs)|rival\.(alt|fire|strong)|person\.\w+|debt\.(eurobond|bonds|ways|gas|contractors|pensions)|fund\.(abroad|buffer|infra|growth)|tycoon\.\w+|theatre\.(NW|NE|NC|SW|SE|SS)|drift\.(NW|NE|NC|SW|SE|SS|all)|sec\.(strike|shield|hold)|oil\.price|fx\.(reserves|rate))$/;
-const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|bets|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|drift|sec|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates|margin|outlook|era|pred|bench|fx|wronged|grieve|inst|mine|vp)(\.|$)/;
+const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|bets|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|drift|sec|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates|margin|outlook|era|pred|bench|fx|wronged|grieve|inst|mine|vp|shock)(\.|$)/;
 const BASE_TOKENS = ['PRES', 'NAME', 'SIR', 'MRP', 'PARTY', 'PSHORT', 'HOME', 'YEAR', 'FIN', 'FINSHORT', 'COS', 'SAP', 'REFINERY', 'DONE', 'OIL', 'BENCH', 'OUTPUT', 'BUDGETYEAR', 'DELEGATES', 'PRED', 'PREDPARTY', 'VP', 'VP_SHORT', 'BACKER', 'BACKER_SHORT', 'SENATE', ...Object.keys(NAMES)];
 const ROLES = new Set([...CAST.map((c) => c.id), 'fin']);
 const OPS = new Set(['backer', 'spendall', 'deliver', 'paydebt', 'notes', 'grant', 'settle', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect', 'finleave', 'backsucc', 'succadj', 'weaken', 'forgive', 'charge', 'vpbrief', 'honour', 'breakp', 'settlep', 'pledgewant']);
@@ -79,6 +79,10 @@ function checkOutcome(e: GameEvent, o: Outcome, where: string, tokens: Set<strin
   checkOps(e, o.ops);
   checkText(e, o.result, tokens);
   checkText(e, o.archive, tokens);
+  checkText(e, o.quiet, tokens);
+  if (o.quiet !== undefined && !o.quiet.trim()) err(e, `${where}: private outcome needs a reason`);
+  if (o.quiet !== undefined && o.news !== undefined) err(e, `${where}: private outcome also declares public headlines`);
+  if (o.news?.some((headline) => !headline.trim())) warn.push(`${e.id}/${where}: empty headline; use quiet with a reason for a private outcome`);
   if (!o.archive) err(e, `${where}: missing archive entry`);
   if (o.favour && !o.favour[0].startsWith('$') && !KNOWN.has(o.favour[0])) err(e, `${where}: favour names nobody known: ${o.favour[0]}`);
   for (const l of o.later ?? []) { checkFx(e, l.fx); checkCond(e, l.when); l.note?.forEach((n) => checkText(e, n, tokens)); }
@@ -87,7 +91,7 @@ function checkOutcome(e: GameEvent, o: Outcome, where: string, tokens: Set<strin
     checkCond(e, f.when);
   }
   o.news?.forEach((n) => checkText(e, n, tokens));
-  if (e.slot === 'lead' && !o.news && !o.ends && !o.exposure && !o.ops && e.category !== 'temptation') warn.push(`${e.id}/${where}: lead outcome has no headline`);
+  if (e.slot === 'lead' && !o.news && !o.quiet?.trim() && !o.ends && !o.exposure && !o.ops && e.category !== 'temptation') warn.push(`${e.id}/${where}: lead outcome has no headline`);
   return !!(o.later?.length || o.follow?.length || o.flags || o.exposure || o.ops?.length || o.favour
     || o.fx?.some((f) => /^(pressure|counter|bonus|debt|fund|tycoon|theatre|person|rival)\./.test(f[0])));
 }

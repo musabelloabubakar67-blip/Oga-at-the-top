@@ -61,12 +61,17 @@ export const PREDECESSOR_FILES: GameEvent[] = [
     office: 'Office of the Special Adviser, Political Matters', stamp: 'URGENT',
     title: '{PRED} gives a lecture',
     body: [
-      '{PRED} delivered the annual lecture of a university\'s alumni association yesterday. The subject was "Leadership in Difficult Times". The examples of poor leadership were all from the last eighteen months.',
-      'Three of your governors were in the front row.',
+      { when: v('count.pred.speech', '<', 2), text: '{PRED} delivered the annual lecture of a university\'s alumni association yesterday. The subject was "Leadership in Difficult Times". The examples of poor leadership were all from the last eighteen months.' },
+      { when: v('count.pred.speech', '<', 2), text: 'Three of your governors were in the front row.' },
+      // The second lecture answers what you did about the first.
+      { when: v('count.pred.speech', '>=', 2), text: '{PRED} has lectured again, this time at a business school, on "Promises and Their Keepers". Five of your governors were in the front row.' },
+      { when: { all: [v('count.pred.speech', '>=', 2), { flag: 'pred.visited' }] }, text: 'He mentioned your afternoon on his veranda, kindly, and said that courtesy is not a policy.' },
+      { when: { all: [v('count.pred.speech', '>=', 2), { flag: 'pred.feud' }] }, text: 'A new section answers your spokesman\'s rebuttal, point by point, at greater length than the rebuttal.' },
+      { when: { all: [v('count.pred.speech', '>=', 2), { flag: 'pred.ignored' }] }, text: 'The pamphlet of the first lecture is in its third printing. He thanked the government for its silence, which he said spoke for itself.' },
     ],
     reads: [{ role: 'sap', good: 'Answer him and you make it a fight between equals, {SIR}. Ignore him and the governors decide you are afraid of him.' }],
     choices: [
-      { id: 'visit', label: 'Fly down and call on him', pc: 3, outcomes: [{ result: 'You spend an afternoon on his veranda. He tells you everything you are doing wrong, and seems lighter for it.', fx: [['pred.rel', 15], ['bloc.party', 2]], later: [{ after: [3, 5], fx: [['bloc.party', 1]], label: 'The former President tells the elders you came to him.' }], archive: 'Called on the former President after a hostile lecture.', sig: 1 }] },
+      { id: 'visit', label: 'Fly down and call on him', pc: 3, outcomes: [{ result: 'You spend an afternoon on his veranda. He tells you everything you are doing wrong, and seems lighter for it.', fx: [['pred.rel', 15], ['bloc.party', 2]], flags: { 'pred.visited': true }, later: [{ after: [3, 5], fx: [['bloc.party', 1]], label: 'The former President tells the elders you came to him.' }], archive: 'Called on the former President after a hostile lecture.', sig: 1 }] },
       { id: 'answer', label: 'Have your spokesman answer, point by point', outcomes: [{ result: 'The rebuttal is accurate and long. The former President\'s reply is short and quoted more.', fx: [['pred.rel', -8], ['bloc.press', -1], ['bloc.party', -2]], flags: { 'pred.feud': true }, archive: 'Answered the former President in public.', sig: 1 }] },
       { id: 'ignore', label: 'Say nothing', outcomes: [{ result: 'You say nothing. The lecture is printed as a pamphlet.', fx: [['bloc.party', -2], ['bloc.press', -1]], flags: { 'pred.ignored': true }, archive: 'Ignored the former President\'s criticism.', sig: 1 }] },
     ],

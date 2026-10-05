@@ -23,6 +23,8 @@ Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/
 | 17 History/experience | Detached governance view | Partial foundation; history/shortlists/scenarios/sharing outstanding |
 | 18 Verification/docs | Ten executable contract checks; typecheck, existing reform checks and content lint | Partial; broader simulation/browser integration outstanding |
 
-Content/UI ownership remains Claude's and is not evaluated as complete from its inventory alone. No Claude code has been integrated in this initial delivery.
+Content/UI ownership remains Claude's and is not evaluated as complete from its inventory alone. Claude's branch through 0468e5d is now integrated, including its audit, dossiers and content repairs.
 
 Recorded checks before publication: contract checks passed (10); TypeScript passed; focused reform checks passed; content lint passed with the existing 19 missing-headline warnings. These checks concern the first contract only, not the complete redesign.
+
+Audit follow-up: S2, S5 and S7 delivered; see CODEX-AUDIT-REPLY.md. After integration, TypeScript, 11 contract checks and six dossier checks pass. Content lint passes with 26 warnings: 20 missing headlines and six explicit warnings about existing empty headline pairs. Claude can replace the latter with justified private outcomes. S1, S3, S4 and S6 remain outstanding immediate work.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { getVar } from '../engine/vars';
 import { EVENTS } from '../content';
 import { FINANCE_CANDIDATES } from '../content/names';
 import { migrate } from '../engine/migrate';
@@ -130,6 +131,23 @@ check('typed effects execute through actual CHOOSE, without changing input state
     assert.equal(next.governance!.requests['choose-ask'].origin.choiceId, 'no');
     assert.equal(JSON.stringify(s), before);
   } finally { delete EVENTS[file.id]; }
+});
+
+check('shock lifecycle reads active, expired and legacy saved records without mutation', () => {
+  const s = fresh();
+  assert.equal(getVar(s, 'shock.blackout'), 0);
+  s.shocks.active.push({ id: 'blackout', since: s.turn, until: s.turn + 2 });
+  s.shocks.seen.push('blackout');
+  assert.equal(getVar(s, 'shock.blackout'), 1);
+  s.turn += 2;
+  assert.equal(getVar(s, 'shock.blackout'), 1);
+  s.turn++;
+  const before = JSON.stringify(s);
+  assert.equal(getVar(s, 'shock.blackout'), 2);
+  assert.equal(getVar(s, 'shock.unknown'), 0);
+  assert.equal(JSON.stringify(s), before);
+  s.shocks.active = [];
+  assert.equal(getVar(s, 'shock.blackout'), 2);
 });
 
 // Static authoring contract must reject arbitrary effect strings.

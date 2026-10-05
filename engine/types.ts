@@ -76,6 +76,8 @@ export interface Outcome {
   follow?: Follow[];
   /** [broadsheet headline, youth outlet headline] */
   news?: [string, string];
+  /** Why this outcome stays private. Mutually exclusive with public headlines. */
+  quiet?: string;
   newsWeight?: number;
   archive: string;
   sig?: 1 | 2 | 3;
