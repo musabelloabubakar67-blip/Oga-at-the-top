@@ -112,6 +112,9 @@ These come from `EVENT-AUDIT.md`. Each is narrow and unblocks a specific fix.
 
 | S5 | 07 | `getVar('shock.<id>')`: 1 while that shock is active, 2 once it has passed, 0 never. | D13: content can tell that a shock *happened* (`fired`/`never`), not that it is under way. `grid.collapse` should not fire during the three months of the `blackout` shock, and `debt.gas` should say the plants are down because of it. | `grid.collapse` gains `{ v: ['shock.blackout', '!=', 1] }`. |
 
+| S6 | 02, 12 | Let a scenario start with an operating asset: honour a new optional `Scenario.assets: { asset: string; site: string; condition?: number }[]` in `newGame` (and in inheritance, where the predecessor's assets already carry over). | Plan 02 requires every inheritance to include "a worthwhile functioning asset". Assets today exist only when a big bet succeeds. `content/dossiers.ts` names one per scenario (wheat scheme in Kano, coastal highway in Lagos, export interconnector in Niger, hospital city in the FCT, free-trade hub in Lagos, rice belt in Kebbi). I have not added the field to `Scenario` yet, so nothing claims the asset exists before the engine creates it. | `standard`: `assets: [{ asset: 'wheat', site: 'KN', condition: 0.6 }]` |
+| S7 | 18 | A package script for the experience checks, for example `"check:experience": "tsx tests/experience/run.ts"`. | `tests/experience/` is mine; `package.json` is yours. | Runs `dossiers.check.ts` and later checks. |
+
 ## Content fixes already made on this branch (no engine change)
 
 D2 (empty fuel reserve), D3 (double metering), D4 (₦6tn headline), D6 (Eurobond headline), D7 (injunction now needs the open contracting rules in force), D8 (tax debate needs the tax reform under way), D9 (the lender's programme says it ends the subsidy and runs the subsidy beats), D12 (two public cabinet outcomes given headlines), and D1 in part (no credit for being put on a target).
