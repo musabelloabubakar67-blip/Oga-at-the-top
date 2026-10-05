@@ -1,4 +1,6 @@
 import { reformName } from './reforms';
+import { applyDomainOutcome } from './domain-outcomes';
+import { ensureGovernance, inheritGovernance, markCommitmentsDue } from './governance';
 export { reformName } from './reforms';
 
 import { canLand, land } from './formers';
@@ -218,6 +220,9 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   s.prev = { ...snapshot(s), hardship: hardship(s) };
   s.blocsPrev = { ...s.blocs };
   s.approvalPrev = approval(s);
+  if (prev) inheritGovernance(s, prev);
+  else ensureGovernance(s, true);
+  markCommitmentsDue(s);
   buildDesk(s);
   refreshOffers(s);
   // What was already unpaid on the first morning, for the verdict to measure against.
@@ -353,6 +358,7 @@ export function favoursFor(s: GameState, e: GameEvent) {
 }
 
 function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, cost?: Choice, aid?: Aid): string {
+  if (o.domain) applyDomainOutcome(s, o.domain, { eventId: e.id, choiceId });
   const entry = record(s, e.id, choiceId, e.category, o.archive, o.sig ?? (e.slot === 'lead' ? 2 : 1), !!o.exposure);
   if (cost?.naira) applyFx(s, ['nation.fiscalSpace', -cost.naira], entry.touches);
   const fx = aidedFx(s, o.fx, aid);
@@ -775,6 +781,7 @@ function electionDone(s: GameState): void {
 
 export function applyAction(state: GameState, action: Action): GameState {
   const s = structuredClone(state);
+  ensureGovernance(s);
   if (s.phase === 'verdict') return s;
   if (action.type === 'ELECTION_DONE') { electionDone(s); return s; }
   if (action.type === 'DISMISS_PAPER') { if (s.phase === 'papers') s.phase = 'desk'; return s; }
@@ -931,6 +938,7 @@ export function applyAction(state: GameState, action: Action): GameState {
   }
   // The Chief of Staff's note is written at the start of the month; rewrite it once what it was about has been dealt with.
   if (action.type === 'BUDGET' || action.type === 'BUDGET_RESOLVE' || action.type === 'CHOOSE') s.desk.note = chiefOfStaffNote(s);
+  markCommitmentsDue(s);
   return s;
 }
 

@@ -1,3 +1,5 @@
+import { ensureGovernance, markCommitmentsDue } from './governance';
+
 // Saved games survive updates. An older save is brought forward to the current
 // shape: systems it has never heard of are started from the state it is in.
 // A current save has any missing field filled from a fresh game, so adding a
@@ -85,6 +87,7 @@ export function migrate(raw: unknown): GameState | null {
     // Anything the state has gained since this was saved starts as it would in a new game.
     const fresh = newGame(setupOf(r)) as unknown as Loose;
     for (const key of Object.keys(fresh)) {
+      if (key === 'governance') continue;
       if (r[key] === undefined) r[key] = fresh[key];
       else if (fresh[key] && typeof fresh[key] === 'object' && !Array.isArray(fresh[key]) && typeof r[key] === 'object' && !Array.isArray(r[key])) {
         // One level down: a new debt, a new fund, a new person.
@@ -92,6 +95,8 @@ export function migrate(raw: unknown): GameState | null {
       }
     }
     const s = r as GameState;
+    ensureGovernance(s);
+    markCommitmentsDue(s);
     if (!s.counters['rules.theatres']) theatreRules(s);
     if (!s.counters['rules.policies']) policyRules(s);
     // Saves from before advisers had reputations and patrons.

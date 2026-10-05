@@ -1,3 +1,5 @@
+import type { DomainOutcome, EpisodeBinding, GovernanceState } from './contracts';
+
 // Core types for the slice. See docs/gdd for the full model; the slice
 // simulates blocs at bloc level and a reduced set of nation variables.
 
@@ -63,6 +65,8 @@ export interface ExposureSpec {
 }
 
 export interface Outcome {
+  /** Versioned persistent effects, interpreted by the engine rather than UI. */
+  domain?: DomainOutcome;
   when?: Cond;
   chance?: number;
   result: string;
@@ -115,6 +119,8 @@ export type Block = string | { when: Cond; text: string };
 export type TraceRef = [string, 1 | -1];
 
 export interface GameEvent {
+  /** Metadata contract; director scheduling support follows in R2. */
+  episode?: EpisodeBinding;
   id: string;
   kind: Kind;
   slot: 'lead' | 'minor';
@@ -450,6 +456,8 @@ export interface ElectionResult {
 export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned' | 'annulled';
 
 export interface GameState {
+  /** Independently versioned additive state, migrated from legacy saves. */
+  governance?: GovernanceState;
   version: 3;
   setup: Setup;
   /** How many presidencies this world has had before this one. */
