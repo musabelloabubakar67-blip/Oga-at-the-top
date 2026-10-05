@@ -50,7 +50,7 @@ Type is what the scene is: **decision**, **escalation** (a decision inside a run
 | D9 | Fixed: the choice says it includes the petrol condition; when the subsidy is still in place the result says it ends and the usual subsidy beats follow. |
 | D10, D11 | Wait on R3. |
 | D12 | Two public outcomes have real headlines; six private ones wait on S2. |
-| D13 | Planned in `STORY-FAMILIES.md`. |
+| D13 | Fixed for four pairs, one waiting. Harvest, championship and listing: each pair is mutually exclusive (whichever comes first tells it), and the shock's grain purchase now fills the same grain reserve that `tycoon.hoard` can release. Flood: one defence state. The seasonal flood stops once the defences reform (w4) is delivered or the great flood shock has happened, and the shock credits defences the government committed to in a seasonal flood. Blackout: the shock's file says it is not one of the ordinary collapses; stopping `grid.collapse` from firing during it needs S5. |
 | D14 | In progress. Recurrence now carries a development, tied to what the player did last time, in `petrol.scarcity`, `elder.letter` (the second letter answers the visit, rebuttal or silence), `party.decamp` (a smaller second wave that remembers how the first was handled, with its own outcome), `uni.strike` (the sixth month, and what has been lost), `minor.independence` (the second broadcast is checked against the first) and `pred.speech`. The rest wait on R2 or follow in later commits. |
 
 ## Per-event verdicts

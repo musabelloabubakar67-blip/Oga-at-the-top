@@ -145,7 +145,9 @@ export const RECURRING: GameEvent[] = [
   },
   {
     id: 'flood', kind: 'recurring', slot: 'lead', category: 'security', tone: 'grave', intensity: 4,
-    when: { all: [{ month: [8, 9, 10] }, { turn: [3] }, { not: { flag: 'flood.defences' } }] }, weight: 14, cooldown: 32, max: 3,
+    // One flood story with one defence state: not once the defences reform (w4) is delivered or committed to
+    // here, and not after the great flood (the shock `flood`), which takes this family over.
+    when: { all: [{ month: [8, 9, 10] }, { turn: [3] }, { not: { flag: 'flood.defences' } }, { v: ['agenda.w4', '==', 0] }, { never: 'shock.flood' }] }, weight: 14, cooldown: 32, max: 3,
     office: 'National Emergency Management Agency', stamp: 'URGENT',
     title: 'Flooding along the Niger and Benue',
     body: [

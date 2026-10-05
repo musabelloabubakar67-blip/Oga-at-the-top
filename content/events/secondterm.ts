@@ -560,7 +560,8 @@ export const SECOND: GameEvent[] = [
 
   {
     id: 'fortune.harvest', kind: 'recurring', slot: 'lead', category: 'fortune', tone: 'dry', intensity: 1,
-    when: { all: [{ month: [10, 11, 12] }, { turn: [5] }, { v: ['theatre.NC', '<', 58] }] }, weight: 9, cooldown: 30,
+    // "The largest in a decade" happens once, and only if the shock `bumper` has not already told it.
+    when: { all: [{ month: [10, 11, 12] }, { turn: [5] }, { v: ['theatre.NC', '<', 58] }, { never: 'shock.bumper' }] }, weight: 9, max: 1,
     office: 'Federal Ministry of Agriculture', stamp: 'ROUTINE',
     title: 'A bumper harvest',
     body: [
@@ -599,7 +600,8 @@ export const SECOND: GameEvent[] = [
   },
   {
     id: 'fortune.football', kind: 'standalone', slot: 'lead', category: 'ceremonial', tone: 'farce', intensity: 1,
-    when: { turn: [8] }, weight: 9,
+    // The same championship as the shock `cup`: whichever comes first tells it.
+    when: { all: [{ turn: [8] }, { never: 'shock.cup' }] }, weight: 9,
     office: 'Federal Ministry of Sports Development', stamp: 'ROUTINE',
     title: 'The national team has won',
     body: [
@@ -634,7 +636,8 @@ export const SECOND: GameEvent[] = [
   },
   {
     id: 'fortune.startup', kind: 'standalone', slot: 'lead', category: 'fortune', tone: 'dry', intensity: 1,
-    when: { turn: [12] }, weight: 8,
+    // The same Yaba company as the shock `listing`: whichever comes first tells it.
+    when: { all: [{ turn: [12] }, { never: 'shock.listing' }] }, weight: 8,
     office: 'Federal Ministry of Communications and Digital Economy', stamp: 'ROUTINE',
     title: 'A Nigerian company lists abroad',
     body: [
