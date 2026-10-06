@@ -5,6 +5,7 @@ import { federalCharacter } from '../engine/federal';
 import { ZONE_NAME } from '../engine/vars';
 import { CHECK_PC, HUNT_PC, patronLabel, specName, type Offer } from '../engine/talent';
 import type { Action, GameState } from '../engine/types';
+import { NamedNote } from './Talent';
 
 const word = (v: number, hi: string, mid: string, lo: string) => (v >= 4 ? hi : v <= 2 ? lo : mid);
 
@@ -33,7 +34,8 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
       {!list.length && <p className="text-[13px] text-alarm">Nobody suitable will take it at the moment.</p>}
       <ul className="space-y-2">
         {list.map((o) => {
-          const ok = can(o.c.name);
+          // Someone who will not take the post cannot be appointed to it; the button says so instead of doing nothing.
+          const ok = o.refuses ? { ok: false, reason: o.refuses } : can(o.c.name);
           const t = o.shown;
           return (
             <li key={o.c.id} className={`border-l-2 pl-3 ${o.refuses ? 'border-alarm/50' : 'border-honour'}`}>
@@ -42,6 +44,7 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
                 <span className={`label ${o.fit ? 'text-state' : 'text-ink-soft'}`}>{specName(o.c)}{o.fit ? ' · right field' : ' · outside their field (−1)'} · {ZONE_NAME[o.c.zone]}{(() => { const z = fc.zones.find((x) => x.zone === o.c.zone)!; return z.count === 0 ? ' · would end its exclusion' : z.count - z.fair >= 0.5 ? ` · already has ${z.count}` : ''; })()}</span>
               </p>
               <p className="text-[13px] leading-snug text-ink-soft">{o.c.blurb}</p>
+              {o.c.named && <NamedNote id={o.c.id} />}
               <p className="text-[13px] leading-snug">
                 <span className="label mr-1 text-ink-soft">{o.c.checked ? 'Checked' : 'File says'}</span>
                 {word(t.competence, 'very able', 'competent', 'out of their depth')} ({t.competence}), {word(t.loyalty, 'loyal', 'reliable enough', 'their own person')} ({t.loyalty}), {word(t.integrity, 'clean', 'ordinary', 'questions about money')} ({t.integrity})

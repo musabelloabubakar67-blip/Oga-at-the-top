@@ -1,5 +1,6 @@
 'use client';
 
+import { TalentPool } from './Talent';
 import { mo } from '../engine/config';
 import { rivalsOf } from '../engine/rivals';
 import { canLand, LANDING_PC, risky } from '../engine/formers';
@@ -39,9 +40,10 @@ import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = Group | 'advisers' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed' | 'federal' | 'promises';
+type Tab = Group | 'advisers' | 'talent' | 'money' | 'opposition' | 'courts' | 'succession' | 'owed' | 'federal' | 'promises';
 
 const INTRO: Record<Tab, string> = {
+  talent: 'Everyone with a name who could serve: what their file says, what a check would find, what they believe about the job, and where they can be appointed. A few are exceptional, and will serve only on stated terms.',
   promises: 'What you have promised, to whom, and when it falls due. Your word is a currency: it can be spent before it is earned, once.',
   federal: 'Where the people you appoint come from, zone by zone.',
   governor: 'Each leads your party\'s governors in a zone. On election day a governor who is with you delivers votes there. One who is not sits on their hands. One who is neglected long enough can be taken by the opposition. They also own the delegates who decide whether you get the party\'s ticket for a second term: you need 47%.',
@@ -203,7 +205,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
   const owing = favoursOwing(s);
   const money = moneyEffect(s);
   const tabs: [Tab, string][] = [
-    ['advisers', 'Your advisers'], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
+    ['advisers', 'Your advisers'], ['talent', 'The talent'] as [Tab, string], ['governor', 'Your governors'], ['senator', 'Your senators'], ['minister', 'Your ministers'],
     ['money', 'The money'], ['opposition', 'The opposition'], ['courts', 'The courts'], ['succession', 'The succession'] as [Tab, string], ['federal', 'Federal character'] as [Tab, string], ['owed', `Favours · ${owed.length} owed to you, ${owing.length} by you`], ['promises', `Promises · ${(s.pledges ?? []).filter((p) => p.status === 'open').length} open`] as [Tab, string],
   ];
 
@@ -266,6 +268,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </ul>
         )}
 
+        {tab === 'talent' && <TalentPool s={s} dispatch={dispatch} />}
         {tab === 'succession' && <Succession s={s} dispatch={dispatch} left={left} />}
         {tab === 'courts' && <Courts s={s} dispatch={dispatch} left={left} />}
         {tab === 'federal' && <Federal s={s} />}

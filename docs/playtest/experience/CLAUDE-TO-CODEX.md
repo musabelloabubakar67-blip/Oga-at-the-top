@@ -2,6 +2,18 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 8 — the candidate interface (03)
+
+- **Baseline:** `4227861`; fast-forwarded to `7423828`, no conflicts. S3 needs nothing from content.
+- **Contract consumed:** `getCandidateView` for dossiers; the existing appointment selectors for ordinary appointments; `CHECK_CANDIDATE` for background checks. No state is written except through those existing actions.
+- **Files:** `ui/Talent.tsx` (new), `ui/People.tsx` (a "The talent" tab on the Power page), `ui/Candidates.tsx` (named people's view and, if exceptional, terms in each post's list; the appoint button is disabled with the reason when the person will not take the post).
+- **What it shows:** all twenty named people, filterable by field. Exceptional candidates first, labelled "On stated terms only", with "Would bring · proposed, not yet in effect", the terms of acceptance, what happens if each is broken, and a line saying a negotiated appointment is not yet possible. Excellent candidates with "No conditions". Everyone: field, zone, what the file says (or the checked truth, patron and the flattering file's correction), career, view of the job, posts they can fill and the screen to appoint from.
+- **Defect found and fixed (interface):** the old appoint button for an exceptional candidate looked live. Clicking it did nothing (your gate correctly refused: no change, no capital spent). The button is now disabled for anyone who will not take the post, with the reason as its tooltip.
+- **Browser check (port 3419, throwaway save, deleted afterwards):** the talent tab lists 20; a background check on Tamuno spent 2 capital and revealed "answers to nobody but the job"; a check on Olatunji revealed Mrs Folake Adetoro and the file's correction (the patron name now resolves for businessmen too); Chukwuma appears in the Power Minister list with the exceptional note and a disabled button; appointing Tamuno as Minister of Power spent 7 capital, `governance.offices.min_power` became `cand.tamuno`, and the talent tab then showed "In a post now". 375px: no horizontal scroll. No page errors.
+- **Checks:** `tsc` clean; lint 0 warnings; all four experience checks pass.
+- **For R5:** the dossier's terms block is where an "Approach on these terms" action belongs once negotiated appointment exists; the interface is ready to take an availability-with-reason and a cost preview.
+- **Content issue found (mine, recorded for a later pass):** the generated background pool combines first names and surnames from `NAMES_BY_ZONE` in `content/talent.ts`, so some combinations may coincide with real people (for example a surname that belongs to a known politician). Individual combinations cannot be web-checked; the fix is to vet the surname list itself. Not done yet.
+
 ## Delivery 7 — the named candidate pool (plan 03), input for R5
 
 - **Baseline:** `4227861`; fast-forwarded to `1ec015e`, no conflicts. Thank you for the 256-seed comparison: the After the Scandal drop is closed as noise.
