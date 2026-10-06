@@ -3,6 +3,7 @@ import { SITUATIONAL } from './orders2';
 import { MORE_TRACKS } from './tracks2';
 import { LOOSE_TRACKS } from './tracks3';
 import { ADD, HEALTH, NEW_TRACKS, REVERSALS, REWRITE } from './tracks4';
+import { TAX_REFORMS, TAX_TRACK_HEAD, TREASURY_REFORMS } from './tracks-fiscal';
 
 // THE REFORM AGENDA
 // Six tracks of four reforms each. A reform is launched, paid for, takes time,
@@ -367,6 +368,14 @@ function restructure(tracks: Track[]): Track[] {
     throw new Error(`No reform ${id}`);
   };
   const e2 = take('e2'), e3 = take('e3'), e5 = take('e5'), h5 = take('h5'), o7 = take('o7'), o8 = take('o8'), o3 = take('o3');
+  // Taxation and the Treasury become two tracks (plan 10): who pays and how it is
+  // collected, apart from how the money is budgeted, released and borrowed.
+  const t1 = take('t1'), t3 = take('t3'), t5 = take('t5');
+  const treasury = track('treasury');
+  Object.assign(treasury, { name: 'Fix the Treasury', goal: 'Releases on time, budgets believed, borrowing that is manageable' });
+  treasury.milestones.unshift(TREASURY_REFORMS.first);
+  const tax: Track = { ...TAX_TRACK_HEAD, milestones: [t1, t3, { ...t5, gen: 2, excludes: ['x12'] }, ...TAX_REFORMS] };
+  list.splice(list.indexOf(treasury), 0, tax);
   const health = track('people');
   const e1 = health.milestones.find((m) => m.id === 'e1')!, e4 = health.milestones.find((m) => m.id === 'e4')!;
   const hx = (id: string) => HEALTH.find((m) => m.id === id)!;
@@ -374,6 +383,7 @@ function restructure(tracks: Track[]): Track[] {
   const order = track('order');
   Object.assign(order, { name: 'One Nigeria', goal: 'How much power the state should have to keep the peace' });
   for (const [id, ms] of Object.entries(ADD)) track(id).milestones.push(...ms);
+  treasury.milestones.push(...TREASURY_REFORMS.deeper);
   track('security').milestones.push({ ...o7, gen: 2 });
   track('clean').milestones.push({ ...o8, gen: 2 });
   track('food').milestones.push({ ...o3, gen: 2 });

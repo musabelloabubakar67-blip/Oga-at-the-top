@@ -1,6 +1,6 @@
 # Integration coverage - current immediate scope
 
-Latest checkpoint: delivery 13 adds the R5 exceptional recruitment engine on systems 1a6815b, which includes Claude delivery 15. Terms, real team payroll, breach reactions, all four capability effects, explicit vacancies and a proposed opening slate are available for Claude's interface integration. 83 contract checks, ten experience suites, typecheck, zero-warning lint and eight chained presidencies pass. See CODEX-DELIVERY-13.md. R6 setup and R2/R7-R14 remain immediate work; military/citizen drafts and /mocks are inputs, not completed engine systems.
+Latest checkpoint (6 October 2026): Codex has left the project; Claude owns the engine, content and interface on `redesign/claude-experience`. Plans 02, 09, 10 and 11 are integrated there with experience checks; the rest of the immediate scope continues in plan order. Earlier delivery notes below are kept as history.
 
 Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/codex-systems`. Contract delivery: 1.0.0. This is an initial index; expand to each master bullet as implementations land. Partial never means complete or deferred.
 
@@ -14,9 +14,9 @@ Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/
 | 06 Coalitions/delegation | Dated evidence reviews, actual commitment payments, government attribution; scorecard targets, monthly release samples, authored reviews and live register | R4/S1 integrated; broader negotiated programmes/delegation outstanding |
 | 07 Content refresh | Typed episode registry and transitions | Partial foundation; director/queue routing and authored refresh outstanding |
 | 08 Evidence/information | None yet | Assigned |
-| 09 Economy | None yet | Assigned |
-| 10 Tax/treasury | None yet | Assigned |
-| 11 Emergency funds | None yet | Assigned |
+| 09 Economy | Gross accounts: oil and tax revenue, interest at each debt's rate against actual revenue, revaluation of foreign debt and the fund abroad, reserve log, dollar flow, created money (6b7041a, economy.check.ts) | Integrated; reserve adequacy and fund returns remain |
+| 10 Tax/treasury | Who Pays and Fix the Treasury tracks; tax base, burdens, administration cost; spending discipline driving releases, arrears, lenders and losses; Tax and spending tab (fiscal.check.ts) | Integrated and verified for its acceptance test |
+| 11 Emergency funds | Holdings register (three refineries), timed sales, diligence, leases, minority stakes, tax-debt collection, emergency bonds, payroll crisis file, Raising money view (b56e470, 9f8bcd4, holdings.check.ts) | Integrated; pledging and stolen-funds recovery remain |
 | 12 Big bets | None yet | Assigned |
 | 13 Military | None yet | Assigned |
 | 14 Citizens/development | None yet | Assigned |

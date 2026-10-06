@@ -23,8 +23,8 @@ const fresh = () => {
 };
 
 const ids = TRACKS.flatMap((t) => t.milestones.map((m) => m.id));
-assert.equal(TRACKS.length, 17);
-assert.equal(ids.length, 196);
+assert.equal(TRACKS.length, 18);
+assert.equal(ids.length, 214);
 assert.equal(new Set(ids).size, ids.length);
 for (const id of ['r2', 'r5', 'h2', 'h4', 'o2', 'o4', 'o5', 'g3', 'g5']) assert.ok(!ids.includes(id));
 
@@ -108,4 +108,4 @@ assert.match(launched.lastAction!.text, /Restore:/);
 assert.ok(pledgeOptions(launched, 'public', 4).some((p) => p.text.startsWith('Restore:')));
 launched.agenda.active.find((a) => a.id === 'p3')!.progress = 99;
 assert.ok(upcoming(launched).some((x) => x.text.startsWith('Restore:')));
-console.log('Reform checks passed: 17 tracks, 196 unique ids, 4 rival pairs, emergence, 11 reversals and inherited restorations.');
+console.log('Reform checks passed: 18 tracks, 214 unique ids, 11 rival pairs, emergence, 11 reversals and inherited restorations.');

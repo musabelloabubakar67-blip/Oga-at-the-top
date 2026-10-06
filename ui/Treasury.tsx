@@ -1,5 +1,6 @@
 'use client';
 
+import { TaxAndSpending } from './TaxAndSpending';
 import { RaiseMoney } from './RaiseMoney';
 import { Overlay, CloseButton } from './shell';
 import { oilForecast } from '../engine/oilforecast';
@@ -20,7 +21,7 @@ import type { Action, DebtId, FundId, GameState, SectorId, ZoneId } from '../eng
 import { ZONES, ZONE_NAME, senate } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
-type Tab = 'books' | 'year' | 'naira' | 'owed' | 'saved' | 'raise' | 'policies';
+type Tab = 'books' | 'year' | 'naira' | 'owed' | 'saved' | 'raise' | 'policies' | 'tax';
 
 const signed = (v: number) => `${v >= 0 ? '+' : '−'}₦${Math.round(Math.abs(v) * 1000)}bn`;
 
@@ -510,7 +511,7 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
   const said = s.lastAction && s.lastAction.text !== before ? s.lastAction.text : null;
   const arrears = s.debts.gas + s.debts.contractors + s.debts.pensions;
   const standing = activePolicies(s).length;
-  const tabs: [Tab, string][] = [['books', 'The books'], ['year', `The ${s.budget.year} budget`], ['naira', 'The naira'], ['owed', `What is owed · ${Math.round(s.nation.debt)}% and ${naira(arrears)} unpaid`], ['saved', 'What is saved'], ['raise', 'Raising money'], ['policies', `Standing policies${standing ? ` · ${standing}` : ''}`]];
+  const tabs: [Tab, string][] = [['books', 'The books'], ['tax', 'Tax and spending'], ['year', `The ${s.budget.year} budget`], ['naira', 'The naira'], ['owed', `What is owed · ${Math.round(s.nation.debt)}% and ${naira(arrears)} unpaid`], ['saved', 'What is saved'], ['raise', 'Raising money'], ['policies', `Standing policies${standing ? ` · ${standing}` : ''}`]];
   const used = SECTORS.reduce((a, x) => a + (s.budget.alloc[x.id] ?? 0), 0);
   return (
     <Shell onClose={onClose}>
@@ -529,6 +530,7 @@ export function TreasuryModal({ s, dispatch, onClose, onBudget, start }: { s: Ga
         ))}
       </div>
       {tab === 'books' && <Flow s={s} />}
+      {tab === 'tax' && <TaxAndSpending s={s} />}
       {tab === 'owed' && <Owed s={s} dispatch={dispatch} />}
       {tab === 'saved' && <Saved s={s} dispatch={dispatch} />}
       {tab === 'raise' && <RaiseMoney s={s} dispatch={dispatch} />}

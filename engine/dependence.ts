@@ -15,6 +15,8 @@ export const DIVERSIFIERS: Record<string, number> = {
   g1: 3, g2: 3, g4: 5, g6: 2, g7: 3,
   i6: 1, i7: 2, i8: 1, i9: 1, i10: 1, d9: 2, d10: 1, f8: 1, f10: 2, w9: 1, u7: 1, j3: 1,
   g8: 3, g9: 2, g10: 2, g11: 2, g12: 1, t10: 1,
+  // Taxes at home (plan 10).
+  x1: 3, x2: 1, x3: 2, x4: 2, x5: 1, x6: 1, x8: 2, x9: 1, x10: 2, x11: 2, x12: 2,
 };
 
 const START = 75;

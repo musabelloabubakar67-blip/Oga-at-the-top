@@ -69,6 +69,9 @@ export function revenueAnnual(s: GameState): number {
   return (months.reduce((a, x) => a + x, 0) / months.length) * 12;
 }
 
+/** The discount (or premium) lenders give for the treasury's spending discipline, set monthly by engine/fiscal-system.ts. */
+const lender = (s: GameState) => s.counters?.['fiscal.lender'] ?? 1;
+
 /** The interest rate a debt actually carries, after negotiated terms and the banks' mood. */
 export function interestRate(s: GameState, id: DebtId): number {
   const base = ACC.interest[id] ?? 0;
@@ -76,9 +79,9 @@ export function interestRate(s: GameState, id: DebtId): number {
   if (id === 'bonds') {
     // A banker who is with you keeps the auctions friendly; one who is not does the opposite.
     const rel = s.tycoons?.ty_bank?.rel ?? 50;
-    return base * (rel >= 60 ? 0.917 : rel < 35 ? 1.117 : 1) * terms;
+    return base * (rel >= 60 ? 0.917 : rel < 35 ? 1.117 : 1) * terms * lender(s);
   }
-  return base * terms;
+  return base * terms * (id === 'eurobond' ? lender(s) : 1);
 }
 
 /** Interest due this year on everything that bears interest, ₦tn. */

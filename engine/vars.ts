@@ -15,6 +15,9 @@ let benchOf: (s: GameState) => Record<string, number> = () => ({});
 export function registerBench(fn: (s: GameState) => Record<string, number>): void { benchOf = fn; }
 let scoreOf: (s: GameState, id: string) => number = () => 0;
 export function registerScore(fn: typeof scoreOf): void { scoreOf = fn; }
+let fiscalOf: (s: GameState, what: string) => number = () => 0;
+/** The tax base and spending discipline (engine/fiscal-system.ts) register how they are read. */
+export function registerFiscal(fn: typeof fiscalOf): void { fiscalOf = fn; }
 
 export const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
 export const BLOCS: BlocId[] = ['villa', 'party', 'street', 'establishment', 'press'];
@@ -224,6 +227,8 @@ export function getVar(s: GameState, path: string): number {
     // Cases the Villa has leaned on (an opening constraint can promise none).
     case 'holding': return s.holdings?.[p[1]]?.share ?? 1;
     // How many of the three refineries have been brought back to work.
+    // The tax base and spending discipline, 0–100 (plan 10).
+    case 'fiscal': return fiscalOf(s, p[1]);
     case 'refineries': return REFINERIES.filter((r) => s.ventures.won.includes(r.venture)).length;
     case 'cases': return p[1] === 'leaned' ? (s.cases ?? []).filter((c) => c.leaned).length : (s.cases ?? []).length;
     case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;

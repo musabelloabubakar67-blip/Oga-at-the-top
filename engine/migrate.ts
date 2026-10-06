@@ -104,6 +104,9 @@ export function migrate(raw: unknown): GameState | null {
     bindFavours(s);
     // Saves from before the register (plan 11) start owning everything, with the established tax debts.
     ensureHoldings(s);
+    // Saves from before taxation and the Treasury were two tracks (plan 10): a declared
+    // Treasury priority covered both halves of the old track, so it keeps covering both.
+    if (s.agenda.tracks.includes('treasury') && !s.agenda.tracks.includes('tax')) s.agenda.tracks.push('tax');
     if (!s.counters['rules.theatres']) theatreRules(s);
     if (!s.counters['rules.policies']) policyRules(s);
     // Saves from before advisers had reputations and patrons.

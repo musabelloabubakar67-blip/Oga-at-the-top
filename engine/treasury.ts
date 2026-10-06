@@ -15,6 +15,7 @@ import { logOilForecast, oilForecastTick } from './oilforecast';
 import { fxScale } from './currency';
 import { nonOilPoints } from './dependence';
 import { holdingsIncome, holdingsTick } from './holdings';
+import { arrearsFactor, discipline, fiscalSystemLines, fiscalSystemTick, releaseFactor } from './fiscal-system';
 import { ACC, createdMoney, interestAnnual, leakage, nonOilRevenue, oilRevenue, recordRevenue } from './accounts';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
@@ -94,6 +95,7 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   add(subsidy === 'removed' ? 'No petrol subsidy to pay' : 'The petrol subsidy', subsidyNow,
     subsidy === 'removed' ? `What ending the subsidy freed, at $${Math.round(s.oil.price)} oil.` : `The gap between the pump price and the cost, paid monthly. Dearer as crude rises: $${Math.round(s.oil.price)} now.`);
   add('Your reforms and orders', s.counters['bonus.fiscal'] ?? 0, 'The permanent effect of what you have built, cut or promised.');
+  for (const l of fiscalSystemLines(s)) add(l.label, l.value, l.hint);
   for (const l of policyFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of institutionFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of assetFiscalLines(s)) add(l.label, l.value, l.hint);
@@ -150,6 +152,8 @@ export function releaseRate(s: GameState, id: SectorId): { rate: number; why: st
     rate = clamp(0.45 + 0.12 * comp, 0.4, 1.05);
     why.push(`${v.name}, competence ${comp}`);
   }
+  const f = releaseFactor(s);
+  if (Math.abs(f - 1) >= 0.02) { rate *= f; why.push(`Spending discipline is ${Math.round(discipline(s).v)}: releases are ${f > 1 ? 'steadier' : 'erratic'}`); }
   if (s.nation.fiscalSpace < 0.3) { rate *= 0.7; why.push('There is almost no cash: releases are rationed'); }
   const mode = s.budget.release?.[id] ?? 'normal';
   if (mode === 'full') { rate = 1; why.push('You ordered it released in full'); }
@@ -610,6 +614,7 @@ export function treasuryTick(s: GameState): void {
   const e = CFG.economy;
   const n = s.nation;
   oilTick(s);
+  fiscalSystemTick(s);
 
   // Anything spent that the treasury did not hold was borrowed, if anyone would lend.
   if (n.fiscalSpace < 0) {
@@ -636,7 +641,7 @@ export function treasuryTick(s: GameState): void {
       // A government that is short borrows some and simply does not pay the rest.
       const lend = n.debt < e.noLendingAbove;
       addOwed(s, lend ? 'bonds' : 'ways', short * (lend ? 0.5 : 0.5));
-      addOwed(s, 'contractors', short * (s.agenda.done.includes('t7') ? 0.12 : 0.3));
+      addOwed(s, 'contractors', short * (s.agenda.done.includes('t7') ? 0.12 : 0.3) * arrearsFactor(s));
       addOwed(s, 'pensions', short * 0.2);
     }
   }
