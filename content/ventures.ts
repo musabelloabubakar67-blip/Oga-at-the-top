@@ -261,7 +261,7 @@ export const VENTURES: Venture[] = [
     blurb: 'Sell 40% on the stock exchange. Shareholders would demand the accounts every quarter. Everyone who lives off the opacity will fight it.',
     risks: [reform('t2', 'Make the oil company publish and remit', 0.3), senate(52, 0.25)],
     start: [['bloc.party', -6], ['bloc.establishment', -4]],
-    win: [['nation.fiscalSpace', 2.5], ['counter.oil.share', -0.06], ['nation.integrity', 5], ['bonus.fiscal', 0.04], ['bloc.establishment', 6]],
+    win: [['nation.fiscalSpace', 2.5], ['holding.noc', -0.4], ['nation.integrity', 5], ['bonus.fiscal', 0.04], ['bloc.establishment', 6]],
     lose: [['pc', -8], ['bloc.party', -4], ['bloc.press', -3]],
     winText: 'The offer is three times subscribed. Eight million Nigerians now own shares in the company that was, on paper, always theirs.',
     loseText: 'The Assembly passes a resolution "in defence of the national patrimony". The listing is suspended. The company remains owned by everyone and answerable to no one.',

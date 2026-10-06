@@ -48,6 +48,7 @@ import { CHECK_PC, HUNT_PC, candidate, candidatesFor, check, headhunt, release, 
 import { refusal, talent } from './talent';
 import type { AppointmentPost } from './recruitment';
 import { applyOpening } from './opening';
+import { borrowNow, canBorrowNow, canCollect, canSell, ensureHoldings, startCollection, startSale } from './holdings';
 import { approach, canApproach, canAppointExceptional, canFundRecruitment, fundRecruitment, holdRecruitmentFunding, reconcileRecruitment, recruitmentTick, hasCapability } from './recruitment';
 import { canLeaveVacant, leaveVacant, canPayRecruitmentArrears, payRecruitmentArrears } from './recruitment';
 import { floatNow, initCurrency } from './currency';
@@ -162,6 +163,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   initPeople(s);
   initSecurity(s);
   initTreasury(s);
+  ensureHoldings(s);
   initCurrency(s);
   initTycoons(s);
 
@@ -869,6 +871,18 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'ORDER': order(s, action.id, action.target, action.level); break;
     case 'REPLACE_FIN': replaceFinance(s, action.name); break;
     case 'PAY_DEBT': payDebt(s, action.id, action.amount); break;
+    case 'SELL_HOLDING': if (canSell(s, action.id, action.method, action.share, movesLeft(s)).ok) {
+      const b = snapshot(s); const t = startSale(s, action.id, action.method, action.share, movesLeft(s));
+      record(s, `holding.${action.id}`, action.method, 'action', t, 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'COLLECT_TAX': if (canCollect(s, movesLeft(s)).ok) {
+      const b = snapshot(s); const t = startCollection(s, movesLeft(s));
+      record(s, 'treasury.collect', '', 'action', t, 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'BORROW_NOW': if (canBorrowNow(s, action.amount, movesLeft(s)).ok) {
+      const b = snapshot(s); const t = borrowNow(s, action.amount, movesLeft(s));
+      record(s, 'treasury.borrow', '', 'action', t, 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
     case 'SECURITISE': if (canSecuritise(s).ok) { const b = snapshot(s); const t = securitise(s); record(s, 'treasury.securitise', '', 'action', 'Converted the central bank overdraft into bonds.', 2); s.lastAction = { text: t, changes: diff(b, snapshot(s)) }; } break;
     case 'FUND': fund(s, action.id, action.amount); break;
     case 'BUDGET': budget(s, action.benchmark, action.alloc, action.sites); break;

@@ -14,6 +14,7 @@ import { personView } from './people';
 import { logOilForecast, oilForecastTick } from './oilforecast';
 import { fxScale } from './currency';
 import { nonOilPoints } from './dependence';
+import { holdingsIncome, holdingsTick } from './holdings';
 import { ACC, createdMoney, interestAnnual, leakage, nonOilRevenue, oilRevenue, recordRevenue } from './accounts';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
@@ -84,6 +85,7 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   add('Taxes and other revenue at home', nonOilRevenue(s), 'Rises with state capacity and jobs. It never earns dollars by itself.');
   add('Interest on the debt', -interestAnnual(s) / 12, 'What every interest-bearing debt costs at its own rate this month. Principal is repaid separately.');
   add('Running the government', -ACC.running, 'Salaries and overheads of the federal government.');
+  add('Income from state holdings', holdingsIncome(s), 'Fees, rents and running costs of what the state owns and has not sold or leased (The Treasury, Raising money).');
   add('Leakage', -leakage(s), 'Public money stolen from what is spent. Less is stolen as integrity rises; more as it falls.');
   add('The Finance Minister', ((s.chars.fin?.competence ?? 3) - 3) * 0.012, 'A competent one finds money in what is already spent. A weak one loses it.');
   // The gap between the pump price and the cost of fuel moves with the price of crude.
@@ -644,6 +646,7 @@ export function treasuryTick(s: GameState): void {
   budgetTick(s);
   arrearsTick(s);
   fundsTick(s);
+  holdingsTick(s);
   syncDebt(s);
   syncSecurity(s);
 

@@ -534,7 +534,7 @@ export const MINOR: GameEvent[] = [
         id: 'sell', label: 'Direct that the refinery be sold', pc: 6,
         outcomes: [{
           result: 'The refinery is put up for sale. The unions picket, four ministers object, and a buyer is found who intends to actually run it.',
-          fx: [['nation.fiscalSpace', 0.3], ['bloc.establishment', 4], ['bloc.street', -2], ['bloc.party', -3], ['tycoon.ty_fuel', -8]],
+          fx: [['nation.fiscalSpace', 0.3], ['holding.refineries', -1], ['bloc.establishment', 4], ['bloc.street', -2], ['bloc.party', -3], ['tycoon.ty_fuel', -8]],
           flags: { 'refinery.sold': true },
           later: [{ after: [12, 16], fx: [['pressure.fuelSupplyStress', -15], ['nation.fiscalSpace', 0.2]], label: 'The privatised refinery begins producing petrol.', note: ['PRIVATISED REFINERY SHIPS FIRST PETROL', 'REFINERY DEY WORK! ONLY TOOK SELLING AM'] }],
           news: ['FG TO SELL STATE REFINERY', 'GOVERNMENT WAN SELL REFINERY. E DON TIRE THEM'],

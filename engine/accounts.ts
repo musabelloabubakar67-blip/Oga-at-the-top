@@ -9,6 +9,7 @@
 // Units: ₦tn at the game's scale, in real terms (the starting year's prices).
 // Kept free of other engine imports so the ledger and the currency can use it.
 
+import { HOLDINGS } from '../content/holdings';
 import type { DebtId, GameState } from './types';
 
 export const ACC = {
@@ -36,8 +37,8 @@ export function realRate(s: GameState): number {
 
 /** Oil revenue this month: what the barrels actually earned, and what the budget may spend (the benchmark caps it). */
 export function oilRevenue(s: GameState): { actual: number; budgeted: number; saved: number; short: number } {
-  // The state's share of oil income falls when it sells stakes (the oil company's listing, the joint-venture sale).
-  const share = Math.max(0.5, 1 + (s.counters?.['oil.share'] ?? 0));
+  // The state's share of oil income falls when it sells oil stakes (content/holdings.ts).
+  const share = Math.max(0.4, 1 - HOLDINGS.reduce((a, x) => a + (x.oilShare ?? 0) * (1 - (s.holdings?.[x.id]?.share ?? 1)), 0));
   const scale = (s.oil.output / 1.75) * ACC.oilK * realRate(s) * share;
   const actual = s.oil.price * scale;
   const budgeted = Math.min(s.oil.price, s.budget.benchmark) * scale;

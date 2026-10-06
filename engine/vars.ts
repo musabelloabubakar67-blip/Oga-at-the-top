@@ -221,6 +221,7 @@ export function getVar(s: GameState, path: string): number {
     }
     case 'era': return s.era;
     // Cases the Villa has leaned on (an opening constraint can promise none).
+    case 'holding': return s.holdings?.[p[1]]?.share ?? 1;
     case 'cases': return p[1] === 'leaned' ? (s.cases ?? []).filter((c) => c.leaned).length : (s.cases ?? []).length;
     case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;
     case 'pred': if (p[1] === 'rel') return s.predecessor?.rel ?? 50;
@@ -346,5 +347,11 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
     } return note();
     case 'theatre': if (s.theatres[p[1] as ZoneId] !== undefined) { shiftThreat(s, p[1] as ZoneId, delta); syncSecurity(s); } return note();
     case 'oil': s.oil.price = clamp(s.oil.price + delta, 30, 130); return note();
+    // A reform, bet or order that sells a holding: the ownership (and its income) goes, so it cannot be sold again.
+    case 'holding': {
+      const st = s.holdings?.[p[1]];
+      if (st && delta < 0) { const sold = Math.min(st.share, -delta); st.share = Math.round((st.share - sold) * 1000) / 1000; st.history.push({ at: s.turn, method: 'reform', share: sold, price: 0 }); }
+      return note();
+    }
   }
 }

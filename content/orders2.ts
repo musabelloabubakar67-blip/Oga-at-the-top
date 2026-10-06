@@ -120,10 +120,11 @@ export const SITUATIONAL: Order[] = [
   },
   {
     ...moment, id: 'asset_sale', name: 'Sell the state\'s idle assets, to a buyer you choose', pc: 8, naira: 0, cooldown: 0, target: 'tycoon',
-    when: v('nation.debt', '>', 78),
+    // Only while the state still owns them (content/holdings.ts): what is sold cannot be sold again.
+    when: { all: [v('nation.debt', '>', 78), v('holding.federal_properties', '>', 0.5), v('holding.hotels', '>', 0.5), v('holding.aircraft', '>', 0.5)] },
     blurb: 'Eleven thousand abandoned federal properties, four hotels, a fleet of aircraft. A public auction would take years. A single buyer, chosen by you, would take a month and be grateful for a decade.',
     result: 'The portfolio goes to {T} in one transaction, at a price the Chronicle calls generous. Several properties turn out to be occupied by former ministers, who are given ninety days.',
-    fx: [['nation.fiscalSpace', 1.1], ['nation.debt', -3], ['tycoon.$T', 15], ['bloc.party', -5], ['nation.integrity', -2]],
+    fx: [['nation.fiscalSpace', 0.95], ['holding.federal_properties', -1], ['holding.hotels', -1], ['holding.aircraft', -1], ['tycoon.$T', 15], ['bloc.party', -5], ['nation.integrity', -2]],
     news: ['FG SELLS FEDERAL PROPERTIES TO {T_SHORT} GROUP', 'GOVERNMENT DON SELL ALL THE HOUSE GIVE ONE MAN'],
     archive: 'Sold the federal government\'s idle assets to {T}.', sig: 2,
   },

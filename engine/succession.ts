@@ -94,6 +94,8 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   s.recruitment = structuredClone(prev.recruitment ?? []).map((r) => ['agreed', 'active', 'suspended'].includes(r.status)
     ? { ...r, status: 'ended' as const, reason: 'The administration ended. A successor must negotiate or ratify the terms; payroll arrears remain recorded.' } : r);
   s.funds = { ...prev.funds };
+  // What the state owns is what the last government left it; sales under way complete for the new one.
+  if (prev.holdings) { s.holdings = structuredClone(prev.holdings); s.sales = structuredClone(prev.sales ?? []); s.receivables = structuredClone(prev.receivables ?? { tax: 0 }); }
   s.fundTransfers = structuredClone(prev.fundTransfers ?? []);
   s.oil = { ...prev.oil };
   s.budget = { ...prev.budget, alloc: { ...prev.budget.alloc }, year: s.startYear, due: false };

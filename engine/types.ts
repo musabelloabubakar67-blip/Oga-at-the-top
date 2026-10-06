@@ -521,6 +521,10 @@ export interface GameState {
   debtTerms?: Partial<Record<DebtId, { rateFactor: number; at: number; administrationId: string }>>;
   /** The national accounts (engine/accounts.ts): revenue actually received, central bank money created, reserve movements. */
   accounts?: { revHist: number[]; created: number; reserveLog: { turn: number; flow: number; intervention: number; note: string }[] };
+  /** What the state owns (content/holdings.ts), sales under way, and established tax debts (engine/holdings.ts). */
+  holdings?: Record<string, import('./holdings').HoldingState>;
+  sales?: import('./holdings').PendingSale[];
+  receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
@@ -680,6 +684,9 @@ export type Action =
   | { type: 'HOLD_RECRUITMENT'; id: string }
   | { type: 'PAY_RECRUITMENT_ARREARS'; id: string; amount?: number }
   | { type: 'LEAVE_VACANT'; post: AppointmentPost }
+  | { type: 'SELL_HOLDING'; id: string; method: import('../content/holdings').SaleMethod; share: number }
+  | { type: 'COLLECT_TAX' }
+  | { type: 'BORROW_NOW'; amount: number }
   | { type: 'HEADHUNT'; role: string }
   | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
   | { type: 'HONOUR'; id: number }

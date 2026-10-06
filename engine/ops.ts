@@ -5,6 +5,8 @@ import { authoriseTargetReleases, setMinisterTarget } from './commitments';
 import { release } from './talent';
 import { transferSavedFund, type FundDestination } from './fund-transfers';
 import { reformName } from './reforms';
+import { canSell, startSale } from './holdings';
+import type { SaleMethod } from '../content/holdings';
 // Operations an outcome can run when a number is not enough: paying a named
 // debt, granting what someone wants, moving a fund, rescuing a bet.
 
@@ -42,6 +44,14 @@ export function runOp(s: GameState, op: Op2): string {
     case 'negotiatedebt': return negotiateDebt(s, String(a));
     case 'targetrelease': return authoriseTargetReleases(s, String(a));
     case 'target': setMinisterTarget(s, String(a), Number(b), c === undefined ? 10 : Number(c)); return 'A dated ministerial target is recorded for review.';
+    // A decision that puts a holding on the market (plan 11): the sale settles later, through the register.
+    case 'sell': {
+      const used = s.desk.actionsUsed;
+      if (!canSell(s, String(a), b as SaleMethod, Number(c ?? 1), 1).ok) return 'The sale could not be started.';
+      const text = startSale(s, String(a), b as SaleMethod, Number(c ?? 1), 1);
+      s.desk.actionsUsed = used;
+      return text;
+    }
     case 'paydebt': {
       const id = a as DebtId;
       return pay(s, id, s.debts[id] * Number(b ?? 1));
