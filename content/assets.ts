@@ -43,6 +43,11 @@ const RECORDS: Record<string, AssetDef['record']> = {
   petrochem: [{ label: 'Fertiliser and plastics made', per: 60, unit: 'thousand tonnes' }, { label: 'Export earnings', per: 20, unit: '₦bn' }],
   hospital: [{ label: 'Patients treated', per: 9, unit: 'thousand' }, { label: 'Patients who did not fly abroad', per: 0.8, unit: 'thousand' }],
   coastal: [{ label: 'Vehicles a month on the road', per: 180, unit: 'thousand' }, { label: 'Hours of travel saved', per: 1.2, unit: 'million' }],
+  depots: [{ label: 'Aircraft and vehicles returned to service', per: 6 }],
+  fleetrepair: [{ label: 'Flying hours restored', per: 900 }],
+  fusion: [{ label: 'Joint warnings issued', per: 14 }],
+  corridor_ops: [{ label: 'Lorries escorted to market', per: 2.4, unit: 'thousand' }],
+  ddr: [{ label: 'Former fighters reintegrated', per: 330 }],
 };
 
 const DEFS: Record<string, Omit<AssetDef, 'record'>> = {
@@ -65,6 +70,11 @@ const DEFS: Record<string, Omit<AssetDef, 'record'>> = {
   car: { name: 'The people\'s car plant', sites: ['AN', 'OG', 'KN', 'LA', 'KD'], fiscal: 0.005, fx: [['nation.jobs', 0.04]] },
   petrochem: { name: 'The petrochemicals complex', sites: ['DE', 'RI', 'AK', 'LA'], fiscal: 0.02, fx: [['nation.jobs', 0.02]] },
   hospital: { name: 'The hospital city', sites: ['FC', 'LA', 'EN', 'KN'], fiscal: -0.003, fx: [['bloc.press', 0.01]] },
+  depots: { name: 'The military maintenance depots', sites: ['KD', 'LA', 'BA'], fiscal: -0.003, fx: [] },
+  fleetrepair: { name: 'The repaired fleet and its spares contract', sites: ['KN', 'LA', 'RI'], fiscal: -0.004, fx: [] },
+  fusion: { name: 'The joint intelligence fusion centre', sites: ['FC'], fiscal: -0.002, fx: [] },
+  corridor_ops: { name: 'The guarded farm corridor', sites: ['BE', 'PL', 'NA', 'NI'], fiscal: -0.003, fx: [['theatre.NC', -0.12], ['nation.inflation', -0.01]] },
+  ddr: { name: 'The reintegration camps', sites: ['BO', 'YO', 'ZA', 'BY'], fiscal: -0.004, fx: [['drift.NE', -0.004], ['theatre.NE', -0.05]] },
   coastal: { name: 'The coastal highway', sites: ['LA', 'OG', 'ON', 'DE', 'BY', 'RI', 'AK', 'CR'], fiscal: -0.002, fx: [['nation.jobs', 0.02]] },
 };
 

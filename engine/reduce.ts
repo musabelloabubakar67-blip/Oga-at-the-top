@@ -49,6 +49,7 @@ import { refusal, talent } from './talent';
 import type { AppointmentPost } from './recruitment';
 import { applyOpening } from './opening';
 import { borrowNow, canBorrowNow, canCollect, canSell, ensureHoldings, startCollection, startSale } from './holdings';
+import { appoint as appointOfficer, canAppoint as canAppointOfficer, canEndMission, canStartMission, endMission, ensureMilitary, startMission, type Resources } from './military';
 import { approach, canApproach, canAppointExceptional, canFundRecruitment, fundRecruitment, holdRecruitmentFunding, reconcileRecruitment, recruitmentTick, hasCapability } from './recruitment';
 import { canLeaveVacant, leaveVacant, canPayRecruitmentArrears, payRecruitmentArrears } from './recruitment';
 import { floatNow, initCurrency } from './currency';
@@ -164,6 +165,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   initSecurity(s);
   initTreasury(s);
   ensureHoldings(s);
+  ensureMilitary(s);
   initCurrency(s);
   initTycoons(s);
 
@@ -835,6 +837,9 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'FINISH_ASSET': if (canFinish(s, action.id).ok) note(s, finish(s, action.id)); break;
     case 'REFURBISH_ASSET': if (canRefurbish(s, action.id).ok) note(s, refurbish(s, action.id)); break;
     case 'ASSET_UPKEEP': note(s, setUpkeep(s, action.id, action.mode)); break;
+    case 'MISSION_START': if (canStartMission(s, action.id, movesLeft(s)).ok) note(s, startMission(s, action.id, action.resources as Resources, action.kept)); break;
+    case 'MISSION_END': if (canEndMission(s, action.id)) note(s, endMission(s, action.id)); break;
+    case 'MIL_APPOINT': if (canAppointOfficer(s, action.post, action.officer, movesLeft(s)).ok) note(s, appointOfficer(s, action.post, action.officer)); break;
     case 'CASE':
       if (action.op === 'back' && canBack(s, action.id).ok) note(s, backCase(s, action.id));
       if (action.op === 'drop' && canDrop(s, action.id).ok) note(s, dropCase(s, action.id));

@@ -13,8 +13,8 @@
 // posts are generic; no officer stands for a real one. No text uses a gendered
 // pronoun for an officer.
 //
-// Status: authored content. Missions, readiness, conduct and command state wait
-// on contract R9; nothing in the engine reads this file yet. Amounts are a year's
+// Status: integrated. engine/military.ts holds the posts, readiness, missions and
+// the record; content/events/military.ts the files they raise. Amounts are a year's
 // running cost in ₦bn at the game's prices; `dollarShare` is the part that must be
 // bought in foreign currency (spares, fuel, ammunition), so a weaker naira or thin
 // reserves hit readiness directly (plan 13.A4).

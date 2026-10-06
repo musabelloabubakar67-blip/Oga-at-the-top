@@ -48,6 +48,8 @@ function weightOf(s: GameState, e: GameEvent): number {
   if (LIGHT.has(e.tone)) w *= 0.55;
   // What the President did comes back before what merely happens.
   if (e.reactive) w *= 3.5;
+  // A professional military settles routine security matters by its own procedures (plan 13): fewer reach the President.
+  if (e.category === 'security' && e.kind === 'recurring' && !e.id.startsWith('mil.') && getVar(s, 'mil.professional') >= 2) w *= 0.5;
   return w;
 }
 

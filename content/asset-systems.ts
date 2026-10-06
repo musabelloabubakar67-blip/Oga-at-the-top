@@ -17,6 +17,9 @@ export interface AssetSystem {
   reserves?: number;
   buildCut?: number;
   obligation?: { when: Cond; text: string };
+  /** What it adds to the armed forces each month at full output (plan 13): readiness points, backlog cleared,
+   *  share of the dollar shortage covered, intelligence points. */
+  military?: { readiness?: number; depots?: number; spares?: number; intel?: number };
   /** What it changes, in one line, for the asset card. */
   does: string;
 }
@@ -42,4 +45,10 @@ export const ASSET_SYSTEMS: Record<string, AssetSystem> = {
   charter: { dollars: 0.02, does: 'Investment from abroad into firms that register in the charter city.' },
   games: { dollars: 0.005, does: 'Visitors and broadcasting rights, paid in dollars.' },
   nuclear: { does: 'Electricity on the grid that does not depend on gas.' },
+  // The armed forces (plan 13): what each military asset adds every month at full output.
+  depots: { military: { depots: 1.6, readiness: 4 }, does: 'Clears the maintenance backlog every month, so the forces have more of what they already own.' },
+  fleetrepair: { military: { spares: 0.45, readiness: 6 }, does: 'Spares bought on a schedule: a weak naira or thin reserves ground half as many aircraft.' },
+  fusion: { military: { intel: 15 }, does: 'Better intelligence for every mission: fewer mistakes, less harm to civilians.' },
+  corridor_ops: { does: 'Keeps the roads of the farm belt open all year: the threat falls a little every month and food reaches the markets.' },
+  ddr: { does: 'Fighters who leave the bush have somewhere to go: violence in the North East feeds less on itself, for as long as the camps are funded.' },
 };

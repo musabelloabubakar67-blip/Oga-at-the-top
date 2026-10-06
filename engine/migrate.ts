@@ -1,4 +1,5 @@
 import { ensureHoldings } from './holdings';
+import { ensureMilitary } from './military';
 import { bindFavours } from './favour-ledger';
 import { refreshRequests } from './wants';
 import { ensureGovernance, markCommitmentsDue } from './governance';
@@ -104,6 +105,8 @@ export function migrate(raw: unknown): GameState | null {
     bindFavours(s);
     // Saves from before the register (plan 11) start owning everything, with the established tax debts.
     ensureHoldings(s);
+    // Saves from before the armed forces were an institution (plan 13) start with the command as authored.
+    ensureMilitary(s);
     // Saves from before taxation and the Treasury were two tracks (plan 10): a declared
     // Treasury priority covered both halves of the old track, so it keeps covering both.
     if (s.agenda.tracks.includes('treasury') && !s.agenda.tracks.includes('tax')) s.agenda.tracks.push('tax');

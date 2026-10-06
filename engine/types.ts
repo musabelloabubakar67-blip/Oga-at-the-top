@@ -525,6 +525,8 @@ export interface GameState {
   accounts?: { revHist: number[]; created: number; reserveLog: { turn: number; flow: number; intervention: number; note: string }[] };
   /** What the state owns (content/holdings.ts), sales under way, and established tax debts (engine/holdings.ts). */
   holdings?: Record<string, import('./holdings').HoldingState>;
+  /** The armed forces as an institution: command, readiness, missions, abuses (plan 13). Carried across governments. */
+  military?: import('./military').Military;
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
@@ -659,6 +661,9 @@ export type Action =
   | { type: 'FINISH_ASSET'; id: string }
   | { type: 'REFURBISH_ASSET'; id: string }
   | { type: 'ASSET_UPKEEP'; id: string; mode: 'maintained' | 'deferred' }
+  | { type: 'MISSION_START'; id: string; resources: 'lean' | 'standard' | 'surge'; kept: boolean[] }
+  | { type: 'MISSION_END'; id: string }
+  | { type: 'MIL_APPOINT'; post: string; officer: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

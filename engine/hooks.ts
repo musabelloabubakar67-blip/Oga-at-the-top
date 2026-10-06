@@ -11,4 +11,8 @@ export const hooks = {
   buildCut: (_s: GameState): number => 0,
   /** What one operating asset does to the dollar flow and the reserves (engine/places.ts). */
   assetSystem: (_s: GameState, _id: string): AssetTrade => ({ dollars: 0, imports: 0, reserves: 0, buildCut: 0 }),
+  /** What the military's missions cost the treasury this month (engine/military.ts). */
+  missionCost: (_s: GameState): number => 0,
+  /** Readings of the armed forces for conditions: readiness, intel, conduct, cooperation.<zone>, competence.<post> (engine/military.ts). */
+  military: (_s: GameState, _path: string[]): number => 0,
 };

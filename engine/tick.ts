@@ -1,3 +1,4 @@
+import { militaryTick } from './military';
 import { formersTick } from './formers';
 import { predTick } from './predecessor';
 import { vpTick } from './vp';
@@ -86,6 +87,7 @@ export function economyTick(s: GameState): void {
     const b = s.counters[`bonus.${k}`] ?? 0;
     if (b) applyFx(s, [`nation.${k}`, b]);
   }
+  militaryTick(s);
   securityTick(s);
   // What the standing policies do this month, worked out against the economy as it is.
   policyTick(s);

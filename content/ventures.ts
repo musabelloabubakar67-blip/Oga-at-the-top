@@ -189,8 +189,95 @@ const REFINERY_BETS: Venture[] = [
     win: [['pressure.fuelSupplyStress', -12], ['nation.jobs', 3], ['bonus.fiscal', 0.006], ['bonus.inflation', -0.2], ['approval', 2], ['zone.NW.approval', 3], ['tycoon.ty_fuel', -5]] }),
 ];
 
+// MILITARY BETS (plan 13.A7). Each builds something the forces need and must keep
+// paying for: a depot, a repaired fleet, an intelligence centre, a guarded corridor,
+// a programme for fighters who leave the bush. They can open in part, and they wear
+// out like any other asset if their upkeep is deferred (engine/places.ts).
+const mil = (path: string, op: '<' | '<=' | '>' | '>=' | '==', n: number): Cond => v(`mil.${path}`, op, n);
+const MILITARY_BETS: Venture[] = [
+  {
+    id: 'depots', name: 'Rebuild the military maintenance depots', pc: 6, naira: 0.5, months: 12, top: 0.86, brief: 'min_defence', infra: true,
+    blurb: 'Half the helicopters and a third of the armoured vehicles are waiting for repairs that the depots have not been equipped to do since the last war. Fix the depots and the forces you already own come back.',
+    risks: [
+      { id: 'logistics', label: 'A capable Chief of Defence Logistics (competence 4 or better)', ok: mil('competence.logistics', '>=', 4), cost: 0.25, warn: 'The depot programme is being run by the procurement directorate, which prefers buying new to mending old.', fail: 'The depots were re-equipped with machinery nobody was trained to use.', fix: 'Keep or appoint a logistics chief who knows maintenance (Security, The armed forces).' },
+      contractors(0.15), integrity(32, 0.15),
+    ],
+    win: [['bloc.establishment', 3], ['nation.jobs', 2]],
+    lose: [['bloc.press', -3], ['nation.integrity', -2]],
+    winText: 'The first refurbished helicopters fly out of the depot on their own. The backlog falls every month after.',
+    loseText: 'The depot hangars are rebuilt. The machine tools are still in crates, waiting for an installer who was never paid.',
+    luck: 'A fire in the main depot destroyed the spares inventory in the week it was completed.',
+    winNews: ['MILITARY DEPOTS REOPEN; GROUNDED AIRCRAFT RETURN', 'ARMY DON FIX THEIR OWN HELICOPTER'],
+    loseNews: ['DEPOT PROGRAMME STALLS; MACHINES STILL IN CRATES', 'DEPOT DON BUILD, NOTHING DEY WORK'],
+  },
+  {
+    id: 'fleetrepair', name: 'Repair the fleet instead of replacing it', pc: 6, naira: 0.6, months: 10, top: 0.84, brief: 'min_defence',
+    blurb: 'A spares contract with the manufacturers, paid in dollars on a schedule, for the aircraft and boats already owned. Less ceremony than new aircraft, and twice the flying hours.',
+    risks: [
+      { id: 'dollars', label: 'Reserves can pay for spares (reserves at $15bn or more)', ok: v('fx.reserves', '>=', 15), cost: 0.2, warn: 'The central bank has asked the Defence Ministry to wait for its dollar allocation.', fail: 'The spares contract lapsed when the dollars for the second instalment could not be found.', fix: 'Rebuild the reserves (The Treasury, The naira).', kind: 'cost' },
+      { id: 'procurement', label: 'An honest Director of Defence Procurement (integrity 3 or better)', ok: mil('integrity.procurement', '>=', 3), cost: 0.15, warn: 'The spares are being bought through an agent in a third country, at a fee nobody will state.', fail: 'The agent took the fee; the spares went somewhere else.', fix: 'Replace the Director of Defence Procurement, or open an inquiry (Security, The armed forces).', kind: 'cost' },
+      minister('min_defence', 'National Security Adviser', 0.15),
+    ],
+    win: [['bloc.establishment', 3]],
+    lose: [['nation.integrity', -2], ['bloc.press', -3]],
+    winText: 'Flying hours double within the year. The aircraft were there all along; the parts were not.',
+    loseText: 'The parts arrive for the wrong variant of the aircraft. The agent who arranged the contract has retired abroad.',
+    luck: 'The manufacturer was sanctioned by its own government, and every contract it held was frozen.',
+    winNews: ['GROUNDED FLEET RETURNS TO THE AIR', 'AIRCRAFT WEY DON PARK DON FLY AGAIN'],
+    loseNews: ['SPARES CONTRACT COLLAPSES; FLEET STAYS GROUNDED', 'SPARE PART NO FIT. AGAIN'],
+  },
+  {
+    id: 'fusion', name: 'A joint intelligence fusion centre', pc: 6, naira: 0.3, months: 10, top: 0.86, brief: 'min_defence',
+    blurb: 'The army, the police, the secret service and the customs each know part of what is coming. Put their analysts in one room with one database, under rules about what it may watch.',
+    risks: [
+      { id: 'intelchief', label: 'A capable Chief of Defence Intelligence (competence 4 or better)', ok: mil('competence.intelligence', '>=', 4), cost: 0.2, warn: 'The agencies are sending junior officers and keeping their files at home.', fail: 'Each agency kept its own files; the centre became a fifth agency.', fix: 'Keep or appoint an intelligence chief the other agencies respect.' },
+      capacity(42, 0.15),
+      { id: 'agencies', label: 'The security establishment will share (establishment at 45 or better)', ok: v('bloc.establishment', '>=', 45), cost: 0.15, kind: 'acceptance', warn: 'The secret service has asked who will read its files, and has not yet sent any.', fail: 'The agencies agreed to everything except sending their files.', fix: 'Bring the establishment round (Politics).' },
+    ],
+    win: [['nation.security', 2], ['bloc.establishment', 2]],
+    lose: [['bloc.press', -2]],
+    winText: 'The first joint warning reaches a village before the attackers do. The village is still there in the morning.',
+    loseText: 'The centre opens with four agencies, four floors and four databases that do not talk to one another.',
+    luck: 'A leak of the centre\'s first reports ended the agencies\' willingness to share.',
+    winNews: ['JOINT INTELLIGENCE CENTRE STOPS ATTACK BEFORE IT HAPPENS', 'DEM KNOW BEFORE DEM COME'],
+    loseNews: ['INTELLIGENCE CENTRE: FOUR AGENCIES, NO SHARING', 'NA FOUR OFFICE FOR ONE BUILDING'],
+  },
+  {
+    id: 'corridor_ops', name: 'A guarded farm-to-market corridor in the farm belt', pc: 6, naira: 0.4, months: 10, top: 0.84, brief: 'min_defence', infra: true,
+    blurb: 'Posts every ten kilometres on the roads farmers use, staffed jointly with the police and the communities, all year round. Not an operation that ends; a road that stays open.',
+    risks: [
+      { id: 'coop', label: 'The farm belt cooperates with the forces (cooperation 45 or better)', ok: mil('cooperation.NC', '>=', 45), cost: 0.22, warn: 'Herder and farmer associations each say the posts favour the other.', fail: 'Each community treated the posts as the other side\'s, and the attacks moved to the roads between them.', fix: 'Win cooperation first: keep conduct limits in the farm-belt mission, and pay attention to who is harmed.' },
+      quiet('NC', 'The farm belt', 62, 0.15), contractors(0.12),
+    ],
+    win: [['zone.NC.approval', 3], ['nation.jobs', 2]],
+    lose: [['zone.NC.approval', -2], ['bloc.press', -2]],
+    winText: 'The harvest reaches the market on the road it was meant to. The price of yams in Abuja falls in the first season.',
+    loseText: 'The posts are built and unmanned by the second month. They make good shelters for the people the road was meant to keep out.',
+    luck: 'A flood took two bridges on the corridor in the first rainy season.',
+    winNews: ['FARM CORRIDOR OPENS; HARVEST REACHES MARKETS', 'FARMERS ROAD DON OPEN. YAM DON CHEAP'],
+    loseNews: ['FARM CORRIDOR POSTS ABANDONED', 'THE POSTS DON EMPTY'],
+  },
+  {
+    id: 'ddr', name: 'Demobilise and reintegrate fighters who leave the bush', pc: 8, naira: 0.5, months: 12, top: 0.82, brief: 'min_defence',
+    when: { any: [{ v: ['venture.amnesty', '==', 1] }, { v: ['theatre.NE', '<', 55] }] },
+    blurb: 'Camps where fighters who surrender are screened, trained and sent home with a trade, under a judge and with the victims heard. Every year it costs money, and every year it is cheaper than the war.',
+    risks: [
+      { id: 'conduct', label: 'The forces are trusted to run it lawfully (conduct 50 or better)', ok: mil('conduct', '>=', 50), cost: 0.2, warn: 'Human-rights groups say the screening has become detention without trial.', fail: 'The camps became prisons, and the fighters stopped coming out of the bush to reach them.', fix: 'Raise military conduct: keep conduct limits on missions and deal with abuses on the record.' },
+      integrity(32, 0.15), { id: 'popular', label: 'The country will accept it (approval at 40% or better)', ok: v('approval', '>=', 40), cost: 0.15, warn: 'Victims\' families march against "rewarding killers".', fail: 'The programme was closed by a court petition from victims\' families.', fix: 'Raise approval, and hear the victims first.' },
+    ],
+    win: [['nation.security', 4], ['bonus.fiscal', -0.008], ['zone.NE.approval', 3]],
+    lose: [['nation.security', -2], ['bloc.street', -2]],
+    winText: 'Four thousand former fighters are back in their towns with a trade. The ones who stayed in the bush hear about it.',
+    loseText: 'The camps are full of men nobody has screened, and the courts have stopped visiting.',
+    luck: 'A former fighter from the camps led an attack, and the programme was suspended in the outcry.',
+    winNews: ['FORMER FIGHTERS RETURN HOME WITH A TRADE', 'BOYS DON COMOT BUSH, DEM DEY LEARN WORK'],
+    loseNews: ['REINTEGRATION CAMPS "DETENTION BY ANOTHER NAME"', 'CAMP DON TURN PRISON'],
+  },
+];
+
 export const VENTURES: Venture[] = [
   ...REFINERY_BETS,
+  ...MILITARY_BETS,
   // ---------------------------------------------------------------- open from the start
   {
     id: 'steel', name: 'Revive the steel complex', pc: 6, naira: 1.2, months: 18, top: 0.85, brief: 'min_works', infra: true, partner: 'ty_maker',

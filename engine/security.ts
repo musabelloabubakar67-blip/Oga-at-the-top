@@ -2,6 +2,7 @@
 
 import { MILESTONE_BY_ID } from '../content/agenda';
 import { reformName } from './reforms';
+import { ensureMilitary, readinessFactor } from './military';
 import { THEATRES, THEATRE_BY_ZONE } from '../content/theatres';
 import { CFG, monthOf } from './config';
 import type { GameState, Outcome, ZoneId } from './types';
@@ -84,11 +85,13 @@ function measuresIn(s: GameState, z: ZoneId): string {
 /** How hard an offensive in a theatre would hit, and why. */
 export function offensiveStrength(s: GameState, z: ZoneId): { strike: number; why: string[]; held: boolean } {
   const why: string[] = [];
-  let strike = 1 + (s.counters['sec.strike'] ?? 0);
+  let strike = (1 + (s.counters['sec.strike'] ?? 0)) * readinessFactor(s);
   for (const id of s.agenda.done) {
     const m = MILESTONE_BY_ID[id]?.m;
     if (m?.done.some(([t, v]) => t === 'sec.strike' && v > 0)) why.push(reformName(s, id).toLowerCase());
   }
+  const ready = ensureMilitary(s).readiness;
+  if (Math.abs(ready - 50) >= 5) why.push(`the forces are at ${Math.round(ready)}% readiness`);
   if (s.focus === z) { strike += 0.25; why.push('the forces are already concentrated there'); }
   if (z === 'SE') { strike *= 0.5; why.push('the South East is a political problem, and soldiers make it worse'); }
   const held = (s.counters[`drift.${z}`] ?? 0) <= -0.08 || (s.counters['sec.hold'] ?? 0) > 0;

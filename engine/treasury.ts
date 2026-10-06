@@ -97,6 +97,7 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
     subsidy === 'removed' ? `What ending the subsidy freed, at $${Math.round(s.oil.price)} oil.` : `The gap between the pump price and the cost, paid monthly. Dearer as crude rises: $${Math.round(s.oil.price)} now.`);
   add('Your reforms and orders', s.counters['bonus.fiscal'] ?? 0, 'The permanent effect of what you have built, cut or promised.');
   for (const l of fiscalSystemLines(s)) add(l.label, l.value, l.hint);
+  add('Military operations', -hooks.missionCost(s), 'What the campaigns the President has ordered cost each month, beyond the defence budget.');
   for (const l of policyFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of institutionFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of assetFiscalLines(s)) add(l.label, l.value, l.hint);

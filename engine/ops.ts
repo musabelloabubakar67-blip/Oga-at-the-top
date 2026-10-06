@@ -26,9 +26,10 @@ import { addOwed } from './ledger';
 import { addMark, deal, replaceMinister } from './people';
 import { naira } from './text';
 import { pay } from './treasury';
+import { ensureMilitary, holder, misuse, openInquiry, resolveAbuse, retirePost, setDoctrine } from './military';
 import { pledge, pledgeOp, pledgeOptions } from './promises';
 import type { DebtId, FundId, GameState, Op2, ZoneId } from './types';
-import { clamp, favoursOwed, favoursOwing } from './vars';
+import { applyFx, clamp, favoursOwed, favoursOwing } from './vars';
 
 const group = (s: GameState, g: 'governor' | 'senator', d: number) => {
   for (const p of PEOPLE) {
@@ -176,6 +177,13 @@ export function runOp(s: GameState, op: Op2): string {
       if (st) { st.gone = true; s.favours = s.favours.filter((f) => f.who !== a); }
       return '';
     }
+    // The armed forces (plan 13).
+    case 'milinquiry': return openInquiry(s, String(a));
+    case 'milabuse': return resolveAbuse(s, a as 'prosecuted' | 'compensated' | 'buried');
+    case 'milmisuse': return misuse(s, a === 'complied');
+    case 'milretire': return retirePost(s, String(a));
+    case 'mildoctrine': return setDoctrine(s, a as 'hold' | 'manoeuvre' | 'settled');
+    case 'milpay': { const m = ensureMilitary(s); const owed = Math.min(0.3, m.arrears * 0.06); applyFx(s, ['nation.fiscalSpace', -owed]); m.arrears = 0; return ''; }
   }
   return '';
 }
@@ -185,6 +193,11 @@ export function opText(s: GameState, op: Op2): string | null {
   const [name, a, b, c] = op;
   switch (name) {
     case 'negotiatedebt': return 'Negotiates lower coupons with creditor consent; principal remains owed in full';
+    case 'milinquiry': return 'Opens a board of inquiry that reports in four months, on what it finds';
+    case 'milabuse': return a === 'prosecuted' ? 'Courts-martial for those responsible: conduct and local cooperation rise' : a === 'compensated' ? 'Compensation for the victims: cooperation recovers a little' : 'The report is buried: conduct and cooperation fall, and officers remember';
+    case 'milmisuse': return a === 'complied' ? 'Soldiers are used against civilians: conduct falls and it stays on the record' : null;
+    case 'milretire': return `Retires ${holder(s, String(a)).name}; the next officer in seniority takes over`;
+    case 'milpay': return `Pays the forces' arrears now: about ${naira(Math.min(0.3, ensureMilitary(s).arrears * 0.06))}`;
     case 'targetrelease': return 'Authorises full future releases through the ministry budget; past withholding remains recorded';
     case 'paydebt': {
       const id = a as DebtId;

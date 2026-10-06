@@ -2,6 +2,7 @@ import { favourBelongs, favourParties } from './favour-ledger';
 import { hasCapability } from './recruitment';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { REFINERIES } from '../content/holdings';
+import { hooks } from './hooks';
 import { CFG, monthOf, termTurnOf } from './config';
 import { addOwed, shiftPoints, shiftRates } from './ledger';
 import { rand } from './rng';
@@ -229,6 +230,8 @@ export function getVar(s: GameState, path: string): number {
     // How many of the three refineries have been brought back to work.
     // The tax base and spending discipline, 0–100 (plan 10).
     case 'fiscal': return fiscalOf(s, p[1]);
+    // The armed forces (plan 13): mil.readiness, mil.intel, mil.conduct, mil.arrears, mil.cooperation.<zone>, mil.competence.<post>, mil.coup.
+    case 'mil': return hooks.military(s, p.slice(1));
     case 'refineries': return REFINERIES.filter((r) => s.ventures.won.includes(r.venture)).length;
     case 'cases': return p[1] === 'leaned' ? (s.cases ?? []).filter((c) => c.leaned).length : (s.cases ?? []).length;
     case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;
