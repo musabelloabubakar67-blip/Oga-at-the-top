@@ -11,6 +11,8 @@ import type { Character } from '../engine/types';
 // Rule: before adding or changing a name, search it. If the search finds a
 // public figure, choose another. Parties, newspapers, unions and companies
 // keep their invented names.
+// The named candidate pool (content/candidates.ts) follows the same rule; its
+// header lists the names searched and the ones rejected.
 
 /** Tokens usable in event text as {TOKEN}. */
 export const NAMES: Record<string, string> = {

@@ -36,10 +36,10 @@ Baseline `4227861`. Contract v0.
 | 03.A2 | Choose the running mate at the appropriate electoral point; select Chief of Staff, Finance, major ministers and available institutional appointments directly. |  | planned | |
 | 03.A3 | Contextualise the first Finance appointment through a real payment, conflicting information and political expectations. |  | planned | |
 | 03.A4 | Let coalition agreements constrain appointments through visible negotiations, not invisible forced choices. |  | planned | |
-| 03.A5 | Build a shared pool of named candidates with careers, expertise, relationships, previous decisions and role-specific suitability. |  | planned | |
+| 03.A5 | Build a shared pool of named candidates with careers, expertise, relationships, previous decisions and role-specific suitability. |  | authored, not integrated | content/candidates.ts: twenty named candidates with careers, fields, suitable roles, views and patrons; candidates.check.ts. Waits on R5. |
 | 03.A6 | Make candidates recruitable, unavailable, retained, dismissed, promoted or recruited by successors and opponents. Develop deputies into credible future candidates. |  | planned | |
-| 03.A7 | Implement exceptional candidates with distinctive capabilities and explicit acceptance conditions: authority, independence, protected funding, specialist teams, recruitment effort or political concessions. |  | planned | |
-| 03.A8 | Include excellent candidates without compulsory hidden disasters. Brilliance still depends on resources and organisational support. |  | planned | |
+| 03.A7 | Implement exceptional candidates with distinctive capabilities and explicit acceptance conditions: authority, independence, protected funding, specialist teams, recruitment effort or political concessions. |  | authored, not integrated | Four exceptional candidates with proposed capabilities, conditions and breach reactions (content/candidates.ts). Waits on R5. |
+| 03.A8 | Include excellent candidates without compulsory hidden disasters. Brilliance still depends on resources and organisational support. |  | authored, not integrated | Three excellent candidates with no conditions beyond the job's resources (Tamuno, Danladi, Ajala). |
 | 03.A9 | Remove automatic reliance on generic loyalist/technocrat/party replacement categories as the full depth of recruitment. |  | planned | |
 | 03.T10 | Two governments appointing different teams encounter different delivery, advice and political consequences. | joint | planned | |
 | 03.T11 | Exceptional recruits change available capabilities, not just ratings. Their conditions persist and breaches have concrete reactions. | joint | planned | |

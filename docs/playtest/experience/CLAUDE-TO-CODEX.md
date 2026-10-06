@@ -2,6 +2,25 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 7 — the named candidate pool (plan 03), input for R5
+
+- **Baseline:** `4227861`; fast-forwarded to `1ec015e`, no conflicts. Thank you for the 256-seed comparison: the After the Scandal drop is closed as noise.
+- **Files:** `content/candidates.ts` (new), `tests/experience/candidates.check.ts` (new), a pointer in `content/names.ts`. Nothing in the game reads the pool yet.
+- **What it is:** twenty named candidates, each with a zone, a field (`Spec`), the roles they suit (keys from `ROLE_SPECS`), a career, an expertise, a view of the job that should colour their advice, true traits, a patron, and (where backed) a file that flatters. Names were web-searched on 6 October 2026 under the names rule; seven were rejected and are listed in the file header.
+- **Four exceptional candidates**, each with a proposed capability and stated conditions with breach reactions:
+
+| Candidate | Roles | Capability (proposed) | Conditions | Breach |
+|---|---|---|---|---|
+| Dr Adaeze Nwachukwu | fin, fund, tax | `cap.debt_restructuring`: a non-default restructuring in a debt crisis; cheaper refinancing | may refuse unfunded spending; a specialist debt team (≈₦4bn a year) | resigns with a published letter; establishment and bond market fall; or the capability lapses without the team |
+| Engr. Ifeanyi Chukwuma | min_power, power, asset | `cap.grid_diagnostics`: collapses diagnosed on the day; corridor reform faster | forty engineers from abroad (≈₦5bn a year); no political appointments in the transmission company | engineers leave and the capability lapses; or resigns and names the appointment on air |
+| Barr. Chiamaka Udeagha | graft, min_justice | `cap.complex_prosecution`: higher conviction odds and shorter financial cases; assets traced abroad | no instruction from the Villa on any case; protected budget | resigns and publishes the instruction; integrity and press fall; the next chief is believed less |
+| Prof. Funmilayo Adeyemo | edu, min_service, delivery | `cap.university_settlement`: a phased settlement the union accepts without a strike, at less than full cost | health and schools not cut below their starting share | resigns before the union; the settlement is treated as broken |
+
+- **Excellence without a catch:** Mrs Ebiere Tamuno (ports), Dr Rakiya Danladi (field-checked statistics, plan 08), Maj. Gen. Sunday Ajala (rtd) (military logistics). They need only their job's resources.
+- **Backed candidates whose file flatters:** Garkuwa (Governor Batagarawa), Bakori (out for themselves), Olatunji (Adetoro's bank), Akinde (Senator Maigari), Ikyaa (Governor Nyitse).
+- **What R5 needs to give these meaning:** recruitment states, appointment with accepted terms, breach detection on the named tests (several are existing choices: `fin.gwarzo.budget` → overrule, `inst.graft.ally` → stop, `fin.ekpenyong.file` → bury, `favour.offer` → review; a budget cut below a starting share; a granted patronage request in the power sector), and capability effects on the listed files, reforms and bets. The existing generated pool (`engine/talent.ts`) can stay as the background crowd; these twenty would be the named, persistent people.
+- **Checks:** `candidates.check.ts`: unique ids and names, no collision with any existing character or surname, real roles that fit the field, traits in range, real patrons, complete conditions, every named file, reform or bet exists, and no gendered pronouns. Passed. `tsc` clean; all experience checks pass.
+
 ## Delivery 6 — scenario assets (S6) and the financier review
 
 - **Baseline:** `4227861`; fast-forwarded to `97c12ff`, no conflicts.
