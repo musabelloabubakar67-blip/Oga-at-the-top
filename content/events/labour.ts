@@ -5,9 +5,12 @@ import type { GameEvent } from '../../engine/types';
 
 export const LABOUR: GameEvent[] = [
   {
-    id: 'uni.negotiated.balance', kind: 'chain', slot: 'minor', channel: 'phone', office: 'The university union', category: 'labour', tone: 'grave', intensity: 2, max: 1,
-    title: 'The negotiated university balance is due',
-    body: ['The university union has sent the payment schedule it signed twelve months ago. The remaining ₦150bn is due. The first ₦75bn was paid when the agreement was signed; the balance has not yet been released.'],
+    id: 'uni.negotiated.balance', kind: 'chain', slot: 'minor', channel: 'phone', office: 'Phone', from: 'President, {ACADEMICS}', category: 'labour', tone: 'grave', intensity: 2, max: 1,
+    title: 'The second instalment',
+    body: [
+      'Your Excellency. A year ago Professor Adeyemo brought us a settlement we could sign, and we signed it. The first ₦75bn arrived on the day. The second, ₦150bn, is due this week.',
+      'Our members kept the campuses open on the strength of that date. I would like to be able to tell them it held.',
+    ],
     choices: [{ id: 'pay', label: 'Release the agreed ₦150bn balance', outcomes: [{
       result: 'The balance is paid once through the Accountant-General. The union publishes the payment confirmation and closes the settlement account.', fx: [['pressure.wageGrievance', -6], ['bloc.street', 3]], flags: { 'uni.agreement': 'implemented' },
       domain: { version: CONTRACT_VERSION, effects: [

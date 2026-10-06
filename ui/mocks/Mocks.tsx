@@ -6,14 +6,13 @@
 // exists and simulates only the missing engine behaviour, in local state. When a
 // contract lands, its mock is replaced by the real screen inside the game and
 // removed from this page. Requests and favours (R3) and commitment reviews (R4)
-// are now real screens in the game and have been removed.
+// and exceptional recruitment (R5) are now real screens in the game and have
+// been removed.
 
-import { ApproachMock } from './Approach';
 import { TransitionMock } from './Transition';
 
 const INDEX: [string, string, string][] = [
   ['transition', 'Transition and the first team', 'R6, R5'],
-  ['approach', 'Approaching someone exceptional', 'R5'],
 ];
 
 export function Mocks() {
@@ -28,7 +27,6 @@ export function Mocks() {
         </ul>
       </header>
       <TransitionMock />
-      <ApproachMock />
     </main>
   );
 }

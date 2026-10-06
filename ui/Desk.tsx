@@ -31,7 +31,7 @@ import { runElection } from '../engine/election';
 import { upcoming } from '../engine/upcoming';
 import { bench } from '../engine/courts';
 import { StateMap } from './StateMap';
-import { Candidates } from './Candidates';
+import { Candidates, Vacate } from './Candidates';
 import { candidatesFor } from '../engine/talent';
 import { grievances, recentUses, targetName, targetsFor, wearFactor, type TargetKind } from '../engine/targets';
 import { oilGap } from '../engine/treasury';
@@ -583,6 +583,7 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
                     })}
                   </ul>
                 )}
+                {rehead === i.id && <Vacate s={s} p={{ kind: 'institution', id: i.id }} dispatch={dispatch} left={left} />}
               </li>
             );
           })}
@@ -1766,6 +1767,7 @@ function AssetCards({ s, dispatch, left, dark }: { s: GameState; dispatch: Dispa
                 })}
               </ul>
             )}
+            {mgr === a.id && <Vacate s={s} p={{ kind: 'asset', id: a.id }} dispatch={dispatch} left={left} />}
           </li>
         );
       })}

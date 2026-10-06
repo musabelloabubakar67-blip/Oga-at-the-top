@@ -5,7 +5,8 @@ import { federalCharacter } from '../engine/federal';
 import { ZONE_NAME } from '../engine/vars';
 import { CHECK_PC, HUNT_PC, patronLabel, specName, type Offer } from '../engine/talent';
 import type { Action, GameState } from '../engine/types';
-import { NamedNote } from './Talent';
+import { canLeaveVacant, getVacancyView, type AppointmentPost } from '../engine/public';
+import { NamedNote, postName, postsFor } from './Talent';
 
 const word = (v: number, hi: string, mid: string, lo: string) => (v >= 4 ? hi : v <= 2 ? lo : mid);
 
@@ -67,6 +68,32 @@ export function Candidates({ s, role, offers, dispatch, appoint, can, label, lef
         className="mt-2 border border-ink/30 px-3 py-1 text-sm hover:border-state disabled:opacity-45">
         Search for more people in this field · {HUNT_PC} capital · 1 move
       </button>
+      <Vacancy s={s} role={role} dispatch={dispatch} left={left} />
+    </div>
+  );
+}
+
+/** Leaving a post empty is a choice too (contract R5): career staff carry on, the post's rating is zero and any capability ends. */
+function Vacancy({ s, role, dispatch, left }: { s: GameState; role: string; dispatch: (a: Action) => void; left: number }) {
+  const p = postsFor(s, role)[0];
+  return p ? <Vacate s={s} p={p} dispatch={dispatch} left={left} /> : null;
+}
+
+/** The vacancy choice for any post: ministers, Finance, advisers, institution heads and asset managers. */
+export function Vacate({ s, p, dispatch, left }: { s: GameState; p: AppointmentPost; dispatch: (a: Action) => void; left: number }) {
+  const [sure, setSure] = useState(false);
+  const empty = Object.values(getVacancyView(s)).find((v) => postName(v.post) === postName(p));
+  if (empty) return <p className="mt-2 text-[13px] text-honour">Vacant by your choice since {empty.previousName.replace(/^A /, 'a ')} left. Career staff carry on without an appointed head; appointing someone fills it.</p>;
+  const can = canLeaveVacant(s, p, left);
+  if (!sure) return <button onClick={() => setSure(true)} className="mt-2 ml-2 border border-ink/20 px-3 py-1 text-sm text-ink-soft hover:border-alarm">Leave the post vacant…</button>;
+  return (
+    <div className="mt-2 border-l-2 border-alarm pl-3 text-[13px] leading-snug">
+      <p>The current holder leaves and nobody replaces them. Career staff keep the post running, with no one in charge: its rating is zero until it is filled, and any capability tied to the holder ends. 1 move, 2 capital.</p>
+      <div className="mt-1 flex gap-2">
+        <button disabled={!can.ok} title={can.reason} onClick={() => { dispatch({ type: 'LEAVE_VACANT', post: p }); setSure(false); }} className="border border-alarm/60 px-3 py-1 text-sm hover:border-alarm disabled:opacity-45">Leave {postName(p)} vacant</button>
+        <button onClick={() => setSure(false)} className="border border-ink/20 px-3 py-1 text-sm">Not now</button>
+      </div>
+      {!can.ok && can.reason && <p className="mt-1 text-ink-soft">{can.reason}</p>}
     </div>
   );
 }

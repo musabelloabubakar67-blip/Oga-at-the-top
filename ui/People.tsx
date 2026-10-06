@@ -19,7 +19,7 @@ import { dateLabel } from '../engine/config';
 import { describe } from '../engine/effects';
 import { moneyEffect } from '../engine/election';
 import { canCall, canTycoon, kindOf, regard, tycoonMood, usesFor, who } from '../engine/favours';
-import { canForgiveFavour, canOffsetFavours, canUseFavour, getFavourView } from '../engine/public';
+import { canForgiveFavour, canOffsetFavours, canUseFavour, getFavourView, getVacancyView } from '../engine/public';
 import { canRival } from '../engine/opposition';
 import {
   canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
@@ -510,17 +510,36 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
               const original = !st.name;
               const want = currentWant(s, p.id);
               const sponsor = base.sponsor && original ? PERSON_BY_ID[base.sponsor] : null;
+              // A post the President chose to leave empty (contract R5) is not a defection, and it can be filled.
+              const vacant = base.group === 'minister' ? getVacancyView(s)[p.id] : undefined;
               return (
-                <li key={p.id} className={`border p-4 ${st.gone ? 'border-alarm/40 opacity-70' : 'border-ink/20'}`}>
+                <li key={p.id} className={`border p-4 ${vacant ? 'border-honour/50' : st.gone ? 'border-alarm/40 opacity-70' : 'border-ink/20'}`}>
                   <p className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-serif text-xl">{p.name}</span>
-                    <span className={`font-serif ${st.gone || p.standing < 42 ? 'text-alarm' : p.standing >= 58 ? 'text-state' : ''}`}>
-                      {st.gone ? 'Gone to the opposition' : relWord(p.standing)}{leaned && !st.gone && ' (obeying)'}
+                    <span className={`font-serif ${vacant ? 'text-honour' : st.gone || p.standing < 42 ? 'text-alarm' : p.standing >= 58 ? 'text-state' : ''}`}>
+                      {vacant ? 'Vacant by your choice' : st.gone ? 'Gone to the opposition' : relWord(p.standing)}{leaned && !st.gone && ' (obeying)'}
                     </span>
                   </p>
+                  {vacant && (
+                    <div className="mt-2 text-[13px] leading-snug">
+                      <p>{vacant.previousName} left and nobody was appointed. Career staff carry on; the ministry has no one in charge until you fill it.</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(['technocrat', 'party'] as const).map((kind) => {
+                          const cost = sackCost(s, p.id);
+                          const ok = left > 0 && s.pc >= cost;
+                          return (
+                            <button key={kind} disabled={!ok} title={left <= 0 ? "This month's moves are used." : s.pc < cost ? `Needs ${cost} political capital.` : undefined} onClick={() => dispatch({ type: 'REPLACE_MINISTER', id: p.id, kind })} className={btn(ok)}>
+                              {kind === 'technocrat' ? 'Appoint a technocrat' : 'Appoint a party nominee'} · {cost} capital
+                            </button>
+                          );
+                        })}
+                        <button onClick={() => setSwap(swap === p.id ? null : p.id)} className={btn(true)}>{swap === p.id ? 'Close the list' : 'Choose someone…'}</button>
+                      </div>
+                    </div>
+                  )}
                   <p className="label text-ink-soft">{p.title} · influence {'●'.repeat(p.clout ?? 1)}{'○'.repeat(5 - (p.clout ?? 1))}</p>
                   <Bar v={p.standing} bad={p.standing < 42} />
-                  <p className="mt-2 text-sm leading-snug">{p.bio}</p>
+                  {!vacant && <p className="mt-2 text-sm leading-snug">{p.bio}</p>}
 
                   {p.zone && !st.gone && (
                     <p className={`mt-1 text-sm ${eff >= 0 ? 'text-state' : 'text-alarm'}`}>
