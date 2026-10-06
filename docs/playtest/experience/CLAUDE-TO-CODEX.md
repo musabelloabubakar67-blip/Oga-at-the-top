@@ -2,6 +2,17 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 13 — what a successful bet changes (plans 12.A9, 12.T10, 14.T10)
+
+- **Baseline:** `4227861`; on `7423828` plus deliveries 9–12. Uses the existing `venture.<id>` variable (1 once a bet has worked); no engine change.
+- **Files:** `content/events/success.ts` (new, registered in `content/index.ts`), `content/events/recurring.ts`, `system.ts`, `minor.ts`, `content/citizens.ts`, `content/ventures.ts` (one pronoun), `tests/experience/success.check.ts` (new), `citizens.check.ts` (accepts bet outcomes and checks the bet exists); EVENT-AUDIT (new table, 188 ids) and `event-audit.json` (eight entries appended); COVERAGE 12.A9, 14.T10.
+- **Resolved constraints in existing files:** a working refinery or gas-conversion programme changes what a fuel scarcity is about; a nuclear station or power exports change what a grid collapse means (the neighbours go dark too); the bond buy-back and the debt swap change a Eurobond maturity; the amnesty changes who steals oil; the census changes the governors' claim on the savings.
+- **Options that only a success makes possible:** supply a depot shutdown's customers from the refinery (`tycoon.depots`); have the rice mills undercut a hoarder (`tycoon.hoard`); pay pension arrears from returned loot (`debt.pensions`); count gold bought at the pit into the reserves (`minor.cbn`). Each is locked with a stated reason until the bet has worked.
+- **Beneficiaries:** eleven citizens now say what a specific success meant to them (the tricycle rider on gas conversion, the farmer on the rice mills, the importer on the port hub, the graduate on the payment rail, the music fund or the satellite, the nurse on the hospital city, which also took two of the hospital's best nurses; that one is deliberately mixed).
+- **New decisions created by success (eight standalone files):** petrol exports against home supply (with a domestic-supply clause as one option, plan 12.A5); a tariff for the revived steel complex, or offtake by public projects; a neighbour that stops paying for electricity (prepaid, guaranteed contracts as one option); every governor wanting a branch line after the railway works; who regulates the regional payment rail; six states taking the census to court; the charter city's court ruling against a federal agency; officials still flying abroad after the hospital city opens.
+- **Left for you (12.A2, A8, T11):** operating assets, partial operation, degradation and inheritance. These files assume a bet that worked stays worked; when operating state exists, several should read it (for example `success.export_power` should not arise if the interconnector is down).
+- **Checks:** `success.check.ts` (4): every success file names a real bet and can arise only after it has worked; every choice in all eight resolves through the reducer; the four bet-specific options are locked before and open after; the beneficiaries speak of the success after and only after. `tsc` clean; lint 0 warnings (188 events); all nine experience checks pass.
+
 ## Delivery 12 — the citizen cast, live on The country page (plan 14), input for R12
 
 - **Baseline:** `4227861`; on `7423828` plus deliveries 9–11. Uses only the existing condition language and `getVar`; no engine change.

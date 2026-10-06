@@ -17,6 +17,7 @@ import { ADVISER_POOL, CAST, FINANCE_CANDIDATES, NAMES } from '../../content/nam
 import { PEOPLE, RIVALS } from '../../content/people';
 import { STATE_BY_ID } from '../../content/states';
 import { TYCOONS } from '../../content/tycoons';
+import { VENTURE_BY_ID } from '../../content/ventures';
 import { newGame } from '../../engine/reduce';
 import type { Cond, GameState } from '../../engine/types';
 import { test } from '../../engine/vars';
@@ -48,7 +49,11 @@ check('every value a citizen reads is a real game value', () => {
   const paths = (c: Cond | undefined): string[] => !c ? [] : 'v' in c ? [c.v[0]] : 'all' in c ? c.all.flatMap(paths) : 'any' in c ? c.any.flatMap(paths) : 'not' in c ? paths(c.not) : [];
   for (const c of CITIZENS) {
     const used = [...c.dependsOn.map((d) => d.path), ...c.lines.flatMap((l) => paths(l.when)), ...c.responses.flatMap((r) => paths(r.when))];
-    for (const p of used) assert.match(p, KNOWN, `${c.id}: ${p} is not a value the game keeps`);
+    for (const p of used) {
+      // A big bet that worked: the bet must exist.
+      if (p.startsWith('venture.')) { assert.ok(VENTURE_BY_ID[p.slice('venture.'.length)], `${c.id}: no big bet ${p}`); continue; }
+      assert.match(p, KNOWN, `${c.id}: ${p} is not a value the game keeps`);
+    }
     assert.ok(c.lines.length >= 3, `${c.id}: needs at least three situations`);
   }
 });

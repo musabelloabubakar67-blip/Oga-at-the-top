@@ -65,6 +65,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Two children in school, a husband who drives for a ministry, a salary that arrives late more often than on time.',
     dependsOn: [{ path: 'nation.inflation', why: 'A fixed salary loses to every price rise.' }, { path: 'pressure.wageGrievance', why: 'Whether the wage talks are moving.' }, { path: 'budget.people', why: 'Schools and salaries come out of the same line.' }],
     lines: [
+      { when: { v: ['venture.census', '==', 1] }, text: 'The census found our school. For the first time the state has a teacher allocation for the children we actually have.' },
       { when: v('pressure.wageGrievance', '>=', 60), text: 'The union says strike. I cannot afford a strike and I cannot afford not to.' },
       { when: v('nation.inflation', '>=', 30), text: 'My salary buys half of what it bought when I started. I teach in the morning and sell recharge cards in the afternoon.' },
       { when: v('nation.inflation', '>=', 20), text: 'Prices went up again this term. I mark other schools\' exam scripts at night for the extra.' },
@@ -82,6 +83,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Three apprentices, a stall inherited from an aunt, a supplier in Cotonou and another in Kano.',
     dependsOn: [{ path: 'theatre.SE', why: 'Markets shut on Mondays when the agitation is strong.' }, { path: 'fx.premium', why: 'Imported cloth is priced at the street rate.' }, { path: 'nation.inflation', why: 'Customers buy less when food costs more.' }],
     lines: [
+      { when: { v: ['venture.coastal', '==', 1] }, text: 'Lagos to Accra in a day. I have customers in Accra now who used to buy in Lagos and resell.' },
       { when: v('theatre.SE', '>', 66), text: 'Monday is gone. Nobody orders it shut in writing. Nobody opens.' },
       { when: v('fx.premium', '>=', 20), text: 'I price in the morning and again at noon. The supplier will not hold a rate for a week.' },
       { when: v('theatre.SE', '>=', 58), text: 'Monday is quiet. A few of us open. Most wait to see who opens first.' },
@@ -99,6 +101,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Eleven hectares, four of them planted last year. A wife, five children and a brother\'s family since the attack on their village.',
     dependsOn: [{ path: 'theatre.NC', why: 'Whether it is safe to farm the far fields at planting time.' }, { path: 'budget.agric', why: 'Fertiliser and extension services.' }, { path: 'nation.petrolPrice', why: 'Diesel for the pump and transport to market.' }],
     lines: [
+      { when: { v: ['venture.rice', '==', 1] }, text: 'A mill buys paddy at the farm gate now, and pays the same week. I planted rice where the yams used to be.' },
       { when: v('theatre.NC', '>=', 66), text: 'We plant the fields we can see from the house. The rest is grass this year.' },
       { when: v('nation.petrolPrice', '>=', 1200), text: 'The lorry to Makurdi costs more than the yams in it.' },
       { when: v('theatre.NC', '<', 50), text: 'All eleven hectares are in. The soldiers on the road at night made the difference.' },
@@ -115,6 +118,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Twenty-two workers, two generators, and orders from three West African countries.',
     dependsOn: [{ path: 'nation.power', why: 'The workshop runs on diesel when the grid is down.' }, { path: 'nation.jobs', why: 'Demand from people with wages.' }, { path: 'fx.premium', why: 'Glue, leather dyes and machine parts are imported.' }],
     lines: [
+      { when: { v: ['venture.car', '==', 1] }, text: 'The people\'s car plant buys our seat covers. Twenty-two workers became thirty-five.' },
       { when: v('nation.power', '<', 35), text: 'Diesel is my biggest cost after wages. Some months it is bigger than wages.' },
       { when: v('nation.power', '>=', 55), text: 'The grid held for three weeks. I turned off a generator and hired two more people with what it saved.' },
       { when: v('fx.premium', '>=', 20), text: 'The buyers in Accra want a price for three months. I cannot give a price for three days.' },
@@ -131,6 +135,7 @@ export const CITIZENS: Citizen[] = [
     household: 'A warehouse in Ikeja, nine pharmacies as customers, and a credit line in dollars.',
     dependsOn: [{ path: 'fx.premium', why: 'Every pack is paid for in dollars.' }, { path: 'fx.reserves', why: 'Whether the banks will sell dollars at all.' }, { path: 'theatre.SW', why: 'The trucks use the expressway.' }],
     lines: [
+      { when: { v: ['venture.hub', '==', 1] }, text: 'Containers clear the port in two days now. I used to budget three weeks and a man to sit at the gate.' },
       { when: v('fx.reserves', '<', 18), text: 'The bank says it has no dollars this month. The pharmacies say they have no insulin.' },
       { when: v('fx.premium', '>=', 20), text: 'I buy dollars on the street now. The price of every medicine on my list has gone up by a third.' },
       { when: v('theatre.SW', '>', 62), text: 'Two of my drivers refuse the expressway after dark. Deliveries take a day longer.' },
@@ -148,6 +153,7 @@ export const CITIZENS: Citizen[] = [
     household: 'A tricycle on hire-purchase, a wife and three children, and a daily payment to the owner.',
     dependsOn: [{ path: 'nation.petrolPrice', why: 'Fuel is the day\'s first cost.' }, { path: 'pressure.fuelSupplyStress', why: 'Queues are hours not worked.' }, { path: 'nation.inflation', why: 'Passengers walk when food costs more.' }],
     lines: [
+      { when: { v: ['venture.cng', '==', 1] }, text: 'I converted the keke to gas. Fuel takes a third of what it did. The owner has noticed and raised the daily payment.' },
       { when: v('pressure.fuelSupplyStress', '>=', 50), text: 'I queued from five until eleven for fuel. By then the morning passengers were gone.' },
       { when: v('nation.petrolPrice', '>=', 1200), text: 'Fares went up. Passengers went down. I carry four people where I used to carry three.' },
       { when: { flag: 'policy.subsidy', is: 'removed' }, text: 'They said the subsidy money would come back to us as buses and cash. I am still waiting to see which.' },
@@ -165,6 +171,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Lives with parents in Ibadan. Two years out of university, one year of national service, forty applications.',
     dependsOn: [{ path: 'nation.jobs', why: 'Whether there are jobs for graduates at all.' }, { path: 'nation.integrity', why: 'Whether jobs go to the qualified or the connected.' }, { path: 'nation.power', why: 'The freelance work needs a laptop that is charged.' }],
     lines: [
+      { when: { any: [{ v: ['venture.fintech', '==', 1] }, { v: ['venture.creative', '==', 1] }, { v: ['venture.satellite', '==', 1] }] }, text: 'I got a job building the thing the country now exports. Half my class is applying behind me.' },
       { when: v('nation.jobs', '<', 36), text: 'Every interview asks who sent me. My father has stopped asking how the interviews went.' },
       { when: v('nation.jobs', '>=', 45), text: 'Two offers in a month. I took the one that pays less and trains more.' },
       { when: v('nation.integrity', '<', 30), text: 'The recruitment exercise was cancelled. The list of the hired was published before the test.' },
@@ -182,6 +189,7 @@ export const CITIZENS: Citizen[] = [
     household: 'A canoe, nets mended every Sunday, and a family that also farms cassava on the riverbank.',
     dependsOn: [{ path: 'theatre.SS', why: 'Oil theft means spills, and spills mean no fish.' }, { path: 'nation.integrity', why: 'Whether spill compensation is paid to the people who lost the fish.' }],
     lines: [
+      { when: { v: ['venture.amnesty', '==', 1] }, text: 'The boys who used to break the pipes are on stipends. The creek is quieter. Everyone knows what happens if the stipends stop.' },
       { when: v('theatre.SS', '>', 64), text: 'There is oil on the water again from the illegal refineries. The fish have gone where we cannot follow.' },
       { when: { flag: 'oil.metered' }, text: 'Since they put meters on the terminals the barges come less often. The creek is cleaner this season.' },
       { when: v('theatre.SS', '>', 55), text: 'Some weeks there is a sheen on the water. The old men say the creek was never like this.' },
@@ -199,6 +207,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Six people in one shelter. The farm is forty kilometres north, in a district nobody has been allowed to return to.',
     dependsOn: [{ path: 'theatre.NE', why: 'Whether the home district is safe.' }, { path: 'budget.people', why: 'Food and services in the camp.' }],
     lines: [
+      { when: { v: ['venture.wheat', '==', 1] }, text: 'The wheat scheme hires people from the camp to work the irrigated plots. It is not our land, but it is work, and it is farming.' },
       { when: v('theatre.NE', '>=', 76), text: 'More families arrived this week from another town. The ration was cut to make room.' },
       { when: v('theatre.NE', '>=', 70), text: 'Nobody from our district has been allowed home this year. We hear the fields have gone back to bush.' },
       { when: v('theatre.NE', '<', 55), text: 'They are letting families go home to two districts. We have been told ours is next.' },
@@ -216,6 +225,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Thirty-four years of service, a widow\'s house in Enugu, and a pension that is paid when it is paid.',
     dependsOn: [{ path: 'debt.pensions', why: 'Arrears owed to retired federal workers.' }, { path: 'nation.inflation', why: 'A fixed pension loses to every price rise.' }],
     lines: [
+      { when: { v: ['venture.loot', '==', 1] }, text: 'They say the money from the flats in London will pay our arrears. I will believe it when the alert comes.' },
       { when: v('debt.pensions', '>', 1), text: 'Fifty months owed. I go to the verification office every quarter to prove I am alive.' },
       { when: v('debt.pensions', '>', 0.3), text: 'They paid some arrears. Not mine. The office says my file is "under processing".' },
       { when: v('debt.pensions', '<=', 0.1), text: 'The pension came into the bank on the first of the month. I told everyone at church.' },
@@ -231,6 +241,7 @@ export const CITIZENS: Citizen[] = [
     household: 'Night shifts, a husband who teaches, and a cousin abroad who keeps sending application forms.',
     dependsOn: [{ path: 'budget.people', why: 'Drugs, equipment and salaries in public hospitals.' }, { path: 'nation.power', why: 'The theatre runs on a generator when the grid fails.' }, { path: 'pressure.wageGrievance', why: 'Strikes by doctors and nurses.' }],
     lines: [
+      { when: { v: ['venture.hospital', '==', 1] }, text: 'Two of our best nurses went to the hospital city. It pays better. The patients who used to fly abroad go there now, and the ones who cannot still come to us.' },
       { when: v('pressure.wageGrievance', '>=', 60), text: 'The doctors are on strike. We nurses are not, so the ward is ours, and we are not doctors.' },
       { when: v('nation.power', '<', 32), text: 'We delivered a baby by torchlight on Tuesday. The diesel for the generator had been "approved".' },
       { when: v('nation.power', '>=', 55), text: 'The power has been steady for a month. The oxygen machine has not stopped once.' },

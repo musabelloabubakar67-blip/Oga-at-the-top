@@ -70,7 +70,7 @@ const contractors = (cost = 0.2): Risk => ({
 const minister = (id: string, title: string, cost = 0.18): Risk => ({
   id: 'minister', label: `A capable ${title} (competence 4 or better)`, ok: v(`comp.${id}`, '>=', 4), cost,
   warn: `The ${title} has not visited the site and cannot say what stage it is at.`,
-  fail: `Nobody was in charge. The ${title} signed what was put in front of him and learned of the collapse from the newspapers.`,
+  fail: `Nobody was in charge. The ${title} signed what was put in front of them and learned of the collapse from the newspapers.`,
   fix: `Replace the ${title} with a technocrat (Politics, Your ministers).`,
 });
 const power = (n: number, cost = 0.2): Risk => ({

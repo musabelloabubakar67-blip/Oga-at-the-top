@@ -269,8 +269,21 @@ Type is what the scene is: **decision**, **escalation** (a decision inside a run
 | `react.venture_won` | closing | Keep | | Present as a closing report. |
 | `bet.trouble` | escalation | Keep · Rebuild (plan 12) | Varies by bet. | Partial outcomes and operations. |
 
+### What success brings (new, delivery 13)
+
+| Event | Type | Verdict | Finding | Next |
+|---|---|---|---|---|
+| `success.refinery` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.steel` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.export_power` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.rail` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.fintech` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.census` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.charter` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.hospital` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+
 ## Coverage
 
-All 180 event ids in the registry are named in the tables above (checked by script against `event-audit.json`). Fourteen confirmed defects are listed as D1 to D14. Repetition: 53 events can fire more than once; of these, the ones marked Rebuild (R2) or Revise for recurrence repeat their body without a material development and must gain one.
+All 188 event ids in the registry are named in the tables above (the original 180 checked by script against `event-audit.json`; the eight files of delivery 13 are listed in their own table). Fourteen confirmed defects are listed as D1 to D14. Repetition: 53 events can fire more than once; of these, the ones marked Rebuild (R2) or Revise for recurrence repeat their body without a material development and must gain one.
 
 This document is updated in the same commit as each change it describes.

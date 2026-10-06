@@ -342,6 +342,16 @@ export const SYSTEM: GameEvent[] = [
           flags: { 'pensions.last': 'condole' }, archive: 'Ordered an inquiry after a pensioner died waiting to be paid.', sig: 2,
         }],
       },
+      {
+        id: 'loot', label: 'Pay them from the money returned from abroad', requires: { v: ['venture.loot', '==', 1] }, locked: 'No looted money has been returned.',
+        outcomes: [{
+          result: 'You announce that the first call on the returned loot is the people it was stolen from. The payments begin within the week, and the papers print the two figures side by side.',
+          fx: [['nation.integrity', 1], ['approval', 2], ['bloc.press', 2]],
+          ops: [['paydebt', 'pensions', 1]],
+          news: ['RECOVERED LOOT TO CLEAR PENSION ARREARS', 'THE MONEY DEM THIEF DON PAY PENSIONERS'],
+          flags: { 'pensions.last': 'pay' }, archive: 'Paid pension arrears from recovered loot.', sig: 3,
+        }],
+      },
     ],
   },
   {
@@ -356,6 +366,8 @@ export const SYSTEM: GameEvent[] = [
       { when: v('nation.debt', '>=', 90), text: 'At the present level of debt, nobody will lend you the money to replace it.' },
       { when: v('count.debt.maturity', '>=', 2), text: 'This is the second of the old government\'s foreign bonds to fall due on your watch.' },
       { when: { flag: 'maturity.rolled' }, text: 'Part of what is owed is the bond sold to repay the last one, at the higher coupon.' },
+      { when: { v: ['venture.buyback', '==', 1] }, text: 'A third of the foreign debt was bought back below face value. This bond is one of the few that the Debt Office could not reach.' },
+      { when: { v: ['venture.swap', '==', 1] }, text: 'The creditors in the debt-for-development swap are watching how this one is handled. Their auditors are in the building.' },
     ],
     trace: [['nation.debt', 1], ['debt.eurobond', 1]],
     reads: [
@@ -416,6 +428,7 @@ export const SYSTEM: GameEvent[] = [
       { when: { flag: 'fundshare.last', is: 'abroad' }, text: 'Last time the money went abroad overnight. This letter went out the day the figure was published, and it is copied to every senator.' },
       { when: { flag: 'fundshare.last', is: 'arrears' }, text: 'Last time the account paid the pensioners. The governors have since asked the Debt Office how much of that debt is left to pay.' },
       { when: { flag: 'fundshare.last', is: 'refuse' }, text: 'They were refused last time. This letter is shorter, and copied to the party chairman.' },
+      { when: { v: ['venture.census', '==', 1] }, text: 'Since the census the governors argue from published figures, and six of them argue less.' },
     ],
     trace: [['fund.buffer', 1]],
     reads: [
@@ -631,6 +644,15 @@ export const SYSTEM: GameEvent[] = [
           archive: 'Waited out a rice shortage.',
         }],
       },
+      {
+        id: 'mills', label: 'Have the rice mills sell straight to the markets', requires: { v: ['venture.rice', '==', 1] }, locked: 'The country does not yet grow and mill enough rice to sell.',
+        outcomes: [{
+          result: 'The mills that now export to Cotonou sell into the markets at the mill-gate price. His warehouses hold the most expensive rice in the country.',
+          fx: [['nation.inflation', -2], ['tycoon.ty_trade', -8], ['bloc.street', 3], ['zone.NW.approval', 1]],
+          news: ['LOCAL MILLS UNDERCUT HOARDERS AS RICE PRICES FALL', 'NA OUR OWN RICE DON BREAK EZEUDU HOARDING'],
+          archive: 'Broke a rice shortage with the country\'s own harvest.', sig: 2,
+        }],
+      },
     ],
   },
   {
@@ -733,6 +755,15 @@ export const SYSTEM: GameEvent[] = [
           fx: [['approval', -3], ['bloc.street', -4], ['pressure.fuelSupplyStress', 10]],
           news: ['FUEL QUEUES SPREAD TO SIX CITIES', 'NO FUEL. GOVERNMENT SAY NA "MAINTENANCE"'],
           flags: { 'depots.last': 'wait' }, archive: 'Waited out a fuel scarcity engineered by Amangala.',
+        }],
+      },
+      {
+        id: 'refinery', label: 'Supply his customers straight from the refinery', requires: { v: ['venture.refinery', '==', 1] }, locked: 'There is no working refinery to supply from.',
+        outcomes: [{
+          result: 'The refinery\'s tankers go to the forecourts his depots usually serve. The queues shorten within a week. His maintenance turns out to be finished.',
+          fx: [['pressure.fuelSupplyStress', -20], ['tycoon.ty_fuel', -6], ['approval', 1]],
+          news: ['REFINERY SUPPLIES STATIONS AS PRIVATE DEPOTS SHUT', 'OUR OWN REFINERY DON SAVE US. AMANGALA DEPOT FIT CLOSE'],
+          flags: { 'depots.last': 'refinery' }, archive: 'Broke a depot shutdown with petrol from the country\'s own refinery.', sig: 2,
         }],
       },
     ],
@@ -1083,6 +1114,7 @@ export const SYSTEM: GameEvent[] = [
       { when: { flag: 'oil.metered' }, text: 'The terminals are metered and the volumes published. The theft has moved upstream of the meters, to the wellheads and the pipelines.' },
       { when: { flag: 'ssoil.last', is: 'contract' }, text: 'The men paid to guard the pipelines last time are guarding them. The theft has moved to the lines they were not paid to guard.' },
       { when: { flag: 'ssoil.last', is: 'navy' }, text: 'The refineries the navy burned last time have been rebuilt, most of them on the same sites.' },
+      { when: { v: ['venture.amnesty', '==', 1] }, text: 'The men who handed in weapons under the amnesty are still on stipends and out of the creeks. The stealing is done by those who were never on the list.' },
     ],
     trace: [['theatre.SS', 1], ['nation.integrity', -1]],
     reads: [

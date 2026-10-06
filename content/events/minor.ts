@@ -599,6 +599,14 @@ export const MINOR: GameEvent[] = [
           flags: { 'cbn.forward': true }, archive: 'Brought forward oil receipts to prop up the reserves.',
         }],
       },
+      {
+        id: 'gold', label: 'Count the gold bought from the diggers into the reserves', requires: { v: ['venture.gold', '==', 1] }, locked: 'The central bank does not yet buy gold at the pit.',
+        outcomes: [{
+          result: 'The gold the central bank has bought at the pit head is valued into the reserves. The figure that worried the Governor no longer does, and nothing had to be borrowed.',
+          fx: [['fx.reserves', 5], ['bloc.establishment', 2]],
+          archive: 'Counted domestically bought gold into the reserves.',
+        }],
+      },
     ],
     ignored: {
       result: 'The Governor keeps defending the rate. The reserves keep falling.',
