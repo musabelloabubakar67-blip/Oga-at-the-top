@@ -11,6 +11,7 @@ import { PERSON_BY_ID } from '../content/people';
 import { BACKGROUNDS, NAMES_BY_ZONE, ROLE_SPECS, SPEC_NAME, TITLES, type Spec } from '../content/talent';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from './config';
+import { chooseGeneratedName, fullGeneratedName } from './generated-names';
 import type { GameState, ZoneId } from './types';
 import { approval, clamp } from './vars';
 
@@ -55,19 +56,16 @@ const weighted = (r: () => number, w: number[]): number => { const t = w.reduce(
 function generate(s: GameState, t: Talent, spec?: Spec, floor = 1): Candidate {
   t.seq += 1;
   const r = prng((s.seed ?? 1) * 7919 + t.seq * 104729);
-  const zone = pickOf(r, ZONES);
+  let zone = pickOf(r, ZONES);
   const sp = spec ?? pickOf(r, SPECS);
   const female = r() < 0.35;
   const bank = NAMES_BY_ZONE[zone];
   const used = new Set([...t.pool.map((c) => c.name), ...t.taken]);
-  let name = '', last = '';
-  for (let i = 0; i < 6; i++) {
-    const first = pickOf(r, female ? bank.f : bank.m);
-    last = pickOf(r, bank.last);
-    const title = pickOf(r, female ? TITLES[sp].f : TITLES[sp].m);
-    name = `${title} ${first} ${last}`;
-    if (!used.has(name)) break;
-  }
+  const zones = [zone, ...ZONES.filter((z) => z !== zone)];
+  const selected = chooseGeneratedName(() => ({ first: pickOf(r, female ? bank.f : bank.m), last: pickOf(r, bank.last), title: pickOf(r, female ? TITLES[sp].f : TITLES[sp].m), zone }),
+    zones.flatMap((z) => [female, !female].map((f) => ({ zone: z, firsts: f ? NAMES_BY_ZONE[z].f : NAMES_BY_ZONE[z].m, lasts: NAMES_BY_ZONE[z].last, titles: f ? TITLES[sp].f : TITLES[sp].m }))), used, 6);
+  const name = fullGeneratedName(selected), last = selected.last;
+  zone = selected.zone;
   const competence = Math.max(floor, 1 + weighted(r, [10, 25, 35, 22, 8]));
   const integrity = 1 + weighted(r, [10, 20, 35, 25, 10]);
   const loyalty = 2 + weighted(r, [25, 40, 25, 10]);
