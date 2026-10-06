@@ -51,6 +51,7 @@ import { ZONES, ZONE_NAME, approval, test } from '../engine/vars';
 import { blocView, gauges, outlook, previewChoice, recordOf, resolveRead, traceFor } from '../engine/view';
 import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
+import { Citizens } from './Citizens';
 import { Register } from './Register';
 import { BudgetModal, TreasuryModal } from './Treasury';
 import { getGovernanceView } from '../engine/public';
@@ -1581,6 +1582,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                   <h2 className="mt-1 mb-4 font-serif text-3xl">Where the votes are, and where the danger is</h2>
                   <StateMap s={s} />
                 </div>
+                <Citizens s={s} />
                 <Inline.Provider value={true}><NationModal s={s} dispatch={dispatch} onClose={() => {}} /></Inline.Provider>
               </div>
             )}

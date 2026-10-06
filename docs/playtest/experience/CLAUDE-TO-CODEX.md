@@ -2,6 +2,17 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 12 — the citizen cast, live on The country page (plan 14), input for R12
+
+- **Baseline:** `4227861`; on `7423828` plus deliveries 9–11. Uses only the existing condition language and `getVar`; no engine change.
+- **Files:** `content/citizens.ts` (new), `ui/Citizens.tsx` (new), `ui/Desk.tsx` (the panel sits under the map on The country page), `tests/experience/citizens.check.ts` (new); `names.check.ts` covers the citizens; COVERAGE 14.A1–A3, 14.T9.
+- **What it is:** eleven recurring people, one per way of earning a living or failing to: a teacher in Kaduna, a fabric trader in Onitsha, a farmer in Benue, a shoe-workshop owner in Aba, a medicine importer in Lagos, a tricycle rider in Kano, a graduate in Ibadan, a fisher in Bayelsa, a displaced family near Maiduguri, a railway pensioner in Enugu, a nurse in Minna. Each names the game values their life turns on (inflation, petrol price, power, jobs, integrity, the street-rate premium, reserves, their theatre, pension arrears, the budget share), and says something different depending on them. At the opening, all eleven are reacting to something specific.
+- **Live vs proposed:** what they *say* is evaluated from state every month and shown now. What they *would do* (organise, petition, move, change work, back an alternative) is authored with conditions and shown labelled "Proposed · not yet acted on in the game". That is the R12 input: those responses are the behaviour I would like the engine to carry as persistent citizen state, with consequences (relocation changes a state's economy; organising feeds labour pressure; backing an alternative feeds a rival).
+- **Plan 14 acceptance T9:** checked in content: with low inflation, steady power, jobs and a stable naira, the Benue farmer still says the far fields are grass (the farm belt is unsafe), while the Aba manufacturer says the grid held.
+- **Names:** eleven kept after web searches on 6 October 2026; five rejected, two of them because the exact names belong to real people in news reports of a death and of a displacement (listed in the file header).
+- **Browser check (port 3419, throwaway save deleted afterwards):** the panel lists eleven people with distinct opening lines; expanding a card shows the household, each dependency with its current value in words ("calm", "serious", "24% inflation", "health and schools at the usual share this year"), and what helps and hurts them. 375px: no horizontal scroll. No runtime errors after the final edit (the console's earlier entries were from intermediate saves).
+- **Checks:** `citizens.check.ts` (6): unique and non-colliding names, real states matching zones; every path read is a real game value; the five representative groups of 14.A3 present and all six zones covered; no single voice at the opening; T9 as above; no gendered pronouns. `tsc` clean; lint 0 warnings; all eight experience checks pass.
+
 ## Delivery 11 — the military cast and mission drafts (plan 13), input for R9
 
 - **Baseline:** `4227861`; on `7423828` plus deliveries 9–10. Nothing in the engine reads the new file yet.

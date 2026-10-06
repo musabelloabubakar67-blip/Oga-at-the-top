@@ -7,6 +7,7 @@
 
 import assert from 'node:assert/strict';
 import { CANDIDATES } from '../../content/candidates';
+import { CITIZENS } from '../../content/citizens';
 import { OFFICERS } from '../../content/military';
 import { BENCH, NOMINEES } from '../../content/courts';
 import { ADVISER_POOL, CAST, FINANCE_CANDIDATES, NAMES } from '../../content/names';
@@ -30,7 +31,7 @@ check('no named character can be generated', () => {
   const names = [
     ...Object.values(NAMES), ...CAST.map((c) => c.name), ...PEOPLE.map((p) => p.name), ...RIVALS.map((r) => r.name),
     ...TYCOONS.map((t) => t.name), ...FINANCE_CANDIDATES.map((c) => c.name), ...ADVISER_POOL.map((c) => c.name),
-    ...CANDIDATES.map((c) => c.name), ...NOMINEES.map((n) => n.name), ...BENCH.map((b) => b.name), ...OFFICERS.map((o) => o.name),
+    ...CANDIDATES.map((c) => c.name), ...NOMINEES.map((n) => n.name), ...BENCH.map((b) => b.name), ...OFFICERS.map((o) => o.name), ...CITIZENS.map((c) => c.name),
   ].filter((n): n is string => typeof n === 'string');
   const open: string[] = [];
   for (const full of names) {
