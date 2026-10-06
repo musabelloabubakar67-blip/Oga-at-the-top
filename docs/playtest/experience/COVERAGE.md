@@ -142,13 +142,13 @@ Baseline `4227861`. Contract v0.
 | 12.T10 | Each bet demonstrably changes a specific system beyond generic bonuses. | joint | planned | |
 | 12.T11 | Successful assets can operate, degrade, recover and be inherited. Partial delivery remains useful and historically distinguishable. | joint | planned | |
 | 13.A1 | Separate military capability from national security outcomes. Track readiness, personnel, command/intelligence and conduct through readable diagnostics. |  | planned | |
-| 13.A2 | Add named defence leadership, operational commanders and logistics expertise with differing professional positions and political ties. |  | planned | |
-| 13.A3 | Choose mission objectives, priority theatres, resources, conduct limits and success evidence; delegate operational execution. |  | planned | |
+| 13.A2 | Add named defence leadership, operational commanders and logistics expertise with differing professional positions and political ties. |  | authored, not integrated | content/military.ts: thirteen named officers (defence leadership, intelligence, logistics, procurement, a commander per theatre) with doctrines that disagree, political ties, needs with dollar shares, unresolved records; military.check.ts. Waits on R9. |
+| 13.A3 | Choose mission objectives, priority theatres, resources, conduct limits and success evidence; delegate operational execution. |  | authored, not integrated | content/military.ts MISSIONS: eight drafts across all six theatres with objectives, conduct limits, verifiable evidence and what must follow. Waits on R9. |
 | 13.A4 | Connect pay, supplies, procurement, maintenance and dollar-dependent spare parts to actual accounts and readiness. |  | planned | |
 | 13.A5 | Model local cooperation, civilian harm, intelligence and displacement. Tactical gains need not produce lasting security. |  | planned | |
 | 13.A6 | Add procurement investigations, command disputes, appointments, leaks, ambition and resistance to political misuse. Coup risk is exceptional and causally grounded, not the institution's sole purpose. |  | planned | |
 | 13.A7 | Add distinct military/logistics/corridor/repair/intelligence/demobilisation bets with partial outcomes and continuing support requirements. |  | planned | |
-| 13.A8 | Preserve command transitions, contracts, deployments, professional improvements and unresolved abuses across governments. |  | planned | |
+| 13.A8 | Preserve command transitions, contracts, deployments, professional improvements and unresolved abuses across governments. |  | authored, not integrated | Unresolved records carried by officers (an unreleased board of inquiry, half-paid compensation, missing spare-parts packages). Waits on R9. |
 | 13.T9 | A corridor campaign produces a year of causally connected funding, operational, civilian and political developments. Coverage must extend across the game's theatres; this scenario is a verification case, not a pilot-only scope. | joint | planned | |
 | 13.T10 | Professionalisation reduces routine presidential workload while strengthening lawful institutional limits. | joint | planned | |
 | 14.A1 | Introduce recurring households, workers and businesses driven by actual prices, access, employment, security, power and service outcomes. |  | planned | |

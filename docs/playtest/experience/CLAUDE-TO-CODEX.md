@@ -2,6 +2,16 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 11 — the military cast and mission drafts (plan 13), input for R9
+
+- **Baseline:** `4227861`; on `7423828` plus deliveries 9–10. Nothing in the engine reads the new file yet.
+- **Files:** `content/military.ts` (new), `tests/experience/military.check.ts` (new); `names.check.ts` now also covers the officers; COVERAGE 13.A2, 13.A3, 13.A8.
+- **The cast (13 officers):** Chief of Defence Staff (Gajiram, *hold ground*), Army (Dangora, *manoeuvre*), Navy (Ibiene, *buy boats*), Air (Oyedokun, *air power*), Defence Intelligence (Obiorah, *know first*), Defence Logistics (Ubom, *maintain what exists*), Defence Procurement (Mallumbe, *buy new*), and a commander for each theatre: NE Dakwak, NW Dankama, NC Agera, SW Ajiboye, SE Ezeagu, SS Opuama. Each has a stated professional position, a career, traits (`restraint` = how firmly they refuse an unlawful or political order), a political tie (`gov_ne`, `ty_fuel`, `min_defence`, `sen_approp`, `gov_nw`, `gov_nc`, `gov_sw`, `gov_ss`, or none), what the command needs a year with the share payable in dollars (13.A4), and, for three of them, an unresolved record that should survive changes of government (13.A8). Seven substantive disputes between pairs of them (garrisons against mobile brigades; air strikes near civilians; maintenance against purchases; boats against following the money).
+- **Mission drafts (13.A3, 13.A5):** eight across all six theatres, each with an objective, conduct limits, verifiable evidence (counted by someone other than the army) and what must follow for the gain to last; the officers who argue for and against each are named.
+- **Names:** 13 kept after web searches on 6 October 2026; six rejected (listed in the file header with reasons).
+- **For R9:** the requested `Mission` shape maps onto `MissionDraft` (`commander` = the theatre's officer; `limits` = conduct; `evidence`; `lasting` = the follow-up that decides whether security holds). `needs.naira` and `needs.dollarShare` are proposed readiness inputs; `record` is proposed carried state. Proposed defaults only: change the numbers freely.
+- **Checks:** `military.check.ts` (6): every post held once and every theatre commanded; no name or surname collision with any character; ties, disputes and mission sides resolve; traits in range and at least five distinct doctrines; every theatre has a mission draft; no gendered pronouns. `tsc` clean; lint 0 warnings; all seven experience checks pass.
+
 ## Delivery 10 — every repeating file now develops (D14)
 
 - **Baseline:** `4227861`; on `7423828` plus delivery 9. No engine contract consumed beyond the existing condition language and cast substitution.
