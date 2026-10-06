@@ -13,7 +13,7 @@ export const RECORD: { kind: 'win' | 'loss'; when: Cond; text: string }[] = [
   { kind: 'win', when: { flag: 'wage.agreement', is: 'funded' }, text: 'A minimum wage that is actually paid' },
   { kind: 'loss', when: { flag: 'wage.agreement', is: 'signed_unfunded' }, text: 'A minimum wage most states do not pay' },
   { kind: 'win', when: { flag: 'flood.defences' }, text: 'Committed to permanent flood defences' },
-  { kind: 'win', when: { flag: 'refinery.sold' }, text: 'Sold the refinery to someone who will run it' },
+  { kind: 'win', when: { flag: 'refinery.sold' }, text: 'Sold the Rivers refinery to someone who will run it' },
   { kind: 'win', when: { flag: 'grain.reserve' }, text: 'Filled the strategic grain reserve' },
   { kind: 'win', when: { flag: 'drawer.sealed' }, text: 'Put the security vote on the books' },
   { kind: 'win', when: { v: ['fund.abroad', '>=', 1] }, text: 'A sovereign fund abroad that the party cannot reach' },

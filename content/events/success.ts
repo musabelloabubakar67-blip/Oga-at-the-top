@@ -17,7 +17,7 @@ export const SUCCESS_FILES: GameEvent[] = [
     office: 'Federal Ministry of Petroleum Resources', stamp: 'CONFIDENTIAL',
     title: 'The neighbours want to buy our petrol',
     body: [
-      'The refinery is running above its rated output. Three neighbouring governments have asked to buy what the country does not use, in dollars, at the market price.',
+      'The Rivers refinery is running above its rated output. Three neighbouring governments have asked to buy what the country does not use, in dollars, at the market price.',
       'The marketers point out that "what the country does not use" depends on what the regulated price is, and that the queues come back whenever cargoes leave.',
     ],
     reads: [

@@ -905,7 +905,8 @@ export const POLITICS: GameEvent[] = [
         id: 'restructure', label: 'Open restructuring talks with creditors', pc: 8,
         outcomes: [{
           result: 'Talks open in London. The ratings agencies call it a selective default. It is a year before anyone will lend again.',
-          fx: [['nation.debt', -22], ['bloc.establishment', -10], ['nation.fiscalSpace', -0.3], ['nation.power', -2], ['tycoon.ty_bank', -8]],
+          // A haircut: about a third of the bonds' principal written off, at the cost of the country's credit.
+          fx: [['debt.eurobond', -2], ['debt.bonds', -3.5], ['debt.rates', 4], ['bloc.establishment', -10], ['nation.fiscalSpace', -0.3], ['nation.power', -2], ['tycoon.ty_bank', -8]],
           news: ['NIGERIA SEEKS DEBT RESTRUCTURING', 'WE NO FIT PAY. GOVERNMENT GO BEG CREDITORS'],
           flags: { 'crisis.last': 'restructure' }, archive: 'Opened debt restructuring talks.', sig: 3,
         }],

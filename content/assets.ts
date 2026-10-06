@@ -24,6 +24,8 @@ export interface AssetDef {
 /** The running record of each asset. */
 const RECORDS: Record<string, AssetDef['record']> = {
   refinery: [{ label: 'Barrels refined', per: 2.7, unit: 'million' }, { label: 'Petrol imports replaced', per: 9, unit: '₦bn' }],
+  refinery_delta: [{ label: 'Barrels refined', per: 1.1, unit: 'million' }, { label: 'Petrol imports replaced', per: 3.6, unit: '₦bn' }],
+  refinery_kaduna: [{ label: 'Barrels refined', per: 0.8, unit: 'million' }, { label: 'Petrol imports replaced', per: 2.4, unit: '₦bn' }],
   steel: [{ label: 'Steel rolled', per: 40, unit: 'thousand tonnes' }, { label: 'People employed', per: 0.4, unit: 'thousand' }],
   charter: [{ label: 'Firms registered', per: 30 }, { label: 'Residents', per: 2.5, unit: 'thousand' }],
   cannabis: [{ label: 'Tonnes exported', per: 18 }, { label: 'Licensed farmers', per: 120 }],
@@ -44,7 +46,9 @@ const RECORDS: Record<string, AssetDef['record']> = {
 };
 
 const DEFS: Record<string, Omit<AssetDef, 'record'>> = {
-  refinery: { name: 'The rehabilitated refinery', sites: ['RI', 'DE', 'KD'], fiscal: 0.012, fx: [['pressure.fuelSupplyStress', -0.4], ['nation.jobs', 0.01]] },
+  refinery: { name: 'The revived Rivers refinery', sites: ['RI'], fiscal: 0.012, fx: [['pressure.fuelSupplyStress', -0.4], ['nation.jobs', 0.01]] },
+  refinery_delta: { name: 'The revived Delta refinery', sites: ['DE'], fiscal: 0.006, fx: [['pressure.fuelSupplyStress', -0.2], ['nation.jobs', 0.01]] },
+  refinery_kaduna: { name: 'The revived Kaduna refinery', sites: ['KD'], fiscal: 0.005, fx: [['pressure.fuelSupplyStress', -0.15], ['nation.jobs', 0.01]] },
   steel: { name: 'The steel complex', sites: ['KO', 'DE', 'ED'], fiscal: 0.01, fx: [['nation.jobs', 0.03]] },
   charter: { name: 'The charter city', sites: ['LA', 'OG', 'AK', 'CR', 'DE'], fiscal: 0.012, fx: [['nation.jobs', 0.04]] },
   cannabis: { name: 'The licensed cannabis farms', sites: ['ON', 'ED', 'OS', 'EK'], fiscal: 0.008, fx: [['nation.jobs', 0.01]] },

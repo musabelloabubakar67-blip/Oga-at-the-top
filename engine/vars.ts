@@ -1,8 +1,9 @@
 import { favourBelongs, favourParties } from './favour-ledger';
 import { hasCapability } from './recruitment';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
+import { REFINERIES } from '../content/holdings';
 import { CFG, monthOf, termTurnOf } from './config';
-import { addOwed, shiftPoints } from './ledger';
+import { addOwed, shiftPoints, shiftRates } from './ledger';
 import { rand } from './rng';
 import type { BlocId, Cond, DebtId, Favour, Fx, FundId, GameState, Nation, Pressures, SectorId, ZoneId } from './types';
 
@@ -222,6 +223,8 @@ export function getVar(s: GameState, path: string): number {
     case 'era': return s.era;
     // Cases the Villa has leaned on (an opening constraint can promise none).
     case 'holding': return s.holdings?.[p[1]]?.share ?? 1;
+    // How many of the three refineries have been brought back to work.
+    case 'refineries': return REFINERIES.filter((r) => s.ventures.won.includes(r.venture)).length;
     case 'cases': return p[1] === 'leaned' ? (s.cases ?? []).filter((c) => c.leaned).length : (s.cases ?? []).length;
     case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;
     case 'pred': if (p[1] === 'rel') return s.predecessor?.rel ?? 50;
@@ -338,7 +341,8 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
       return note();
     case 'sec': s.counters[target] = (s.counters[target] ?? 0) + delta; return note();
     case 'campaign': s.campaign.chest = Math.max(0, s.campaign.chest + delta); return;
-    case 'debt': if (s.debts[p[1] as DebtId] !== undefined) addOwed(s, p[1] as DebtId, delta); return note();
+    // 'debt.rates': points of debt service through the interest rate on market debt (downgrades, credibility).
+    case 'debt': if (p[1] === 'rates') shiftRates(s, delta); else if (s.debts[p[1] as DebtId] !== undefined) addOwed(s, p[1] as DebtId, delta); return note();
     case 'fund': { const k = p[1] as FundId; if (s.funds[k] !== undefined) s.funds[k] = Math.max(0, s.funds[k] + delta); return note(); }
     case 'tycoon': { const t = s.tycoons[p[1]]; if (t) t.rel = clamp(t.rel + delta, 0, 100); return note(); }
     case 'fx': if (s.fx) {

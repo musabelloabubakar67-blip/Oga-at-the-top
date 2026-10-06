@@ -7,7 +7,7 @@
 // diligence; what is sold stops earning; nothing can be sold twice, or while it
 // is pledged or already on the market.
 
-import { HOLDINGS, HOLDING_BY_ID, METHOD, TAX_ARREARS_START, type SaleMethod } from '../content/holdings';
+import { HOLDINGS, HOLDING_BY_ID, METHOD, REFINERIES, REVIVED_VALUE, TAX_ARREARS_START, type Holding, type SaleMethod } from '../content/holdings';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from './config';
 import { addOwed } from './ledger';
@@ -28,19 +28,33 @@ export const COLLECT_PC = 3;
 
 export function ensureHoldings(s: GameState): Record<string, HoldingState> {
   s.holdings ??= Object.fromEntries(HOLDINGS.map((h) => [h.id, { share: 1, history: [] }]));
+  // Saves from before the refineries were three: each plant inherits what was left of the old holding.
+  const old = s.holdings.refineries;
+  if (old) {
+    for (const r of REFINERIES) s.holdings[r.holding] ??= { share: old.share, history: [...old.history] };
+    delete s.holdings.refineries;
+    for (const x of s.sales ?? []) if (x.holding === 'refineries') x.holding = REFINERIES[0].holding;
+  }
   for (const h of HOLDINGS) s.holdings[h.id] ??= { share: 1, history: [] };
   s.sales ??= [];
   s.receivables ??= { tax: TAX_ARREARS_START };
   return s.holdings;
 }
 
+/** A refinery whose rehabilitation has been won is a working plant. */
+export const revived = (s: GameState, h: Holding): boolean => !!h.revives && s.ventures.won.includes(h.revives);
+/** What the whole holding is worth today. */
+export const holdingValue = (s: GameState, h: Holding): number => (revived(s, h) ? REVIVED_VALUE : h.value);
+/** Its monthly income to the treasury. A revived plant's earnings are counted by its operating asset. */
+export const holdingIncome = (s: GameState, h: Holding): number => (revived(s, h) ? 0 : h.income);
+
 const pendingShare = (s: GameState, id: string) => (s.sales ?? []).filter((x) => x.holding === id).reduce((a, x) => a + x.share, 0);
 
 /** Each month's income from what the state still owns and has not leased out. */
 export function holdingsIncome(s: GameState): number {
   const h = s.holdings;
-  if (!h) return HOLDINGS.reduce((a, x) => a + x.income, 0);
-  return HOLDINGS.reduce((a, x) => a + (h[x.id]?.conceded && h[x.id].conceded!.until > s.turn ? 0 : x.income * (h[x.id]?.share ?? 1)), 0);
+  if (!h) return HOLDINGS.reduce((a, x) => a + holdingIncome(s, x), 0);
+  return HOLDINGS.reduce((a, x) => a + (h[x.id]?.conceded && h[x.id].conceded!.until > s.turn ? 0 : holdingIncome(s, x) * (h[x.id]?.share ?? 1)), 0);
 }
 
 /** Who would buy: the businessman among the interested buyers who is warmest to the President. */
@@ -56,7 +70,7 @@ export function saleQuote(s: GameState, id: string, method: SaleMethod, share: n
   const h = HOLDING_BY_ID[id], m = METHOD[method];
   // Buyers pay less for a country that frightens them, and know when the seller is in a hurry.
   const market = clamp(0.85 + (s.blocs.establishment / 50) * 0.15 - Math.max(0, (s.fx ? s.fx.parallel / s.fx.rate - 1 : 0) - 0.2) * 0.5, 0.6, 1.1);
-  const price = Math.round(h.value * share * m.price * (method === 'negotiated' ? 1 : market) * 1000) / 1000;
+  const price = Math.round(holdingValue(s, h) * share * m.price * (method === 'negotiated' ? 1 : market) * 1000) / 1000;
   const buyer = method === 'negotiated' || method === 'concession' ? buyerFor(s, id) : undefined;
   const conditions = [
     `${SALE_PC} political capital and one move to start.`,
@@ -68,6 +82,7 @@ export function saleQuote(s: GameState, id: string, method: SaleMethod, share: n
     h.essential ?? '',
   ].filter(Boolean);
   const obligations = [
+    revived(s, h) ? 'A working plant: the buyer takes its output and its earnings. The petrol still stays in the country.' : '',
     method === 'concession' ? `The ${h.income > 0 ? `${Math.round(h.income * 12000)}bn a year it earns goes` : 'income goes'} to the operator for ten years.` : h.income > 0 ? `Its income, about ₦${Math.round(h.income * share * 12000)}bn a year, ends.` : h.income < 0 ? `Its running cost, about ₦${Math.round(-h.income * share * 12000)}bn a year, ends too.` : '',
     h.oilShare ? `The state's share of oil income falls by about ${Math.round(h.oilShare * share * 100)}% for good.` : '',
     'The next government inherits a smaller state.',
@@ -124,7 +139,14 @@ export function holdingsTick(s: GameState): void {
     if (sale.holding === 'federal_properties') applyFx(s, ['bloc.party', -2]);
     if (sale.holding === 'aircraft') applyFx(s, ['bloc.villa', -2]);
     if (sale.holding === 'airports') applyFx(s, ['bloc.street', -2]);
-    if (sale.holding === 'refineries') applyFx(s, ['pressure.wageGrievance', 5]);
+    if (h.revives) {
+      applyFx(s, ['pressure.wageGrievance', 5]);
+      // A sold working plant leaves the state's operating assets; the buyer runs it.
+      if (st.share <= 0.001 && s.assets?.some((a) => a.id === h.revives)) {
+        s.assets = s.assets.filter((a) => a.id !== h.revives);
+        s.flags[`asset.${h.revives}`] = false;
+      }
+    }
     if (sale.holding === 'noc' || sale.holding === 'jv_stakes') applyFx(s, ['bloc.establishment', 3]);
     s.report.push({ kind: 'consequence', title: `${METHOD[sale.method].name} completed: ${h.name}`, text: `₦${Math.round(sale.price * 1000)}bn paid into the treasury${sale.buyer ? ` by ${TYCOON_BY_ID[sale.buyer]?.name ?? sale.buyer}` : ''}. ${sale.method === 'concession' ? 'The state keeps the ownership; the operator keeps the income for ten years.' : 'It is no longer the state\'s.'}`, changes: [] });
     s.news.push({ chronicle: `FG COMPLETES SALE OF ${h.name.toUpperCase()}: ₦${Math.round(sale.price * 1000)}BN`, street: 'GOVERNMENT DON SELL AM. MONEY DON ENTER', weight: 4, valence: 0, topic: 'money' });

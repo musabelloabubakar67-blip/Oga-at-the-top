@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { HOLDINGS, METHOD, type SaleMethod } from '../content/holdings';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { dateLabel } from '../engine/config';
-import { canBorrowNow, canCollect, canSell, collectQuote, ensureHoldings, saleQuote } from '../engine/holdings';
+import { canBorrowNow, canCollect, canSell, collectQuote, ensureHoldings, holdingIncome, holdingValue, revived, saleQuote } from '../engine/holdings';
 import { movesLeft } from '../engine/reduce';
 import type { Action, GameState } from '../engine/types';
 
@@ -37,6 +37,7 @@ function HoldingRow({ s, id, dispatch }: { s: GameState; id: string; dispatch: (
   const st = s.holdings?.[id];
   const left = movesLeft(s);
   const share = st?.share ?? 1;
+  const value = holdingValue(s, h), income = holdingIncome(s, h), working = revived(s, h);
   const pending = s.sales?.find((x) => x.holding === id);
   const conceded = st?.conceded && st.conceded.until > s.turn ? st.conceded : null;
   const status = share <= 0.001 ? 'Sold' : pending ? `On the market: settles ${dateLabel(pending.due, s.startYear)}` : conceded ? `Leased to ${TYCOON_BY_ID[conceded.to]?.name ?? conceded.to} until ${dateLabel(conceded.until, s.startYear)}` : st?.pledged ? `Pledged: ${st.pledged}` : share < 1 ? `${Math.round(share * 100)}% still owned` : 'Owned';
@@ -47,7 +48,7 @@ function HoldingRow({ s, id, dispatch }: { s: GameState; id: string; dispatch: (
         <span className="label text-ink-soft">{status}</span>
       </p>
       <p className="text-[13px] leading-snug text-ink-soft">
-        Worth about {bn(h.value * share)} · {h.income > 0 ? `earns ${bn(h.income * share * 12)} a year` : h.income < 0 ? `costs ${bn(-h.income * share * 12)} a year to keep` : 'earns nothing directly'}{h.oilShare ? ` · carries ${Math.round(h.oilShare * share * 100)}% of the state's oil income` : ''}
+        Worth about {bn(value * share)} · {working ? 'revived: a working plant, earning as an operating asset' : income > 0 ? `earns ${bn(income * share * 12)} a year` : income < 0 ? `costs ${bn(-income * share * 12)} a year to keep` : 'earns nothing directly'}{h.oilShare ? ` · carries ${Math.round(h.oilShare * share * 100)}% of the state's oil income` : ''}
       </p>
       <p className="text-[13px] leading-snug">{h.note}</p>
       {h.essential && <p className="text-[13px] leading-snug text-alarm">{h.essential}</p>}

@@ -104,4 +104,16 @@ check('relabelling the overdraft does not make its inflation vanish', () => {
   assert.ok(createdMoney(t) < createdMoney(s), 'created money is absorbed gradually');
 });
 
+check('a fiscal rule lowers what the debt costs, not what is owed; only a haircut retires principal', () => {
+  const s = fresh();
+  const owed = s.debts.eurobond + s.debts.bonds, interest = interestAnnual(s), ratio = s.nation.debt;
+  applyFx(s, ['nation.debt', -10]);
+  assert.equal(s.debts.eurobond + s.debts.bonds, owed, 'principal unchanged');
+  assert.ok(interestAnnual(s) < interest, 'interest falls');
+  assert.ok(Math.abs(s.nation.debt - (ratio - 10)) < 0.5, 'debt service falls by about the stated points');
+  const t = fresh();
+  applyFx(t, ['debt.eurobond', -2]);
+  assert.ok(t.debts.eurobond < s.debts.eurobond, 'a haircut is explicit');
+});
+
 console.log(`${passed} economy checks passed.`);

@@ -10,7 +10,9 @@ import assert from 'node:assert/strict';
 import { EVENTS } from '../../content';
 import { FINANCE_CANDIDATES } from '../../content/names';
 import { oilRevenue } from '../../engine/accounts';
-import { canSell, collectQuote, holdingsIncome, holdingsTick, saleQuote, startCollection, startSale } from '../../engine/holdings';
+import { VENTURE_BY_ID } from '../../content/ventures';
+import { fxFlow } from '../../engine/currency';
+import { canSell, collectQuote, ensureHoldings, holdingsIncome, holdingsTick, saleQuote, startCollection, startSale } from '../../engine/holdings';
 import { applyAction, newGame } from '../../engine/reduce';
 import type { GameState } from '../../engine/types';
 import { applyFx, test } from '../../engine/vars';
@@ -91,6 +93,37 @@ check('quotes state proceeds, timing, conditions and what is left behind', () =>
   const q = saleQuote(s, 'airports', 'concession', 1);
   assert.ok(q.price > 0 && q.months > 0 && q.conditions.length && q.obligations.length);
   assert.ok(q.obligations.some((o) => /ten years/.test(o)));
+});
+
+check('three refineries, three bets: each revives its own plant, and selling one closes only its own bet', () => {
+  const s = fresh();
+  const bets = ['refinery', 'refinery_delta', 'refinery_kaduna'];
+  for (const id of bets) assert.ok(test(s, VENTURE_BY_ID[id].when!), `${id} is open while the plant is owned`);
+  applyFx(s, ['holding.refinery_rivers', -1]);
+  assert.ok(!test(s, VENTURE_BY_ID.refinery.when!), 'a sold plant cannot be rehabilitated by the state');
+  assert.ok(test(s, VENTURE_BY_ID.refinery_delta.when!) && test(s, VENTURE_BY_ID.refinery_kaduna.when!), 'the other two are still open');
+  // A revived plant is worth more, earns through its asset, and leaves the assets when sold.
+  const t = fresh();
+  const idle = saleQuote(t, 'refinery_delta', 'auction', 1).price;
+  const dollars = fxFlow(t).total;
+  t.ventures.won.push('refinery_delta');
+  t.assets = [...(t.assets ?? []), { id: 'refinery_delta', state: 'DE', head: { name: 'A career civil servant', competence: 3, integrity: 3, loyalty: 3, patron: 'president' } as never, since: t.turn }];
+  assert.ok(test(t, { v: ['refineries', '==', 1] }));
+  assert.ok(saleQuote(t, 'refinery_delta', 'auction', 1).price > idle * 3, 'a working plant sells for what a working plant is worth');
+  assert.ok(fxFlow(t).total > dollars, 'a revived plant replaces petrol imports');
+  startSale(t, 'refinery_delta', 'negotiated', 1, 1);
+  t.turn += 1; holdingsTick(t);
+  assert.equal(t.holdings!.refinery_delta.share, 0);
+  assert.ok(!t.assets!.some((a) => a.id === 'refinery_delta'), 'the buyer runs it now');
+});
+
+check('an old save with one refineries holding becomes three plants', () => {
+  const s = fresh();
+  s.holdings!.refineries = { share: 0, history: [{ at: 3, method: 'reform', share: 1, price: 0 }] };
+  for (const r of ['refinery_rivers', 'refinery_delta', 'refinery_kaduna']) delete s.holdings![r];
+  ensureHoldings(s);
+  assert.equal(s.holdings!.refineries, undefined);
+  assert.equal(s.holdings!.refinery_kaduna.share, 0);
 });
 
 console.log(`${passed} holdings checks passed.`);

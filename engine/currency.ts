@@ -8,6 +8,9 @@
 // standing opportunity for whoever gets dollars at the official rate.
 
 import type { GameState } from './types';
+
+/** $bn a month of petrol imports each revived refinery replaces. */
+const REFINERY_CUT: Record<string, number> = { refinery: 0.15, refinery_delta: 0.06, refinery_kaduna: 0.04 };
 import { clamp, hardship } from './vars';
 import { nonOilDollars } from './dependence';
 import { syncDebt } from './ledger';
@@ -31,7 +34,10 @@ export function fx(s: GameState): Fx {
 export function fxFlow(s: GameState): { lines: { label: string; value: number }[]; total: number } {
   const n = s.nation;
   const national = s.agenda.done.includes('i5');
-  const plant = (s.assets ?? []).some((a) => a.id === 'refinery') || !!s.flags['refinery.sold'];
+  // Each working refinery replaces part of the petrol bought abroad: the Rivers plant the most. A privatised plant counts once its buyer runs it.
+  const working = new Set(s.ventures.won.filter((id) => REFINERY_CUT[id] !== undefined));
+  if (s.flags['refinery.sold']) working.add('refinery');
+  const plantCut = [...working].reduce((a, id) => a + REFINERY_CUT[id], 0);
   const lines = [
     { label: 'Sovereign-fund dollars auctioned', value: s.fx?.interventionDollars ?? 0 },
     // Gross: what the barrels sold for. Never negative; a lower price is a smaller inflow, not an outflow.
@@ -40,7 +46,7 @@ export function fxFlow(s: GameState): { lines: { label: string; value: number }[
     { label: 'Imports of goods and services', value: -2.56 - Math.max(0, n.jobs - 34) * 0.004 },
     { label: 'Money sent home from abroad', value: 0.25 + (s.agenda.done.includes('g6') ? (premium(s) < 0.2 ? 0.18 : 0.06) : 0) },
     { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 + nonOilDollars(s) },
-    { label: 'Petrol imports', value: national ? -0.05 : plant ? -0.15 : -0.3 },
+    { label: 'Petrol imports', value: national ? -0.05 : Math.min(-0.05, -0.3 + plantCut) },
     { label: 'Foreign debt service', value: -0.12 - Math.max(0, n.debt - 66) * 0.004 },
     // A country that works attracts dollars; one that is falling apart loses them. What is not already counted above.
     { label: 'Investors on the economy', value: (n.power - 35) * 0.006 + (n.security - 35) * 0.006 + (n.capacity - 34) * 0.004 + clamp(n.fiscalSpace, -1, 3) * 0.04 + Math.min(20, s.agenda.done.length) * 0.01 - Math.max(0, hardship(s) - 60) * 0.005 },

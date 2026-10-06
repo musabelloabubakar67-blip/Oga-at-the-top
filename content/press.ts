@@ -249,7 +249,7 @@ export const EDITORIALS: { when?: Cond; chronicle?: string; street?: string; sta
   { when: { flag: 'budget.how', is: 'veto' }, chronicle: 'The President vetoed the Assembly\'s insertions and the veto held. It will be remembered at the next budget, by both sides.' },
   { when: v('wronged', '>=', 3), chronicle: 'Governors, senators and businessmen who have felt the weight of the state now outnumber those who have felt its favour. A government can survive enemies. It struggles with grievances.', rejoinder: 'Every governor this President has humiliated is a vote this party will not get.' },
   { when: { flag: 'site.abandoned' }, chronicle: 'The abandoned site is the true monument of Nigerian government: announced in ink, built in part, finished by grass.', street: 'Another project don abandon. Goat dey happy.' },
-  { when: { flag: 'asset.refinery' }, chronicle: 'The refinery works. It should not be news. That it is news is the story of the last thirty years.', street: 'Refinery dey work! Who we go thank? The engineers.', stakeholder: 'A national refinery producing petrol is a milestone that critics said would never come.' },
+  { when: { v: ['refineries', '>=', 1] }, chronicle: 'The refinery works. It should not be news. That it is news is the story of the last thirty years.', street: 'Refinery dey work! Who we go thank? The engineers.', stakeholder: 'A national refinery producing petrol is a milestone that critics said would never come.' },
   { when: { flag: 'refinery.covered' }, chronicle: 'The Presidency says the refinery is on course. It has not said which course, or where to.' },
   { when: { flag: 'exit.immunity' }, chronicle: 'A law that places one office above the law should be read as what it is: a plan for the day after.', street: 'Dem don pass law say President no go jail. Na wetin dem dey plan?', rejoinder: 'Only a man expecting to be charged writes himself a pardon in advance.' },
   { when: { flag: 'succession.backed' }, chronicle: 'The President has anointed a successor. The anointed will now discover how many of the President\'s friends were only ever the office\'s.' },
@@ -282,7 +282,7 @@ export const SIDEBARS: { kicker: string; text: string; when?: Cond }[] = [
   { kicker: 'OVERHEARD', text: '"Is the judge on our list or theirs?" — a lawyer, in the Supreme Court car park.', when: v('bench.loyal', '>=', 3) },
   { kicker: 'CORRECTION', text: 'We reported that the budget was signed as presented. It was signed as amended. We regret any impression that these are the same.', when: { flag: 'budget.how', is: 'accepted' } },
   { kicker: 'QUOTE OF THE WEEK', text: '"It is ready for commissioning." — an official, at a site with no roof.', when: { flag: 'site.abandoned' } },
-  { kicker: 'VOX POP', text: '"Petrol from our own refinery. I filled my tank twice to be sure." — a taxi driver, Port Harcourt.', when: { flag: 'asset.refinery' } },
+  { kicker: 'VOX POP', text: '"Petrol from our own refinery. I filled my tank twice to be sure." — a taxi driver, Port Harcourt.', when: { v: ['refineries', '>=', 1] } },
   { kicker: 'VOX POP', text: '"I am not angry. I am just calculating." — a tailor in Mushin, on the price of everything.', when: v('hardship', '>', 55) },
   { kicker: 'VOX POP', text: '"Small small, it is getting better. I will not say it loud so they do not relax." — a spare-parts trader, Nnewi.', when: v('hardship', '<', 42) },
   { kicker: 'QUOTE OF THE WEEK', text: '"The situation is under control." — the Minister of Information, shortly before the situation.', when: v('approval', '<', 46) },
@@ -327,7 +327,7 @@ export const SIDEBARS: { kicker: string; text: string; when?: Cond }[] = [
 
 export const FILLERS: { h: [string, string]; when?: Cond }[] = [
   { h: ['FG REITERATES COMMITMENT TO DELIVERING DIVIDENDS OF DEMOCRACY', 'GOVERNMENT SAY DIVIDEND DEY COME. WE STILL DEY WAIT'], when: v('tracks.', '<', 3) },
-  { h: ['REFINERY NOW {REFINERY}% COMPLETE — MINISTER', 'REFINERY DON REACH {REFINERY}%. SINCE WHEN?'], when: { all: [v('agenda.i5', '==', 0), { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'asset.refinery' } }] } },
+  { h: ['REFINERY NOW {REFINERY}% COMPLETE — MINISTER', 'REFINERY DON REACH {REFINERY}%. SINCE WHEN?'], when: { all: [v('agenda.i5', '==', 0), { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { v: ['refineries', '>=', 1] } }] } },
   { h: ['CBN INTERVENES TO "STABILISE" NAIRA', 'CBN DON SELL DOLLAR AGAIN. NAIRA STILL DEY FALL'], when: v('fx.peg', '==', 1) },
   { h: ['BUREAU DE CHANGE OPERATORS PROTEST NEW RULES', 'BDC PEOPLE DEY VEX FOR CBN'], when: v('fx.premium', '>=', 20) },
   { h: ['SUPREME COURT RESERVES JUDGMENT', 'COURT SAY DEM GO TALK LATER'], when: v('bench.vacant', '==', 0) },

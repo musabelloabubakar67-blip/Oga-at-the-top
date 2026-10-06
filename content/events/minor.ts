@@ -508,7 +508,7 @@ export const MINOR: GameEvent[] = [
   },
   {
     ...phone, id: 'minor.refinery', kind: 'recurring', category: 'infrastructure', tone: 'farce',
-    when: { all: [{ turn: [5] }, { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'refinery.audit' } }, { v: ['venture.refinery', '<', 1] }, { v: ['active.refinery', '==', 0] }] }, weight: 8, cooldown: 14, max: 4,
+    when: { all: [{ turn: [5] }, { not: { flag: 'refinery.sold' } }, { not: { flag: 'refinery.exposed' } }, { not: { flag: 'refinery.audit' } }, { v: ['venture.refinery', '<', 1] }, { v: ['active.refinery', '==', 0] }, { v: ['holding.refinery_rivers', '>', 0.5] }] }, weight: 8, cooldown: 14, max: 4,
     from: 'Minister of State, Petroleum',
     title: 'Refinery: good news',
     body: [
@@ -531,10 +531,10 @@ export const MINOR: GameEvent[] = [
         }],
       },
       {
-        id: 'sell', label: 'Direct that the refinery be sold', pc: 6,
+        id: 'sell', label: 'Direct that the Rivers refinery be sold', pc: 6,
         outcomes: [{
-          result: 'The refinery is put up for sale. The unions picket, four ministers object, and a buyer is found who intends to actually run it.',
-          fx: [['nation.fiscalSpace', 0.3], ['holding.refineries', -1], ['bloc.establishment', 4], ['bloc.street', -2], ['bloc.party', -3], ['tycoon.ty_fuel', -8]],
+          result: 'The Rivers refinery is put up for sale. The other two stay with the state. The unions picket, four ministers object, and a buyer is found who intends to actually run it.',
+          fx: [['nation.fiscalSpace', 0.3], ['holding.refinery_rivers', -1], ['bloc.establishment', 4], ['bloc.street', -2], ['bloc.party', -3], ['tycoon.ty_fuel', -8]],
           flags: { 'refinery.sold': true },
           later: [{ after: [12, 16], fx: [['pressure.fuelSupplyStress', -15], ['nation.fiscalSpace', 0.2]], label: 'The privatised refinery begins producing petrol.', note: ['PRIVATISED REFINERY SHIPS FIRST PETROL', 'REFINERY DEY WORK! ONLY TOOK SELLING AM'] }],
           news: ['FG TO SELL STATE REFINERY', 'GOVERNMENT WAN SELL REFINERY. E DON TIRE THEM'],
@@ -678,7 +678,7 @@ export const MINOR: GameEvent[] = [
   },
   {
     ...phone, id: 'minor.amangala', kind: 'standalone', category: 'economy', tone: 'dry',
-    when: { v: ['active.refinery', '==', 1] }, weight: 14, max: 1,
+    when: { any: [{ v: ['active.refinery', '==', 1] }, { v: ['active.refinery_delta', '==', 1] }, { v: ['active.refinery_kaduna', '==', 1] }] }, weight: 14, max: 1,
     from: 'Chief Tonye Amangala',
     title: 'A consultancy',
     body: [

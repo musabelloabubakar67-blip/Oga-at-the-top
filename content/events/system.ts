@@ -758,7 +758,7 @@ export const SYSTEM: GameEvent[] = [
         }],
       },
       {
-        id: 'refinery', label: 'Supply his customers straight from the refinery', requires: { v: ['venture.refinery', '==', 1] }, locked: 'There is no working refinery to supply from.',
+        id: 'refinery', label: 'Supply his customers straight from the refinery', requires: { v: ['refineries', '>=', 1] }, locked: 'There is no working refinery to supply from.',
         outcomes: [{
           result: 'The refinery\'s tankers go to the forecourts his depots usually serve. The queues shorten within a week. His maintenance turns out to be finished.',
           fx: [['pressure.fuelSupplyStress', -20], ['tycoon.ty_fuel', -6], ['approval', 1]],

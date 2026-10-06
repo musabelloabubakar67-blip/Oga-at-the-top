@@ -210,7 +210,7 @@ export const RIVALS: Rival[] = [
       { when: { flag: 'budget.how', is: 'accepted' }, text: 'Constituency projects: the only part of the budget that is always released in full.' },
       { when: { flag: 'grain.reserve', is: false }, text: 'They emptied the grain reserve to beat one businessman. Good. Now fill it before the lean season, or I will be at the market with a microphone.' },
       { when: { flag: 'exit.immunity' }, text: 'A law so that no President can ever be prosecuted. Passed at eleven at night. The time tells you everything.' },
-      { when: { flag: 'asset.refinery' }, text: 'The refinery works. Credit where it is due: to the engineers. The ministers were busy elsewhere.' },
+      { when: { v: ['refineries', '>=', 1] }, text: 'The refinery works. Credit where it is due: to the engineers. The ministers were busy elsewhere.' },
     ],
     lines: [
       'Go to any market and ask the woman selling pepper whether she has felt this "reform".',

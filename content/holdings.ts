@@ -28,7 +28,22 @@ export interface Holding {
   methods: SaleMethod[];
   /** Businessmen who would bid. */
   buyers: string[];
+  /** The big bet that brings it back to life. Once that bet is won it is a working plant: worth more, and its earnings are the operating asset's. */
+  revives?: string;
 }
+
+// THE THREE STATE REFINERIES
+// Each is its own holding and its own big bet: reviving one does not revive the
+// others, and selling one closes only its own rehabilitation. A revived plant
+// sells for what a working plant is worth.
+export const REFINERIES: { holding: string; venture: string; state: string; name: string; note: string }[] = [
+  { holding: 'refinery_rivers', venture: 'refinery', state: 'RI', name: 'The Rivers refinery', note: 'The largest of the three, on the creeks. It has lost money for twenty years.' },
+  { holding: 'refinery_delta', venture: 'refinery_delta', state: 'DE', name: 'The Delta refinery', note: 'Fed by a pipeline through the swamps, which is tapped more often than it flows.' },
+  { holding: 'refinery_kaduna', venture: 'refinery_kaduna', state: 'KD', name: 'The Kaduna refinery', note: 'Six hundred kilometres of pipeline from the coast. Crude has not arrived in years.' },
+];
+/** What a working, revived plant is worth to a buyer, ₦tn. */
+export const REVIVED_VALUE = 0.9;
+export const REFINERY_OF_VENTURE: Record<string, string> = Object.fromEntries(REFINERIES.map((r) => [r.venture, r.holding]));
 
 export const HOLDINGS: Holding[] = [
   {
@@ -80,12 +95,13 @@ export const HOLDINGS: Holding[] = [
     note: 'Frequencies the state has never auctioned. Sold properly, they fetch their value once.',
     methods: ['auction', 'negotiated'], buyers: ['ty_media', 'ty_bank'],
   },
-  {
-    id: 'refineries', name: 'The state refineries', kind: 'equipment', value: 0.5, income: -0.004,
-    note: 'Three refineries that have lost money for twenty years. A buyer who can run them is worth more than the price.',
+  ...REFINERIES.map((r): Holding => ({
+    id: r.holding, name: r.name, kind: 'equipment', value: 0.17, income: -0.0013,
+    note: `${r.note} A buyer who can run it is worth more than the price.`,
     essential: 'The refinery unions will picket any sale.',
     methods: ['auction', 'negotiated'], buyers: ['ty_fuel', 'ty_maker'],
-  },
+    revives: r.venture,
+  })),
 ];
 
 export const HOLDING_BY_ID: Record<string, Holding> = Object.fromEntries(HOLDINGS.map((h) => [h.id, h]));

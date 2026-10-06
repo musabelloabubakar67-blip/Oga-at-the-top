@@ -2,7 +2,7 @@
 // that effects on `nation.debt` can be routed to a named creditor.
 
 import { DEBTS } from '../content/treasury';
-import { pointsPerTn, serviceRatio } from './accounts';
+import { interestRate, pointsPerTn, revenueAnnual, serviceRatio } from './accounts';
 import type { DebtId, GameState } from './types';
 
 const round = (x: number) => Math.round(x * 1000) / 1000;
@@ -41,6 +41,24 @@ export function addOwed(s: GameState, id: DebtId, tn: number): number {
 /** An effect written as points of debt service: new borrowing goes to domestic bonds, relief comes off the dearest debt first. */
 export function shiftPoints(s: GameState, pts: number): void {
   if (pts >= 0) { addOwed(s, 'bonds', pts / rateOf(s, 'bonds')); return; }
+  // Less debt service from credibility (a fiscal rule, a published plan, a council) is lenders charging less:
+  // the rate on market debt falls; the principal does not (plan 09). Only an explicit repayment or haircut retires principal.
+  shiftRates(s, pts);
+}
+
+/** Changes the interest rate on market debt (domestic and foreign bonds) by enough to move debt service by pts. Persists in the debt terms. */
+export function shiftRates(s: GameState, pts: number): void {
+  const market = (['eurobond', 'bonds'] as DebtId[]).filter((id) => (s.debts[id] ?? 0) > 0);
+  const interest = market.reduce((a, id) => a + s.debts[id] * interestRate(s, id), 0);
+  if (interest <= 0) return;
+  const factor = Math.max(0.5, Math.min(2, 1 + (pts / 100) * revenueAnnual(s) / interest));
+  const terms = (s.debtTerms ??= {});
+  for (const id of market) terms[id] = { rateFactor: Math.max(0.45, Math.min(2.5, (terms[id]?.rateFactor ?? 1) * factor)), at: s.turn, administrationId: s.governance?.administrationId ?? '' };
+  syncDebt(s);
+}
+
+/** Retired principal, taken from the dearest debt first: for repayments that really happen. */
+export function retirePoints(s: GameState, pts: number): void {
   let left = -pts;
   for (const id of ['eurobond', 'bonds', 'ways', 'lender'] as DebtId[]) {
     if (left <= 0) break;
