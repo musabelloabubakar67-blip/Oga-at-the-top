@@ -2,6 +2,18 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 14 — labelled design mocks for R3, R4, R5 and R6
+
+- **Baseline:** `4227861`; on `7423828` plus deliveries 9–13. No engine change; nothing is dispatched.
+- **Files:** `app/mocks/page.tsx` (new route `/mocks`, `noindex`, never linked from the game), `ui/mocks/Mock.tsx` (frame, effect preview in the game's own wording, choice button), `Transition.tsx`, `Requests.tsx`, `Review.tsx`, `Approach.tsx`, `Mocks.tsx`.
+- **Rule followed:** every mock carries a banner naming the contract it waits on and saying it changes nothing. Each uses real authored content where it exists and simulates only the missing engine behaviour in local React state. When a contract lands, the mock is replaced by the real screen in the game and removed from `/mocks`.
+- **Transition and the first team (R6, R5's proposed slate):** pick an inheritance; read its dossier (claims against findings, with who checked; what is owed; what works; who holds leverage); choose a route (closed routes say why) and a financier; pick a first cabinet for seven offices from the named pool or keep the incumbent (exceptional candidates are disabled with "serves only on stated terms"); a zone-balance warning as a proposed coalition constraint; a summary of starting effects, debts owed and commitments created. What R6 must supply: step validation, `startingEffects(setup)` and storage of the debts and commitments.
+- **Requests and favours (R3):** the CONTRACT-REQUESTS example. Governor Koroye asks for a dredging contract for a named firm; grant, refuse, substitute or defer; the request closes with a status; refusing produces, "two months later", a new request changed by offer (30% cheaper with a bond). The favour ledger runs both ways, with each use marked available or not and why. The firm is invented (Sure-Depth Dredging Limited; an earlier invented name resembled a real company and was replaced).
+- **A commitment review (R4):** the real `doctors.balance` commitment at its due date, with evidence from three sources, the government's own contribution stated in figures (₦8bn of ₦19bn not released), and four verdicts (met, missed by the Minister, withheld by the government, disputed), each with its reading, effects and what happens next.
+- **Approaching someone exceptional (R5):** the four exceptional candidates with their real capabilities and terms; accept or refuse each term; refusing any one means they decline and name it; accepting all shows the capability in effect and the list of what will be watched.
+- **Browser check (port 3419):** all four flows exercised (route, financier, team and summary; refuse then the changed request; the withheld verdict; an accepted approach and a declined one). 375px: no horizontal overflow. No console errors.
+- **Checks:** `tsc` clean; lint 0 warnings; all nine experience checks pass. The mocks are not part of the game, so they carry no experience check of their own.
+
 ## Delivery 13 — what a successful bet changes (plans 12.A9, 12.T10, 14.T10)
 
 - **Baseline:** `4227861`; on `7423828` plus deliveries 9–12. Uses the existing `venture.<id>` variable (1 once a bet has worked); no engine change.
