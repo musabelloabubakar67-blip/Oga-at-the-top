@@ -86,6 +86,8 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
     scandalHeat: w.sameParty ? prev.pressures.scandalHeat * 0.6 : prev.pressures.scandalHeat * 0.3,
   };
   s.debts = { ...prev.debts };
+  // The accounts carry on: last year's revenue, central bank money still in circulation, the reserve journal.
+  if (prev.accounts) s.accounts = structuredClone(prev.accounts);
   s.debtTerms = structuredClone(prev.debtTerms ?? {});
   s.vacancies = structuredClone(Object.fromEntries(Object.entries(prev.vacancies ?? {}).filter(([, v]) => ['institution', 'asset'].includes(v.post.kind))));
   s.counters['graft.trustLost'] = prev.counters['graft.trustLost'] ?? 0;

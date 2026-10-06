@@ -1,6 +1,7 @@
 // Balance harness (GDD 10.6). Plays whole presidencies with scripted strategies
 // and prints distributions. Usage: npm run simulate -- [runs] [--trace]
 
+import { nonOilRevenue, oilRevenue, revenueAnnual } from '../engine/accounts';
 import { EVENT_LIST } from '../content';
 import { writeFileSync } from 'node:fs';
 import { measureLevers } from './levers';
@@ -494,7 +495,7 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         approval: approval(s), hardship: hardship(s), party: s.blocs.party, street: s.blocs.street, chest: s.campaign.chest, scandal: s.pressures.scandalHeat,
         rival: Math.max(...Object.values(s.opposition)), governors: ZONES.reduce((a, z) => a + governorEffect(s, z), 0) / 6, money: moneyEffect(s),
         treasury: s.nation.fiscalSpace, debt: s.nation.debt, arrears: s.debts.gas + s.debts.contractors + s.debts.pensions, inflation: s.nation.inflation,
-        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, united: s.flags['opposition.united'] ? 1 : 0, broad: s.flags['opposition.broad'] ? 1 : 0, subsidyGone: s.flags['policy.subsidy'] === 'removed' ? 1 : 0, integrity: s.nation.integrity, merger: s.fired['opposition.unites'] ? 1 : 0, delegates: delegates(s), security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
+        pc: s.pc, margin: projectMargin(s), reforms: s.agenda.done.length, united: s.flags['opposition.united'] ? 1 : 0, broad: s.flags['opposition.broad'] ? 1 : 0, subsidyGone: s.flags['policy.subsidy'] === 'removed' ? 1 : 0, integrity: s.nation.integrity, merger: s.fired['opposition.unites'] ? 1 : 0, delegates: delegates(s), security: s.nation.security, power: s.nation.power, jobs: s.nation.jobs, eurobond: s.debts.eurobond, bonds: s.debts.bonds, ways: s.debts.ways, naira: s.fx?.rate ?? 0, revenue100: revenueAnnual(s) * 100, taxes100: nonOilRevenue(s) * 1200, oilRev100: oilRevenue(s).actual * 1200, capacity: s.nation.capacity, oilp: s.oil.price, ...Object.fromEntries(ZONES.map((z) => [z, s.theatres[z]])),
       });
     }
     s = applyAction(s, { type: 'END_MONTH' });

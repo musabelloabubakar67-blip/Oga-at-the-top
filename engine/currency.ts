@@ -10,6 +10,7 @@
 import type { GameState } from './types';
 import { clamp, hardship } from './vars';
 import { nonOilDollars } from './dependence';
+import { syncDebt } from './ledger';
 
 export type Stance = 'peg' | 'managed' | 'float';
 export const STANCE_NAME: Record<Stance, string> = { peg: 'Defend the naira', managed: 'A managed rate', float: 'Let it float' };
@@ -33,7 +34,10 @@ export function fxFlow(s: GameState): { lines: { label: string; value: number }[
   const plant = (s.assets ?? []).some((a) => a.id === 'refinery') || !!s.flags['refinery.sold'];
   const lines = [
     { label: 'Sovereign-fund dollars auctioned', value: s.fx?.interventionDollars ?? 0 },
-    { label: 'Oil exports', value: (s.oil.price * s.oil.output - 128) * 0.02 },
+    // Gross: what the barrels sold for. Never negative; a lower price is a smaller inflow, not an outflow.
+    { label: 'Oil exports', value: s.oil.price * s.oil.output * 0.02 },
+    // Gross: what the economy buys abroad at its current size. Jobs and industry raise it a little; the rest is below.
+    { label: 'Imports of goods and services', value: -2.56 - Math.max(0, n.jobs - 34) * 0.004 },
     { label: 'Money sent home from abroad', value: 0.25 + (s.agenda.done.includes('g6') ? (premium(s) < 0.2 ? 0.18 : 0.06) : 0) },
     { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 + nonOilDollars(s) },
     { label: 'Petrol imports', value: national ? -0.05 : plant ? -0.15 : -0.3 },
@@ -118,9 +122,19 @@ export function currencyTick(s: GameState): void {
     s.news.push({ chronicle: `NAIRA COLLAPSES TO ₦${Math.round(f.rate)} AS RESERVES RUN DRY`, street: 'NAIRA DON FALL FLAT. DOLLAR DON FINISH', weight: 8, valence: -1, topic: 'money', body: 'The central bank could no longer defend the official rate. It moved overnight to what the market had been paying for months.' });
     s.report.push({ kind: 'failure', title: 'The peg broke', cause: 'The reserves ran out', text: `The central bank spent its reserves defending a rate the market did not believe. When they fell below $5bn, the naira went to ₦${Math.round(f.rate)} in a night. Prices will follow.`, changes: [] });
   }
-  // A month's change in the naira moves the cost of foreign debt.
-  const move = f.rate / prevRate - 1 - (s.nation.inflation - 4) / 100 / 12;
-  if (Math.abs(move) > 0.001) s.nation.debt = clamp(s.nation.debt + move * 100 * 0.12, 0, 200);
+  // The foreign debt is owed in dollars: a real fall in the naira makes it larger in naira, and it stays larger (plan 09).
+  const realMove = (f.rate / prevRate) / (1 + (s.nation.inflation - 4) / 100 / 12);
+  if (Math.abs(realMove - 1) > 0.0005) {
+    // Dollar liabilities and dollar savings are both revalued: the foreign debt, the lender's facility and the fund abroad.
+    if (s.debts) for (const id of ['eurobond', 'lender'] as const) if (s.debts[id]) s.debts[id] = Math.round(s.debts[id] * realMove * 1000) / 1000;
+    if (s.funds?.abroad) s.funds.abroad = Math.round(s.funds.abroad * realMove * 1000) / 1000;
+    syncDebt(s);
+  }
+  // The reserve journal: what moved them this month.
+  const log = (s.accounts ??= { revHist: [], created: s.debts?.ways ?? 0, reserveLog: [] }).reserveLog;
+  log.push({ turn: s.turn, flow: Math.round(reserveFlow * 100) / 100, intervention: Math.round(auction * 100) / 100,
+    note: f.stance === 'peg' ? 'Defending the official rate' : f.stance === 'managed' ? 'Managing the rate' : 'Floating: the central bank buys only surplus dollars' });
+  if (log.length > 24) log.shift();
   f.hist.push(f.rate);
   if (f.hist.length > 12) f.hist.shift();
   // Importers love a defended naira and dollars at the official rate; manufacturers like a weaker one that keeps imports out.

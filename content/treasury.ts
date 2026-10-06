@@ -44,6 +44,12 @@ export const DEBTS: DebtDef[] = [
     cleared: 'Paying it down lowers inflation directly. It can also be converted to long bonds: inflation falls, interest rises.',
   },
   {
+    id: 'lender', name: 'The development lender\'s facility', creditor: 'An international development lender', kind: 'bond', start: 0, rate: 1, chunks: [0.5, 1],
+    blurb: 'Concessional money from a development lender, at about 3% a year, with conditions and reviewers attached.',
+    harm: 'Cheap, but owed in dollars, and every tranche comes with a review of what was promised for it.',
+    cleared: 'Repaying it early is rarely worth it: it is the cheapest money the country owes.',
+  },
+  {
     id: 'gas', name: 'Gas suppliers', creditor: 'The companies that supply gas to the power plants', kind: 'arrears', start: 0.7, rate: 0, chunks: [],
     blurb: 'The power plants exist. They stand idle because the gas has not been paid for.',
     harm: 'Power falls every month and the grid is likelier to collapse. It builds again, every month, until the electricity tariff covers the cost of supply.',

@@ -315,7 +315,7 @@ export const SITUATIONAL: Order[] = [
     blurb: 'Ten days, three capitals, a plane full of businessmen, and one of them in the seat beside yours. Works when the numbers at home are credible.',
     result: 'You return with $4bn in signed commitments; {T} signs the largest of them. About half of signed commitments ever arrive. That is still two.',
     fx: [['bloc.establishment', 4], ['tycoon.$T', 10]],
-    later: [{ after: [6, 10], fx: [['nation.jobs', 5], ['nation.fiscalSpace', 0.3]], label: 'Investment pledged on the state visit begins to arrive.', note: ['FIRST FACTORIES OPEN FROM STATE VISIT PLEDGES', 'THE INVESTMENT WEY PRESIDENT GO FIND DON LAND'] }],
+    later: [{ after: [6, 10], fx: [['nation.jobs', 5], ['fx.reserves', 1.5]], label: 'Investment pledged on the state visit begins to arrive.', note: ['FIRST FACTORIES OPEN FROM STATE VISIT PLEDGES', 'THE INVESTMENT WEY PRESIDENT GO FIND DON LAND'] }],
     news: ['PRESIDENT RETURNS WITH $4BN IN PLEDGES; {T_SHORT} ALONGSIDE', 'PRESIDENT DON RETURN FROM ABROAD WITH PROMISE'],
     archive: 'Made a state visit to secure foreign investment, with {T} beside you.',
   },
@@ -495,7 +495,7 @@ export const SITUATIONAL: Order[] = [
     result: 'The summit runs for three days. The hotels are full. The pledges will be tested against what they find when they visit a ministry.',
     fx: [['bloc.establishment', 3]],
     later: [
-      { after: [6, 9], when: v('nation.capacity', '>=', 42), fx: [['nation.jobs', 4], ['nation.fiscalSpace', 0.2]], label: 'Investment pledged at the summit arrives.' },
+      { after: [6, 9], when: v('nation.capacity', '>=', 42), fx: [['nation.jobs', 4], ['fx.reserves', 1]], label: 'Investment pledged at the summit arrives.' },
       { after: [6, 9], when: v('nation.capacity', '<', 42), fx: [['bloc.press', -3]], label: 'Most summit pledges never arrive.', note: ['SUMMIT PLEDGES: 6% HAVE MATERIALISED', 'THE INVESTORS COME, SEE, COMMOT'] },
     ],
     news: ['2,000 DELEGATES ATTEND ABUJA INVESTMENT SUMMIT', 'BIG SUMMIT FOR ABUJA. HOTEL FULL'],

@@ -17,7 +17,7 @@ export type Category =
 export type FlagValue = string | number | boolean;
 export type Op = '<' | '<=' | '>' | '>=' | '==' | '!=';
 export type OutletId = 'chronicle' | 'street' | 'stakeholder' | 'rejoinder';
-export type DebtId = 'eurobond' | 'bonds' | 'ways' | 'gas' | 'contractors' | 'pensions';
+export type DebtId = 'eurobond' | 'bonds' | 'ways' | 'lender' | 'gas' | 'contractors' | 'pensions';
 export type FundId = 'abroad' | 'buffer' | 'infra' | 'growth';
 export type SectorId = 'security' | 'power' | 'people' | 'agric' | 'debt' | 'padding';
 /** What a story is about, so the paper can comment on the right thing. */
@@ -519,6 +519,8 @@ export interface GameState {
   recruitment?: Recruitment[];
   vacancies?: Record<string, { post: AppointmentPost; at: number; previousName: string }>;
   debtTerms?: Partial<Record<DebtId, { rateFactor: number; at: number; administrationId: string }>>;
+  /** The national accounts (engine/accounts.ts): revenue actually received, central bank money created, reserve movements. */
+  accounts?: { revHist: number[]; created: number; reserveLog: { turn: number; flow: number; intervention: number; note: string }[] };
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */

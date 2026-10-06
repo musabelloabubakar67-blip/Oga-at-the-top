@@ -219,6 +219,8 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
     s.archive = [...scenario.history.map(([ago, headline, touches]) => inherited(-ago, headline, touches)), ...s.archive];
     if (s.flags['policy.subsidy'] === 'removed') s.counters['order.subsidy_end'] = -999;
   }
+  // A new world: central bank money in circulation starts as the overdraft the scenario left.
+  if (!prev && s.accounts) s.accounts.created = s.debts.ways;
   syncDebt(s);
   syncSecurity(s);
   s.oil.output = oilOutput(s);

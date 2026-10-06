@@ -13,7 +13,8 @@ import { assetFiscalLines } from './places';
 import { personView } from './people';
 import { logOilForecast, oilForecastTick } from './oilforecast';
 import { fxScale } from './currency';
-import { nonOilPoints, oilWeight } from './dependence';
+import { nonOilPoints } from './dependence';
+import { ACC, createdMoney, interestAnnual, leakage, nonOilRevenue, oilRevenue, recordRevenue } from './accounts';
 import { rand } from './rng';
 import type { DebtId, FundId, GameState, SectorId, ZoneId } from './types';
 import { ZONES, applyFx, clamp, hardship, senate, shiftThreat, syncSecurity } from './vars';
@@ -31,6 +32,7 @@ export function initTreasury(s: GameState): void {
   s.funds = { abroad: 0, buffer: 0.3, infra: 0, growth: 0 };
   s.oil = { price: 74, output: 1.75, prev: 74 };
   s.budget = { year: s.startYear, benchmark: 70, alloc: usualBudget(), due: false };
+  s.accounts = { revHist: [], created: s.debts.ways, reserveLog: [] };
   syncDebt(s);
 }
 
@@ -43,8 +45,8 @@ export function oilOutput(s: GameState): number {
 
 /** What oil is paying against what the budget assumed, ₦tn a month. Positive is saved; negative comes out of the treasury. */
 export function oilGap(s: GameState): number {
-  // The less the budget leans on oil, the less its price moves the treasury, either way.
-  return ((s.oil.price * s.oil.output) / 1.75 - s.budget.benchmark) * 0.0035 * oilWeight(s);
+  const o = oilRevenue(s);
+  return o.saved > 0 ? o.saved : o.short;
 }
 
 function oilTick(s: GameState): void {
@@ -76,18 +78,19 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   const lines: FlowLine[] = [];
   const add = (label: string, value: number, hint: string) => { if (Math.abs(value) >= 0.0005) lines.push({ label, value, hint }); };
 
-  add('Running the government', e.fiscalBase, 'Salaries and overheads, against ordinary revenue.');
+  // Gross flows (plan 09): what came in, what went out, and why.
+  const oil = oilRevenue(s);
+  add('Oil revenue', oil.budgeted, `What the barrels earned, converted at the real exchange rate, up to the ${s.budget.benchmark} the budget assumed. ${oil.saved > 0 ? 'Anything above it is saved, below.' : 'Oil is below the benchmark this month.'}`);
+  add('Taxes and other revenue at home', nonOilRevenue(s), 'Rises with state capacity and jobs. It never earns dollars by itself.');
+  add('Interest on the debt', -interestAnnual(s) / 12, 'What every interest-bearing debt costs at its own rate this month. Principal is repaid separately.');
+  add('Running the government', -ACC.running, 'Salaries and overheads of the federal government.');
+  add('Leakage', -leakage(s), 'Public money stolen from what is spent. Less is stolen as integrity rises; more as it falls.');
+  add('The Finance Minister', ((s.chars.fin?.competence ?? 3) - 3) * 0.012, 'A competent one finds money in what is already spent. A weak one loses it.');
   // The gap between the pump price and the cost of fuel moves with the price of crude.
   const crude = s.oil.price / 72;
   const subsidyNow = (e.subsidyDrift[subsidy] ?? 0) * crude * (subsidy === 'removed' ? 1 : fxScale(s));
   add(subsidy === 'removed' ? 'No petrol subsidy to pay' : 'The petrol subsidy', subsidyNow,
     subsidy === 'removed' ? `What ending the subsidy freed, at $${Math.round(s.oil.price)} oil.` : `The gap between the pump price and the cost, paid monthly. Dearer as crude rises: $${Math.round(s.oil.price)} now.`);
-  add('Oil revenue at this year\'s exchange rate', (fxScale(s) - 1) * 0.08, 'Oil is sold in dollars. A naira that has fallen further than inflation explains turns each dollar into more naira; one that has held does the opposite.');
-  add('Debt service', -(n.debt - 66) * e.debtToFiscal, 'Against the 66% of revenue you inherited. Each point retired is worth about ₦36bn a year.');
-  add('Tax collection', (n.capacity - 34) * e.capacityToFiscal, 'A state that works collects what it is owed. Rises with state capacity.');
-  add('Leakage', (n.integrity - 28) * e.integrityToFiscal, 'Less is stolen as integrity rises.');
-  add('Industry and jobs', (n.jobs - 34) * e.jobsToFiscal, 'Factories and payrolls pay tax.');
-  add('The Finance Minister', ((s.chars.fin?.competence ?? 3) - 3) * 0.012, 'A competent one finds money. A weak one loses it.');
   add('Your reforms and orders', s.counters['bonus.fiscal'] ?? 0, 'The permanent effect of what you have built, cut or promised.');
   for (const l of policyFiscalLines(s)) add(l.label, l.value, l.hint);
   for (const l of institutionFiscalLines(s)) add(l.label, l.value, l.hint);
@@ -98,14 +101,12 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   add('Unallocated in the budget', spare * 0.02, 'Budget points you chose not to spend.');
   const rel = releaseFiscal(s);
   if (Math.abs(rel) >= 0.0005) add('Budget not yet released', rel, 'Increases the ministries have not spent stay in the treasury; money you rushed out cost a premium.');
-  const gap = oilGap(s);
-  if (gap < 0) add('Oil below the benchmark', gap, `Oil is paying less than the $${s.budget.benchmark} the budget assumed.`);
   // Revenue belongs to the federation, not to Abuja. Once the centre is comfortably in surplus, the states take most of the rest.
   const raw = lines.reduce((a, l) => a + l.value, 0);
   const keep = CFG.economy.federalKeep;
   if (raw > keep.above) add('The states\' share of the surplus', -(raw - keep.above) * (1 - keep.share), `Above ₦${Math.round(keep.above * 1000)}bn a month, the states take ${Math.round((1 - keep.share) * 100)}% of every extra naira.`);
   const total = lines.reduce((a, l) => a + l.value, 0);
-  return { lines, total, saved: Math.max(0, gap) };
+  return { lines, total, saved: oil.saved };
 }
 
 // ---------------------------------------------------------------- the budget
@@ -534,7 +535,10 @@ export function payBuild(s: GameState, naira: number, infra: boolean, touches?: 
 
 function fundsTick(s: GameState): void {
   const f = s.funds;
-  if (f.abroad > 0) f.abroad = round(f.abroad * (1 + 0.0055 + Math.max(0, s.nation.inflation - 15) * 0.0004));
+  // Created money is absorbed by the economy over time: about a twentieth a month.
+  if (s.accounts) s.accounts.created = Math.max(s.debts.ways, s.accounts.created - (s.accounts.created - s.debts.ways) * 0.05);
+  // About 6.6% a year in dollars. Its naira value also moves with the exchange rate (currency.ts), like the foreign debt.
+  if (f.abroad > 0) f.abroad = round(f.abroad * 1.0055);
   if (f.infra > 0.05 && s.nation.integrity < 30) {
     f.infra = round(f.infra * 0.99);
     if (s.turn - (s.counters.infraLeak ?? -99) >= 9) {
@@ -596,7 +600,8 @@ export function buildSpeed(s: GameState): number {
 
 /** Inflation that comes from money the central bank created. */
 export function printedInflation(s: GameState): number {
-  return s.debts.ways * 0.62;
+  // Central bank money in circulation, whatever the debt is now called. It is withdrawn by repayment, or wears off slowly.
+  return createdMoney(s) * 0.62;
 }
 
 export function treasuryTick(s: GameState): void {
@@ -613,6 +618,7 @@ export function treasuryTick(s: GameState): void {
   }
 
   const flow = fiscalFlow(s);
+  recordRevenue(s);
   n.fiscalSpace += flow.total;
   if (flow.saved > 0) s.funds.buffer = round(s.funds.buffer + flow.saved);
 

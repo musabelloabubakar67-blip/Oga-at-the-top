@@ -878,13 +878,13 @@ export const POLITICS: GameEvent[] = [
         outcomes: [{
           when: { flag: 'policy.subsidy', is: 'removed' },
           result: 'The programme is signed. The petrol condition is already met, which the lender notes approvingly in paragraph one. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
-          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -4], ['approval', -2], ['nation.capacity', 2], ['tycoon.ty_bank', 8]],
+          fx: [['debt.eurobond', -3.4], ['debt.lender', 4.4], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -4], ['approval', -2], ['nation.capacity', 2], ['tycoon.ty_bank', 8]],
           flags: { 'lender.programme': true },
           news: ['FG SIGNS THREE-YEAR FACILITY WITH LENDER', 'WE DON ENTER LENDER HAND. CONDITIONS FULL GROUND'],
           archive: 'Accepted a foreign lender\'s programme to avert default.', sig: 3,
         }, {
           result: 'The programme is signed. Its first condition takes effect at midnight: the petrol subsidy ends, by the lender\'s timetable rather than yours. The first tranche arrives. So do the reviewers, quarterly, with laptops.',
-          fx: [['nation.debt', -18], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250], ['tycoon.ty_bank', 8], ['tycoon.ty_fuel', -10]],
+          fx: [['debt.eurobond', -3.4], ['debt.lender', 4.4], ['nation.fiscalSpace', 1], ['bloc.establishment', 10], ['bloc.street', -8], ['approval', -3], ['nation.capacity', 2], ['nation.petrolPrice', 250], ['tycoon.ty_bank', 8], ['tycoon.ty_fuel', -10]],
           flags: { 'policy.subsidy': 'removed', 'lender.programme': true },
           // The same beats as any other removal: the pump price, labour's answer, and the dividend a year on.
           follow: [{ event: 'subsidy.pump', after: 1 }, { event: 'subsidy.ultimatum', after: [2, 3] }, { event: 'subsidy.dividend', after: [12, 14], when: { flag: 'policy.subsidy', is: 'removed' } }],

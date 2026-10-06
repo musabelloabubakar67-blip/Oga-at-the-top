@@ -324,7 +324,7 @@ export function applyFx(s: GameState, fx: Fx, touches?: Record<string, number>):
       if (c) c.rel = clamp(c.rel + delta, -100, 100);
       return note();
     }
-    case 'counter': s.counters[p[1]] = (s.counters[p[1]] ?? 0) + delta; return;
+    case 'counter': { const k = p.slice(1).join('.'); s.counters[k] = (s.counters[k] ?? 0) + delta; return; }
     case 'rival': s.opposition[p[1]] = clamp((s.opposition[p[1]] ?? 30) + delta, 5, 95); return note();
     case 'person': { const who = s.people[p[1]]; if (who) who.rel = clamp(who.rel + delta, 0, 100); return note(); }
     // Permanent structural shifts earned by reform: bonus.fiscal, bonus.inflation, bonus.power

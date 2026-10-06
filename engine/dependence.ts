@@ -44,7 +44,12 @@ export function nonOilPoints(s: GameState): number {
   return Math.max(0, Math.floor((START - dependence(s).v) / 10));
 }
 
-/** Dollars a month from exports that are not oil, beyond what jobs already earn. */
+/** Dollars a month from exports that are not oil, beyond what jobs already earn.
+ *  Only things that sell abroad count: tax collection at home earns no dollars (plan 09). */
 export function nonOilDollars(s: GameState): number {
-  return Math.max(0, START - dependence(s).v) * 0.01;
+  const exporters = s.agenda.done.reduce((a, id) => a + (EXPORTERS.has(id) ? DIVERSIFIERS[id] ?? 0 : 0), 0);
+  const built = (id: string) => (s.institutions ?? []).some((i) => i.id === id);
+  return (exporters + (built('zone') ? 2 : 0)) * 0.01;
 }
+/** Diversifying reforms that sell abroad, as distinct from those that tax at home. */
+const EXPORTERS = new Set(['i1', 'i2', 'i4', 'f5', 'w3', 'w9', 'g2', 'g7', 'g8', 'g10', 'g11', 'g12', 'i6', 'i7', 'i8', 'd9', 'f10']);

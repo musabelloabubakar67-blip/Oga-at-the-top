@@ -108,7 +108,13 @@ export function refreshRequests(s: GameState, only?: string): void {
     const w = currentWant(s, id);
     if (!w || w.recordId) continue;
     const requester = resolveActor(s, { office: id });
-    const prior = records(s, id).filter((r) => r.status !== 'open').sort((a, b) => b.made - a.made)[0];
+    // The same rule openRequest applies: any answered request from this person on this subject in this
+    // administration, whichever office it was filed under, is what a new ask must differ from.
+    const answered = (r: RequestRecord) => r.status !== 'open' && r.requester === requester && r.origin.administrationId === g.administrationId;
+    const sameObject = Object.values(g.requests).filter((r) => answered(r) && r.object === w.id).sort((a, b) => b.made - a.made)[0];
+    const key = (t?: { description?: string; naira?: number; politicalCapital?: number }) => JSON.stringify(t ? [t.description, t.naira ?? 0, t.politicalCapital ?? 0] : null);
+    if (sameObject && sameObject.text === w.text && key(sameObject.terms) === key(termsOf(w))) continue;
+    const prior = sameObject ?? records(s, id).filter((r) => r.status !== 'open').sort((a, b) => b.made - a.made)[0];
     const recordId = 'want.' + g.administrationId + '.' + encodeURIComponent(requester) + '.' + now + '.' + w.id;
     const r = openRequest(s, { id: recordId, requester: { person: requester }, object: w.id, text: w.text, terms: termsOf(w), ambition: PERSON_BY_ID[id]?.group, previous: prior?.id, changedBy: prior ? 'offer' : undefined });
     r.legacyWant = { kind: w.id, office: id, done: w.done, fx: structuredClone(w.fx) };

@@ -491,7 +491,7 @@ export const RECURRING: GameEvent[] = [
         id: 'accept', label: 'Accept the facility and its conditions', pc: 8, sign: true,
         outcomes: [{
           result: 'The facility is signed: ₦1.5tn in cash, cheap money to replace dear, and an undertaking never again to borrow from the central bank. The oil company\'s accounts are published for the first time in a decade. They are instructive.',
-          fx: [['nation.fiscalSpace', 1.5], ['debt.bonds', -1.5], ['debt.eurobond', 0.8], ['nation.capacity', 3], ['nation.integrity', 3], ['bloc.establishment', 6], ['bloc.party', -4], ['bloc.street', -2], ['tycoon.ty_bank', 6], ['tycoon.ty_fuel', -6]],
+          fx: [['nation.fiscalSpace', 1.5], ['debt.bonds', -1.5], ['debt.lender', 3], ['nation.capacity', 3], ['nation.integrity', 3], ['bloc.establishment', 6], ['bloc.party', -4], ['bloc.street', -2], ['tycoon.ty_bank', 6], ['tycoon.ty_fuel', -6]],
           flags: { 'lender.facility': true, 'print.renounced': true },
           later: [{ after: [8, 12], fx: [['nation.fiscalSpace', 0.4]], label: 'A unified tax identification system raises collection.', note: ['TAX COLLECTION UP 22% AFTER ID UNIFICATION', 'TAX PEOPLE DON SABI EVERYBODY NOW'] }],
           news: ['FG SIGNS $3BN CONCESSIONAL FACILITY', 'WE DON BORROW AGAIN. THIS ONE GET CONDITION'],

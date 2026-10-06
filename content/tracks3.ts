@@ -199,7 +199,7 @@ export const LOOSE_TRACKS: Track[] = [
         lasting: 'Oil revenue is smaller in every term after this, and so is the damage when the price falls.',
         blurb: 'About ₦3.5tn, in cash, in your term. In exchange the Treasury gives up that share of oil revenue for good, and with it some of its exposure to the price. Whether this is prudence or pawning depends entirely on what you do with the money.',
         start: [['bloc.street', -3]],
-        done: [['nation.fiscalSpace', 3.5], ['bonus.fiscal', -0.045], ['bloc.establishment', 6], ['bloc.street', -4], ['tycoon.ty_bank', 5]],
+        done: [['nation.fiscalSpace', 3.5], ['counter.oil.share', -0.1], ['bonus.fiscal', -0.045], ['bloc.establishment', 6], ['bloc.street', -4], ['tycoon.ty_bank', 5]],
         news: ['FG SELLS JOINT VENTURE STAKES FOR ₦3.5TN', 'GOVERNMENT DON SELL OIL SHARE. THE MONEY, WHERE E DEY GO?'],
         archive: 'Sold the state\'s shares in the oil joint ventures.',
       },
