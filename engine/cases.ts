@@ -4,6 +4,7 @@
 // clean the government is, how powerful the accused is, and whether the bench can
 // be reached. The President can stand behind a case or lean on it.
 
+import { ruleInForce } from './constitution';
 import { midName } from './text';
 import { hasCapability } from './recruitment';
 import { NAMES } from '../content/names';
@@ -103,6 +104,7 @@ export function canDrop(s: GameState, id: string): { ok: boolean; reason?: strin
   const c = cases(s).find((x) => x.id === id);
   if (!c || c.outcome) return { ok: false };
   if (c.leaned) return { ok: false, reason: 'You have tried once. Trying again would be in writing.' };
+  if (ruleInForce(s, 'prosecutor')) return { ok: false, reason: 'The independent prosecutor decides which cases go ahead. The law gives you no say.' };
   return { ok: true };
 }
 

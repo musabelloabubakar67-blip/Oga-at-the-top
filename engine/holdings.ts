@@ -7,6 +7,7 @@
 // diligence; what is sold stops earning; nothing can be sold twice, or while it
 // is pledged or already on the market.
 
+import { ruleInForce } from './constitution';
 import { HOLDINGS, HOLDING_BY_ID, METHOD, REFINERIES, REVIVED_VALUE, TAX_ARREARS_START, type Holding, type SaleMethod } from '../content/holdings';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from './config';
@@ -205,6 +206,7 @@ export function startCollection(s: GameState, moves: number): string {
 
 export function canBorrowNow(s: GameState, amount: number, moves: number): { ok: boolean; reason?: string } {
   if (s.nation.debt >= CFG.economy.noLendingAbove) return { ok: false, reason: 'Nobody will lend at this level of debt service.' };
+  if (ruleInForce(s, 'debtceiling') && s.nation.debt >= 90) return { ok: false, reason: 'The debt ceiling law forbids emergency borrowing at this level of debt service.' };
   if (!(amount > 0) || amount > 1) return { ok: false, reason: 'An emergency issue is at most ₦1tn.' };
   if (moves <= 0) return { ok: false, reason: "This month's moves are used." };
   return { ok: true };

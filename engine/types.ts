@@ -529,6 +529,8 @@ export interface GameState {
   military?: import('./military').Military;
   /** Groups' fortunes, what citizens did, and the constituencies development created (plan 14). Carried across governments. */
   society?: import('./society').Society;
+  /** The Supreme Court's judgments, with their reasoning (plan 04). The country's case law; carried across governments. */
+  judgments?: { turn: number; subject: string; upheld: boolean; reasoning: string }[];
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
@@ -570,7 +572,9 @@ export interface GameState {
   origins?: Record<string, ZoneId>;
   /** Prosecutions under way and decided: who, for what, and where it stands. */
   cases?: { id: string; who: string; name: string; what: string; opened: number; stage: 'charged' | 'trial'; months: number; trialFrom?: number; recover: number; by: 'agency' | 'prosecutors'; backed?: boolean; leaned?: boolean; outcome?: 'convicted' | 'acquitted' | 'dropped' | 'fled'; closed?: number; traced?: { at: number; amount: number } }[];
-  institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; spec?: string; fit?: boolean }; since: number; seen?: boolean; /** When it was set up, for ramp-up; `since` is when the head took over. */ founded?: number; funding?: 'lean' | 'standard' | 'generous'; /** What it has done since it was set up, in its own units. */ record?: Record<string, number> }[];
+  institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; spec?: string; fit?: boolean }; since: number; seen?: boolean; /** When it was set up, for ramp-up; `since` is when the head took over. */ founded?: number; funding?: 'lean' | 'standard' | 'generous'; /** What it has done since it was set up, in its own units. */ record?: Record<string, number>;
+    /** Routines a strong leader built, 0–1: they survive the leader's departure (plan 04.A4). */ routine?: number;
+    /** What it did on its own, against whoever (plan 04.A2). */ acts?: { turn: number; text: string }[] }[];
   /** Every adviser's forecasts, checked against what happened. */
   advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
   /** What is happening to the country from outside, and what already has. */
@@ -599,7 +603,7 @@ export interface GameState {
   used: Record<string, number>;
   stories: Story[];
   /** Big bets: which named risks have been warned about, and any rescue or delay. */
-  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean; /** It missed its opening once and was given time. */ slipped?: number; /** Delivered in part: the share of the design that works. */ scale?: number }>;
+  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean; /** It missed its opening once and was given time. */ slipped?: number; /** Delivered in part: the share of the design that works. */ scale?: number; /** Appraised by the projects regulator before it went ahead (plan 04). */ reviewed?: boolean }>;
   lastAction: { text: string; changes: Change[] } | null;
 }
 

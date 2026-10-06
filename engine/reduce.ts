@@ -1,3 +1,4 @@
+import { entrenchedReform } from './constitution';
 import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
 import { refreshRequests } from './wants';
 import { reviewCommitmentsDue } from './commitments';
@@ -1132,7 +1133,10 @@ export function milestoneStatus(s: GameState, id: string): MilestoneStatus {
 
 export function canReverse(s: GameState, id: string): { ok: boolean; reason?: string } {
   const m = MILESTONE_BY_ID[id]?.m;
-  if (!m?.reversal || !s.agenda.done.includes(id)) return { ok: false };
+  if (!m || !s.agenda.done.includes(id)) return { ok: false };
+  const locked = entrenchedReform(s, id);
+  if (locked) return { ok: false, reason: locked };
+  if (!m.reversal) return { ok: false };
   if (movesLeft(s) <= 0) return { ok: false, reason: "This month's moves are used." };
   return { ok: true };
 }

@@ -22,8 +22,9 @@ import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
 import { policyNow } from '../engine/policies';
 import { activeShocks } from '../engine/shocks';
-import { REHEAD_PC, type Head, institutionFiscalLines, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
-import { INSTITUTION_BY_ID } from '../content/institutions';
+import { REHEAD_PC, type Head, WATCHDOGS, cultureOf, institutionFiscalLines, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
+import { CULTURE_NAME, INSTITUTION_BY_ID } from '../content/institutions';
+import { AUTHORITY_NAME, entrenchedReform, reformAuthority, ruleInForce } from '../engine/constitution';
 import { adviser, adviserFor, campGain, forecast, patronName, recommend, secondFor, trackRecord, worldview } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { forecastChallenge } from '../engine/courts';
@@ -550,6 +551,7 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
                   {i.head.name}{i.head.spec ? `, ${i.head.spec}${i.head.fit ? '' : ' working outside their field'}` : ''} · {Math.max(0, s.turn - i.since)} months in post. {i.seen ? <span className="text-alarm">It has been serving someone other than you; output is cut and the patron is the better for it.</span> : null}
                 </p>
                 {perf.why.length > 0 && <p className="text-[13px] text-ink-soft">{perf.why.join('. ')}.</p>}
+                <Charter s={s} id={i.id} />
                 {i.id === 'graft' && (
                   <div className="mt-2">
                     <p className="label text-ink-soft">Its cases · every charge followed to a verdict</p>
@@ -607,6 +609,7 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
                 <span className="flex flex-wrap gap-1.5">{d.pc ? <Chip>{d.pc} capital</Chip> : null}{d.naira ? <Chip>{naira(d.naira)}</Chip> : null}<Chip>{d.fiscal < 0 ? `${naira(-d.fiscal * 12)} a year to run` : `raises up to ${naira(d.fiscal * 12)} a year`}</Chip></span>
               </p>
               <p className="mt-0.5 text-sm leading-snug text-ink-soft">{d.blurb}</p>
+              <Charter s={s} id={d.id} />
               <span className="mt-1 block"><Expected items={year(preview)} label="A year of it, under an ordinary head" /></span>
               {d.needs && <span className="block text-[13px] text-ink-soft">Needs {d.needs.label.toLowerCase()} to work at full strength.</span>}
               <span className="mt-2 flex flex-wrap items-center gap-2">
@@ -621,6 +624,23 @@ function Institutions({ s, dispatch, left }: { s: GameState; dispatch: Dispatch;
         })}
       </ul>
     </section>
+  );
+}
+
+/** What an institution is for, what it may do, who protects and watches it, how it behaves, and what it did on its own (plan 04). */
+function Charter({ s, id }: { s: GameState; id: string }) {
+  const c = INSTITUTION_BY_ID[id]?.charter;
+  if (!c) return null;
+  const inst = (s.institutions ?? []).find((x) => x.id === id);
+  const culture = inst ? cultureOf(s, id) : c.culture;
+  const protectedBy = c.independence === 'presidential' ? (ruleInForce(s, 'watchdogs') && WATCHDOGS.includes(id) ? 'Head protected by the independent appointments law' : 'Head serves at your pleasure') : c.independence === 'statutory' ? 'Head protected by statute' : 'Head protected by the Constitution';
+  return (
+    <div className="mt-1.5 border-l-2 border-ink/15 pl-2 text-[13px] leading-snug">
+      <p><span className="font-semibold">Mandate:</span> {c.mandate} <span className="text-ink-soft">Powers: {c.powers.join('; ')}.</span></p>
+      <p className="text-ink-soft">{protectedBy}. Oversight: {c.oversight}</p>
+      <p>{CULTURE_NAME[culture]}{inst && (inst.routine ?? 0) >= 0.5 ? '. Its own routines now outlast any head.' : inst && (inst.routine ?? 0) > 0.05 ? `. Building routines: ${Math.round((inst.routine ?? 0) * 100)}%.` : ''}</p>
+      {inst?.acts?.slice(-2).map((a) => <p key={a.turn} className="text-honour">{dateLabel(a.turn, s.startYear)}: {a.text}</p>)}
+    </div>
   );
 }
 
@@ -787,6 +807,7 @@ function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; t
         {st === 'done' && <span className="label text-state-lit">Delivered</span>}
       </p>
       {showTrack && <p className="label mt-1 text-mute">{track.name}{s.agenda.tracks.includes(track.id) ? ' · declared priority' : ''}</p>}
+      {reformAuthority(m.id) !== 'executive' && <p className="mt-0.5 text-[12.5px] text-ivory/55">{AUTHORITY_NAME[reformAuthority(m.id)]}.{entrenchedReform(s, m.id) ? ' Entrenched: it cannot be undone by decision.' : ''}</p>}
       {note && <p className="mt-1 text-sm text-alarm">{note}</p>}
       {m.onBooks && <p className="mt-1 text-[13px] text-honour"><span className="label mr-1">On the statute book</span>{m.onBooks} Capital costs 30% less; the work takes 25% less time (included below).</p>}
       {m.emerge?.(s) && m.emergeText && <p className="mt-1 text-sm text-honour">{m.emergeText}</p>}

@@ -38,6 +38,9 @@ import type { Action, Favour, GameState } from '../engine/types';
 import { grievances } from '../engine/targets';
 import { CREDIT_PC, GROOM_MAX, GROOM_PC, canCredit, canGroom, candidate, candidateIds, creditable, groomWindow, shortlist } from '../engine/successor';
 import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees } from '../engine/courts';
+import { profileOf } from '../engine/judgment';
+import { PHILOSOPHY_NAME } from '../content/courts';
+import { rules } from '../engine/constitution';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
@@ -704,6 +707,18 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
     <div className="mt-4">
       <h3 className="label border-b rule pb-1 text-ink-soft">Prosecutions</h3>
       <Cases s={s} dispatch={dispatch} />
+      <h3 className="label mt-5 border-b rule pb-1 text-ink-soft">The rules in force</h3>
+      {rules(s).length === 0 ? <p className="mt-1 text-[13px] text-ink-soft">No rule beyond the old Constitution binds you yet. Laws on debt, appointments, prosecution, policing and revenue, and a new constitution, would bind you and every successor.</p> : (
+        <ul className="mt-1 space-y-1 text-[13px] leading-snug">
+          {rules(s).map((r) => <li key={r.id}><span className="font-semibold">{r.name}</span>{r.entrenched ? <span className="label ml-1 text-state">entrenched</span> : null}: {r.text} <span className="text-ink-soft">From {r.source.charAt(0).toLowerCase() + r.source.slice(1)}.</span></li>)}
+        </ul>
+      )}
+      {(s.judgments ?? []).length > 0 && (
+        <>
+          <h3 className="label mt-5 border-b rule pb-1 text-ink-soft">Judgments, with their reasons</h3>
+          <ul className="mt-1 space-y-1 text-[13px] leading-snug">{(s.judgments ?? []).slice(-5).reverse().map((j) => <li key={j.turn + j.subject}><span className="text-ink-soft">{dateLabel(j.turn, s.startYear)} · {j.subject}:</span> {j.reasoning}</li>)}</ul>
+        </>
+      )}
       <h3 className="label mt-5 border-b rule pb-1 text-ink-soft">The Supreme Court</h3>
       <p className="mt-2 text-sm text-ink-soft">
         The Supreme Court hears the election petition on appeal, challenges to orders that hit someone hard, and applications to freeze reforms.
@@ -722,6 +737,7 @@ function Courts({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; left:
                   <span className={`label ${j.lean === 'you' ? 'text-state' : j.lean === 'them' ? 'text-alarm' : 'text-ink-soft'}`}>{LEAN[j.lean]} · integrity {j.integrity}</span>
                 </p>
                 <p className="mt-1 text-sm leading-snug text-ink-soft">{j.blurb}{j.mine ? ' Appointed by you.' : ''} {j.retires - s.turn <= 96 ? `Retires in ${mo(j.retires - s.turn)}.` : ''}</p>
+                {(() => { const p = profileOf(j); return <p className="text-[13px] leading-snug">{j.short} {PHILOSOPHY_NAME[p.philosophy]}. Procedure {p.procedure}/5, runs a court {p.admin >= 4 ? 'well' : p.admin <= 2 ? 'slowly' : 'adequately'}{p.pressure === 'bends' && j.integrity <= 2 ? '; bends to whoever leans hardest' : '; does not bend to pressure'}.</p>; })()}
               </>
             ) : (
               <>

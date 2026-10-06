@@ -3,14 +3,22 @@
 // sets the output; a head who serves someone else captures it, and after a while
 // the capture shows, with the name of whoever is being served.
 
+import { ruleInForce } from './constitution';
 import { mo } from './config';
 import { canAppointExceptional } from './recruitment';
-import { INSTITUTIONS, INSTITUTION_BY_ID, type InstitutionDef } from '../content/institutions';
+import { INSTITUTIONS, INSTITUTION_BY_ID, type Culture, type InstitutionDef } from '../content/institutions';
+import { PERSON_BY_ID } from '../content/people';
+import { TYCOON_BY_ID } from '../content/tycoons';
+import { VENTURE_BY_ID } from '../content/ventures';
+import { charge } from './cases';
 import { candidatesFor, release, specName, take } from './talent';
 import { CFG } from './config';
 import { diff, snapshot } from './effects';
 import type { Fx, GameState } from './types';
-import { applyFx, clamp, getVar } from './vars';
+import { applyFx, clamp, getVar, hardship, senate, test } from './vars';
+
+/** Bodies the independent-appointments law protects. */
+export const WATCHDOGS = ['graft', 'stats', 'regulator'];
 
 export interface Head { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; /** From the talent pool. */ cid?: string; spec?: string; fit?: boolean; refuses?: string | null; integrityShown?: number }
 
@@ -63,6 +71,7 @@ export function performance(s: GameState, id: string): { k: number; why: string[
   const f = FUNDING[inst.funding ?? 'standard'];
   if (f.out !== 1) { k *= f.out; why.push(`${f.name}: output ×${f.out}`); }
   if (id === 'graft' && s.flags['graft.leash']) { k *= 0.6; why.push('You stopped one of its cases, and every investigator noticed'); }
+  if ((inst.routine ?? 0) >= 0.5) { k *= 1.15; why.push('Routines built by a strong head keep it working: +15%'); }
   return { k, why, captured };
 }
 
@@ -93,9 +102,83 @@ export function institutionInflationLines(s: GameState): { label: string; value:
   return built(s).filter((i) => INSTITUTION_BY_ID[i.id].inflation).map((i) => ({ label: INSTITUTION_BY_ID[i.id].name, value: -(INSTITUTION_BY_ID[i.id].inflation ?? 0) * performance(s, i.id).k }));
 }
 
+/** How it behaves now (plan 04.A3): its charter's culture, changed by its head and its own routines. */
+export function cultureOf(s: GameState, id: string): Culture {
+  const i = built(s).find((x) => x.id === id);
+  const base = INSTITUTION_BY_ID[id]?.charter?.culture ?? 'competent';
+  if (!i) return base;
+  if (leans(i.head)) return 'captured';
+  if (i.head.loyalty >= 4 && i.head.patron === 'president' && i.head.integrity <= 3 && (i.routine ?? 0) < 0.5) return 'timid';
+  if ((i.routine ?? 0) >= 0.5 || (i.head.competence >= 4 && i.head.integrity >= 4)) return base === 'doctrinaire' ? 'doctrinaire' : 'competent';
+  return base === 'captured' && i.head.integrity >= 4 ? 'slow' : base;
+}
+
+/** Whether it will act against the government's wishes: its culture, its legal protection and its head. */
+export function independentEnough(s: GameState, id: string): boolean {
+  const c = cultureOf(s, id);
+  const legal = INSTITUTION_BY_ID[id]?.charter?.independence ?? 'presidential';
+  const protectedHead = legal !== 'presidential' || ruleInForce(s, 'watchdogs');
+  return (c === 'competent' || c === 'doctrinaire') && (protectedHead || (built(s).find((x) => x.id === id)?.head.integrity ?? 0) >= 4);
+}
+
+/** Things institutions do on their own (plan 04.A2). Each can help the country and constrain the President in the same year. */
+function independentActs(s: GameState): void {
+  const has = (id: string) => built(s).some((i) => i.id === id);
+  const act = (id: string, text: string, news: [string, string]) => {
+    const i = built(s).find((x) => x.id === id)!;
+    (i.acts ??= []).push({ turn: s.turn, text });
+    if (i.acts.length > 12) i.acts.shift();
+    s.report.push({ kind: 'consequence', title: `${INSTITUTION_BY_ID[id].name}, on its own`, cause: i.head.name, text, changes: [] });
+    s.news.push({ chronicle: news[0], street: news[1], weight: 5, valence: 0, topic: 'politics', body: text });
+  };
+  const once = (key: string, months: number) => { const last = s.counters[key]; if (last !== undefined && s.turn - last < months) return false; s.counters[key] = s.turn; return true; };
+  // The anti-corruption agency charges someone close to the President.
+  if (has('graft') && independentEnough(s, 'graft')) {
+    const ally = Object.entries(s.people).filter(([, p]) => !p.gone && p.rel >= 65).map(([id]) => id)
+      .find((id) => Object.keys(s.flags).some((k) => k.startsWith(`dirty.${id}.`)) && !(s.cases ?? []).some((c) => c.who === id));
+    if (ally && once('inst.act.graft', 10)) {
+      charge(s, ally, 'contracts awarded without tender', 0.05);
+      applyFx(s, ['nation.integrity', 2]); applyFx(s, ['bloc.press', 3]); applyFx(s, ['bloc.party', -3]);
+      act('graft', `The agency has charged ${PERSON_BY_ID[ally]?.name ?? ally}, who is close to you, over contracts awarded without tender. It did not ask first.`, ['ANTI-GRAFT AGENCY CHARGES ALLY OF THE PRESIDENT', 'EFCC NO SPARE OGA PERSON THIS TIME']);
+    }
+  }
+  // The statistics bureau publishes the figure the government would rather it did not.
+  if (has('stats') && independentEnough(s, 'stats') && (s.nation.inflation >= 25 || hardship(s) >= 62) && once('inst.act.stats', 9)) {
+    applyFx(s, ['approval', -1.5]); applyFx(s, ['bloc.press', 3]); applyFx(s, ['nation.integrity', 1]); applyFx(s, ['nation.capacity', 1]);
+    act('stats', `The bureau publishes its quarterly survey: inflation at ${Math.round(s.nation.inflation)}% and one household in three skipping meals. The figures the Villa used were lower. Planners in every ministry now use the bureau's.`, ['STATISTICS BUREAU: INFLATION HIGHER THAN GOVERNMENT CLAIMS', 'STATISTICS PEOPLE DON TALK TRUE. E NO SWEET']);
+  }
+  // The regulator sends back a project that is not ready to start.
+  if (has('regulator') && independentEnough(s, 'regulator')) {
+    for (const a of s.ventures.active) {
+      const st = (s.bets[a.id] ??= { warned: [] });
+      if (st.reviewed || a.progress > 20) continue;
+      st.reviewed = true;
+      const v = VENTURE_BY_ID[a.id];
+      const unmet = (v?.risks ?? []).filter((r) => r.kind === 'essential' && !test(s, r.ok));
+      if (unmet.length) {
+        a.progress = Math.max(0, a.progress - 15);
+        act('regulator', `The regulator has sent back "${v.name}" until this is in place: ${unmet[0].label.charAt(0).toLowerCase()}${unmet[0].label.slice(1)}. Two months are lost; the project that resumes is less likely to fail.`, ['REGULATOR SENDS BACK PRESIDENTIAL PROJECT', 'REGULATOR SAY THE PROJECT NEVER READY']);
+        break;
+      }
+    }
+  }
+  // The large-taxpayer office audits a businessman the President counts as a friend.
+  if (has('tax') && independentEnough(s, 'tax')) {
+    const friend = Object.entries(s.tycoons).find(([, t]) => t.rel >= 70)?.[0];
+    if (friend && once('inst.act.tax', 12)) {
+      s.tycoons[friend].rel = clamp(s.tycoons[friend].rel - 8, 0, 100);
+      applyFx(s, ['nation.fiscalSpace', 0.06]);
+      act('tax', `The large-taxpayer office has audited ${TYCOON_BY_ID[friend]?.name ?? friend}, a friend of the Villa, and assessed ₦60bn in unpaid tax. The businessman has asked you to intervene.`, ['TAX OFFICE ASSESSES BILLIONS FROM FRIEND OF THE PRESIDENT', 'TAX PEOPLE DON CATCH OGA FRIEND']);
+    }
+  }
+}
+
 /** Every month: the output lands, and a captured institution serves its patron, which shows after six months. */
 export function institutionTick(s: GameState): void {
+  independentActs(s);
   for (const i of built(s)) {
+    // A strong head builds routines that outlast them; neglect lets them decay.
+    i.routine = clamp((i.routine ?? 0) + (i.head.competence >= 4 && i.head.integrity >= 4 ? 0.03 : -0.01), 0, 1);
     for (const f of monthlyFx(s, i.id)) applyFx(s, f);
     // What it did this month, in its own units.
     const d0 = INSTITUTION_BY_ID[i.id];
@@ -174,6 +257,7 @@ export function canReplaceHead(s: GameState, id: string, head: string, movesLeft
   if (!inst) return { ok: false };
   const h = headsFor(s, id).find((x) => x.name === head);
   if (inst.head.name === head || !h) return { ok: false, reason: 'Not available.' };
+  if (ruleInForce(s, 'watchdogs') && WATCHDOGS.includes(id) && senate(s) < 50) return { ok: false, reason: 'Under the independent appointments law, a watchdog head can be replaced only with the consent of the Senate (support of 50 or better).' };
   if (h.refuses) return { ok: false, reason: h.refuses };
   if (h.cid) { const can = canAppointExceptional(s, h.cid, { kind: 'institution', id }); if (!can.ok) return can; }
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };

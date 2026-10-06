@@ -44,3 +44,42 @@ export const NOMINEES: NomineeDef[] = [
   { name: 'Justice Ngozi Anyaduba', short: 'Anyaduba', lean: 'you', integrity: 3, senate: 50, fx: [['bloc.press', -3], ['nation.integrity', -1]], blurb: 'Wrote the opinion that saved your party\'s last governorship. Expects to be remembered for it.' },
   { name: 'Justice Yakubu Ndaliman', short: 'Ndaliman', lean: 'you', integrity: 2, senate: 45, fx: [['bloc.party', 3], ['bloc.press', -4], ['nation.integrity', -2]], blurb: 'The party\'s recommendation. Will rule however the party needs, for whoever is paying the party.' },
 ];
+
+// HOW EACH JUSTICE DECIDES (plan 04.A7)
+// A legal philosophy, how strictly they hold the government to procedure, how
+// well they run a court, and what happens when someone leans on them. Cases are
+// decided on authority, evidence, precedent and procedure; a justice's lean is a
+// sympathy, not a vote. Independence is not opposition.
+
+export type Philosophy = 'textual' | 'purposive' | 'deferential' | 'rights';
+export const PHILOSOPHY_NAME: Record<Philosophy, string> = {
+  textual: 'asks first whether the power existed',
+  purposive: 'asks what the law was for, and whether it was served',
+  deferential: 'defers to the elected government unless the breach is plain',
+  rights: 'asks first whether those affected were heard and the harm justified',
+};
+
+export interface JudicialProfile {
+  philosophy: Philosophy;
+  /** 1–5: how strictly they insist that those affected are heard and the rules followed. */
+  procedure: number;
+  /** 1–5: how well they run a court; a good administrator decides on time. */
+  admin: number;
+  /** What pressure does: 'firm' ignores it; 'bends' leans toward whoever applies it, if integrity is low. */
+  pressure: 'firm' | 'bends';
+}
+
+export const PROFILE: Record<string, JudicialProfile> = {
+  Akintewe: { philosophy: 'textual', procedure: 4, admin: 5, pressure: 'firm' },
+  Opubo: { philosophy: 'deferential', procedure: 2, admin: 3, pressure: 'bends' },
+  Tsafe: { philosophy: 'purposive', procedure: 2, admin: 2, pressure: 'bends' },
+  Edewor: { philosophy: 'textual', procedure: 3, admin: 2, pressure: 'firm' },
+  Yawuri: { philosophy: 'rights', procedure: 4, admin: 3, pressure: 'firm' },
+  Akinbiyi: { philosophy: 'purposive', procedure: 3, admin: 4, pressure: 'firm' },
+  Ezeokafor: { philosophy: 'rights', procedure: 5, admin: 3, pressure: 'firm' },
+  Olowofela: { philosophy: 'textual', procedure: 4, admin: 4, pressure: 'firm' },
+  Kachia: { philosophy: 'deferential', procedure: 3, admin: 4, pressure: 'firm' },
+  Gamawa: { philosophy: 'purposive', procedure: 3, admin: 4, pressure: 'firm' },
+  Anyaduba: { philosophy: 'deferential', procedure: 2, admin: 3, pressure: 'bends' },
+  Ndaliman: { philosophy: 'deferential', procedure: 1, admin: 2, pressure: 'bends' },
+};

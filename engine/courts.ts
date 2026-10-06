@@ -1,3 +1,4 @@
+import { ruleInForce } from './constitution';
 import { reformName } from './reforms';
 // The Supreme Court: seven seats, each with a lean and a retirement date. The
 // President fills vacancies, subject to the Senate. The bench decides the election
@@ -14,6 +15,7 @@ import { rand } from './rng';
 import { aimFx, targetName, type TargetKind } from './targets';
 import type { Fx, GameState } from './types';
 import { applyFx, clamp, registerBench, senate } from './vars';
+import { decide, justiceVote, type Facts } from './judgment';
 
 export interface Justice { name: string; short: string; lean: Lean; integrity: number; retires: number; chief?: boolean; mine?: boolean; blurb: string }
 export interface Bench { seats: (Justice | null)[]; packed: number; spent: string[]; extra?: NomineeDef[]; seq?: number }
@@ -110,11 +112,12 @@ function topUp(s: GameState, b: Bench): void {
   while (free() < MIN_CHOICE) (b.extra ??= []).push(newNominee(s, b));
 }
 
-/** Who can be nominated now, and whether the Senate would confirm them. */
+/** Who can be nominated now, and whether the Senate would confirm them. Under the commission clause, only the commission's list. */
 export function nominees(s: GameState) {
   const b = bench(s);
   const sitting = new Set(b.seats.map((j) => j?.name));
-  return [...named(s), ...(b.extra ?? [])].filter((n) => !b.spent.includes(n.name) && !sitting.has(n.name)).map((n) => {
+  const commission = ruleInForce(s, 'judicial');
+  return [...named(s), ...(b.extra ?? [])].filter((n) => !b.spent.includes(n.name) && !sitting.has(n.name) && !(commission && n.lean === 'you')).map((n) => {
     const sen = senate(s);
     return { ...n, confirms: sen >= n.senate, why: n.senate ? `The Senate confirms with support of ${n.senate} or better (now ${Math.round(sen)}).` : 'The Senate will confirm without a fight.' };
   });
@@ -158,8 +161,35 @@ export function nominate(s: GameState, seat: number, name: string): string {
 
 /** How a challenge to this order would go before the bench as it stands. */
 export function forecastChallenge(s: GameState): { against: number; for: number; unsure: number } {
-  const v = seated(s).map(vote);
-  return { against: v.filter((x) => x < 0).length, for: v.filter((x) => x > 0).length, unsure: v.filter((x) => x === 0).length };
+  // A typical hostile order with ordinary evidence, as the bench stands.
+  const f: Facts = { authority: 0.45, evidence: 0.45, precedent: precedentFor(s), procedure: 0.5, subject: '', says: SAYS };
+  const votes = seated(s).map((j) => justiceVote(j, f));
+  return { against: votes.filter((x) => x.score < 0.45).length, for: votes.filter((x) => x.score > 0.55).length, unsure: votes.filter((x) => x.score >= 0.45 && x.score <= 0.55).length };
+}
+
+const SAYS: Facts['says'] = {
+  authority: ['The order relies on a power the Constitution gives to the Assembly, not to the President.', 'The power to make this order is the President\'s, and it was used for the purpose the law gives it.'],
+  evidence: ['The government put nothing before the court that would justify what was done.', 'The government\'s evidence was enough to justify what was done.'],
+  precedent: ['This court has struck down orders like it before, and sees no reason to depart from that.', 'The court has upheld orders of this kind before.'],
+  procedure: ['Those affected were never heard before the order was made.', 'Those affected were given notice and a hearing.'],
+};
+
+/** Each order this court has struck down is a precedent the next challenger cites. */
+const precedentFor = (s: GameState) => clamp(0.6 - (s.counters.struck ?? 0) * 0.08 + (s.counters.upheld ?? 0) * 0.04, 0.1, 0.85);
+
+/** The facts of a challenge to a hostile order, each from 0 (against the government) to 1 (for it). */
+export function orderFacts(s: GameState, def: { id: string; hostile?: number; target?: string }, target: string, who: string): Facts {
+  const dirty = Object.keys(s.flags).some((k) => k.startsWith(`dirty.${target}.`)) || (s.cases ?? []).some((c) => c.who === target && !c.outcome);
+  const graftHonest = (s.institutions ?? []).some((i) => i.id === 'graft' && i.head.integrity >= 4);
+  return {
+    subject: who,
+    authority: clamp(0.75 - ((def.hostile ?? 3) - 3) * 0.15 - (def.target === 'paper' ? 0.25 : 0), 0.05, 0.95),
+    evidence: clamp((dirty ? 0.75 : 0.3) + (graftHonest ? 0.1 : 0), 0, 1),
+    precedent: precedentFor(s),
+    procedure: clamp(0.5 + (s.agenda.done.includes('c2') ? 0.1 : 0) + (s.agenda.done.includes('j9') ? 0.1 : 0) - (s.flags['bench.leaned'] ? 0.2 : 0), 0, 1),
+    says: SAYS,
+    pressedBy: s.flags['bench.leaned'] ? 'government' : def.target === 'tycoon' ? 'challenger' : undefined,
+  };
 }
 
 /** A reform someone powerful loses from: it can be frozen by a court that someone powerful can reach. */
@@ -193,12 +223,13 @@ export function courtTick(s: GameState): void {
   for (const o of (s.orderLog ?? []).filter((x) => x.turn === s.turn - 1)) {
     const def = ORDER_BY_ID[o.id];
     if (!def || (def.hostile ?? 0) < 3 || !o.target || !def.target) continue;
-    const votes = js.map((j) => (vote(j) === 0 ? (rand(s) < 0.5 ? 1 : -1) : vote(j)));
-    const against = votes.filter((x) => x < 0).length;
-    const forYou = votes.filter((x) => x > 0).length;
     const who = targetName(s, def.target as TargetKind, o.target).name;
+    // Decided on the merits (plan 04.A7): authority, evidence, precedent and procedure.
+    const judgment = decide(js, orderFacts(s, def, o.target, who));
+    const against = judgment.against, forYou = judgment.for;
+    s.counters[`judged.${def.id}`] = s.turn;
     const before = snapshot(s);
-    if (against > forYou) {
+    if (!judgment.upheld) {
       // Half of what landed on the target is undone.
       const undo = aimFx(s, def.target as TargetKind, o.target, def.fx ?? []).filter(([t]) => t.startsWith('person.') || t.startsWith('tycoon.') || t.startsWith('rival.')).map(([t, v]) => [t, -v / 2] as Fx);
       for (const f of undo) applyFx(s, f);
@@ -207,10 +238,13 @@ export function courtTick(s: GameState): void {
       s.counters.struck = (s.counters.struck ?? 0) + 1;
       s.counters[`struck.${def.id}`] = s.turn;
       s.news.push({ chronicle: `SUPREME COURT VOIDS ORDER AGAINST ${who.toUpperCase()}, ${against}–${forYou}`, street: `COURT SAY WETIN PRESIDENT DO ${who.toUpperCase()} NO LEGAL`, weight: 6, valence: -1, topic: 'politics', body: `${who} challenged the order and won. The court\'s judgment calls it "an exercise of power in search of a law".` });
-      s.report.push({ kind: 'consequence', title: `Struck down: ${def.name}`, cause: 'The Supreme Court', text: `${who} went to court and won, ${against} to ${forYou}. Half the damage is undone and you look like a President who loses in court.`, changes: diff(before, snapshot(s)) });
+      s.report.push({ kind: 'consequence', title: `Struck down: ${def.name}`, cause: 'The Supreme Court', text: `${who} went to court and won. ${judgment.reasoning} Half the damage is undone.`, changes: diff(before, snapshot(s)) });
     } else {
-      s.report.push({ kind: 'consequence', title: `Upheld: ${def.name}`, cause: 'The Supreme Court', text: `${who} challenged the order and lost, ${forYou} to ${against}.${benchVars(s).loyal >= 3 ? ' The bench you built held.' : ''}`, changes: [] });
+      s.counters.upheld = (s.counters.upheld ?? 0) + 1;
+      s.report.push({ kind: 'consequence', title: `Upheld: ${def.name}`, cause: 'The Supreme Court', text: `${who} challenged the order and lost. ${judgment.reasoning}`, changes: [] });
     }
+    (s.judgments ??= []).push({ turn: s.turn, subject: `${def.name}: ${who}`, upheld: judgment.upheld, reasoning: judgment.reasoning });
+    if (s.judgments.length > 30) s.judgments.shift();
   }
 
   // Injunctions: a justice who can be reached freezes a reform for someone who loses from it.

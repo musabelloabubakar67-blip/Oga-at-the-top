@@ -27,7 +27,7 @@ export function ventureOdds(s: GameState, v: Venture): number {
   // A second attempt knows exactly what went wrong the first time.
   const learned = s.bets[v.id]?.revived ? REVIVE_LEARNED : 0;
   // Appraised before it was built.
-  const appraised = s.agenda.done.includes('w8') ? 0.08 : 0;
+  const appraised = (s.agenda.done.includes('w8') ? 0.08 : 0) + (s.bets[v.id]?.reviewed ? 0.05 : 0);
   return clamp(v.top - lost + rescued + learned + appraised, 0.05, 0.95);
 }
 
