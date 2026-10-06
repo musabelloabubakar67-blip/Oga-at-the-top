@@ -7,6 +7,7 @@ import { reformName } from './reforms';
 
 import { BENCH, NOMINEES, type Lean, type NomineeDef } from '../content/courts';
 import { NAMES_BY_ZONE } from '../content/talent';
+import { chooseGeneratedName } from './generated-names';
 import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
 import { diff, snapshot } from './effects';
 import { rand } from './rng';
@@ -80,11 +81,12 @@ function newNominee(s: GameState, b: Bench): NomineeDef {
   b.seq = (b.seq ?? 0) + 1;
   const r = prng((s.seed ?? 1) * 4099 + b.seq * 92821);
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
-  const bank = NAMES_BY_ZONE[pick(ZONE_IDS)];
+  const zone = pick(ZONE_IDS), bank = NAMES_BY_ZONE[zone];
   const female = r() < 0.4;
-  const taken = new Set([...NOMINEES.map((n) => n.name), ...(b.extra ?? []).map((n) => n.name), ...b.seats.map((j) => j?.name)]);
-  let first = pick(female ? bank.f : bank.m), last = pick(bank.last);
-  for (let i = 0; i < 6 && taken.has(`Justice ${first} ${last}`); i++) { first = pick(female ? bank.f : bank.m); last = pick(bank.last); }
+  const taken = new Set([...NOMINEES.map((n) => n.name), ...(b.extra ?? []).map((n) => n.name), ...b.seats.flatMap((j) => j ? [j.name] : [])]);
+  const zones = [zone, ...ZONE_IDS.filter((z) => z !== zone)];
+  const { first, last } = chooseGeneratedName(() => ({ first: pick(female ? bank.f : bank.m), last: pick(bank.last), title: 'Justice', zone }),
+    zones.flatMap((z) => [female, !female].map((f) => ({ zone: z, firsts: f ? NAMES_BY_ZONE[z].f : NAMES_BY_ZONE[z].m, lasts: NAMES_BY_ZONE[z].last, titles: ['Justice'] }))), taken, 7);
   const lean: Lean = r() < 0.3 ? 'you' : 'free';
   const x = r();
   const integrity = x < 0.1 ? 1 : x < 0.3 ? 2 : x < 0.65 ? 3 : x < 0.9 ? 4 : 5;

@@ -1,4 +1,6 @@
-# Integration coverage — current immediate scope
+# Integration coverage - current immediate scope
+
+Latest checkpoint: Claude deliveries 9–14 through c36117a are integrated with systems cae4d72. S9's blocked-name generators and deterministic fallback are delivered. 59 contract checks, nine experience suites, typecheck, zero-warning lint and eight chained presidencies pass. See CODEX-DELIVERY-11.md. Military/citizen behaviour drafts and /mocks are inputs/design references; their presence does not mark their engine systems complete.
 
 Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/codex-systems`. Contract delivery: 1.0.0. This is an initial index; expand to each master bullet as implementations land. Partial never means complete or deferred.
 

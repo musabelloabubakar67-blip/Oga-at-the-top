@@ -20,6 +20,7 @@ import type { DomainEffect, DomainOutcome } from '../engine/public';
 import type { GameEvent } from '../engine/types';
 import { runSocialChecks } from './check-social';
 import { runCommitmentChecks } from './check-commitments';
+import { runGeneratedNameChecks } from './check-generated-names';
 
 const setup = { seed: 42, name: 'Tester', party: 'PSC', partyShort: 'PSC', home: 'KN', background: 'governor' as const, address: 'sir' as const, finance: FINANCE_CANDIDATES[0].name, priorities: ['power', 'security', 'food', 'works'] };
 const fresh = () => newGame(setup);
@@ -443,4 +444,5 @@ const unsupported: DomainEffect = { type: 'cash.magic' };
 void unsupported;
 passed += runSocialChecks();
 passed += runCommitmentChecks();
+passed += runGeneratedNameChecks();
 process.stdout.write(`${passed} contract checks passed.\n`);

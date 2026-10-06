@@ -51,7 +51,7 @@ Type is what the scene is: **decision**, **escalation** (a decision inside a run
 | D10, D11 | Wait on R3. |
 | D12 | Fixed. All 26 headline warnings resolved one by one: public acts have real headlines, private ones a `quiet` reason (S2, contract 1.0.0). |
 | D13 | Fixed for four pairs, one waiting. Harvest, championship and listing: each pair is mutually exclusive (whichever comes first tells it), and the shock's grain purchase now fills the same grain reserve that `tycoon.hoard` can release. Flood: one defence state. The seasonal flood stops once the defences reform (w4) is delivered or the great flood shock has happened, and the shock credits defences the government committed to in a seasonal flood. Blackout: the shock's file says it is not one of the ordinary collapses; and `grid.collapse` no longer fires while the blackout is active (S5). |
-| D14 | In progress. Recurrence now carries a development, tied to what the player did last time, in `petrol.scarcity`, `elder.letter` (the second letter answers the visit, rebuttal or silence), `party.decamp` (a smaller second wave that remembers how the first was handled, with its own outcome), `uni.strike` (the sixth month, and what has been lost), `minor.independence` (the second broadcast is checked against the first) and `pred.speech`. The rest wait on R2 or follow in later commits. |
+| D14 | In progress. Recurrence now carries a development, tied to what the player did last time, in `petrol.scarcity`, `elder.letter` (the second letter answers the visit, rebuttal or silence), `party.decamp` (a smaller second wave that remembers how the first was handled, with its own outcome), `uni.strike` (the sixth month, and what has been lost), `minor.independence` (the second broadcast is checked against the first) and `pred.speech`. Delivery 10 covers every remaining recurring and threshold file: each choice records what was done (`<topic>.last`, or a per-person, per-reform or per-bet flag bound by the cast), and the next occurrence opens with what came of it: the unpaid half of the gas bill, the promissory notes trading at a discount, the inquiry that never reported, the patrol that stops forty kilometres short, the reshuffle that taught the governors a revolt pays. `tests/experience/recurrence.check.ts` fails any repeating file without such a line (two exemptions, with reasons). Full episode state still waits on R2. |
 
 ## Per-event verdicts
 
@@ -269,8 +269,21 @@ Type is what the scene is: **decision**, **escalation** (a decision inside a run
 | `react.venture_won` | closing | Keep | | Present as a closing report. |
 | `bet.trouble` | escalation | Keep · Rebuild (plan 12) | Varies by bet. | Partial outcomes and operations. |
 
+### What success brings (new, delivery 13)
+
+| Event | Type | Verdict | Finding | Next |
+|---|---|---|---|---|
+| `success.refinery` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.steel` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.export_power` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.rail` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.fintech` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.census` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.charter` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+| `success.hospital` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
+
 ## Coverage
 
-All 180 event ids in the registry are named in the tables above (checked by script against `event-audit.json`). Fourteen confirmed defects are listed as D1 to D14. Repetition: 53 events can fire more than once; of these, the ones marked Rebuild (R2) or Revise for recurrence repeat their body without a material development and must gain one.
+All 188 event ids in the registry are named in the tables above (the original 180 checked by script against `event-audit.json`; the eight files of delivery 13 are listed in their own table). Fourteen confirmed defects are listed as D1 to D14. Repetition: 53 events can fire more than once; of these, the ones marked Rebuild (R2) or Revise for recurrence repeat their body without a material development and must gain one.
 
 This document is updated in the same commit as each change it describes.
