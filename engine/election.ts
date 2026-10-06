@@ -120,6 +120,15 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession', ste
     votesAgainst += r.voters * r.opp;
     if (r.share >= 25) spread++;
   }
+  // The diaspora vote (the diaspora bet, plan 12): voters abroad judge the currency and the honesty of the government, not the rallies.
+  let diaspora: ElectionResult['diaspora'];
+  if (s.flags['diaspora.vote']) {
+    const prem = s.fx ? s.fx.parallel / s.fx.rate - 1 : 0;
+    const share = clamp(48 + (s.nation.integrity - 35) * 0.5 - Math.max(0, prem - 0.1) * 40 - Math.max(0, s.nation.inflation - 20) * 0.5, 20, 75);
+    diaspora = { voters: DIASPORA_VOTERS, share };
+    votesFor += DIASPORA_VOTERS * share;
+    votesAgainst += DIASPORA_VOTERS * (100 - share);
+  }
   // Safe states first, the closest and largest last.
   states.sort((a, b) => Math.abs(b.share - b.opp) - b.voters - (Math.abs(a.share - a.opp) - a.voters));
 
@@ -129,7 +138,11 @@ export function runElection(s: GameState, kind: 'reelection' | 'succession', ste
     margin: ((votesFor - votesAgainst) / (votesFor + votesAgainst)) * 100,
     won: votesFor > votesAgainst && spread >= 25,
     swing,
+    ...(diaspora ? { diaspora } : {}),
   };
 }
+
+/** Registered voters abroad once the diaspora vote exists, millions. */
+export const DIASPORA_VOTERS = 2.2;
 
 registerOutlook(projectMargin);

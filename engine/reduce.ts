@@ -10,7 +10,7 @@ import { canLand, land } from './formers';
 import { canVisit, visit } from './predecessor';
 import { canPortfolio, canReplaceVP, givePortfolio, initVP, replaceVP, sideline } from './vp';
 import { backCase, canBack, canDrop, dropCase } from './cases';
-import { canExpand, expand, initialiseScenarioAssets, type ScenarioAssets } from './places';
+import { canExpand, canFinish, canRefurbish, expand, finish, initialiseScenarioAssets, refurbish, setUpkeep, type ScenarioAssets } from './places';
 import { EVENTS } from '../content';
 import { MILESTONE_BY_ID, ORDERS, ORDER_BY_ID, type Order } from '../content/agenda';
 import { CAST, FINANCE_CANDIDATES } from '../content/names';
@@ -832,6 +832,9 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'VENTURE': launchVenture(s, action.id, action.site); break;
     case 'VENTURE_REVIVE': revive(s, action.id); break;
     case 'EXPAND_ASSET': if (canExpand(s, action.id).ok) note(s, expand(s, action.id)); break;
+    case 'FINISH_ASSET': if (canFinish(s, action.id).ok) note(s, finish(s, action.id)); break;
+    case 'REFURBISH_ASSET': if (canRefurbish(s, action.id).ok) note(s, refurbish(s, action.id)); break;
+    case 'ASSET_UPKEEP': note(s, setUpkeep(s, action.id, action.mode)); break;
     case 'CASE':
       if (action.op === 'back' && canBack(s, action.id).ok) note(s, backCase(s, action.id));
       if (action.op === 'drop' && canDrop(s, action.id).ok) note(s, dropCase(s, action.id));

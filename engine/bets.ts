@@ -229,22 +229,44 @@ export function ventureTick(s: GameState): void {
       continue;
     }
 
+    // The day it opens (plan 12). It works in full; or it misses its opening because of
+    // something that can still be put right, once; or part of it works; or it fails.
     const odds = ventureOdds(s, v);
-    const won = rand(s) < odds;
+    const roll = rand(s);
+    const fixable = worstRisk(s, v);
+    const outcome = resolveBet(odds, roll, !!fixable && !st.slipped);
+    if (outcome === 'slip') {
+      a.progress = SLIP_TO;
+      st.slipped = s.turn;
+      const months = Math.max(1, Math.round((100 - SLIP_TO) / ((100 / v.months) * speed)));
+      record(s, `venture.${v.id}`, 'slip', 'action', `Missed its opening: ${v.name}.`, 2);
+      s.news.push({ chronicle: `${v.name.toUpperCase()}: OPENING POSTPONED`, street: `${v.name.toUpperCase()}: DEM SHIFT THE DATE`, weight: 4, valence: -1, topic: 'bet', about: v.brief, body: fixable!.warn });
+      s.report.push({ kind: 'failure', title: `It missed its opening: ${v.name}`, cause: `Not in place: ${fixable!.label}`,
+        text: `${fixable!.warn} It has not failed yet. There are about ${months} more months, once, to put it right: ${fixable!.fix} The odds are ${Math.round(odds * 100)}%.`, changes: [] });
+      still.push(a);
+      continue;
+    }
+    const won = outcome !== 'failed';
+    const scale = outcome === 'partial' ? PARTIAL_SCALE : 1;
     const before = snapshot(s);
-    const cause = won ? null : worstRisk(s, v);
-    const rec = record(s, `venture.${v.id}`, won ? 'won' : 'lost', 'action', `${won ? 'Succeeded' : 'Failed'}: ${v.name}.`, 3);
-    const fx = won ? v.win : v.lose;
+    const cause = outcome === 'full' ? null : fixable;
+    const rec = record(s, `venture.${v.id}`, won ? (scale < 1 ? 'partial' : 'won') : 'lost', 'action', `${won ? (scale < 1 ? 'Partly delivered' : 'Succeeded') : 'Failed'}: ${v.name}.`, 3);
+    const fx: typeof v.win = won ? v.win.map(([t, x]) => [t, Math.round(x * scale * 1000) / 1000]) : v.lose;
     for (const f of fx) applyFx(s, f, rec.touches);
     (won ? s.ventures.won : s.ventures.lost).push(v.id);
+    if (scale < 1) st.scale = scale;
+    if (won) for (const [k, x] of Object.entries(v.winFlags ?? {})) s.flags[k] = x;
     if (!won) s.counters[`lost.${v.id}`] = s.turn;
-    settleSite(s, v.id, won);
-    if (won) applyFx(s, ['pc', CFG.agenda.ventureWinPc]);
-    if (v.brief) addMark(s, v.brief, won ? 2 : -2, `${won ? 'Delivered' : 'Presided over the failure of'}: ${v.name}`);
-    if (v.partner && st.partner && s.tycoons[v.partner]) s.tycoons[v.partner].rel = clamp(s.tycoons[v.partner].rel + (won ? 6 : -10), 0, 100);
+    settleSite(s, v.id, won, scale);
+    if (won) applyFx(s, ['pc', Math.round(CFG.agenda.ventureWinPc * scale)]);
+    if (v.brief) addMark(s, v.brief, won ? (scale < 1 ? 1 : 2) : -2, `${won ? (scale < 1 ? 'Partly delivered' : 'Delivered') : 'Presided over the failure of'}: ${v.name}`);
+    if (v.partner && st.partner && s.tycoons[v.partner]) s.tycoons[v.partner].rel = clamp(s.tycoons[v.partner].rel + (won ? (scale < 1 ? 2 : 6) : -10), 0, 100);
 
     let why: string;
-    if (won) {
+    if (won && scale < 1) {
+      const finishLine = ASSETS[v.id] ? ' The rest can be finished later, from the asset\'s card.' : ' What was delivered stays delivered.';
+      why = `Only ${Math.round(scale * 100)}% of it works${cause ? `: ${cause.fail}` : ''}. It delivers that share of what it promised.${finishLine}`;
+    } else if (won) {
       const carried = risksOf(s, v).filter((r) => !r.ok);
       why = carried.length ? `It worked in spite of ${carried.length === 1 ? 'one thing' : `${carried.length} things`} not being in place. You were lucky at ${Math.round(odds * 100)}%.` : 'Everything it depended on was in place.';
     } else if (cause) {
@@ -254,19 +276,33 @@ export function ventureTick(s: GameState): void {
       why = `Why it failed: ${v.luck} Nothing you did caused this. Everything it depended on was in place, and the odds were ${Math.round(odds * 100)}%.${st.revived ? '' : ` It can be tried again in ${REVIVE_WAIT} months.`}`;
       s.ventures.causes[v.id] = 'Bad luck';
     }
-    const news = won ? v.winNews : v.loseNews;
+    const news: [string, string] = won ? (scale < 1 ? [`${v.name.toUpperCase()} OPENS, PARTLY`, `${v.name.toUpperCase()}: SOME DEY WORK, SOME NO DEY`] : v.winNews) : v.loseNews;
     s.news.push({
       chronicle: news[0], street: news[1], weight: 7, valence: won ? 1 : -1, topic: 'bet', about: v.brief,
       body: `${won ? v.winText : v.loseText}${cause ? ` ${cause.fail}` : ''}`,
     });
     s.report.push({
-      kind: won ? 'reform' : 'failure', title: `${won ? 'It worked' : 'It failed'}: ${v.name}`,
-      cause: won ? undefined : cause ? `Not in place: ${cause.label}` : 'Bad luck',
+      kind: won ? 'reform' : 'failure', title: `${won ? (scale < 1 ? 'It partly worked' : 'It worked') : 'It failed'}: ${v.name}`,
+      cause: won && scale === 1 ? undefined : cause ? `Not in place: ${cause.label}` : won ? undefined : 'Bad luck',
       text: `${won ? v.winText : v.loseText} ${why}`,
       changes: [...diff(before, snapshot(s)), ...describe(fx.filter((f) => f[0].startsWith('bonus.')))],
     });
   }
   s.ventures.active = still;
+}
+
+/** Where a bet that missed its opening is put back to, and how much of the design a partial delivery runs. */
+export const SLIP_TO = 80;
+export const PARTIAL_SCALE = 0.5;
+
+/** How the opening day goes, from the odds and the draw. Of what would once have been failure,
+ *  a fixable cause first costs time (once), then some of it may work; the rest fails. */
+export function resolveBet(odds: number, roll: number, canSlip: boolean): 'full' | 'slip' | 'partial' | 'failed' {
+  if (roll < odds) return 'full';
+  const miss = 1 - odds;
+  if (canSlip && roll < odds + miss * 0.3) return 'slip';
+  if (roll < odds + miss * 0.55) return 'partial';
+  return 'failed';
 }
 
 /** Bets that a newly delivered reform has just made possible. */

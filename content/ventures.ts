@@ -54,6 +54,10 @@ export interface Venture {
   luck: string;
   winNews: [string, string];
   loseNews: [string, string];
+  /** What it changes in how the country works once delivered, beyond its numbers (plan 12): facts other systems read. */
+  winFlags?: Record<string, string | number | boolean>;
+  /** What it changes, in a line, for the bet's card. */
+  changes?: string;
 }
 
 const v = (path: string, op: '<' | '<=' | '>' | '>=' | '==', n: number): Cond => ({ v: [path, op, n] });
@@ -252,7 +256,7 @@ export const VENTURES: Venture[] = [
   },
   {
     id: 'rail', name: 'High-speed rail, Lagos to Kano, on a foreign loan', pc: 6, naira: 0.5, months: 20, top: 0.85, brief: 'min_works', infra: true,
-    blurb: 'A $9bn loan. The largest project since independence. It will carry your name for a century, or your successor will cancel it at kilometre 140.',
+    blurb: 'A foreign loan of ₦1.5tn, owed in dollars from the day it is signed, pays for the track and the trains; the treasury pays ₦0.5tn for the land, the stations and the rest. It will carry your name for a century, or your successor will cancel it at kilometre 140.',
     risks: [lenders(80, 0.22), contractors(0.18), minister('min_works', 'Minister of Works', 0.15), quiet('NW', 'The North West, where the line ends', 60, 0.12)],
     start: [['debt.eurobond', 1.5], ['approval', 2]],
     win: [['nation.jobs', 9], ['approval', 5], ['bonus.jobs', 0.05], ['zone.NW.approval', 4], ['zone.SW.approval', 4]],
@@ -616,5 +620,35 @@ export const VENTURES: Venture[] = [
     loseNews: ['COASTAL HIGHWAY: 47KM BUILT, IN THREE PIECES', 'DEM COMMISSION ROAD WEY NO CONNECT'],
   },
 ];
+
+// WHAT EACH BET CHANGES IN HOW THE COUNTRY WORKS (plan 12)
+// Bets with an operating asset change their system through it (content/asset-systems.ts).
+// The rest leave a rule or a fact that other systems read, set on the day they are delivered.
+const DISTINCT: Record<string, { flags?: Venture['winFlags']; fx?: Fx[]; changes: string }> = {
+  diaspora: { flags: { 'diaspora.vote': true }, changes: 'Nigerians abroad vote in every election after this: about 2.2 million voters who judge the currency and the honesty of the government, not the rallies.' },
+  census: { flags: { 'census.counted': true }, fx: [['zone.NW.approval', 3], ['zone.SW.approval', 2], ['zone.SE.approval', -3], ['zone.SS.approval', -3]],
+    changes: 'The revenue formula follows the real count: states that grew gain allocation, states that inflated their numbers lose it, and their voters know which they are.' },
+  constitution: { flags: { 'constitution.new': true }, changes: 'A new constitution, whose clauses are settled in one last negotiation: what the governors, the courts or the voters get in return for ratifying it.' },
+  ipo: { changes: 'Part of the oil company is owned by investors: a fifth of its share of oil income goes to them, and its accounts are public.' },
+  swap: { changes: 'Foreign debt exchanged for conservation and health commitments that the lenders monitor.' },
+  buyback: { changes: 'Foreign bonds bought back below their face value: principal and interest that no longer exist.' },
+  loot: { flags: { 'loot.recovered': true }, changes: 'Recovered funds with a published register of who stole them, which the courts and the press will read.' },
+  amnesty: { flags: { 'amnesty.paid': true }, changes: 'Fighters on a monthly stipend: the creeks are calmer for as long as it is paid.' },
+  borders: { changes: 'Open borders with the neighbours under a common external tariff: cheaper food, more competition for local farmers.' },
+  cng: { changes: 'Buses and tricycles on gas: transport fares no longer follow the petrol price.' },
+  crypto: { changes: 'Licensed digital-asset exchanges paying tax at home.' },
+  creative: { changes: 'Film and music rights earning at home and abroad.' },
+  fintech: { changes: 'Payments that reach people without bank branches.' },
+  satellite: { changes: 'A national satellite for broadband and surveillance.' },
+  steel_sale: { changes: 'A privatised steel complex that produces steel, owned by its buyer.' },
+};
+for (const v of VENTURES) {
+  const d = DISTINCT[v.id];
+  if (!d) continue;
+  if (d.flags) v.winFlags = { ...(v.winFlags ?? {}), ...d.flags };
+  if (d.fx) v.win = [...v.win, ...d.fx];
+  v.changes = d.changes;
+}
+for (const v of VENTURES) v.changes ??= v.id.startsWith('refinery') ? 'A working refinery: petrol imports fall with what it refines.' : undefined;
 
 export const VENTURE_BY_ID = Object.fromEntries(VENTURES.map((x) => [x.id, x]));

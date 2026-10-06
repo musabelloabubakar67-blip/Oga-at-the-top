@@ -461,6 +461,8 @@ export interface ElectionResult {
   won: boolean;
   /** How far the national mood on the day moved the vote, in points of share; positive is towards the President's side. */
   swing?: number;
+  /** Nigerians abroad, once the diaspora vote exists (millions of voters, and the President's side's share). */
+  diaspora?: { voters: number; share: number };
 }
 
 export type EndingKind = 'term_limit' | 'defeated' | 'ticket_denied' | 'removed' | 'resigned' | 'annulled';
@@ -528,7 +530,9 @@ export interface GameState {
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
-  assets?: { id: string; state: string; condition?: number; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean; /** Expansions finished, and the month the one under way finishes. */ level?: number; expanding?: number; /** What it has done, in its own units. */ record?: Record<string, number> }[];
+  assets?: { id: string; state: string; condition?: number; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string }; since: number; seen?: boolean; /** Expansions finished, and the month the one under way finishes. */ level?: number; expanding?: number; /** What it has done, in its own units. */ record?: Record<string, number>;
+    /** How much of the design was built (a partial delivery runs at this share until finished), and the month the finishing work completes. */ scale?: number; completing?: number;
+    /** Maintained (the default) or maintenance deferred to save money; the month a refurbishment completes. */ upkeep?: 'maintained' | 'deferred'; refurbishing?: number }[];
   /** Other things put in a state: abandoned sites, monuments. */
   placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
   /** The naira: official and street rates, reserves ($bn), the central bank's stance, the last year of rates. */
@@ -591,7 +595,7 @@ export interface GameState {
   used: Record<string, number>;
   stories: Story[];
   /** Big bets: which named risks have been warned about, and any rescue or delay. */
-  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean }>;
+  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean; /** It missed its opening once and was given time. */ slipped?: number; /** Delivered in part: the share of the design that works. */ scale?: number }>;
   lastAction: { text: string; changes: Change[] } | null;
 }
 
@@ -652,6 +656,9 @@ export type Action =
   | { type: 'VENTURE_REVIVE'; id: string }
   | { type: 'CASE'; id: string; op: 'back' | 'drop' }
   | { type: 'EXPAND_ASSET'; id: string }
+  | { type: 'FINISH_ASSET'; id: string }
+  | { type: 'REFURBISH_ASSET'; id: string }
+  | { type: 'ASSET_UPKEEP'; id: string; mode: 'maintained' | 'deferred' }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

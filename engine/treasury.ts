@@ -15,6 +15,7 @@ import { logOilForecast, oilForecastTick } from './oilforecast';
 import { fxScale } from './currency';
 import { nonOilPoints } from './dependence';
 import { holdingsIncome, holdingsTick } from './holdings';
+import { hooks } from './hooks';
 import { arrearsFactor, discipline, fiscalSystemLines, fiscalSystemTick, releaseFactor } from './fiscal-system';
 import { ACC, createdMoney, interestAnnual, leakage, nonOilRevenue, oilRevenue, recordRevenue } from './accounts';
 import { rand } from './rng';
@@ -107,8 +108,9 @@ export function fiscalFlow(s: GameState): { lines: FlowLine[]; total: number; sa
   if (Math.abs(rel) >= 0.0005) add('Budget not yet released', rel, 'Increases the ministries have not spent stay in the treasury; money you rushed out cost a premium.');
   // Revenue belongs to the federation, not to Abuja. Once the centre is comfortably in surplus, the states take most of the rest.
   const raw = lines.reduce((a, l) => a + l.value, 0);
-  const keep = CFG.economy.federalKeep;
-  if (raw > keep.above) add('The states\' share of the surplus', -(raw - keep.above) * (1 - keep.share), `Above ₦${Math.round(keep.above * 1000)}bn a month, the states take ${Math.round((1 - keep.share) * 100)}% of every extra naira.`);
+  // Under the new constitution's fiscal-autonomy clause, the states keep more of every extra naira.
+  const keep = s.flags['constitution.clause'] === 'devolve' ? { ...CFG.economy.federalKeep, share: CFG.economy.federalKeep.share * 0.75 } : CFG.economy.federalKeep;
+  if (raw > keep.above) add('The states\' share of the surplus', -(raw - keep.above) * (1 - keep.share), `Above ₦${Math.round(keep.above * 1000)}bn a month, the states take ${Math.round((1 - keep.share) * 100)}% of every extra naira${s.flags['constitution.clause'] === 'devolve' ? ', under the constitution\'s fiscal-autonomy clause' : ''}.`);
   const total = lines.reduce((a, l) => a + l.value, 0);
   return { lines, total, saved: oil.saved };
 }
@@ -526,8 +528,9 @@ export function moveFund(s: GameState, id: FundId, amount: number): string {
 const INFRA_TRACKS = new Set(['cities', 'power', 'works', 'industry', 'food']);
 export const drawsOnInfra = (track: string) => INFRA_TRACKS.has(track);
 
-/** How a building cost is met: the infrastructure fund first, at a discount, then the treasury. */
+/** How a building cost is met: the infrastructure fund first, at a discount, then the treasury. Domestic steel makes infrastructure cheaper. */
 export function buildCost(s: GameState, naira: number, infra: boolean): { fund: number; treasury: number } {
+  if (infra && naira > 0) naira = round(naira * (1 - hooks.buildCut(s)));
   if (!infra || s.funds.infra <= 0.001 || naira <= 0) return { fund: 0, treasury: naira };
   const fund = Math.min(s.funds.infra, naira * 0.75);
   return { fund: round(fund), treasury: round(naira - fund / 0.75) };

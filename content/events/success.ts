@@ -12,6 +12,54 @@ const won = (id: string): Cond => ({ v: [`venture.${id}`, '==', 1] });
 
 export const SUCCESS_FILES: GameEvent[] = [
   {
+    // The constitution passed; its clauses are what the ratifying coalition was promised (plan 12.A6).
+    id: 'success.constitution', kind: 'standalone', slot: 'lead', category: 'politics', tone: 'grave', intensity: 4, reactive: true, max: 1,
+    when: { all: [won('constitution'), { not: { flag: 'constitution.clause' } }] }, weight: 30,
+    office: 'Office of the Attorney-General of the Federation', stamp: 'URGENT',
+    title: 'The constitution passed. Now someone has to be paid for it',
+    body: [
+      'The referendum carried. The state assemblies ratified on the understanding that one of three clauses, left open in the draft, would be settled their way.',
+      'The governors want fiscal autonomy: their states keep more of what is shared. The judges want appointments taken from the Presidency and given to a commission. The civic groups who campaigned for it want voters able to recall their legislators.',
+      'The drafting committee can write one of them into force this month. The others go back to the Assembly, which is where clauses go to die.',
+    ],
+    reads: [
+      { role: 'cos', good: 'Whichever you give, {SIR}, give it whole. A clause half-written is a lawsuit.' },
+      { role: 'fin', good: 'Fiscal autonomy is money you will not see again, {SIR}. It may be well spent. It will not be spent by us.' },
+    ],
+    choices: [
+      {
+        id: 'devolve', label: 'Fiscal autonomy for the states',
+        outcomes: [{
+          result: 'States keep more of what is shared and answer for it to their own assemblies. The governors are grateful in the way governors are: until the next allocation.',
+          fx: [['bloc.party', 8], ['zone.NW.approval', 2], ['zone.SW.approval', 2], ['zone.SS.approval', 2], ['zone.SE.approval', 2]],
+          flags: { 'constitution.clause': 'devolve' },
+          news: ['NEW CONSTITUTION GIVES STATES FISCAL AUTONOMY', 'STATES GO CONTROL THEIR MONEY NOW'],
+          archive: 'Settled the new constitution\'s open clause in favour of fiscal autonomy for the states.', sig: 3,
+        }],
+      },
+      {
+        id: 'courts', label: 'Judges appointed by an independent commission',
+        outcomes: [{
+          result: 'The Presidency no longer chooses judges. Your own appointments will be the last. Every lawyer in the country notices.',
+          fx: [['nation.integrity', 5], ['bloc.press', 4], ['bloc.villa', -4], ['bonus.integrity', 0.03]],
+          flags: { 'constitution.clause': 'courts' },
+          news: ['JUDGES TO BE CHOSEN BY INDEPENDENT COMMISSION', 'PRESIDENT NO GO CHOOSE JUDGE AGAIN'],
+          archive: 'Settled the new constitution\'s open clause by giving judicial appointments to an independent commission.', sig: 3,
+        }],
+      },
+      {
+        id: 'recall', label: 'Voters can recall their legislators',
+        outcomes: [{
+          result: 'A petition signed by a third of a constituency now forces a recall vote. Senators who never visited their districts start visiting them.',
+          fx: [['bloc.street', 6], ['bloc.party', -6], ['approval', 2]],
+          flags: { 'constitution.clause': 'recall' },
+          news: ['VOTERS CAN NOW RECALL THEIR LEGISLATORS', 'IF YOUR SENATOR NO PERFORM, YOU FIT REMOVE AM'],
+          archive: 'Settled the new constitution\'s open clause by giving voters the power to recall legislators.', sig: 3,
+        }],
+      },
+    ],
+  },
+  {
     id: 'success.refinery', kind: 'standalone', slot: 'lead', category: 'economy', tone: 'dry', intensity: 3, reactive: true, topic: 'oil',
     when: won('refinery'), weight: 16,
     office: 'Federal Ministry of Petroleum Resources', stamp: 'CONFIDENTIAL',

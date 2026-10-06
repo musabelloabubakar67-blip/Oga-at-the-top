@@ -9,9 +9,31 @@
 
 import type { GameState } from './types';
 
-/** $bn a month of petrol imports each revived refinery replaces. */
-const REFINERY_CUT: Record<string, number> = { refinery: 0.15, refinery_delta: 0.06, refinery_kaduna: 0.04 };
+import { ASSET_SYSTEMS } from '../content/asset-systems';
+import { REFINERIES } from '../content/holdings';
 import { clamp, hardship } from './vars';
+
+// What the state's operating assets do to the dollar flow, at their actual output, through engine/hooks.ts.
+import { hooks } from './hooks';
+
+/** $bn a month of petrol imports the refineries replace: state plants at their output, sold ones as their buyers run them. */
+export function refineryCut(s: GameState): number {
+  const PRIVATE = 0.85;
+  let cut = 0;
+  for (const r of REFINERIES) {
+    const full = ASSET_SYSTEMS[r.venture]?.imports ?? 0;
+    if ((s.assets ?? []).some((a) => a.id === r.venture)) cut += hooks.assetSystem(s, r.venture).imports;
+    else if (s.ventures.won.includes(r.venture)) cut += full * PRIVATE;
+    else if (r.venture === 'refinery' && s.flags['refinery.sold']) cut += full * PRIVATE;
+  }
+  return cut;
+}
+
+/** Everything else the assets earn abroad or replace. */
+function otherTrade(s: GameState): { dollars: number; imports: number } {
+  const refineries = new Set(REFINERIES.map((r) => r.venture));
+  return (s.assets ?? []).filter((a) => !refineries.has(a.id)).reduce((t, a) => { const x = hooks.assetSystem(s, a.id); return { dollars: t.dollars + x.dollars, imports: t.imports + x.imports }; }, { dollars: 0, imports: 0 });
+}
 import { nonOilDollars } from './dependence';
 import { syncDebt } from './ledger';
 
@@ -34,16 +56,16 @@ export function fx(s: GameState): Fx {
 export function fxFlow(s: GameState): { lines: { label: string; value: number }[]; total: number } {
   const n = s.nation;
   const national = s.agenda.done.includes('i5');
-  // Each working refinery replaces part of the petrol bought abroad: the Rivers plant the most. A privatised plant counts once its buyer runs it.
-  const working = new Set(s.ventures.won.filter((id) => REFINERY_CUT[id] !== undefined));
-  if (s.flags['refinery.sold']) working.add('refinery');
-  const plantCut = [...working].reduce((a, id) => a + REFINERY_CUT[id], 0);
+  // Each working refinery replaces part of the petrol bought abroad, in proportion to what it actually refines.
+  const plantCut = refineryCut(s);
+  const plants = otherTrade(s);
   const lines = [
     { label: 'Sovereign-fund dollars auctioned', value: s.fx?.interventionDollars ?? 0 },
     // Gross: what the barrels sold for. Never negative; a lower price is a smaller inflow, not an outflow.
     { label: 'Oil exports', value: s.oil.price * s.oil.output * 0.02 },
     // Gross: what the economy buys abroad at its current size. Jobs and industry raise it a little; the rest is below.
-    { label: 'Imports of goods and services', value: -2.56 - Math.max(0, n.jobs - 34) * 0.004 },
+    { label: 'Imports of goods and services', value: -2.56 - Math.max(0, n.jobs - 34) * 0.004 + plants.imports },
+    { label: 'What the state\'s plants sell abroad', value: plants.dollars },
     { label: 'Money sent home from abroad', value: 0.25 + (s.agenda.done.includes('g6') ? (premium(s) < 0.2 ? 0.18 : 0.06) : 0) },
     { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 + nonOilDollars(s) },
     { label: 'Petrol imports', value: national ? -0.05 : Math.min(-0.05, -0.3 + plantCut) },

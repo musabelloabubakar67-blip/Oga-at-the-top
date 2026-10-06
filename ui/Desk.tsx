@@ -26,7 +26,8 @@ import { INSTITUTION_BY_ID } from '../content/institutions';
 import { adviser, adviserFor, campGain, forecast, patronName, recommend, secondFor, trackRecord, worldview } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { forecastChallenge } from '../engine/courts';
-import { assetFiscal, assetFx, assetPerformance, assets, canExpand, canSetManager, expansionCost, local } from '../engine/places';
+import { assetFiscal, assetFx, assetPerformance, assetSystem, assets, canExpand, canFinish, canRefurbish, canSetManager, expansionCost, finishCost, local, refurbishCost, upkeepCost, wear } from '../engine/places';
+import { ASSET_SYSTEMS } from '../content/asset-systems';
 import { runElection } from '../engine/election';
 import { upcoming } from '../engine/upcoming';
 import { bench } from '../engine/courts';
@@ -1048,6 +1049,8 @@ function Ventures({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
                     <span className={`label shrink-0 ${odds < 0.5 ? 'text-[#e08a7c]' : 'text-honour'}`}>{Math.round(odds * 100)}% odds</span>
                   </p>
                   <p className="mt-1 text-sm leading-snug text-ivory/65">{v.blurb}</p>
+                  {(v.changes ?? ASSET_SYSTEMS[v.id]?.does) && <p className="mt-1 text-[13px] leading-snug text-ivory/80"><span className="font-semibold">If it works:</span> {v.changes ?? ASSET_SYSTEMS[v.id]?.does}</p>}
+                  <p className="mt-1 text-[12.5px] leading-snug text-ivory/55">On the day it opens it can work in full, miss its opening once if something it depends on is not in place, open at half its design, or fail.</p>
                   <p className="label mt-2 text-mute">What it depends on · {Math.round(v.top * 100)}% if all are in place</p>
                   <Risks s={s} v={v} />
                   <div className="mt-2 space-y-1">
@@ -1721,6 +1724,52 @@ function CountryColumn({ s, next, onCountry, dispatch }: { s: GameState; next: G
   );
 }
 
+/** What the asset changes in its own system, at what it actually produces (plan 12). */
+function AssetSystemLine({ s, id, soft }: { s: GameState; id: string; soft: string }) {
+  const sys = ASSET_SYSTEMS[id];
+  if (!sys) return null;
+  const now = assetSystem(s, id);
+  const usd = (x: number) => `$${Math.round(x * 12 * 1000)}m a year`;
+  const parts = [
+    now.dollars > 0.0005 ? `earns ${usd(now.dollars)} abroad` : '',
+    now.imports > 0.0005 ? `replaces ${usd(now.imports)} of imports` : '',
+    now.reserves > 0.0005 ? `adds ${usd(now.reserves)} of gold to the reserves` : '',
+    now.buildCut > 0.001 ? `takes ${Math.round(now.buildCut * 100)}% off every infrastructure project` : '',
+  ].filter(Boolean);
+  return (
+    <p className="mt-1 text-[13px] leading-snug">
+      <span className="font-semibold">What it changes:</span> {sys.does}{parts.length ? ` At today's output it ${parts.join(', ')}.` : ''}
+      {now.blocked && <span className="text-alarm"> {now.blocked}</span>}
+    </p>
+  );
+}
+
+/** Condition, wear and the choices that keep an asset running: maintenance, refurbishment, finishing a partial build. */
+function AssetUpkeep({ s, a, dispatch, soft, dark }: { s: GameState; a: NonNullable<GameState['assets']>[number]; dispatch: Dispatch; soft: string; dark?: boolean }) {
+  const w = wear(s, a.id);
+  const cond = Math.round((a.condition ?? 1) * 100);
+  const kept = (a.upkeep ?? 'maintained') === 'maintained';
+  const ref = canRefurbish(s, a.id), rc = refurbishCost(s, a.id);
+  const fin = canFinish(s, a.id), fc = finishCost(s, a.id);
+  const btn = (ok: boolean) => `border px-2.5 py-1 ${ok ? (dark ? 'border-ivory/25 hover:border-ivory/50' : 'border-ink/30 hover:border-state') : 'border-ink/10 opacity-45'}`;
+  return (
+    <div className="mt-1.5 text-[13px] leading-snug">
+      <p>
+        <span className="font-semibold">Condition {cond}%</span>
+        <span className={soft}> · {a.refurbishing ? `being refurbished, back to full in ${Math.max(1, a.refurbishing - s.turn)} months` : w.rate > 0 ? `losing about ${Math.round(w.rate * 1200)} points a year${w.why.length ? `: ${w.why.join('; ').toLowerCase()}` : ''}` : `improving${w.why.length ? `: ${w.why.join('; ').toLowerCase()}` : ''}`}</span>
+        {(a.scale ?? 1) < 1 && <span className={soft}> · {Math.round((a.scale ?? 1) * 100)}% of the design built{a.completing ? `; the rest opens in ${Math.max(1, a.completing - s.turn)} months` : ''}</span>}
+      </p>
+      <div className="mt-1 flex flex-wrap gap-2 text-sm">
+        <button onClick={() => dispatch({ type: 'ASSET_UPKEEP', id: a.id, mode: kept ? 'deferred' : 'maintained' })} className={btn(true)}>
+          {kept ? `Defer maintenance · saves ${naira(upkeepCost(s, a.id) * 12)} a year, wears out faster` : 'Resume maintenance'}
+        </button>
+        {(a.condition ?? 1) <= 0.85 && <button disabled={!ref.ok} title={ref.reason} onClick={() => dispatch({ type: 'REFURBISH_ASSET', id: a.id })} className={btn(ref.ok)}>Refurbish · {naira(rc.naira)}, {rc.pc} capital, {rc.months} months</button>}
+        {(a.scale ?? 1) < 1 && !a.completing && <button disabled={!fin.ok} title={fin.reason} onClick={() => dispatch({ type: 'FINISH_ASSET', id: a.id })} className={btn(fin.ok)}>Finish the rest · {naira(fc.naira)}, {fc.pc} capital, {fc.months} months</button>}
+      </div>
+    </div>
+  );
+}
+
 /** Every state: its voters, its zone's mood, what has been put there, and how it would vote today. Then the assets that run in them. */
 /** Every big bet that worked: how it is running, what it has done, who runs it, and room to grow. */
 function AssetCards({ s, dispatch, left, dark }: { s: GameState; dispatch: Dispatch; left: number; dark?: boolean }) {
@@ -1753,8 +1802,10 @@ function AssetCards({ s, dispatch, left, dark }: { s: GameState; dispatch: Dispa
                 ))}
               </div>
             )}
+            <AssetSystemLine s={s} id={a.id} soft={soft} />
             <Expected items={describe(assetFx(s, a.id).map(([t, x]) => [t, x * 12] as Fx))} label="A year" dark={dark} />
             {a.expanding && <p className={`mt-1 text-[13px] ${soft}`}>An expansion is being built: it opens in {Math.max(1, a.expanding - s.turn)} months.</p>}
+            <AssetUpkeep s={s} a={a} dispatch={dispatch} soft={soft} dark={dark} />
             <div className="mt-1.5 flex flex-wrap gap-2 text-sm">
               <button disabled={!ex.ok} title={ex.reason} onClick={() => dispatch({ type: 'EXPAND_ASSET', id: a.id })}
                 className={`border px-2.5 py-1 ${ex.ok ? (dark ? 'border-honour/50 text-honour hover:bg-honour/10' : 'border-state/60 hover:bg-state/10') : 'border-ink/10 opacity-45'}`}>

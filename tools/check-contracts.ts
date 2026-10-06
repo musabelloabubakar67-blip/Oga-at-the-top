@@ -320,7 +320,9 @@ check('scenario assets are validated, productive and inherited without false ach
     // An inherited world wins over a scenario template, even an invalid template.
     scenario.assets = [{ asset: 'invalid', site: 'invalid' }];
     const successor = newGame({ ...setup, name: 'Successor' }, s);
-    assert.equal(successor.assets![0].condition, 0.6);
+    // A month of wear has passed (plan 12); the successor inherits exactly the condition left.
+    assert.ok(s.assets![0].condition! < 0.6);
+    assert.equal(successor.assets![0].condition, s.assets![0].condition);
     assert.equal(successor.assets![0].state, 'KN');
     const record = JSON.stringify(s.assets![0].record);
     assetTick(successor);
