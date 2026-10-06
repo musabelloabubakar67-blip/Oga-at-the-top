@@ -1000,12 +1000,12 @@ export const SYSTEM: GameEvent[] = [
         }],
       },
       {
-        id: 'again', label: 'Release the money and set a new six-month target', naira: 0.1, requires: { flag: 'review.$TARGET.withheld' }, locked: 'Nothing was withheld; the ministry had its money.',
+        id: 'again', label: 'Authorise full future releases and set a new six-month target', requires: { flag: 'review.$TARGET.withheld' }, locked: 'Nothing was withheld; the ministry had its money.',
         outcomes: [{
-          result: 'The withheld allocation is released and a new target is signed. This time the minister has no excuse, and knows it.',
+          result: 'You instruct the treasury to make full releases under the ministry\'s budget and sign a new target. Future spending goes through the budget; the earlier withholding stays on the record. The next review will check what was actually released.',
           fx: [['person.$WHO', 4], ['nation.capacity', 1]],
-          ops: [['target', '$WHO', 6]],
-          quiet: 'A private agreement; it becomes news only if this one is missed too.', archive: 'Released withheld money to {WHO} and set a new target.',
+          ops: [['targetrelease', '$TARGET'], ['target', '$WHO', 6]],
+          quiet: 'A private agreement; it becomes news only if this one is missed too.', archive: 'Authorised full future budget releases for {WHO} and set a new target.',
         }],
       },
       {

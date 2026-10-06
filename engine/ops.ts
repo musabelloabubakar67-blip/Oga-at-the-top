@@ -1,6 +1,6 @@
 import { consumeFavour, offsetFavours, bindFavours } from './favour-ledger';
 import { closeRequest, openRequest } from './requests';
-import { setMinisterTarget } from './commitments';
+import { authoriseTargetReleases, setMinisterTarget } from './commitments';
 import { release } from './talent';
 import { transferSavedFund, type FundDestination } from './fund-transfers';
 import { reformName } from './reforms';
@@ -38,6 +38,7 @@ const group = (s: GameState, g: 'governor' | 'senator', d: number) => {
 export function runOp(s: GameState, op: Op2): string {
   const [name, a, b, c] = op;
   switch (name) {
+    case 'targetrelease': return authoriseTargetReleases(s, String(a));
     case 'target': setMinisterTarget(s, String(a), Number(b), c === undefined ? 10 : Number(c)); return 'A dated ministerial target is recorded for review.';
     case 'paydebt': {
       const id = a as DebtId;
@@ -171,6 +172,7 @@ export function runOp(s: GameState, op: Op2): string {
 export function opText(s: GameState, op: Op2): string | null {
   const [name, a, b, c] = op;
   switch (name) {
+    case 'targetrelease': return 'Authorises full future releases through the ministry budget; past withholding remains recorded';
     case 'paydebt': {
       const id = a as DebtId;
       const amount = s.debts[id] * Number(b ?? 1);

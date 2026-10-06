@@ -1,6 +1,6 @@
 # Integration coverage - current immediate scope
 
-Latest checkpoint: Claude deliveries 9–14 through c36117a are integrated with systems cae4d72. S9's blocked-name generators and deterministic fallback are delivered. 59 contract checks, nine experience suites, typecheck, zero-warning lint and eight chained presidencies pass. See CODEX-DELIVERY-11.md. Military/citizen behaviour drafts and /mocks are inputs/design references; their presence does not mark their engine systems complete.
+Latest checkpoint: Claude delivery 15 through f36732c is integrated with published systems 6878dce. S9 is already delivered. Live R3 controls, R4 register/review paths and S1 authored target reviews are integrated. Late notes preserve settled verdicts, and renewed targets authorise future releases without an invented lump-sum payment. 62 contract checks, ten experience suites, typecheck, zero-warning lint and eight chained presidencies pass. See CODEX-DELIVERY-12.md. Military/citizen behaviour drafts and /mocks remain inputs/design references; their presence does not complete their engine systems.
 
 Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/codex-systems`. Contract delivery: 1.0.0. This is an initial index; expand to each master bullet as implementations land. Partial never means complete or deferred.
 
@@ -10,8 +10,8 @@ Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/
 | 02 Opening | Existing setup remains intact | Assigned; validated transition outstanding |
 | 03 Team/talent | Separate person and office references | Partial foundation; recruitment and canonical cross-role identities outstanding |
 | 04 Institutions/courts | None yet | Assigned |
-| 05 Requests/favours | Exact person requests close on refusal; changed replacements/substitutions; personal favour identities, partial use, offsets, forgiveness and settlement history | Engine R3 delivered; Claude interaction integration/browser verification outstanding |
-| 06 Coalitions/delegation | R4 dated evidence reviews, actual commitment payments and government attribution; S1 scorecard targets and monthly release samples | Engine R4/S1 contracts delivered; authored reviews and broader negotiated programmes/delegation outstanding |
+| 05 Requests/favours | Exact requests close on refusal; changed replacements/substitutions; personal favour identities, partial use, offsets, forgiveness, settlement history and real controls | R3 engine and Claude interaction integration delivered; broader action-plan depth remains |
+| 06 Coalitions/delegation | Dated evidence reviews, actual commitment payments, government attribution; scorecard targets, monthly release samples, authored reviews and live register | R4/S1 integrated; broader negotiated programmes/delegation outstanding |
 | 07 Content refresh | Typed episode registry and transitions | Partial foundation; director/queue routing and authored refresh outstanding |
 | 08 Evidence/information | None yet | Assigned |
 | 09 Economy | None yet | Assigned |

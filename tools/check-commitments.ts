@@ -3,7 +3,7 @@ import { FINANCE_CANDIDATES } from '../content/names';
 import { newGame, applyAction, availability } from '../engine/reduce';
 import { applyDomainOutcome } from '../engine/domain-outcomes';
 import { CONTRACT_VERSION, type DomainEffect } from '../engine/contracts';
-import { commitmentsView, fundCommitment, reviewCommitment, reviewCommitmentsDue, sampleTargetBudgets, setMinisterTarget } from '../engine/commitments';
+import { authoriseTargetReleases, commitmentsView, fundCommitment, reviewCommitment, reviewCommitmentsDue, sampleTargetBudgets, setMinisterTarget } from '../engine/commitments';
 import { getVar } from '../engine/vars';
 import { addMark, scorecard } from '../engine/people';
 import { clockOf, ensureGovernance } from '../engine/governance';
@@ -160,6 +160,49 @@ export function runCommitmentChecks(): number {
       const item = s.desk.minors.find((m) => m.eventId === 'min.target.review')!;
       assert.ok(item); assert.equal(item.cast!.TARGET, id);
     } finally { if (previous) EVENTS['min.target.review'] = previous; else delete EVENTS['min.target.review']; }
+  });
+  check('a withheld target can restore future budget releases without an invented lump-sum payment', () => {
+    const s = fresh(), id = setMinisterTarget(s, 'min_works', 6);
+    s.budget.alloc.power = SECTOR_BY_ID.power.usual + 2;
+    s.budget.release = { power: 'hold', people: 'hold' };
+    s.turn = 2; sampleTargetBudgets(s); s.turn = 7; reviewCommitmentsDue(s);
+    assert.equal(s.governance!.commitments[id].review!.verdict, 'withheld');
+    const old = structuredClone(s.governance!.commitments[id]), cash = s.nation.fiscalSpace;
+    s.desk.lead = { eventId: 'min.target.review', cast: { WHO: 'min_works', TARGET: id }, castPersons: { WHO: old.responsible } };
+    const out = applyAction(s, { type: 'CHOOSE', eventId: 'min.target.review', choiceId: 'again' });
+    assert.equal(out.budget.release!.power, 'full'); assert.equal(out.budget.release!.people, 'hold');
+    assert.equal(out.nation.fiscalSpace, cash);
+    assert.deepEqual(out.governance!.commitments[id].review, old.review);
+    assert.deepEqual(out.governance!.commitments[id].target!.samples, old.target!.samples);
+    const next = Object.values(out.governance!.commitments).find((x) => x.id !== id && x.target?.office === 'min_works')!;
+    assert.ok(next); assert.equal(next.due, clockOf(out).worldMonth + 6);
+    out.turn++; sampleTargetBudgets(out);
+    assert.equal(next.target!.samples[0].mode, 'full'); assert.equal(next.target!.samples[0].governmentWithheld, 0);
+    assert.equal(s.budget.release.power, 'hold');
+  });
+  check('restoring target releases rejects missing, unreviewed and replaced targets before budget mutation', () => {
+    const s = fresh(), id = setMinisterTarget(s, 'min_works', 6);
+    const before = JSON.stringify(s.budget);
+    assert.throws(() => authoriseTargetReleases(s, 'missing'));
+    assert.throws(() => authoriseTargetReleases(s, id));
+    s.budget.alloc.power = SECTOR_BY_ID.power.usual + 2; s.budget.release = { power: 'hold' };
+    s.turn = 2; sampleTargetBudgets(s); s.turn = 7; reviewCommitmentsDue(s);
+    s.people.min_works.name = 'Replacement Minister'; ensureGovernance(s);
+    const replaced = JSON.stringify(s.budget);
+    assert.throws(() => authoriseTargetReleases(s, id));
+    assert.equal(JSON.stringify(s.budget), replaced);
+    assert.notEqual(replaced, before);
+  });
+  check('late authored notes preserve a settled commitment and its original verdict', () => {
+    const s = fresh(); open(s); s.flags['test.delivered'] = true; s.turn = 7; reviewCommitmentsDue(s);
+    const c = s.governance!.commitments['test.delivery'], review = structuredClone(c.review), history = structuredClone(c.reviews);
+    applyDomainOutcome(s, effect({ type: 'commitment.note', id: c.id, text: 'A later follow-up recorded the delivery.' }));
+    const after = s.governance!.commitments[c.id];
+    assert.equal(after.status, 'kept'); assert.deepEqual(after.review, review); assert.deepEqual(after.reviews, history);
+    assert.match(after.notes.at(-1)!.text, /later follow-up/);
+    const before = JSON.stringify(s);
+    assert.throws(() => applyDomainOutcome(s, effect({ type: 'commitment.note', id: 'missing', text: 'Invalid' })));
+    assert.equal(JSON.stringify(s), before);
   });
   return passed;
 }

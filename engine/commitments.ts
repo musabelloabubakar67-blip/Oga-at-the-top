@@ -4,7 +4,7 @@ import { SECTORS } from '../content/treasury';
 import type { CommitmentRecord, ReviewVerdict } from './contracts';
 import { clockOf, ensureGovernance, getGovernanceView, resolveActor, markCommitmentsDue } from './governance';
 import { scorecard } from './people';
-import { releaseRate, SECTOR_MINISTER } from './treasury';
+import { releaseRate, SECTOR_MINISTER, setRelease } from './treasury';
 import { test } from './vars';
 import type { GameState } from './types';
 
@@ -118,6 +118,18 @@ export function setMinisterTarget(s: GameState, office: string, months: number, 
   if (EVENTS['min.target.review']) s.queue.push({ event: 'min.target.review', due: s.turn + months, cast: { WHO: office, TARGET: id }, castPersons: { WHO: responsible } });
   return id;
 }
+/** Restore future releases; historical shortfalls remain evidence, not a cash invoice. */
+export function authoriseTargetReleases(s: GameState, id: string): string {
+  const g = ensureGovernance(s), c = g.commitments[id];
+  if (!c?.target || c.review?.verdict !== 'withheld' || g.offices[c.target.office] !== c.responsible
+    || c.origin.administrationId !== g.administrationId) throw new Error('No current withheld target supports this release instruction');
+  const sectors = SECTORS.filter((x) => SECTOR_MINISTER[x.id] === c.target!.office);
+  for (const sector of sectors) setRelease(s, sector.id, 'full');
+  const text = `Full future releases authorised for ${sectors.map((x) => x.name).join(', ')}. Past withholding remains in the review; subsequent spending is charged through the budget.`;
+  c.notes.push({ at: clockOf(s).worldMonth, text });
+  return text;
+}
+
 export function commitmentsView(s: GameState) {
   return getGovernanceView(s).commitments.map((c) => ({ ...c, governmentContribution: c.review?.governmentContribution ?? governmentContribution(c) })).sort((a, b) => a.due - b.due);
 }
