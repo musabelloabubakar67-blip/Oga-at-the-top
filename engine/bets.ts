@@ -21,7 +21,8 @@ export function risksOf(s: GameState, v: Venture): RiskView[] {
 }
 
 export function ventureOdds(s: GameState, v: Venture): number {
-  const lost = risksOf(s, v).reduce((a, r) => a + (r.ok ? 0 : r.risk.cost), 0);
+  // A missing cost-and-speed factor mostly makes it late and dear (ventureTick); only half of it is risk to the opening.
+  const lost = risksOf(s, v).reduce((a, r) => a + (r.ok ? 0 : r.risk.cost * (r.risk.kind === 'cost' ? 0.5 : 1)), 0);
   const rescued = s.bets[v.id]?.rescued ? 0.12 : 0;
   // A second attempt knows exactly what went wrong the first time.
   const learned = s.bets[v.id]?.revived ? REVIVE_LEARNED : 0;
@@ -209,9 +210,16 @@ export function ventureTick(s: GameState): void {
   for (const a of s.ventures.active) {
     const v = VENTURE_BY_ID[a.id];
     if (!v) continue;
-    const speed = (0.8 + s.nation.capacity / 200) * (v.infra ? buildSpeed(s) : 1);
+    // Each missing cost-and-speed factor slows the work and adds an overrun every month it stays missing.
+    const lagging = costShortfalls(s, v);
+    const speed = (0.8 + s.nation.capacity / 200) * (v.infra ? buildSpeed(s) : 1) * Math.pow(SLOW_PER_FACTOR, lagging.length);
     a.progress += (100 / v.months) * speed;
     const st = (s.bets[a.id] ??= { warned: [] });
+    if (lagging.length && v.naira > 0) {
+      const over = Math.round((v.naira / v.months) * OVERRUN_PER_FACTOR * lagging.length * 1000) / 1000;
+      payBuild(s, over, !!v.infra);
+      s.counters[`overrun.${v.id}`] = Math.round(((s.counters[`overrun.${v.id}`] ?? 0) + over) * 1000) / 1000;
+    }
 
     if (a.progress < 100) {
       // Part-way through, the site reports what is going wrong while there is time to fix it.
@@ -284,11 +292,20 @@ export function ventureTick(s: GameState): void {
     s.report.push({
       kind: won ? 'reform' : 'failure', title: `${won ? (scale < 1 ? 'It partly worked' : 'It worked') : 'It failed'}: ${v.name}`,
       cause: won && scale === 1 ? undefined : cause ? `Not in place: ${cause.label}` : won ? undefined : 'Bad luck',
-      text: `${won ? v.winText : v.loseText} ${why}`,
+      text: `${won ? v.winText : v.loseText} ${why}${(s.counters[`overrun.${v.id}`] ?? 0) > 0.0005 ? ` It ran ₦${Math.round((s.counters[`overrun.${v.id}`] ?? 0) * 1000)}bn over budget, for want of what it needed to be built cheaply and on time.` : ''}`,
       changes: [...diff(before, snapshot(s)), ...describe(fx.filter((f) => f[0].startsWith('bonus.')))],
     });
   }
   s.ventures.active = still;
+}
+
+/** How much each missing cost-and-speed factor slows the work, and what it adds to the bill each month (a share of the monthly budget). */
+export const SLOW_PER_FACTOR = 0.88;
+export const OVERRUN_PER_FACTOR = 0.12;
+
+/** The cost-and-speed factors not in place: they make it late and dear rather than impossible. */
+export function costShortfalls(s: GameState, v: Venture): Risk[] {
+  return risksOf(s, v).filter((r) => !r.ok && r.risk.kind === 'cost').map((r) => r.risk);
 }
 
 /** Where a bet that missed its opening is put back to, and how much of the design a partial delivery runs. */

@@ -23,7 +23,20 @@ export interface Risk {
   fail: string;
   /** What the President could do about it. */
   fix: string;
+  /** What kind of condition it is (plan 12.A3): essential to operating at all; a factor in cost, speed and
+   *  scale; or political acceptance. Set for every risk below from its id. External uncertainty is the luck left at the top. */
+  kind?: RiskKind;
 }
+
+export type RiskKind = 'essential' | 'cost' | 'acceptance';
+export const RISK_KIND_NAME: Record<RiskKind, string> = {
+  essential: 'Needed for it to work at all',
+  cost: 'Cost, speed and scale: if missing, it runs late and over budget',
+  acceptance: 'Political acceptance',
+};
+const COST_RISKS = new Set(['contractors', 'lenders', 'partner', 'integrity', 'naira', 'quiet']);
+const ACCEPTANCE_RISKS = new Set(['senate', 'governors', 'popular', 'importers']);
+export const riskKind = (id: string): RiskKind => (COST_RISKS.has(id) ? 'cost' : ACCEPTANCE_RISKS.has(id) ? 'acceptance' : 'essential');
 
 export interface Venture {
   id: string;
@@ -297,7 +310,7 @@ export const VENTURES: Venture[] = [
   },
   {
     id: 'diaspora', name: 'Diaspora bond and the diaspora vote', pc: 8, naira: 0, months: 6, top: 0.9,
-    blurb: 'Seventeen million Nigerians abroad send home more than oil earns. Let them invest, and let them vote. Politicians distrust voters they cannot reach.',
+    blurb: 'Seventeen million Nigerians abroad send money home every month. Let them lend to the country in a bond, ₦1.2tn owed back to them, and let them vote. Politicians distrust voters they cannot reach.',
     risks: [
       { id: 'naira', label: 'The naira is holding (inflation under 26%)', ok: v('nation.inflation', '<', 26), cost: 0.25, warn: 'Subscriptions are slow. The diaspora can read an inflation figure.', fail: 'Nobody abroad would lend in a currency losing a quarter of its value a year.', fix: 'Bring inflation under 26%.' },
       integrity(32, 0.2),
@@ -305,15 +318,15 @@ export const VENTURES: Venture[] = [
     start: [['bloc.party', -3]],
     win: [['nation.fiscalSpace', 1.2], ['debt.eurobond', 1.2], ['bloc.establishment', 3], ['bloc.street', 3], ['bonus.fiscal', 0.01]],
     lose: [['bloc.press', -3], ['pc', -4]],
-    winText: 'The bond raises $2.4bn in six weeks. Polling units open in eleven cities abroad.',
+    winText: 'The bond raises ₦1.2tn in six weeks, owed to its holders abroad. Polling units open in eleven cities abroad.',
     loseText: 'The bond is undersubscribed. The voting bill is referred to a committee, which has asked for a study tour of eleven cities abroad.',
     luck: 'A rival bond from a neighbouring country opened the same week at a better rate.',
-    winNews: ['DIASPORA BOND RAISES $2.4BN', 'ABROAD PEOPLE DON SEND MONEY COME'],
+    winNews: ['DIASPORA BOND RAISES ₦1.2TN', 'ABROAD PEOPLE DON SEND MONEY COME'],
     loseNews: ['DIASPORA BOND FALLS SHORT; VOTING BILL STALLS', 'DIASPORA NO TRUST GOVERNMENT WITH THEIR DOLLAR'],
   },
   {
     id: 'nuclear', name: 'A nuclear power station with a foreign partner', pc: 10, naira: 1.5, months: 20, top: 0.8, brief: 'min_power', infra: true,
-    blurb: 'Only a state that can run things should try this. The conditions below are the difference between a reactor and a fence.',
+    blurb: 'The partner lends ₦1tn, owed from the day it is signed; the treasury pays ₦1.5tn. Only a state that can run things should try this. The conditions below are the difference between a reactor and a fence.',
     risks: [capacity(52, 0.25), reform('p4', 'Electricity market law', 0.2), lenders(82, 0.15), minister('min_power', 'Minister of Power', 0.12)],
     start: [['debt.eurobond', 1]],
     win: [['nation.power', 15], ['bonus.power', 0.08], ['nation.jobs', 4], ['approval', 3]],
@@ -322,7 +335,7 @@ export const VENTURES: Venture[] = [
     loseText: 'The site is cleared, fenced and guarded. The partner has asked for the second payment before pouring any concrete.',
     luck: 'The partner\'s reactor design was withdrawn by its own regulator after an incident on another continent.',
     winNews: ['FIRST NUCLEAR REACTOR JOINS THE GRID', 'NUCLEAR LIGHT DON START. WE NO BELIEVE AM'],
-    loseNews: ['NUCLEAR PLANT STALLS AFTER $2BN', 'NUCLEAR PROJECT: NA ONLY FENCE DEM BUILD'],
+    loseNews: ['NUCLEAR PLANT STALLS AFTER ₦2.5TN', 'NUCLEAR PROJECT: NA ONLY FENCE DEM BUILD'],
   },
   {
     id: 'amnesty', name: 'Amnesty and buy-back for the armed groups', pc: 10, naira: 0.4, months: 8, top: 0.82, brief: 'min_defence',
@@ -330,7 +343,7 @@ export const VENTURES: Venture[] = [
     blurb: 'Pay them to stop. It worked once, in the creeks, for a while. It will be called rewarding murder, and that will not be wrong.',
     risks: [minister('min_defence', 'National Security Adviser', 0.2), integrity(30, 0.22), reform('s1', 'Pay and equip the troops', 0.15)],
     start: [['bloc.press', -4], ['bloc.street', -3]],
-    win: [['nation.security', 9], ['theatre.SS', -6], ['zone.NW.approval', 4], ['zone.NC.approval', 4], ['bonus.fiscal', -0.015]],
+    win: [['nation.security', 9], ['theatre.NW', -6], ['theatre.NC', -3], ['zone.NW.approval', 4], ['zone.NC.approval', 4], ['bonus.fiscal', -0.015]],
     lose: [['nation.security', -5], ['nation.integrity', -3], ['approval', -3]],
     winText: 'Eleven thousand men hand in weapons. The roads reopen. The stipends are now a permanent line in the budget, and everyone knows what happens if it is cut.',
     loseText: 'The weapons handed in are old. The money buys new ones. Three groups that had not existed before the amnesty apply for it.',
@@ -389,9 +402,9 @@ export const VENTURES: Venture[] = [
     blurb: 'Stadiums, roads, and three weeks when the world looks. Either a monument or the most expensive embarrassment of your presidency.',
     risks: [contractors(0.22), power(50, 0.2), minister('min_works', 'Minister of Works', 0.15)],
     win: [['approval', 5], ['nation.jobs', 4], ['bloc.street', 5], ['bonus.jobs', 0.02]],
-    lose: [['nation.debt', 3], ['bloc.press', -5], ['approval', -3]],
+    lose: [['debt.bonds', 0.6], ['bloc.press', -5], ['approval', -3]],
     winText: 'The games open on time, in finished stadiums, under working floodlights. People who expected to be embarrassed are briefly, fiercely proud.',
-    loseText: 'The athletes\' village has no water. The opening ceremony is held by generator. The clip of the scoreboard goes around the world.',
+    loseText: 'The athletes\' village has no water, and the overruns are borrowed. The opening ceremony is held by generator. The clip of the scoreboard goes around the world.',
     luck: 'An outbreak in the region led eleven countries to withdraw in the final month.',
     winNews: ['NIGERIA HOSTS FLAWLESS CONTINENTAL GAMES', 'WE HOST AM AND WE NO FALL HAND'],
     loseNews: ['GAMES OPEN IN UNFINISHED STADIUMS', 'ATHLETE DEM DEY BATH WITH SACHET WATER'],
@@ -415,7 +428,7 @@ export const VENTURES: Venture[] = [
     id: 'smelter', name: 'An aluminium smelter on surplus power', pc: 6, naira: 0.9, months: 14, top: 0.88, brief: 'min_power', infra: true, partner: 'ty_maker',
     when: done('p5'), opened: 'Twenty-four-hour power in ten cities',
     blurb: 'A smelter is electricity turned into metal. You now have the electricity. The one built in the 1990s has not smelted since.',
-    risks: [partner('ty_maker', 'Birniwa', 0.22), quiet('SS', 'The South South, where the gas is', 55, 0.18), contractors(0.15)],
+    risks: [power(55, 0.2), partner('ty_maker', 'Birniwa', 0.22), quiet('SS', 'The South South, where the gas is', 55, 0.18), contractors(0.15)],
     win: [['nation.jobs', 9], ['bonus.jobs', 0.05], ['bonus.fiscal', 0.03], ['zone.SS.approval', 4]],
     lose: [['bloc.press', -4], ['nation.integrity', -2], ['approval', -2]],
     winText: 'The pot lines are energised and stay energised. Ingots leave by sea within the year. A town that had been waiting since 1997 holds a thanksgiving service.',
@@ -460,7 +473,7 @@ export const VENTURES: Venture[] = [
     ],
     win: [['debt.eurobond', -2.5], ['bloc.establishment', 6]],
     lose: [['debt.eurobond', -1.2], ['bloc.press', -3]],
-    winText: 'The Debt Office buys through four banks over six weeks. By the time the market notices, a third of the foreign debt is gone at sixty cents in the dollar.',
+    winText: 'The Debt Office buys through four banks over six weeks. By the time the market notices, nearly half the foreign bonds are gone at sixty kobo in the naira.',
     loseText: 'The price moved against you from the first day. You retired ₦1.2tn of debt for ₦1.5tn, which is not what a buyback is for.',
     luck: 'A rally in emerging-market debt lifted the price of every such bond in the world in the same fortnight.',
     winNews: ['NIGERIA RETIRES $2BN OF EUROBONDS AT A DISCOUNT', 'WE PAY OUR FOREIGN DEBT FOR HALF PRICE'],
@@ -609,7 +622,7 @@ export const VENTURES: Venture[] = [
   {
     id: 'coastal', name: 'A coastal highway to Abidjan, with the neighbours', pc: 6, naira: 1.2, months: 18, top: 0.85, brief: 'min_works', infra: true,
     when: done('w3'), opened: 'Deep sea port and rail link',
-    blurb: 'Five countries, a thousand kilometres, and the busiest trade corridor on the continent. Announced by every government since 1975.',
+    blurb: 'Five countries, a thousand kilometres, and the busiest trade corridor on the continent. Announced by every government since 1975. Each country builds its own section; ours costs the treasury ₦1.2tn, and if it fails the overruns are borrowed at home.',
     risks: [contractors(0.2), lenders(82, 0.18), quiet('SS', 'The South South', 55, 0.15), minister('min_works', 'Minister of Works', 0.15)],
     win: [['nation.jobs', 9], ['bonus.jobs', 0.04], ['bonus.fiscal', 0.02], ['zone.SS.approval', 4], ['zone.SW.approval', 4]],
     lose: [['debt.bonds', 1], ['bloc.press', -4], ['approval', -2]],
@@ -649,6 +662,7 @@ for (const v of VENTURES) {
   if (d.fx) v.win = [...v.win, ...d.fx];
   v.changes = d.changes;
 }
-for (const v of VENTURES) v.changes ??= v.id.startsWith('refinery') ? 'A working refinery: petrol imports fall with what it refines.' : undefined;
+for (const v of VENTURES) for (const r of v.risks) r.kind ??= riskKind(r.id);
+for (const v of VENTURES) v.changes ??=v.id.startsWith('refinery') ? 'A working refinery: petrol imports fall with what it refines.' : undefined;
 
 export const VENTURE_BY_ID = Object.fromEntries(VENTURES.map((x) => [x.id, x]));

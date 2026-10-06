@@ -125,4 +125,19 @@ check('the diaspora vote counts, and the constitution\'s clause changes revenue 
   assert.ok(share() < normal, 'under fiscal autonomy the states take more of a surplus');
 });
 
+check('conditions are of three kinds: essential, cost and speed, and political acceptance', () => {
+  for (const v of Object.values(VENTURE_BY_ID)) for (const r of v.risks) assert.ok(r.kind, `${v.id}.${r.id} has a kind`);
+  assert.equal(VENTURE_BY_ID.steel.risks.find((r) => r.id === 'contractors')!.kind, 'cost');
+  assert.equal(VENTURE_BY_ID.steel.risks.find((r) => r.id === 'power')!.kind, 'essential');
+  assert.equal(VENTURE_BY_ID.constitution.risks.find((r) => r.id === 'senate')!.kind, 'acceptance');
+  // A missing cost factor makes the work late and dear; it is only half a threat to the opening.
+  const paid = fresh(), unpaid = fresh();
+  for (const s of [paid, unpaid]) { s.sites = { steel: 'KO' }; s.ventures.active = [{ id: 'steel', progress: 10 }]; s.tycoons.ty_maker.rel = 70; s.nation.power = 70; }
+  paid.debts.contractors = 0; unpaid.debts.contractors = 3;
+  const cash = unpaid.nation.fiscalSpace;
+  ventureTick(paid); ventureTick(unpaid);
+  assert.ok(unpaid.ventures.active[0].progress < paid.ventures.active[0].progress, 'unpaid contractors slow the work');
+  assert.ok((unpaid.counters['overrun.steel'] ?? 0) > 0 && unpaid.nation.fiscalSpace < cash, 'and run it over budget');
+});
+
 console.log(`${passed} big bet checks passed.`);

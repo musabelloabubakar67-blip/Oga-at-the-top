@@ -16,7 +16,8 @@ import { THEATRES } from '../content/theatres';
 import { ASSETS } from '../content/assets';
 import { STATE_BY_ID } from '../content/states';
 import { TYCOON_BY_ID } from '../content/tycoons';
-import { VENTURES } from '../content/ventures';
+import { RISK_KIND_NAME, VENTURES } from '../content/ventures';
+import { OVERRUN_PER_FACTOR, SLOW_PER_FACTOR } from '../engine/bets';
 import { eventOf } from '../engine/cast';
 import { who } from '../engine/favours';
 import { policyNow } from '../engine/policies';
@@ -940,15 +941,25 @@ function Agenda({ s, dispatch }: { s: GameState; dispatch: Dispatch }) {
 
 function Risks({ s, v, live }: { s: GameState; v: (typeof VENTURES)[number]; live?: boolean }) {
   const list = risksOf(s, v);
+  const kinds = (['essential', 'cost', 'acceptance'] as const).filter((k) => list.some((r) => (r.risk.kind ?? 'essential') === k));
+  const over = s.counters[`overrun.${v.id}`] ?? 0;
   return (
-    <ul className="mt-2 space-y-1">
-      {list.map(({ risk, ok }) => (
-        <li key={risk.id} className="text-[13px] leading-snug">
-          <span className={ok ? 'text-[#7fc4a0]' : 'text-[#e08a7c]'}>{ok ? '✓' : '✕'} {risk.label}</span>
-          {!ok && <span className="block pl-4 text-ivory/60">{live ? risk.warn + ' ' : ''}Costs {Math.round(risk.cost * 100)} points of the odds. {risk.fix}</span>}
-        </li>
+    <div className="mt-2 space-y-1.5">
+      {kinds.map((k) => (
+        <div key={k}>
+          <p className="label text-ivory/45">{RISK_KIND_NAME[k]}</p>
+          <ul className="space-y-1">
+            {list.filter((r) => (r.risk.kind ?? 'essential') === k).map(({ risk, ok }) => (
+              <li key={risk.id} className="text-[13px] leading-snug">
+                <span className={ok ? 'text-[#7fc4a0]' : 'text-[#e08a7c]'}>{ok ? '✓' : '✕'} {risk.label}</span>
+                {!ok && <span className="block pl-4 text-ivory/60">{live ? risk.warn + ' ' : ''}{k === 'cost' ? `Costs ${Math.round(risk.cost * 50)} points of the odds, slows the work by about ${Math.round((1 - SLOW_PER_FACTOR) * 100)}% and adds about ${naira((v.naira / v.months) * OVERRUN_PER_FACTOR)} a month in overruns.` : `Costs ${Math.round(risk.cost * 100)} points of the odds.`} {risk.fix}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
       ))}
-    </ul>
+      <p className="text-[12.5px] text-ivory/50">Even with everything in place, {Math.round((1 - v.top) * 100)}% is outside anyone's control.{over > 0.0005 ? ` Overruns so far: ${naira(over)}.` : ''}</p>
+    </div>
   );
 }
 
