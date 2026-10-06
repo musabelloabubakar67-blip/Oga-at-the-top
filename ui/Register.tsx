@@ -39,18 +39,20 @@ const ANSWER: Record<RequestRecord['status'], string> = {
 const VERDICT: Record<ReviewVerdict, { text: string; tone: string }> = {
   met: { text: 'Met', tone: 'text-state' },
   missed: { text: 'Missed', tone: 'text-alarm' },
-  withheld: { text: 'Failed: the government withheld the means', tone: 'text-honour' },
+  withheld: { text: 'Failed · not funded', tone: 'text-honour' },
   disputed: { text: 'Disputed', tone: 'text-ink-soft' },
 };
-const naira = (tn: number) => (tn >= 1 ? `₦${tn.toFixed(2)}tn` : `₦${Math.round(tn * 1000)}bn`);
+const naira = (tn: number) => (tn <= 0 ? '₦0' : tn >= 1 ? `₦${tn.toFixed(2)}tn` : `₦${Math.round(tn * 1000)}bn`);
+/** The engine writes amounts in trillions to three places; say them as a reader would ("₦19bn", not "₦0.019tn"). */
+const money = (text: string) => text.replace(/₦(\d+\.\d+)tn/g, (_, n) => (Number(n) === 0 ? '₦0' : naira(Number(n))));
 
 function Review({ v, r, earlier }: { v: GovernanceView; r: CommitmentReview; earlier?: boolean }) {
   return (
     <div className={`mt-2 border-l-2 pl-3 text-[13px] leading-snug ${earlier ? 'border-ink/15 text-ink-soft' : r.verdict === 'met' ? 'border-state' : r.verdict === 'withheld' ? 'border-honour' : r.verdict === 'disputed' ? 'border-ink/30' : 'border-alarm'}`}>
-      <p><span className={`label mr-1 ${VERDICT[r.verdict].tone}`}>{earlier ? 'Earlier review · ' : 'Review · '}{VERDICT[r.verdict].text}</span>{ago(v.clock.worldMonth - r.at)}{r.score !== undefined ? ` · scorecard ${Math.round(r.score)}` : ''}</p>
+      <p><span className={`label mr-1 ${VERDICT[r.verdict].tone}`}>{earlier ? 'Earlier review · ' : 'Review · '}{VERDICT[r.verdict].text}</span> · {ago(v.clock.worldMonth - r.at)}{r.score !== undefined ? ` · scorecard ${Math.round(r.score)}` : ''}</p>
       {r.evidence.length > 0 && <ul className="mt-0.5 list-disc pl-4">{r.evidence.map((e) => <li key={e}>{e}</li>)}</ul>}
       {r.governmentContribution.length > 0 && (
-        <p className="mt-1"><span className="label mr-1 text-honour">{'The government\'s own part'}</span>{r.governmentContribution.join(' ')}</p>
+        <p className="mt-1"><span className="label mr-1 text-honour">{'The government\'s own part'}</span>{money(r.governmentContribution.join(' '))}</p>
       )}
     </div>
   );
@@ -61,6 +63,7 @@ function Commitment({ v, c }: { v: GovernanceView; c: CommitmentRecord }) {
   const from = provenance(v, c.origin.administrationId);
   const settled = c.status === 'kept' || c.status === 'broken' || c.status === 'renegotiated';
   const verdict = c.review ? VERDICT[c.review.verdict] : null;
+  const notes = c.notes.filter((n) => !n.text.startsWith('Review:'));
   const earlier = (c.reviews ?? []).filter((r) => r !== c.review && !(c.review && r.at === c.review.at && r.verdict === c.review.verdict));
   return (
     <li className={`border p-3 ${due.urgent && !settled ? 'border-alarm/60' : 'border-ink/20'}`}>
@@ -73,7 +76,7 @@ function Commitment({ v, c }: { v: GovernanceView; c: CommitmentRecord }) {
       {c.resources && (
         <p className="mt-0.5 text-[13px]">
           Allocated {naira(c.resources.naira)} · released {naira(c.resources.released)}
-          {c.resources.released < c.resources.naira ? <span className="text-honour"> · {naira(c.resources.naira - c.resources.released)} not yet released</span> : null}
+          {c.resources.released < c.resources.naira ? <span className="text-honour"> · {naira(c.resources.naira - c.resources.released)} {settled ? 'never released' : 'not yet released'}</span> : null}
         </p>
       )}
       {c.target && (
@@ -84,9 +87,9 @@ function Commitment({ v, c }: { v: GovernanceView; c: CommitmentRecord }) {
         {nameOf(v, c.responsible)} is responsible · {c.visibility === 'public' ? 'made in public' : 'private'} · made {ago(v.clock.worldMonth - c.made)}
         {from ? ` · ${from}` : ''}
       </p>
-      {c.notes.length > 0 && (
+      {notes.length > 0 && (
         <ol className="mt-2 space-y-0.5 border-l-2 border-ink/15 pl-3 text-[13px]">
-          {c.notes.map((n, i) => <li key={i}><span className="text-ink-soft">{ago(v.clock.worldMonth - n.at)}:</span> {n.text}</li>)}
+          {notes.map((n, i) => <li key={i}><span className="text-ink-soft">{ago(v.clock.worldMonth - n.at)}:</span> {money(n.text)}</li>)}
         </ol>
       )}
       {earlier.map((r, i) => <Review key={i} v={v} r={r} earlier />)}
@@ -95,6 +98,20 @@ function Commitment({ v, c }: { v: GovernanceView; c: CommitmentRecord }) {
         <p className="mt-2 text-[13px] italic text-ink-soft">Nothing has been recorded against it. Whether it was kept is not yet judged.</p>
       )}
     </li>
+  );
+}
+
+/** What each governor, senator and minister currently wants: one line each, answered from Politics. */
+function Standing({ v, list }: { v: GovernanceView; list: RequestRecord[] }) {
+  return (
+    <ul className="mt-2 space-y-1 text-[13px]">
+      {list.map((r) => (
+        <li key={r.id} className="flex flex-wrap justify-between gap-3 border-b border-ink/10 py-1">
+          <span>{r.text} <span className="text-ink-soft">· {nameOf(v, r.requester)}</span></span>
+          <span className="text-ink-soft">{ago(v.clock.worldMonth - r.made)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -109,7 +126,7 @@ function Request({ v, r }: { v: GovernanceView; r: RequestRecord }) {
       <p className="mt-0.5 text-[13px] text-ink-soft">
         Asked by {nameOf(v, r.requester)} · {ago(v.clock.worldMonth - r.made)}{from ? ` · ${from}` : ''}
       </p>
-      {r.terms && <p className="mt-1 text-[13px]">Terms: {r.terms.description}</p>}
+      {r.terms && r.terms.description !== r.text && <p className="mt-1 text-[13px]">Terms: {r.terms.description}</p>}
       {r.previous && <p className="mt-1 text-[13px] text-ink-soft">Asked before and answered; back with something changed{r.changedBy ? ` (${CHANGED[r.changedBy]})` : ''}.</p>}
       {r.substitution && <p className="mt-1 text-[13px]">Offered instead: {r.substitution.text} <span className="text-ink-soft">({r.substitution.accepted ? 'accepted' : 'turned down'})</span></p>}
       {r.response && <p className="mt-1 text-[13px]">Answer: {r.response}</p>}
@@ -121,7 +138,8 @@ export function Register({ s }: { s: GameState }) {
   const v = getGovernanceView(s);
   const pending = v.commitments.filter((c) => c.status === 'open' || c.status === 'review-due').sort((a, b) => a.due - b.due);
   const settled = v.commitments.filter((c) => !pending.includes(c)).sort((a, b) => b.made - a.made);
-  const asked = v.requests.filter((r) => r.status === 'open');
+  const asked = v.requests.filter((r) => r.status === 'open' && !r.legacyWant);
+  const standing = v.requests.filter((r) => r.status === 'open' && r.legacyWant);
   const answered = v.requests.filter((r) => r.status !== 'open').sort((a, b) => (b.closed ?? b.made) - (a.closed ?? a.made)).slice(0, 12);
   const pledges = (s.pledges ?? []).filter((p) => p.status === 'open').sort((a, b) => a.due - b.due);
   const empty = pending.length === 0 && settled.length === 0 && v.requests.length === 0 && pledges.length === 0;
@@ -161,6 +179,14 @@ export function Register({ s }: { s: GameState }) {
         <section className="mt-6">
           <h3 className="label text-ink-soft">Waiting for an answer · {asked.length}</h3>
           <ul className="mt-2 space-y-2">{asked.map((r) => <Request key={r.id} v={v} r={r} />)}</ul>
+        </section>
+      )}
+
+      {standing.length > 0 && (
+        <section className="mt-6">
+          <h3 className="label text-ink-soft">What people want from you · {standing.length}</h3>
+          <p className="mt-1 text-[13px] text-ink-soft">Each person's current ask. Grant, refuse or bargain from Power, under each person; a refused ask returns only if something about it changes.</p>
+          <Standing v={v} list={standing} />
         </section>
       )}
 

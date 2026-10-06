@@ -40,12 +40,12 @@ export const MINOR: GameEvent[] = [
           fx: [['bloc.party', 5], ['zone.SS.approval', 2], ['person.gov_ss', 8]],
           favour: ['gov_ss', 'owed', 1],
           flags: { 'road.funded': true },
-          follow: [{ event: 'react.road_done', after: [10, 14] }],
+          follow: [{ event: 'react.road_done', after: [10, 12], when: { v: ['debt.contractors', '<=', 1.3] } }],
           // The road is now a public commitment of the Works ministry, due within the year.
           domain: domain(
             ROAD_REQUEST,
             { type: 'request.close', id: 'road.ss.$ADMIN', status: 'granted', response: 'Funded the same day.' },
-            { type: 'commitment.open', id: 'road.ss.finish.$ADMIN', responsible: { office: 'min_works' }, object: 'finish-federal-road-in-governor-state', text: 'Finish the federal road in the Governors\' Forum chairman\'s state.', afterMonths: 12, visibility: 'public' },
+            { type: 'commitment.open', id: 'road.ss.finish.$ADMIN', responsible: { office: 'min_works' }, object: 'finish-federal-road-in-governor-state', text: 'Finish the federal road in the Governors\' Forum chairman\'s state.', afterMonths: 12, visibility: 'public', verify: { flag: 'road.ss.done' } },
           ),
           archive: 'Funded a federal road at a governor\'s request.',
         }],

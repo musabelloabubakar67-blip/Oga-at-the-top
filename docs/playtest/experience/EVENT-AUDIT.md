@@ -282,8 +282,15 @@ Type is what the scene is: **decision**, **escalation** (a decision inside a run
 | `success.charter` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
 | `success.hospital` | decision (opened by success) | New | Arises only after the bet in its condition has worked; a question the success itself creates. | Operating state for the asset once plan 12 lands. |
 
+### Commitments and targets (new, delivery 15)
+
+| Event | Type | Verdict | Finding | Next |
+|---|---|---|---|---|
+| `min.target.review` | closing (queued by the engine) | New | Answers the engine's dated verdict on a written target (S1) for the exact record; met, missed, withheld and disputed each have their own line and choices. No delivery is awarded for being reviewed. | None. |
+| `doctors.balance.due` | decision (on the due date) | New | The doctors' balance falls due: paying releases the agreed allocation through the commitment (R4) and is reviewed as met; delay is reviewed as withheld. | None. |
+
 ## Coverage
 
-All 188 event ids in the registry are named in the tables above (the original 180 checked by script against `event-audit.json`; the eight files of delivery 13 are listed in their own table). Fourteen confirmed defects are listed as D1 to D14. Repetition: 53 events can fire more than once; of these, the ones marked Rebuild (R2) or Revise for recurrence repeat their body without a material development and must gain one.
+All 190 event ids in the registry are named in the tables above (the original 180 checked by script against `event-audit.json`; the files of deliveries 13 and 15 are listed in their own tables). Fourteen confirmed defects are listed as D1 to D14. Repetition: 53 events can fire more than once; of these, the ones marked Rebuild (R2) or Revise for recurrence repeat their body without a material development and must gain one.
 
 This document is updated in the same commit as each change it describes.

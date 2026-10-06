@@ -7,8 +7,8 @@ import type { GameEvent, Outcome } from '../../engine/types';
  * The elders' terms agreed before the primary (`ticket.elders`) are stored as a commitment.
  * When it exists, each way of answering the elders writes what happened to it.
  */
-const withEldersTerms = (base: Outcome, note: string): Outcome[] => [
-  { ...base, when: { flag: 'elders.terms' }, domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'elders.terms.$ADMIN', text: note }] } },
+const withEldersTerms = (base: Outcome, note: string, verdict: 'kept' | 'partial' | 'broken' | 'renegotiated'): Outcome[] => [
+  { ...base, when: { flag: 'elders.terms' }, flags: { ...base.flags, 'elders.verdict': verdict }, domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'elders.terms.$ADMIN', text: note }] } },
   base,
 ];
 
@@ -37,7 +37,7 @@ export const SECOND: GameEvent[] = [
           flags: { 'promise.second_term': false },
           news: ['PRESIDENT UNVEILS SECOND-TERM CABINET', 'NEW CABINET, SAME OLD FACES'],
           archive: 'Gave the second-term cabinet to the party elders as promised.', sig: 2,
-        }, 'Honoured: the elders\' list became the second-term cabinet, with two changes.'),
+        }, 'Honoured: the elders\' list became the second-term cabinet, with two changes.', 'kept'),
       },
       {
         id: 'half', label: 'Give them the agencies, keep the cabinet', pc: 6,
@@ -47,7 +47,7 @@ export const SECOND: GameEvent[] = [
           flags: { 'promise.second_term': false },
           news: ['PRESIDENT RETAINS ECONOMIC TEAM IN NEW CABINET', 'ELDERS COLLECT AGENCIES, PRESIDENT HOLD CABINET'],
           archive: 'Gave the party elders agencies but kept the cabinet.', sig: 2,
-        }, 'Partly honoured: the elders received nine agencies and four ministries; the economic team stayed the President\'s.'),
+        }, 'Partly honoured: the elders received nine agencies and four ministries; the economic team stayed the President\'s.', 'partial'),
       },
       {
         id: 'refuse', label: 'Tell them the election is over', pc: 12,
@@ -58,7 +58,7 @@ export const SECOND: GameEvent[] = [
           flags: { 'promise.second_term': false, 'promise.broken': true },
           news: ['PRESIDENT NAMES "CABINET OF TECHNOCRATS"', 'PRESIDENT DON USE ELDERS FINISH, DUMP THEM'],
           archive: 'Broke the pre-primary understanding with the party elders.', sig: 3,
-        }, 'Broken: the President appointed the cabinet without them and told the elders the election was over.'),
+        }, 'Broken: the President appointed the cabinet without them and told the elders the election was over.', 'broken'),
       },
       {
         id: 'ledger', label: 'Go round the table and remind each of them what they owe you',
@@ -70,7 +70,7 @@ export const SECOND: GameEvent[] = [
           flags: { 'promise.second_term': false },
           news: ['PRESIDENT NAMES OWN CABINET; ELDERS "SATISFIED"', 'ELDERS COME COLLECT, PRESIDENT REMIND DEM WHO OWE WHO'],
           archive: 'Spent every favour owed to keep the second-term cabinet out of the elders\' hands.', sig: 3,
-        }, 'Renegotiated by favours: the President called in every debt and the elders settled for three agencies and one ministry.'),
+        }, 'Renegotiated by favours: the President called in every debt and the elders settled for three agencies and one ministry.', 'renegotiated'),
       },
     ],
   },

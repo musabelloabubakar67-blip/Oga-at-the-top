@@ -153,9 +153,9 @@ export const SYSTEM: GameEvent[] = [
           result: 'He accepts this with a smile that does not reach anything.',
           fx: [['bloc.party', -2], ['rival.strong', 4]],
           ops: [['grow', 'strong']],
-          follow: [{ event: 'owe.decamp.leaves', after: [5, 8], when: v('owing.strong', '>', 0) }],
+          follow: [{ event: 'owe.decamp.leaves', after: [4, 5], when: v('owing.strong', '>', 0) }],
           // "After the budget" is now a dated private promise; the follow-up addresses it by this id.
-          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'dandume.ministry.$ADMIN', responsible: { office: 'president' }, object: 'ministry-for-dandume', text: 'Give Senator Garba Dandume a ministry "after the budget", as promised when he returned to the party.', afterMonths: 6, visibility: 'private' }] },
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'dandume.ministry.$ADMIN', responsible: { office: 'president' }, object: 'ministry-for-dandume', text: 'Give Senator Garba Dandume a ministry "after the budget", as promised when he returned to the party.', afterMonths: 6, visibility: 'private', verify: { flag: 'dandume.given' } }] },
           archive: 'Put Senator Dandume off.',
         }],
       },
@@ -179,7 +179,7 @@ export const SYSTEM: GameEvent[] = [
     choices: [
       {
         id: 'give', label: 'You will have it by Wednesday',
-        outcomes: [{ result: 'He has it by Wednesday.', fx: [['nation.capacity', -3], ['nation.integrity', -2]], ops: [['settle', 'strong']], domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Given, late, under the threat of a press conference.' }] }, archive: 'Gave Senator Dandume his ministry, under threat.' }],
+        outcomes: [{ result: 'He has it by Wednesday.', fx: [['nation.capacity', -3], ['nation.integrity', -2]], ops: [['settle', 'strong']], flags: { 'dandume.given': true }, domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Given, late, under the threat of a press conference.' }] }, archive: 'Gave Senator Dandume his ministry, under threat.' }],
       },
     ],
     ignored: {
