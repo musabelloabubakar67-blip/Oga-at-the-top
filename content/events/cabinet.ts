@@ -109,6 +109,7 @@ export const CABINET: GameEvent[] = [
     body: [
       '{WHO}, {WHO_TITLE}, has told friends that the resignation letter is written. The plan is to announce it on a Monday and declare for the presidency by Friday.',
       'The minister has a following now: people who owe their jobs, their contracts or their good name to that ministry. They will not all stay behind.',
+      { when: { v: ['count.min.resigns', '>=', 2] }, text: 'One minister has already left to run against you. This one watched how that was handled.' },
     ],
     reads: [
       { role: 'sap', good: 'Ministers who leave to run take a piece of the party with them, {SIR}. The question is how big a piece, and whether you would rather pay for it now.' },

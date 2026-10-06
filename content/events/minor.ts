@@ -399,6 +399,9 @@ export const MINOR: GameEvent[] = [
       '{MRP}. I am writing as a courtesy and not as a threat. My executive council meets on Friday. My members are hungry and I cannot keep telling them to wait.',
       'Give me something to carry into that room.',
       { when: { v: ['debt.pensions', '>', 0.3] }, text: 'And the pensioners sit in my office every morning. They are not asking for a rise. They are asking for what is theirs.' },
+      { when: { flag: 'labourcall.last', is: 'meet' }, text: 'The talks you gave me a date for last time were held once and adjourned. My council has asked me whether a photograph is a wage.' },
+      { when: { flag: 'labourcall.last', is: 'relief' }, text: 'The transport subsidy you gave last time is still paid, and my members thank you for it. Prices have since eaten it.' },
+      { when: { flag: 'labourcall.last', is: 'pensions' }, text: 'The pensioners you paid last time came to thank me. The ones you did not pay came with them.' },
     ],
     reads: [{ role: 'sap', good: 'He is asking you to help him say no to his own hardliners, {SIR}. That is worth something.' }],
     choices: [
@@ -407,7 +410,7 @@ export const MINOR: GameEvent[] = [
         outcomes: [{
           result: 'You meet for an hour without aides. He leaves with a date for talks and a photograph. On Friday the council votes to wait.',
           fx: [['pressure.wageGrievance', -8], ['bloc.street', 2]],
-          archive: 'Met the labour leader privately before his council vote.',
+          flags: { 'labourcall.last': 'meet' }, archive: 'Met the labour leader privately before his council vote.',
         }],
       },
       {
@@ -416,7 +419,7 @@ export const MINOR: GameEvent[] = [
           result: 'He carries it into the room. The council passes a vote of thanks, which its secretary records with visible reluctance.',
           fx: [['pressure.wageGrievance', -16], ['bloc.street', 4]],
           news: ['FG APPROVES TRANSPORT SUPPORT FOR WORKERS', 'WORKERS GO GET TRANSPORT MONEY'],
-          archive: 'Gave labour a transport subsidy ahead of a council vote.',
+          flags: { 'labourcall.last': 'relief' }, archive: 'Gave labour a transport subsidy ahead of a council vote.',
         }],
       },
       {
@@ -427,7 +430,7 @@ export const MINOR: GameEvent[] = [
           fx: [['pressure.wageGrievance', -14], ['bloc.street', 4], ['approval', 1]],
           ops: [['paydebt', 'pensions', 0.5]],
           news: ['FG PAYS HALF OF PENSION ARREARS', 'PENSIONERS DON SEE ALERT. HALF, BUT ALERT'],
-          archive: 'Paid half the pension arrears ahead of a labour council vote.',
+          flags: { 'labourcall.last': 'pensions' }, archive: 'Paid half the pension arrears ahead of a labour council vote.',
         }],
       },
     ],
@@ -563,6 +566,8 @@ export const MINOR: GameEvent[] = [
     title: 'The reserves',
     body: [
       'Your Excellency, at the present rate of intervention the reserves will not see the year out. I can continue to defend the rate as instructed. I would be failing in my duty if I did not say that the market has already decided where it is going.',
+      { when: { flag: 'cbn.held' }, text: 'I wrote to you before on this subject and was instructed to hold the line. I have held it. This letter is to record the cost.' },
+      { when: { flag: 'cbn.forward' }, text: 'The oil payments brought forward last time are now missing from the months they belonged to.' },
     ],
     choices: [
       {
@@ -581,7 +586,7 @@ export const MINOR: GameEvent[] = [
           result: 'The Governor acknowledges the instruction in writing, which is how central bankers say they disagree.',
           fx: [['bloc.establishment', -2]],
           news: ['CBN REAFFIRMS NAIRA DEFENCE', 'CBN SAY DEM GO HOLD NAIRA'],
-          archive: 'Ordered the central bank to keep defending the naira.',
+          flags: { 'cbn.held': true }, archive: 'Ordered the central bank to keep defending the naira.',
         }],
       },
       {
@@ -591,7 +596,7 @@ export const MINOR: GameEvent[] = [
           fx: [['fx.reserves', 4], ['bloc.establishment', -1]],
           later: [{ after: [4, 6], fx: [['fx.reserves', -4]], label: 'The oil payments brought forward are missed in the months they were due.' }],
           news: ['RESERVES RISE ON EARLY OIL RECEIPTS', 'RESERVE DON RISE. NA BORROW FROM TOMORROW'],
-          archive: 'Brought forward oil receipts to prop up the reserves.',
+          flags: { 'cbn.forward': true }, archive: 'Brought forward oil receipts to prop up the reserves.',
         }],
       },
     ],
@@ -607,6 +612,7 @@ export const MINOR: GameEvent[] = [
     title: 'We are not the problem',
     body: [
       'Your Excellency, our members are being blamed on television for the price of the dollar. We only sell what the market will pay. If the central bank sold dollars to the public at its own rate, we would have nothing to sell. We would like this to be said by someone in government.',
+      { when: { flag: 'bdc.raided' }, text: 'Since the raids, our members trade from cars and telephones. The rate is higher, because the risk is.' },
     ],
     choices: [
       {
@@ -615,7 +621,7 @@ export const MINOR: GameEvent[] = [
           result: 'Forty kiosks are closed on live television. The street rate rises the next morning, because there are now fewer places to buy dollars.',
           fx: [['bloc.street', 1], ['nation.integrity', -1], ['bloc.establishment', -2]],
           news: ['POLICE RAID BUREAU DE CHANGE OPERATORS', 'POLICE DON CLOSE BDC. DOLLAR DON COST PASS'],
-          archive: 'Had the police raid the bureaux de change.',
+          flags: { 'bdc.raided': true }, archive: 'Had the police raid the bureaux de change.',
         }],
       },
       {
@@ -637,6 +643,8 @@ export const MINOR: GameEvent[] = [
     title: 'A word about the next budget',
     body: [
       'Senator Zango asks me to convey that the Committee on Appropriations harbours no ill will over the recent budget. The Senator merely observes that next year\'s will also pass through the committee, as will every bill the Presidency hopes to see enacted.',
+      { when: { flag: 'zango.mended' }, text: 'The Senator recalls the borehole programme fondly, and notes that it was for one budget.' },
+      { when: { flag: 'zango.refused' }, text: 'The Senator recalls your last reply, and has had it framed.' },
     ],
     choices: [
       {
@@ -645,7 +653,7 @@ export const MINOR: GameEvent[] = [
           result: 'The dinner goes well. A borehole programme is announced for the Senator\'s district. The committee\'s ill will, which did not exist, is no longer an issue.',
           fx: [['person.sen_approp', 12], ['nation.integrity', -1]],
           news: ['FG FLAGS OFF BOREHOLE PROJECT IN ZANGO\'S DISTRICT', 'ZANGO DON GET HIM PROJECT'],
-          archive: 'Made peace with the Appropriations chairman with a constituency project.',
+          flags: { 'zango.mended': true }, archive: 'Made peace with the Appropriations chairman with a constituency project.',
         }],
       },
       {
@@ -654,7 +662,7 @@ export const MINOR: GameEvent[] = [
           result: 'The reply is polite and changes nothing, which the Senator correctly reads as a refusal.',
           fx: [['person.sen_approp', -4], ['bloc.press', 1]],
           news: ['PRESIDENCY, SENATE COMMITTEE IN COLD WAR OVER BUDGET', 'PRESIDENT AND ZANGO NO DEY TALK'],
-          archive: 'Declined to make peace with the Appropriations chairman.',
+          flags: { 'zango.refused': true }, archive: 'Declined to make peace with the Appropriations chairman.',
         }],
       },
     ],
@@ -698,6 +706,7 @@ export const MINOR: GameEvent[] = [
     title: 'Clearing the air',
     body: [
       '{WHO} would like a meeting, "to clear the air". The aide who called was careful to say that nothing has been forgotten, and equally careful to say that everything can be discussed.',
+      { when: { flag: 'clearair.refused.$WHO' }, text: 'You declined the last request. This one has come through a mutual friend, which makes it harder to decline.' },
     ],
     choices: [
       {
@@ -716,7 +725,7 @@ export const MINOR: GameEvent[] = [
           result: 'The aide thanks you for your time. The message has been received, on both sides.',
           fx: [['person.$WHO', -4]],
           news: ['{WHO_SHORT} SNUBBED BY PRESIDENCY, AIDES SAY', 'PRESIDENT NO GREE SEE {WHO_SHORT}'],
-          archive: 'Refused to meet {WHO}.',
+          flags: { 'clearair.refused.$WHO': true }, archive: 'Refused to meet {WHO}.',
         }],
       },
     ],

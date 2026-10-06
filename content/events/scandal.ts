@@ -389,6 +389,11 @@ export const SCANDAL: GameEvent[] = [
       'The questions are specific. They include dates, amounts and the name of a company. She asks whether the Presidency wishes to comment before publication.',
       'She appears to have a source inside the building.',
       { when: { v: ['tycoon.ty_media', '>=', 55] }, text: 'Otunba Oyewole\'s paper has the same documents and has not used them. He has let it be known that this is a courtesy.' },
+      { when: { flag: 'exposure.last', is: 'deny' }, text: 'The last story of this kind was denied. The paper has kept the denial and intends to print it again, beside this one.' },
+      { when: { flag: 'exposure.last', is: 'termites' }, text: 'Her first question is whether these records, too, have been eaten.' },
+      { when: { flag: 'exposure.last', is: 'envelope' }, text: 'The envelope offered last time is framed on the wall of her newsroom.' },
+      { when: { flag: 'exposure.last', is: 'own' }, text: 'You published your own accounts the last time. These questions are about payments made since.' },
+      { when: { flag: 'exposure.last', is: 'oyewole' }, text: 'Otunba Oyewole smothered the last story. She has found a printer he does not own.' },
     ],
     trace: [['pressure.scandalHeat', 1], ['nation.integrity', -1]],
     reads: [
@@ -402,7 +407,7 @@ export const SCANDAL: GameEvent[] = [
           result: 'The story runs on Sunday across four pages, with the Presidency\'s denial in a box beside the bank transfers.',
           fx: [['bloc.press', -10], ['approval', -5, 1], ['bloc.street', -6], ['bloc.party', -5], ['nation.integrity', -2], ['pressure.scandalHeat', -20]],
           news: ['PRESIDENCY DENIES REPORT ON "LOGISTICS" PAYMENTS', 'THE RECEIPTS ARE OUT. VILLA SAYS "FAKE NEWS"'],
-          archive: 'Denied a press investigation into the Presidency\'s finances.', sig: 3,
+          flags: { 'exposure.last': 'deny' }, archive: 'Denied a press investigation into the Presidency\'s finances.', sig: 3,
         }],
       },
       {
@@ -411,7 +416,7 @@ export const SCANDAL: GameEvent[] = [
           result: 'The explanation is issued with a photograph of a damaged filing cabinet. The country stops what it is doing. The story runs for three weeks instead of one.',
           fx: [['bloc.press', -8], ['approval', -3, 1], ['nation.integrity', -4], ['pressure.scandalHeat', -10], ['bloc.street', -3]],
           news: ['PRESIDENCY: FINANCIAL RECORDS "DESTROYED BY TERMITES"', 'TERMITES CHOP THE FILE! NIGERIA WE HAIL THEE'],
-          archive: 'Stated that the Presidency\'s financial records were destroyed by termites.', sig: 3,
+          flags: { 'exposure.last': 'termites' }, archive: 'Stated that the Presidency\'s financial records were destroyed by termites.', sig: 3,
         }],
       },
       {
@@ -421,7 +426,7 @@ export const SCANDAL: GameEvent[] = [
           fx: [['bloc.press', -15], ['approval', -6, 1], ['bloc.street', -6], ['nation.integrity', -3], ['pressure.scandalHeat', -10]],
           exposure: { kind: 'political', amount: 10, witnesses: ['editor'], trail: 3 },
           news: ['EDITOR SAYS VILLA OFFERED ₦10BN TO KILL STORY', 'THEY TRY BRIBE ZAINAB. SHE POST THE ENVELOPE'],
-          archive: 'Tried to pay a newspaper editor to drop an investigation.', sig: 3,
+          flags: { 'exposure.last': 'envelope' }, archive: 'Tried to pay a newspaper editor to drop an investigation.', sig: 3,
         }],
       },
       {
@@ -430,7 +435,7 @@ export const SCANDAL: GameEvent[] = [
           result: 'The Villa publishes first. It is a bad week. It is one week.',
           fx: [['bloc.press', 4], ['approval', -3], ['bloc.party', -8], ['bloc.villa', -6], ['nation.integrity', 3], ['pressure.scandalHeat', -35]],
           news: ['PRESIDENT PUBLISHES VILLA ACCOUNTS, INVITES INQUIRY', 'PRESIDENT CONFESS BEFORE DEM CATCH AM'],
-          archive: 'Published the Presidency\'s own accounts ahead of an investigation.', sig: 3,
+          flags: { 'exposure.last': 'own' }, archive: 'Published the Presidency\'s own accounts ahead of an investigation.', sig: 3,
         }],
       },
       {
@@ -441,7 +446,7 @@ export const SCANDAL: GameEvent[] = [
           fx: [['bloc.press', -4], ['approval', -2], ['nation.integrity', -1.5], ['pressure.scandalHeat', -18]],
           favour: ['ty_media', 'owing', 2],
           news: ['REPORT QUESTIONS VILLA PAYMENTS; PRESIDENCY SILENT', 'ZAINAB DROP THE STORY. OTHER PAPERS LOOK AWAY'],
-          archive: 'Had Otunba Oyewole smother a press investigation.', sig: 2,
+          flags: { 'exposure.last': 'oyewole' }, archive: 'Had Otunba Oyewole smother a press investigation.', sig: 2,
         }],
       },
     ],

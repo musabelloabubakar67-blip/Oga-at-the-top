@@ -2,6 +2,16 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 10 — every repeating file now develops (D14)
+
+- **Baseline:** `4227861`; on `7423828` plus delivery 9. No engine contract consumed beyond the existing condition language and cast substitution.
+- **Files:** `content/events/system.ts`, `politics.ts`, `scandal.ts`, `attacks.ts`, `minor.ts`, `cabinet.ts`; `tests/experience/recurrence.check.ts` (new); `EVENT-AUDIT.md` (D14).
+- **What changed:** 37 recurring and threshold files that repeated their body unchanged now record the choice made (`flags: { '<topic>.last': '<choice>' }`, or `'<topic>.$WHO'`, `'attacked.$R'`, `'bet.pressed.$BET'` where the history belongs to a person, a reform or a bet) and open the next occurrence with its consequence. Existing flags were reused where they already said it (`protest.deaths`, `press.gag`, `lender.programme`, `oil.metered`, `target.$WHO`). `tycoon.offer` also gets a second-refusal outcome, since "the first time anybody has said no" was false the second time.
+- **Names rule (pronouns):** `owe.governor`, `favour.offer`, `sec.insurgency` and `bet.trouble` used "he/his" for slots any person can fill (a governor, a commander, the Chief of Staff). Reworded.
+- **Migration / determinism:** new flags only; no fx, ops or weights changed, so outcomes and balance are unchanged. Old saves simply lack the flags and show no history line until the next choice.
+- **Checks:** `recurrence.check.ts` (3): every repeating file has a history line (exemptions: `attack.farms`, which varies with the theatre; `ticket.primary`, once per term); through the reducer, `debt.gas` → half shows the unpaid-half line next time; `owe.tycoon` history follows the cast (Adetoro's stall is not shown to Amangala). `tsc` clean; lint 0 warnings; all six experience checks pass.
+- **For R2:** these flags are the interim episode memory. When episodes land, each `<topic>.last` maps to the episode's last intervention and can be retired.
+
 ## Delivery 9 — the generated name banks vetted (names rule), request S9
 
 - **Baseline:** `4227861`; on `7423828`, no new engine commits consumed.
