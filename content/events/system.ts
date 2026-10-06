@@ -153,9 +153,9 @@ export const SYSTEM: GameEvent[] = [
           result: 'He accepts this with a smile that does not reach anything.',
           fx: [['bloc.party', -2], ['rival.strong', 4]],
           ops: [['grow', 'strong']],
-          follow: [{ event: 'owe.decamp.leaves', after: [5, 8], when: v('owing.strong', '>', 0) }],
+          follow: [{ event: 'owe.decamp.leaves', after: [4, 5], when: v('owing.strong', '>', 0) }],
           // "After the budget" is now a dated private promise; the follow-up addresses it by this id.
-          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'dandume.ministry.$ADMIN', responsible: { office: 'president' }, object: 'ministry-for-dandume', text: 'Give Senator Garba Dandume a ministry "after the budget", as promised when he returned to the party.', afterMonths: 6, visibility: 'private' }] },
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'dandume.ministry.$ADMIN', responsible: { office: 'president' }, object: 'ministry-for-dandume', text: 'Give Senator Garba Dandume a ministry "after the budget", as promised when he returned to the party.', afterMonths: 6, visibility: 'private', verify: { flag: 'dandume.given' } }] },
           archive: 'Put Senator Dandume off.',
         }],
       },
@@ -179,7 +179,7 @@ export const SYSTEM: GameEvent[] = [
     choices: [
       {
         id: 'give', label: 'You will have it by Wednesday',
-        outcomes: [{ result: 'He has it by Wednesday.', fx: [['nation.capacity', -3], ['nation.integrity', -2]], ops: [['settle', 'strong']], domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Given, late, under the threat of a press conference.' }] }, archive: 'Gave Senator Dandume his ministry, under threat.' }],
+        outcomes: [{ result: 'He has it by Wednesday.', fx: [['nation.capacity', -3], ['nation.integrity', -2]], ops: [['settle', 'strong']], flags: { 'dandume.given': true }, domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Given, late, under the threat of a press conference.' }] }, archive: 'Gave Senator Dandume his ministry, under threat.' }],
       },
     ],
     ignored: {
@@ -933,8 +933,8 @@ export const SYSTEM: GameEvent[] = [
         id: 'target', label: 'Give {WHO_SHORT} six months and a target in writing',
         outcomes: [{
           result: 'The minister signs the target in your presence and is visibly shaken to learn that it will be checked. The Chief of Staff diarises the review for six months from today.',
-          // No credit until the target is met. The review itself waits on contract R4 (a stored target and
-          // the minister's scorecard as a variable); the flag records that a target is outstanding.
+          // No credit until the target is met. The engine stores the target against the real scorecard
+          // (contract S1), judges it on the due date and queues min.target.review with the verdict.
           fx: [['person.$WHO', -4], ['nation.capacity', 1], ['counter.targets', 1]],
           flags: { 'target.$WHO': true },
           ops: [['target', '$WHO', 6]],
@@ -948,6 +948,85 @@ export const SYSTEM: GameEvent[] = [
           fx: [['bloc.party', 3], ['nation.capacity', -2], ['person.$WHO', 10]],
           favour: ['$WHO', 'owed', 2],
           quiet: 'Keeping a minister is not news. The sponsor hears of it privately.', archive: 'Kept {WHO} in post despite the scorecard.',
+        }],
+      },
+    ],
+  },
+  {
+    // The review of a written target (contract S1). The engine queues this file when the target is set,
+    // bound to the minister who signed it ($WHO) and the exact target record ($TARGET), and enters the
+    // verdict itself on the due date from the real scorecard and the budget actually released. This file
+    // only answers it: nothing here awards delivery for having been reviewed.
+    id: 'min.target.review', kind: 'chain', slot: 'lead', category: 'politics', tone: 'dry', intensity: 2, reactive: true, topic: 'people',
+    cast: { WHO: 'weakMinister' },
+    office: 'Office of the Chief of Staff', stamp: 'CONFIDENTIAL',
+    title: '{WHO_SHORT}\'s six months are up',
+    body: [
+      'Six months ago {WHO}, {WHO_TITLE}, signed a target in your presence. The Chief of Staff has brought the scorecard and the review.',
+      { when: { flag: 'review.$TARGET.met' }, text: 'The target was met. The scorecard rose by more than the agreed ten points, and the improvement is in the work, not in the reporting.' },
+      { when: { flag: 'review.$TARGET.missed' }, text: 'The target was missed. The ministry received what it was allocated and the scorecard did not move far enough. The register records the figures.' },
+      { when: { flag: 'review.$TARGET.withheld' }, text: 'The target was missed, but not only by the minister. The government held back money the ministry was allocated, and the register says how much. The minister will say so, and will be right.' },
+      { when: { flag: 'review.$TARGET.disputed' }, text: 'The review could not be completed as agreed: the person who signed the target is no longer in the post, and a successor is not judged on a predecessor\'s promise.' },
+    ],
+    reads: [
+      { role: 'cos', good: 'The figures are on the table, {SIR}. What you do now tells every other minister whether a target means anything.' },
+      { role: 'sap', good: 'If the government starved the ministry, sacking the minister for it will be remembered by everyone who saw the budget.' },
+    ],
+    choices: [
+      {
+        id: 'credit', label: 'Say so in public: the target was met', requires: { flag: 'review.$TARGET.met' }, locked: 'The target was not met.',
+        outcomes: [{
+          result: 'You name the minister and the figures at the council meeting. Two other ministers ask the Chief of Staff, separately, whether they can have targets too.',
+          fx: [['person.$WHO', 10], ['bloc.villa', 3], ['nation.capacity', 1]],
+          news: ['PRESIDENT PRAISES {WHO_SHORT} AS MINISTRY MEETS TARGET', '{WHO_SHORT} DON MEET TARGET. PRESIDENT HAIL AM'],
+          archive: 'Credited {WHO} in public for meeting a written target.', sig: 2,
+        }],
+      },
+      {
+        id: 'sack', label: 'Dismiss {WHO_SHORT} and appoint on merit', pc: 6, requires: { any: [{ flag: 'review.$TARGET.missed' }, { flag: 'review.$TARGET.withheld' }] }, locked: 'There is no missed target to act on.',
+        outcomes: [{
+          when: { flag: 'review.$TARGET.withheld' },
+          result: 'The minister is dismissed. The resignation statement quotes the budget releases line by line. It is the most-read document of the month.',
+          fx: [['nation.capacity', 1], ['bloc.press', -4], ['bloc.villa', -3], ['nation.integrity', -1]],
+          ops: [['sack', '$WHO', 'technocrat']],
+          news: ['SACKED MINISTER: "THEY HELD BACK THE MONEY, THEN BLAMED ME"', '{WHO_SHORT} COMOT, SAY NA GOVERNMENT HOLD THE MONEY'],
+          archive: 'Dismissed {WHO} for a target the government had starved of money.', sig: 3,
+        }, {
+          result: 'The letter is delivered before breakfast. The other ministers read the review before they read the newspapers.',
+          fx: [['nation.capacity', 2], ['bloc.press', 3]],
+          ops: [['sack', '$WHO', 'technocrat']],
+          news: ['PRESIDENT SACKS {WHO_SHORT} AFTER MISSED TARGET', '{WHO_SHORT} MISS TARGET, PRESIDENT SACK AM'],
+          archive: 'Dismissed {WHO} after a missed target.', sig: 2,
+        }],
+      },
+      {
+        id: 'again', label: 'Authorise full future releases and set a new six-month target', requires: { flag: 'review.$TARGET.withheld' }, locked: 'Nothing was withheld; the ministry had its money.',
+        outcomes: [{
+          result: 'You instruct the treasury to make full releases under the ministry\'s budget and sign a new target. Future spending goes through the budget; the earlier withholding stays on the record. The next review will check what was actually released.',
+          fx: [['person.$WHO', 4], ['nation.capacity', 1]],
+          ops: [['targetrelease', '$TARGET'], ['target', '$WHO', 6]],
+          quiet: 'A private agreement; it becomes news only if this one is missed too.', archive: 'Authorised full future budget releases for {WHO} and set a new target.',
+        }],
+      },
+      {
+        id: 'keep', label: 'Keep {WHO_SHORT}. The sponsor matters more', requires: { any: [{ flag: 'review.$TARGET.missed' }, { flag: 'review.$TARGET.withheld' }] }, locked: 'There is no missed target to overlook.',
+        outcomes: [{
+          result: 'The minister stays. The review goes in a drawer. The other ministers draw the obvious conclusion about targets.',
+          fx: [['bloc.party', 2], ['nation.capacity', -2], ['counter.tolerated', 1]],
+          quiet: 'Nothing is announced; the review is filed.', archive: 'Kept {WHO} after a missed target.',
+        }],
+      },
+      {
+        id: 'file', label: 'File the review and say nothing',
+        outcomes: [{
+          when: { flag: 'review.$TARGET.disputed' },
+          result: 'The review is filed with a note that the target lapsed with the post. The new minister starts with a clean scorecard and has noticed what happened to the last one.',
+          fx: [],
+          quiet: 'An administrative record.', archive: 'Filed a target review that lapsed when the minister left.',
+        }, {
+          result: 'The review is filed. The minister hears nothing from you, which the minister reads as you intended.',
+          fx: [],
+          quiet: 'An administrative record.', archive: 'Filed the review of {WHO}\'s target without comment.',
         }],
       },
     ],

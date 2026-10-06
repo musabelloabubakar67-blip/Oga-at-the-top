@@ -460,7 +460,8 @@ export const LABOUR: GameEvent[] = [
           fx: [['pressure.wageGrievance', 3]],
           news: ['DOCTORS SUSPEND STRIKE FOR 21 DAYS', 'DOCTORS GIVE GOVERNMENT THREE WEEKS'],
           // "In due course" is now a dated public commitment, due for review in three months (once per administration).
-          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'doctors.balance.$ADMIN', responsible: { office: 'adviser:fin' }, object: 'pay-doctors-allowance-balance', text: 'Pay the remaining ₦19bn of the resident doctors\' allowances, promised "in due course".', afterMonths: 3, visibility: 'public' }] },
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'doctors.balance.$ADMIN', responsible: { office: 'adviser:fin' }, object: 'pay-doctors-allowance-balance', text: 'Pay the remaining ₦19bn of the resident doctors\' allowances, promised "in due course".', afterMonths: 3, visibility: 'public', resources: { naira: 0.019 } }] },
+          follow: [{ event: 'doctors.balance.due', after: 3 }],
           archive: 'Paid half of the doctors\' arrears and promised the rest.',
         }],
       },
@@ -474,5 +475,49 @@ export const LABOUR: GameEvent[] = [
         }],
       },
     ],
+  },
+  {
+    // "In due course" falls due. The balance is an agreed allocation on the commitment (contract R4):
+    // paying it releases the money through the commitment, so the choice carries no separate cost.
+    id: 'doctors.balance.due', kind: 'chain', slot: 'minor', channel: 'phone', office: 'Phone', category: 'labour', tone: 'dry', intensity: 2,
+    from: 'President, {DOCTORS}',
+    title: 'Due course',
+    body: [
+      'Your Excellency. Three months ago you paid half and promised the rest "in due course". Our members would like to know whether this is the course, and whether it is due.',
+      'The balance is ₦19bn. We have kept the receipts for the half.',
+    ],
+    choices: [
+      {
+        id: 'pay', label: 'Pay the ₦19bn balance now',
+        outcomes: [{
+          result: 'The balance is released through the Accountant-General the same week. The union publishes the alerts, and for once the statement is short.',
+          fx: [['pressure.wageGrievance', -6], ['bloc.street', 2]],
+          domain: { version: CONTRACT_VERSION, effects: [
+            { type: 'commitment.fund', id: 'doctors.balance.$ADMIN', amount: 0.019, reason: 'Balance of the resident doctors\' allowances' },
+            { type: 'commitment.review', id: 'doctors.balance.$ADMIN', verdict: 'met', evidence: ['The Accountant-General released the remaining ₦19bn on the due date.', 'The union published the payment alerts.'] },
+          ] },
+          archive: 'Paid the doctors the balance promised "in due course".',
+        }],
+      },
+      {
+        id: 'wait', label: 'Ask for another quarter',
+        outcomes: [{
+          result: 'The union reads the letter at its congress. The strike notice is drafted the same evening, with the date left blank.',
+          fx: [['pressure.wageGrievance', 10], ['bloc.street', -2]],
+          domain: { version: CONTRACT_VERSION, effects: [
+            { type: 'commitment.review', id: 'doctors.balance.$ADMIN', verdict: 'withheld', evidence: ['The ₦19bn balance was not released by the due date.', 'The government asked the union for another quarter.'] },
+          ] },
+          archive: 'Did not pay the doctors the balance when it fell due.',
+        }],
+      },
+    ],
+    ignored: {
+      result: 'No reply comes. The union reads that as a reply.',
+      fx: [['pressure.wageGrievance', 12], ['bloc.street', -3]],
+      domain: { version: CONTRACT_VERSION, effects: [
+        { type: 'commitment.review', id: 'doctors.balance.$ADMIN', verdict: 'withheld', evidence: ['The ₦19bn balance was not released by the due date.', 'The union\'s letter was not answered.'] },
+      ] },
+      archive: 'Left the doctors\' letter about the balance unanswered.',
+    },
   },
 ];

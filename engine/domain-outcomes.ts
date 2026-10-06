@@ -63,7 +63,9 @@ function applyOne(s: GameState, g: GovernanceState, effect: DomainEffect, origin
       break;
     case 'commitment.note': {
       const c = g.commitments[effect.id];
-      if (!c || !['open', 'review-due'].includes(c.status)) throw new Error('Commitment is not pending');
+      if (!c) throw new Error(`Unknown commitment: ${effect.id}`);
+      // A later conversation can add evidence to the history without reopening
+      // the promise or replacing its dated verdict.
       c.notes.push({ at: now, text: text(effect.text, 'commitment note') });
       break;
     }

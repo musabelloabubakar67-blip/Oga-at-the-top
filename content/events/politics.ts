@@ -349,7 +349,7 @@ export const POLITICS: GameEvent[] = [
           ops: [['governors', 5], ['senators', 4]],
           // `elders.terms` is set only together with the record, so the second term can address it safely.
           flags: { 'ticket.deal': true, 'promise.second_term': true, 'elders.terms': true },
-          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'elders.terms.$ADMIN', responsible: { office: 'president' }, object: 'elders-second-term-terms', text: 'Concede the party secretariat to the elders, and consult them on second-term appointments.', afterMonths: 16, visibility: 'private' }] },
+          domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.open', id: 'elders.terms.$ADMIN', responsible: { office: 'president' }, object: 'elders-second-term-terms', text: 'Concede the party secretariat to the elders, and consult them on second-term appointments.', afterMonths: 24, visibility: 'private', verify: { flag: 'elders.verdict', is: 'kept' } }] },
           news: ['PARTY ELDERS ENDORSE PRESIDENT FOR SECOND TERM', 'ELDERS DON COLLECT. PRESIDENT GET TICKET'],
           archive: 'Agreed terms with the party elders for the ticket.', sig: 2,
         }],
