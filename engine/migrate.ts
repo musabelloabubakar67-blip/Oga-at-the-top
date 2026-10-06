@@ -1,3 +1,5 @@
+import { bindFavours } from './favour-ledger';
+import { refreshRequests } from './wants';
 import { ensureGovernance, markCommitmentsDue } from './governance';
 
 // Saved games survive updates. An older save is brought forward to the current
@@ -97,6 +99,8 @@ export function migrate(raw: unknown): GameState | null {
     const s = r as GameState;
     ensureGovernance(s);
     markCommitmentsDue(s);
+    refreshRequests(s);
+    bindFavours(s);
     if (!s.counters['rules.theatres']) theatreRules(s);
     if (!s.counters['rules.policies']) policyRules(s);
     // Saves from before advisers had reputations and patrons.

@@ -1,3 +1,4 @@
+import { favourBelongs, favourParties } from './favour-ledger';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { CFG, monthOf, termTurnOf } from './config';
 import { addOwed, shiftPoints } from './ledger';
@@ -10,6 +11,8 @@ export function registerOutlook(fn: (s: GameState) => number): void { outlookOf 
 let benchOf: (s: GameState) => Record<string, number> = () => ({});
 /** The Supreme Court registers how it reads, to keep the imports one-way. */
 export function registerBench(fn: (s: GameState) => Record<string, number>): void { benchOf = fn; }
+let scoreOf: (s: GameState, id: string) => number = () => 0;
+export function registerScore(fn: typeof scoreOf): void { scoreOf = fn; }
 
 export const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
 export const BLOCS: BlocId[] = ['villa', 'party', 'street', 'establishment', 'press'];
@@ -84,16 +87,17 @@ export function delegates(s: GameState): number {
 // ---------------------------------------------------------------- favours
 
 export function favoursOwed(s: GameState, who?: string): Favour[] {
-  return s.favours.filter((f) => f.dir === 'owed' && (!who || f.who === who));
+  return s.favours.filter((f) => f.dir === 'owed' && favourBelongs(s, f) && (!who || f.who === who));
 }
 export function favoursOwing(s: GameState, who?: string): Favour[] {
-  return s.favours.filter((f) => f.dir === 'owing' && (!who || f.who === who));
+  return s.favours.filter((f) => f.dir === 'owing' && favourBelongs(s, f) && (!who || f.who === who));
 }
 const size = (list: Favour[]) => list.reduce((a, f) => a + f.size, 0);
 
-export function addFavour(s: GameState, who: string, dir: 'owed' | 'owing', n: number, why: string): void {
-  const id = (s.counters.favourSeq = (s.counters.favourSeq ?? 0) + 1);
-  s.favours.push({ id, who, dir, size: clamp(Math.round(n), 1, 3), why, turn: s.turn });
+export function addFavour(s: GameState, who: string, dir: 'owed' | 'owing', n: number, why: string, options?: Pick<Favour, 'terms' | 'eligibleUses'>): void {
+  if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid favour strength');
+  const id = (s.counters.favourSeq = Math.max(s.counters.favourSeq ?? 0, ...s.favours.map((f) => f.id), ...(s.favourSettlements ?? []).map((e) => e.favour.id)) + 1);
+  s.favours.push({ id, who, dir, size: clamp(Math.round(n), 1, 3), why, turn: s.turn, counterpart: favourParties(s, who).counterpart, president: s.governance ? favourParties(s, who).president : undefined, originalSize: clamp(Math.round(n), 1, 3), terms: options?.terms, eligibleUses: options?.eligibleUses ? [...options.eligibleUses] : undefined });
 }
 
 /** How a person behaves today: someone being leaned on complies whatever they feel. */
@@ -124,6 +128,12 @@ export function senate(s: GameState): number {
 export function getVar(s: GameState, path: string): number {
   const p = path.split('.');
   switch (p[0]) {
+    case 'score': return PERSON_BY_ID[p[1]]?.group === 'minister' && s.people[p[1]] ? scoreOf(s, p[1]) : 0;
+    case 'target': {
+      const holder = s.governance?.offices[p[1]];
+      const c = Object.values(s.governance?.commitments ?? {}).filter((c) => c.target?.office === p[1] && c.responsible === holder).sort((a, b) => b.made - a.made)[0];
+      return c?.review?.verdict === 'met' ? 1 : c?.review && ['missed', 'withheld'].includes(c.review.verdict) ? -1 : 0;
+    }
     case 'nation': return s.nation[p[1] as keyof Nation] ?? 0;
     case 'pressure': return s.pressures[p[1] as keyof Pressures] ?? 0;
     case 'bloc': return s.blocs[p[1] as BlocId] ?? 0;

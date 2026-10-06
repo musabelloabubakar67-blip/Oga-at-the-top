@@ -1,3 +1,6 @@
+import { consumeFavour, offsetFavours, bindFavours } from './favour-ledger';
+import { closeRequest, openRequest } from './requests';
+import { setMinisterTarget } from './commitments';
 import { release } from './talent';
 import { transferSavedFund, type FundDestination } from './fund-transfers';
 import { reformName } from './reforms';
@@ -22,7 +25,7 @@ import { naira } from './text';
 import { pay } from './treasury';
 import { pledge, pledgeOp, pledgeOptions } from './promises';
 import type { DebtId, FundId, GameState, Op2, ZoneId } from './types';
-import { clamp, favoursOwing } from './vars';
+import { clamp, favoursOwed, favoursOwing } from './vars';
 
 const group = (s: GameState, g: 'governor' | 'senator', d: number) => {
   for (const p of PEOPLE) {
@@ -35,6 +38,7 @@ const group = (s: GameState, g: 'governor' | 'senator', d: number) => {
 export function runOp(s: GameState, op: Op2): string {
   const [name, a, b, c] = op;
   switch (name) {
+    case 'target': setMinisterTarget(s, String(a), Number(b), c === undefined ? 10 : Number(c)); return 'A dated ministerial target is recorded for review.';
     case 'paydebt': {
       const id = a as DebtId;
       return pay(s, id, s.debts[id] * Number(b ?? 1));
@@ -53,7 +57,8 @@ export function runOp(s: GameState, op: Op2): string {
         const out = deal(s, id, 'grant').text;
         // What was given settles what was owed.
         const debt = favoursOwing(s, id)[0];
-        if (debt) s.favours = s.favours.filter((f) => f.id !== debt.id && !(f.who === id && f.dir === 'owed' && f.turn === s.turn));
+        const credit = s.favours.find((f) => f.who === id && f.dir === 'owed' && f.turn === s.turn);
+        if (debt && credit) offsetFavours(s, debt.id, credit.id);
         return out;
       }
       return '';
@@ -67,22 +72,38 @@ export function runOp(s: GameState, op: Op2): string {
       return pledgeOp(s, name, String(a));
     case 'settle': {
       const debt = favoursOwing(s, String(a))[0];
-      if (debt) s.favours = s.favours.filter((f) => f.id !== debt.id);
+      if (debt) consumeFavour(s, debt.id, debt.size, 'settled', 'Repayment agreed in a decision');
       return '';
     }
     case 'grow': {
       const debt = favoursOwing(s, String(a))[0];
-      if (debt) { debt.size = Math.min(3, debt.size + 1); debt.turn = s.turn; }
+      if (debt) { const before = debt.size; debt.size = Math.min(3, debt.size + 1); debt.turn = s.turn; if (debt.size !== before) delete debt.disputedAt; }
       return '';
     }
-    case 'void':
-      s.favours = s.favours.filter((f) => f.who !== String(a));
+    case 'void': {
+      const credit = favoursOwed(s, String(a))[0];
+      if (credit) consumeFavour(s, credit.id, credit.size, 'used', 'Called in on a written decision');
       return '';
+    }
+    case 'repudiate': {
+      const debt = favoursOwing(s, String(a))[0];
+      if (!debt) return '';
+      bindFavours(s); debt.disputedAt = s.turn;
+      const object = 'repay-favour:' + debt.id;
+      const terms = { description: 'Strength ' + debt.size };
+      const previous = Object.values(s.governance!.requests).filter((r) => r.object === object && r.requester === debt.counterpart).at(-1);
+      const id = 'debt-demand.' + s.governance!.administrationId + '.' + debt.id + '.' + s.turn + '.' + debt.size;
+      if (!previous || previous.terms?.description !== terms.description) {
+        openRequest(s, { id, requester: { person: debt.counterpart! }, object, text: 'Repay the outstanding favour: ' + debt.why, terms, previous: previous?.id, changedBy: previous ? 'threat' : undefined });
+        closeRequest(s, id, 'refused', 'The President declined repayment. The underlying debt remains owed.');
+      }
+      return 'The demand is refused. The underlying debt is still owed.';
+    }
     case 'backer': {
       // The campaign's financier: warm or cool them, and optionally close the account.
       const id = String(s.flags.financier);
       if (s.tycoons[id]) s.tycoons[id].rel = clamp(s.tycoons[id].rel + Number(a), 0, 100);
-      if (b === 'settle') { const debt = favoursOwing(s, id)[0]; if (debt) s.favours = s.favours.filter((f) => f.id !== debt.id); }
+      if (b === 'settle') { const debt = favoursOwing(s, id)[0]; if (debt) consumeFavour(s, debt.id, debt.size, 'settled', 'Repayment agreed in a decision'); }
       return '';
     }
     case 'deliver': {
@@ -92,7 +113,7 @@ export function runOp(s: GameState, op: Op2): string {
     }
     case 'spendall':
       // Everything owed to the President is called in at once.
-      s.favours = s.favours.filter((f) => f.dir !== 'owed');
+      for (const f of favoursOwed(s)) consumeFavour(s, f.id, f.size, 'used', 'Called all debts in on a decision');
       return '';
     case 'governors': group(s, 'governor', Number(a)); return '';
     case 'senators': group(s, 'senator', Number(a)); return '';
@@ -166,7 +187,8 @@ export function opText(s: GameState, op: Op2): string | null {
     }
     case 'settle': return `Settles what you owe ${who(s, String(a)).short}`;
     case 'grow': return `What you owe ${who(s, String(a)).short} grows`;
-    case 'void': return `${who(s, String(a)).short} no longer owes you, or is owed, anything`;
+    case 'void': return `Spends one favour owed by ${who(s, String(a)).short}; what you owe stays owed`;
+    case 'repudiate': return 'Refuses repayment; the underlying debt remains outstanding';
     case 'backer': {
       const w = who(s, String(s.flags.financier));
       return b === 'settle' ? `Settles what you owe ${w.short}` : `${w.short} ${Number(a) > 0 ? 'is pleased' : 'will not forget it'}`;

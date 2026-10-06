@@ -107,10 +107,10 @@ check('Dr Gwarzo without terms: the budget file does not touch a record that was
 
 check('the Appropriations understanding: agreeing grants the request and stores a private commitment; refusing closes it', () => {
   const yes = choose(fresh(), 'fin.lohor.committee', 'agree');
-  assert.equal(view(yes).requests[0].status, 'granted');
+  assert.equal(view(yes).requests.find((r) => r.id.startsWith('approp.'))!.status, 'granted');
   assert.equal(view(yes).commitments.find((x) => x.id === `approp.projects.${admin(yes)}`)?.visibility, 'private');
   const no = choose(fresh(), 'fin.lohor.committee', 'refuse');
-  assert.equal(view(no).requests[0].status, 'refused');
+  assert.equal(view(no).requests.find((r) => r.id.startsWith('approp.'))!.status, 'refused');
   assert.equal(view(no).commitments.length, 0);
 });
 

@@ -18,6 +18,8 @@ import { ensureGovernance, markCommitmentsDue } from '../engine/governance';
 import { CONTRACT_VERSION, applyDomainOutcome, clockOf, getGovernanceView, resolveActor, presidencyMonthToWorld, worldMonthToPresidency } from '../engine/public';
 import type { DomainEffect, DomainOutcome } from '../engine/public';
 import type { GameEvent } from '../engine/types';
+import { runSocialChecks } from './check-social';
+import { runCommitmentChecks } from './check-commitments';
 
 const setup = { seed: 42, name: 'Tester', party: 'PSC', partyShort: 'PSC', home: 'KN', background: 'governor' as const, address: 'sir' as const, finance: FINANCE_CANDIDATES[0].name, priorities: ['power', 'security', 'food', 'works'] };
 const fresh = () => newGame(setup);
@@ -164,23 +166,26 @@ check('scoped ids execute repeatedly through CHOOSE and survive succession', () 
   const choose = (s: ReturnType<typeof fresh>) => {
     s.phase = 'desk';
     s.desk.lead = { eventId: file.id };
-    return applyAction(s, { type: 'CHOOSE', eventId: file.id, choiceId: 'record' });
+    const request = file.choices[0].outcomes[0].domain!.effects.find((e) => e.type === 'request.open')!;
+    if (request.type !== 'request.open') throw Error('fixture');
+    const original = request.object; request.object = 'road-invoice-' + clockOf(s).worldMonth;
+    try { return applyAction(s, { type: 'CHOOSE', eventId: file.id, choiceId: 'record' }); } finally { request.object = original; }
   };
   try {
     let s = choose(fresh());
-    const first = Object.keys(s.governance!.requests)[0];
+    const first = Object.keys(s.governance!.requests).find((id) => id.startsWith('records.'))!;
     assert.equal(first, 'records.administration:0.0');
     assert.equal(s.governance!.requests[first].episodeId, first);
     assert.equal(s.governance!.requests[first].status, 'refused');
     s.turn++;
     s = choose(s);
-    assert.equal(Object.keys(s.governance!.requests).length, 2);
+    assert.equal(Object.keys(s.governance!.requests).filter((id) => id.startsWith('records.')).length, 2);
     // Duplicate same-month execution remains invalid; scoping is not an overwrite.
     s.desk.lead = { eventId: file.id };
     assert.throws(() => choose(s));
     s.turn = 49; s.ending = 'defeated';
     const successor = choose(newGame({ ...setup, name: 'Successor' }, s));
-    assert.equal(Object.keys(successor.governance!.requests).length, 3);
+    assert.equal(Object.keys(successor.governance!.requests).filter((id) => id.startsWith('records.')).length, 3);
     assert.ok(successor.governance!.requests['records.administration:1.48']);
     assert.equal(successor.governance!.commitments[first].due, 3);
     assert.equal(JSON.stringify(file), source);
@@ -436,4 +441,6 @@ check('malformed fund transfers fail before mutation', () => {
 // @ts-expect-error unsupported effects cannot be authored in the v1 DSL
 const unsupported: DomainEffect = { type: 'cash.magic' };
 void unsupported;
+passed += runSocialChecks();
+passed += runCommitmentChecks();
 process.stdout.write(`${passed} contract checks passed.\n`);

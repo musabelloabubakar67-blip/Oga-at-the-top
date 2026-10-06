@@ -63,7 +63,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: 'You say it plainly. {WHO_SHORT} thanks you for your candour and leaves. Within the month that money is in somebody else\'s campaign.',
           fx: [['tycoon.$WHO', -24], ['nation.integrity', 2], ['bloc.press', 3], ['bloc.party', -3]],
-          ops: [['settle', '$WHO']],
+          ops: [['repudiate', '$WHO']],
           news: ['PRESIDENT "OWES NOBODY", SAYS VILLA AFTER RIFT WITH FINANCIER', 'PRESIDENT DON TELL BIG MAN: I NO OWE YOU'],
           archive: 'Told {WHO} that the campaign debt would not be repaid.', sig: 3,
         }],
@@ -117,7 +117,7 @@ export const SYSTEM: GameEvent[] = [
         outcomes: [{
           result: '{WHO_SHORT} hears you out, stands, promises to remember the lesson, and leaves by the side door.',
           fx: [['person.$WHO', -18], ['bloc.party', -4], ['nation.integrity', 1]],
-          ops: [['settle', '$WHO']],
+          ops: [['repudiate', '$WHO']],
           news: ['{WHO_SHORT} LEAVES VILLA "DISAPPOINTED"', '{WHO_SHORT} COMMOT VILLA WITH LONG FACE'],
           archive: 'Refused to repay {WHO}.', sig: 2,
         }],
@@ -165,7 +165,7 @@ export const SYSTEM: GameEvent[] = [
           result: 'He leaves the party for the second time, with rather more people than he left with the first time.',
           fx: [['rival.strong', 16], ['bloc.party', -6]],
           flags: { 'rival.strong.in': false },
-          ops: [['settle', 'strong']],
+          ops: [['repudiate', 'strong']],
           news: ['DANDUME DEFECTS AGAIN, ACCUSES PRESIDENT OF "BETRAYAL"', 'DANDUME DON DECAMP AGAIN. E CARRY PEOPLE FOLLOW BODY'],
           archive: 'Reneged on the promise to Senator Dandume.', sig: 3,
         }],
@@ -184,7 +184,7 @@ export const SYSTEM: GameEvent[] = [
     ],
     ignored: {
       result: 'The press conference is held. He announces his departure, and reads out a list of things you promised him.',
-      fx: [['rival.strong', 16], ['bloc.party', -6], ['bloc.press', -3]], flags: { 'rival.strong.in': false }, ops: [['settle', 'strong']],
+      fx: [['rival.strong', 16], ['bloc.party', -6], ['bloc.press', -3]], flags: { 'rival.strong.in': false }, ops: [['repudiate', 'strong']],
       domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.note', id: 'dandume.ministry.$ADMIN', text: 'Not given. He left the party and read the promise out at a press conference.' }] },
       news: ['DANDUME QUITS RULING PARTY AGAIN', 'DANDUME DON GO AGAIN. E READ PRESIDENT PROMISE FOR TV'],
       archive: 'Lost Senator Dandume a second time.',
@@ -937,6 +937,7 @@ export const SYSTEM: GameEvent[] = [
           // the minister's scorecard as a variable); the flag records that a target is outstanding.
           fx: [['person.$WHO', -4], ['nation.capacity', 1], ['counter.targets', 1]],
           flags: { 'target.$WHO': true },
+          ops: [['target', '$WHO', 6]],
           quiet: 'The target is signed in private. It becomes news only if it is missed.', archive: 'Put {WHO} on a written target, to be reviewed in six months.',
         }],
       },

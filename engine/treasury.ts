@@ -2,6 +2,7 @@
 // and how the year's budget is divided. This replaces the single debt number.
 
 import { MILESTONE_BY_ID } from '../content/agenda';
+import { sampleTargetBudgets } from './commitments';
 import { BENCHMARKS, DEBTS, DEBT_BY_ID, FUND_BY_ID, SECTORS, SECTOR_BY_ID } from '../content/treasury';
 import { PEOPLE } from '../content/people';
 import { CFG, monthOf, yearOf } from './config';
@@ -633,6 +634,7 @@ export function treasuryTick(s: GameState): void {
   }
   n.fiscalSpace = clamp(n.fiscalSpace, 0, 15);
 
+  sampleTargetBudgets(s);
   budgetTick(s);
   arrearsTick(s);
   fundsTick(s);

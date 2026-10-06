@@ -15,7 +15,7 @@ import { who } from './favours';
 import { personView, replaceMinister } from './people';
 import { rand } from './rng';
 import type { GameState, Pledge, PledgeKind } from './types';
-import { currentWant } from './wants';
+import { currentWant, refreshRequests } from './wants';
 import { applyFx, clamp } from './vars';
 
 export const PUBLIC = 'public';
@@ -78,9 +78,11 @@ export function pledgeOptions(s: GameState, to: string, moves: number): PledgeOp
 
 /** Make a promise. Goodwill now, believed in proportion to your record with them. */
 export function pledge(s: GameState, to: string, kind: PledgeKind, object: string | undefined, text: string, months: number): string {
+  if (kind === 'want' && PERSON_BY_ID[to]) refreshRequests(s, to);
+  const want = kind === 'want' && PERSON_BY_ID[to] ? currentWant(s, to) : null;
   const list = pledges(s);
   const id = (list.reduce((m, p) => Math.max(m, p.id), 0) || 0) + 1;
-  const p: Pledge = { id, to, kind, object, text, made: s.turn, due: s.turn + months, status: 'open', snap: snapshotFor(s, to, kind), holder: kind === 'keep' ? personView(s, to).name : undefined };
+  const p: Pledge = { id, to, kind, object, text, made: s.turn, due: s.turn + months, status: 'open', snap: snapshotFor(s, to, kind), holder: kind === 'keep' ? personView(s, to).name : undefined, requestId: want?.recordId };
   // The same post promised to someone else: a ministry to two people, or a ministry to one and its minister told they stay.
   const other = post(p) ? openPledges(s).find((x) => post(x) === post(p) && x.to !== to) : undefined;
   if (other) { p.clash = other.id; other.clash = id; }
@@ -110,7 +112,7 @@ function snapshotFor(s: GameState, to: string, kind: PledgeKind): number | undef
 
 function kept(s: GameState, p: Pledge): boolean {
   switch (p.kind) {
-    case 'want': return TYCOON_BY_ID[p.to] ? !!s.tycoons[p.to]?.granted : (s.people[p.to]?.grants ?? 0) > (p.snap ?? 0);
+    case 'want': if (p.requestId) return ['granted', 'substituted'].includes(s.governance?.requests[p.requestId]?.status ?? ''); return TYCOON_BY_ID[p.to] ? !!s.tycoons[p.to]?.granted : (s.people[p.to]?.grants ?? 0) > (p.snap ?? 0);
     case 'project': return !!p.object && (s.agenda.done.includes(p.object) || s.ventures.won.includes(p.object));
     default: return false;
   }

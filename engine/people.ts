@@ -1,3 +1,4 @@
+import { grantRequest } from './wants';
 // Your governors, senators and ministers, and the opposition they may defect to.
 
 import { MILESTONE_BY_ID, TRACK_BY_ID } from '../content/agenda';
@@ -7,7 +8,7 @@ import { CFG } from './config';
 import type { GameState, Mark, PersonState, ZoneId } from './types';
 import { canRefuse, currentWant, refuse } from './wants';
 import { release, take, type Offer } from './talent';
-import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing } from './vars';
+import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing, registerScore } from './vars';
 
 export { senate, standing };
 export type { PersonState };
@@ -150,8 +151,8 @@ export function canDeal(s: GameState, id: string, op: PersonOp, movesLeft: numbe
   const st = s.people[id];
   if (!p || !st) return { ok: false };
   if (st.gone) return { ok: false, reason: 'Has crossed to the opposition.' };
-  if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (op === 'refuse') return canRefuse(s, id);
+  if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (op === 'grant') {
     const w = currentWant(s, id);
     if (!w) return { ok: false, reason: st.name ? 'New in the job. Has not asked for anything yet.' : 'Has nothing to ask for just now.' };
@@ -188,6 +189,7 @@ export function deal(s: GameState, id: string, op: PersonOp): { text: string; ar
     if (w.pc) s.pc = clamp(s.pc - w.pc, 0, 100);
     if (w.naira) applyFx(s, ['nation.fiscalSpace', -w.naira]);
     for (const fx of w.fx) applyFx(s, fx);
+    grantRequest(s, id);
     st.rel = clamp(st.rel + 26, 0, 100);
     st.granted = true;
     // Every grant makes the next ask bigger.
@@ -400,3 +402,4 @@ export function seedMinisters(s: GameState, roll: () => number): void {
   }
 }
 
+registerScore((s, id) => scorecard(s, id).score);

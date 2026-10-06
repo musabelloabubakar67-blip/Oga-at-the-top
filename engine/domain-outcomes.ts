@@ -1,3 +1,5 @@
+import { openRequest, closeRequest, substituteRequest } from './requests';
+import { fundCommitment, reviewCommitment } from './commitments';
 import { CONTRACT_VERSION } from './contracts';
 import type { DomainEffect, DomainOutcome, GovernanceState, RecordOrigin } from './contracts';
 import { clockOf, ensureGovernance, resolveActor } from './governance';
@@ -39,30 +41,24 @@ function applyOne(s: GameState, g: GovernanceState, effect: DomainEffect, origin
       e.developments.push({ at: now, stage: e.stage, note: text(effect.note, 'closing explanation') });
       break;
     }
-    case 'request.open': {
-      fresh(g.requests, effect.id);
-      if (effect.episodeId && g.episodes[effect.episodeId]?.status !== 'open') throw new Error('Request episode is not open');
-      const requester = resolveActor(s, effect.requester);
-      if (Object.values(g.requests).some(r => r.status === 'open' && r.requester === requester && r.object === effect.object)) throw new Error('This person already has that request open');
-      g.requests[effect.id] = { origin: { ...origin }, id: effect.id, requester, object: text(effect.object, 'request object'), text: text(effect.text, 'request text'), episodeId: effect.episodeId, made: now, status: 'open' };
-      break;
-    }
-    case 'request.close': {
-      const r = g.requests[effect.id];
-      if (!r || r.status !== 'open') throw new Error('Request is not open');
-      if (!['refused', 'granted', 'withdrawn'].includes(effect.status)) throw new Error('Invalid request resolution');
-      r.status = effect.status; r.closed = now; r.response = text(effect.response, 'response');
-      break;
-    }
+    case 'request.open':
+      openRequest(s, effect, origin); Object.assign(g, s.governance); s.governance = g; break;
+    case 'request.close': closeRequest(s, effect.id, effect.status, effect.response); break;
+    case 'request.substitute': substituteRequest(s, effect.id, effect.text, effect.accepted, effect.terms); break;
     case 'commitment.open':
       fresh(g.commitments, effect.id);
       if (!Number.isSafeInteger(effect.afterMonths) || effect.afterMonths < 1) throw new Error('Commitment duration must be positive whole months');
       if (!['public', 'private'].includes(effect.visibility)) throw new Error('Invalid commitment visibility');
+      if (effect.resources && (!Number.isFinite(effect.resources.naira) || effect.resources.naira < 0)) throw new Error('Invalid committed resources');
+      if (effect.conditions?.some((c) => typeof c !== 'string' || !c.trim())) throw new Error('Invalid commitment condition');
       g.commitments[effect.id] = {
         origin: { ...origin },
         id: effect.id, responsible: resolveActor(s, effect.responsible),
         object: text(effect.object, 'commitment object'), text: text(effect.text, 'commitment text'),
         made: now, due: now + effect.afterMonths, visibility: effect.visibility, status: 'open', notes: [],
+        parties: effect.parties?.map((p) => resolveActor(s, p)), conditions: effect.conditions ? [...effect.conditions] : undefined,
+        verify: effect.verify ? structuredClone(effect.verify) : undefined,
+        resources: effect.resources ? { naira: effect.resources.naira, released: 0, payments: [] } : undefined,
       };
       break;
     case 'commitment.note': {
@@ -71,6 +67,8 @@ function applyOne(s: GameState, g: GovernanceState, effect: DomainEffect, origin
       c.notes.push({ at: now, text: text(effect.text, 'commitment note') });
       break;
     }
+    case 'commitment.fund': fundCommitment(s, effect.id, effect.amount, effect.reason); break;
+    case 'commitment.review': reviewCommitment(s, effect.id, effect.verdict, effect.evidence); break;
     default: throw new Error(`Unsupported outcome effect: ${(effect as { type: string }).type}`);
   }
   if ('classification' in effect && !['decision', 'progress', 'condition', 'closing'].includes(effect.classification)) throw new Error('Invalid desk classification');
@@ -84,4 +82,7 @@ export function applyDomainOutcome(s: GameState, outcome: DomainOutcome, cause?:
   const origin: RecordOrigin = { administrationId: g.administrationId, ...cause };
   for (const effect of outcome.effects) applyOne(draft, g, effect, origin);
   s.governance = draft.governance;
+  s.nation.fiscalSpace = draft.nation.fiscalSpace;
+  s.flags = draft.flags;
+  s.report = draft.report;
 }

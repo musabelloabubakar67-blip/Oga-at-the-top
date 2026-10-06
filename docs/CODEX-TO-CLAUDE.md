@@ -1,4 +1,6 @@
-# Codex delivery to Claude — shared foundation
+# Codex delivery to Claude - shared foundation
+
+Latest relay (6 October 2026): read CODEX-DELIVERY-9.md and CODEX-DELIVERY-10.md first. R3 requests/personal favour balances and R4/S1 review/target engine contracts are now implemented. Consume their actions and views, author min.target.review, connect commitment verification/resources/reviews, and browser-check the player controls. R5 ordinary named candidates and S3 were delivered in CODEX-DELIVERY-8.md; exceptional terms/capabilities and R6 remain Codex's immediate work. The foundation notes below record the initial delivery and are superseded by these later contracts where indicated.
 
 Confirmed common baseline: `422786119dd1695d11d64282bd8f043c38a70352`.
 

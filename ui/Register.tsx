@@ -31,7 +31,7 @@ const STATUS: Record<CommitmentRecord['status'], string> = {
   open: 'Open', 'review-due': 'Due for review', kept: 'Kept', broken: 'Broken', renegotiated: 'Renegotiated',
 };
 const ANSWER: Record<RequestRecord['status'], string> = {
-  open: 'Not yet answered', granted: 'Granted', refused: 'Refused', withdrawn: 'Withdrawn',
+  open: 'Not yet answered', granted: 'Granted', refused: 'Refused', withdrawn: 'Withdrawn', substituted: 'Substitute accepted', lapsed: 'Lapsed',
 };
 
 function Commitment({ v, c }: { v: GovernanceView; c: CommitmentRecord }) {
