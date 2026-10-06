@@ -1,3 +1,4 @@
+import type { FavourSettlement, FavourUseId } from './favour-ledger';
 import type { FundTransfer } from './fund-transfers';
 import type { Talent } from './talent';
 import type { DomainOutcome, EpisodeBinding, GovernanceState } from './contracts';
@@ -289,9 +290,9 @@ export interface Night {
 
 /** A promise the President made: to a person, a businessman, or the public. */
 export type PledgeKind = 'slot' | 'keep' | 'want' | 'project' | 'notax' | 'subsidy';
-export interface Pledge { id: number; to: string; kind: PledgeKind; object?: string; text: string; made: number; due: number; status: 'open' | 'kept' | 'broken'; closed?: number; snap?: number; holder?: string; warned?: boolean; clash?: number }
+export interface Pledge { id: number; to: string; kind: PledgeKind; object?: string; text: string; made: number; due: number; status: 'open' | 'kept' | 'broken'; closed?: number; snap?: number; holder?: string; warned?: boolean; clash?: number; requestId?: string }
 
-export interface Favour { id: number; who: string; dir: 'owed' | 'owing'; size: number; why: string; turn: number }
+export interface Favour { id: number; who: string; dir: 'owed' | 'owing'; size: number; why: string; turn: number; counterpart?: string; president?: string; originalSize?: number; disputedAt?: number; terms?: string; eligibleUses?: FavourUseId[] }
 
 export interface Mark { turn: number; d: number; text: string }
 
@@ -570,6 +571,7 @@ export interface GameState {
   oil: { price: number; output: number; prev: number; /** Where the price is heading: [until turn, level]. */ path?: [number, number][] };
   budget: Budget;
   favours: Favour[];
+  favourSettlements?: FavourSettlement[];
   tycoons: Record<string, TycoonState>;
   /** Threat in each zone's theatre, 0-100. nation.security is derived from these. */
   theatres: Record<ZoneId, number>;
@@ -640,7 +642,9 @@ export type Action =
   | { type: 'BUDGET_RESOLVE'; choice: 'accept' | 'veto' | 'split' }
   | { type: 'BUDGET_RELEASE'; sector: SectorId; mode: 'normal' | 'full' | 'hold' }
   | { type: 'SUPPLEMENTARY' }
-  | { type: 'FAVOUR'; id: number; use: string }
+  | { type: 'FAVOUR'; id: number; use: string; units?: number; target?: string }
+  | { type: 'SETTLE_FAVOURS'; ids: [number, number]; units?: number }
+  | { type: 'FORGIVE_FAVOUR'; id: number; units?: number }
   | { type: 'TYCOON'; id: string; op: 'grant' | 'squeeze' | 'take' | 'court' }
   | { type: 'RIVAL'; id: string; op: 'coopt' | 'debate' | 'agencies' | 'spoiler' }
   | { type: 'FOCUS'; zone: ZoneId | null }

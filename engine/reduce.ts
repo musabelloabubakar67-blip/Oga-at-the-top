@@ -1,3 +1,5 @@
+import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
+import { refreshRequests } from './wants';
 import { reformName } from './reforms';
 import { applyDomainOutcome } from './domain-outcomes';
 import { ensureGovernance, inheritGovernance, markCommitmentsDue } from './governance';
@@ -29,7 +31,7 @@ import { maybeCollation, nightChoose, nightEnd, nightTick, nightWait } from './n
 import { canHonour, honour, pledge, pledgeOptions, pledgeTick } from './promises';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
-import { callFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
+import { callFavour, canUseFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
 import { canRival, rivalDeal, type RivalOp } from './opposition';
 import { runOp } from './ops';
 import {
@@ -221,8 +223,10 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   s.prev = { ...snapshot(s), hardship: hardship(s) };
   s.blocsPrev = { ...s.blocs };
   s.approvalPrev = approval(s);
-  if (prev) inheritGovernance(s, prev);
+  if (prev) { inheritGovernance(s, prev); inheritFavours(s, prev); }
   else ensureGovernance(s, true);
+  refreshRequests(s);
+  bindFavours(s);
   markCommitmentsDue(s);
   buildDesk(s);
   refreshOffers(s);
@@ -332,10 +336,15 @@ export function shieldFor(s: GameState, e: GameEvent): { id: string; ok: boolean
   return { id, ok: true };
 }
 
+function decisionFavour(s: GameState, id: number | undefined) {
+  const f = s.favours.find((f) => f.id === id);
+  return f && canCall(s, f, 1).ok && (!f.eligibleUses || f.eligibleUses.includes('decision')) ? f : undefined;
+}
+
 /** What a favour or a minister changes about an outcome's immediate effects. */
 export function aidedFx(s: GameState, fx: Fx[] | undefined, aid: Aid | undefined): Fx[] {
   if (!fx || !aid) return fx ?? [];
-  const f = aid.favour !== undefined ? s.favours.find((x) => x.id === aid.favour && x.dir === 'owed') : undefined;
+  const f = decisionFavour(s, aid.favour);
   const soften = f ? 1 - 0.25 * f.size : 1;
   return fx.map(([t, d, sp]) => {
     let v = d;
@@ -348,14 +357,14 @@ export function aidedFx(s: GameState, fx: Fx[] | undefined, aid: Aid | undefined
 /** Political capital a favour saves on a decision. */
 export function aidedPc(s: GameState, pc: number | undefined, aid: Aid | undefined): number {
   if (!pc) return 0;
-  const f = aid?.favour !== undefined ? s.favours.find((x) => x.id === aid.favour && x.dir === 'owed') : undefined;
+  const f = decisionFavour(s, aid?.favour);
   return f ? Math.max(0, pc - 5 * f.size) : pc;
 }
 
 /** The favours that could be called in on a file: anyone who owes you and still takes your calls. */
 export function favoursFor(s: GameState, e: GameEvent) {
   if (e.slot !== 'lead') return [];
-  return favoursOwed(s).filter((f) => regard(s, f.who) >= 30 && !s.people[f.who]?.gone);
+  return favoursOwed(s).filter((f) => !!decisionFavour(s, f.id) && !e.choices.some((c) => c.outcomes.some((o) => o.ops?.some((op) => op[0] === 'spendall' || (op[0] === 'void' && op[1] === f.who)))));
 }
 
 function applyOutcome(s: GameState, e: GameEvent, choiceId: string, o: Outcome, cost?: Choice, aid?: Aid): string {
@@ -449,6 +458,7 @@ function choose(s: GameState, eventId: string, choiceId: string, aid?: Aid): voi
 
   // Help the President has attached: someone who owes a favour, or a minister to stand in front.
   const favour = aid?.favour !== undefined ? favoursFor(s, e).find((f) => f.id === aid.favour) : undefined;
+  if (aid?.favour !== undefined && !favour) return;
   const shield = aid?.minister ? shieldFor(s, e) : null;
   const used: Aid = { favour: favour?.id, minister: !!shield?.ok };
   const pc = aidedPc(s, c.pc, used);
@@ -472,7 +482,7 @@ function choose(s: GameState, eventId: string, choiceId: string, aid?: Aid): voi
   let result = applyOutcome(s, e, c.id, picked, c, used);
   if (favour) {
     const w = who(s, favour.who);
-    s.favours = s.favours.filter((f) => f.id !== favour.id);
+    consumeFavour(s, favour.id, favour.size, 'used', 'Helped with a desk decision', 'decision');
     const cost = 3 * favour.size;
     if (s.people[favour.who]) s.people[favour.who].rel = clamp(s.people[favour.who].rel - cost, 0, 100);
     if (s.tycoons[favour.who]) s.tycoons[favour.who].rel = clamp(s.tycoons[favour.who].rel - cost, 0, 100);
@@ -725,6 +735,7 @@ function advance(s: GameState): void {
   courtTick(s);
   shockTick(s);
   dispatchTick(s, before);
+  refreshRequests(s);
 
   const tt = termTurnOf(s.turn);
   if (s.term === 2 && tt === CFG.electionTermTurn + 1 && !s.succession) {
@@ -795,6 +806,7 @@ export function applyAction(state: GameState, action: Action): GameState {
   if (action.type === 'ELECTION_DONE') { electionDone(s); return s; }
   if (action.type === 'DISMISS_PAPER') { if (s.phase === 'papers') s.phase = 'desk'; return s; }
   if (s.phase !== 'desk') return s;
+  refreshRequests(s);
   switch (action.type) {
     case 'CHOOSE': choose(s, action.eventId, action.choiceId, action.aid); break;
     case 'ACT': act(s, action.action, action.zone); break;
@@ -834,7 +846,22 @@ export function applyAction(state: GameState, action: Action): GameState {
     } break;
     case 'BUDGET_RELEASE': if (!s.budget.due) setRelease(s, action.sector, action.mode); break;
     case 'SUPPLEMENTARY': if (canSupplementary(s).ok) note(s, supplementary(s)); break;
-    case 'FAVOUR': favour(s, action.id, action.use); break;
+    case 'FAVOUR': favour(s, action.id, action.use, action.units, action.target); break;
+    case 'SETTLE_FAVOURS': if (canOffsetFavours(s, ...action.ids, action.units).ok) {
+      const units = offsetFavours(s, ...action.ids, action.units);
+      note(s, 'Offset ' + units + ' strength in each direction; any residual debt remains.');
+      record(s, 'favour.settlement', 'offset', 'politics', 'Settled mutual personal debts by equal offset.', 1, true);
+    } break;
+    case 'FORGIVE_FAVOUR': {
+      const f = s.favours.find((f) => f.id === action.id && f.dir === 'owed');
+      const units = action.units ?? f?.size ?? 0;
+      if (f && canForgiveFavour(s, f.id, units).ok) {
+        consumeFavour(s, f.id, units, 'forgiven', 'Voluntarily forgave a debt');
+        if (favourBelongs(s, f)) { if (s.people[f.who]) s.people[f.who].rel = clamp(s.people[f.who].rel + 2 * units, 0, 100); if (s.tycoons[f.who]) s.tycoons[f.who].rel = clamp(s.tycoons[f.who].rel + 2 * units, 0, 100); }
+        note(s, 'Forgave ' + units + ' strength.');
+        record(s, 'favour.settlement', 'forgive', 'politics', 'Forgave a personal favour owed to the President.', 1, true);
+      }
+    } break;
     case 'TYCOON': tycoon(s, action.id, action.op); break;
     case 'RIVAL': rival(s, action.id, action.op); break;
     case 'FOCUS': focus(s, action.zone); break;
@@ -1414,12 +1441,12 @@ function minister(s: GameState, id: string, kind: 'technocrat' | 'party', name?:
   s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
 }
 
-function favour(s: GameState, id: number, use: string): void {
+function favour(s: GameState, id: number, use: string, units?: number, target?: string): void {
   const f = s.favours.find((x) => x.id === id);
-  if (!f || !canCall(s, f, movesLeft(s)).ok) return;
+  if (!f || !canUseFavour(s, id, use, movesLeft(s), units, target).ok) return;
   const before = snapshot(s);
   s.desk.actionsUsed += 1;
-  const out = callFavour(s, f, use);
+  const out = callFavour(s, f, use, units, target);
   record(s, `favour.${f.who}`, use, 'politics', out.archive, 1, true);
   s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };
 }

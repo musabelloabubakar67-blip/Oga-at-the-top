@@ -1,3 +1,4 @@
+import { favourBelongs, favourParties } from './favour-ledger';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { CFG, monthOf, termTurnOf } from './config';
 import { addOwed, shiftPoints } from './ledger';
@@ -84,16 +85,17 @@ export function delegates(s: GameState): number {
 // ---------------------------------------------------------------- favours
 
 export function favoursOwed(s: GameState, who?: string): Favour[] {
-  return s.favours.filter((f) => f.dir === 'owed' && (!who || f.who === who));
+  return s.favours.filter((f) => f.dir === 'owed' && favourBelongs(s, f) && (!who || f.who === who));
 }
 export function favoursOwing(s: GameState, who?: string): Favour[] {
-  return s.favours.filter((f) => f.dir === 'owing' && (!who || f.who === who));
+  return s.favours.filter((f) => f.dir === 'owing' && favourBelongs(s, f) && (!who || f.who === who));
 }
 const size = (list: Favour[]) => list.reduce((a, f) => a + f.size, 0);
 
-export function addFavour(s: GameState, who: string, dir: 'owed' | 'owing', n: number, why: string): void {
-  const id = (s.counters.favourSeq = (s.counters.favourSeq ?? 0) + 1);
-  s.favours.push({ id, who, dir, size: clamp(Math.round(n), 1, 3), why, turn: s.turn });
+export function addFavour(s: GameState, who: string, dir: 'owed' | 'owing', n: number, why: string, options?: Pick<Favour, 'terms' | 'eligibleUses'>): void {
+  if (!Number.isFinite(n) || n <= 0) throw new Error('Invalid favour strength');
+  const id = (s.counters.favourSeq = Math.max(s.counters.favourSeq ?? 0, ...s.favours.map((f) => f.id), ...(s.favourSettlements ?? []).map((e) => e.favour.id)) + 1);
+  s.favours.push({ id, who, dir, size: clamp(Math.round(n), 1, 3), why, turn: s.turn, counterpart: favourParties(s, who).counterpart, president: s.governance ? favourParties(s, who).president : undefined, originalSize: clamp(Math.round(n), 1, 3), terms: options?.terms, eligibleUses: options?.eligibleUses ? [...options.eligibleUses] : undefined });
 }
 
 /** How a person behaves today: someone being leaned on complies whatever they feel. */

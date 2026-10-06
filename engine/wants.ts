@@ -3,12 +3,15 @@
 // and their mood, and every grant makes the next request bigger. Two refusals make
 // a grudge, and a grudge is an opening for the opposition.
 
+import { clockOf, ensureGovernance, resolveActor } from './governance';
+import { closeRequest, openRequest } from './requests';
+import type { RequestRecord } from './contracts';
 import { PERSON_BY_ID } from '../content/people';
 import { termTurnOf } from './config';
 import type { Fx, GameState, ZoneId } from './types';
 import { ZONE_NAME, applyFx } from './vars';
 
-export interface Want { id: string; text: string; done: string; naira?: number; pc?: number; fx: Fx[] }
+export interface Want { recordId?: string; id: string; text: string; done: string; naira?: number; pc?: number; fx: Fx[] }
 
 interface Template {
   id: string;
@@ -62,59 +65,78 @@ export function appetite(s: GameState, id: string): number {
   return 1 + 0.35 * (s.people[id]?.grants ?? 0);
 }
 
-/** What this person is asking for now, if anything. */
+
+function personId(s: GameState, id: string): string | undefined {
+  return s.governance?.offices[id];
+}
+function records(s: GameState, id: string): RequestRecord[] {
+  const actor = personId(s, id);
+  return Object.values(s.governance?.requests ?? {}).filter((r) => r.legacyWant?.office === id && r.requester === actor && r.origin.administrationId === clockOf(s).administrationId);
+}
+function termsOf(w: Want) { return { description: w.text, naira: w.naira, politicalCapital: w.pc }; }
+function wasAnswered(all: RequestRecord[], w: Want): boolean {
+  return all.some((r) => r.status !== 'open' && r.object === w.id && r.text === w.text && JSON.stringify(r.terms) === JSON.stringify(termsOf(w)));
+}
+
+/** A pure read: requests keep their exact terms until answered. Closed asks stay closed. */
 export function currentWant(s: GameState, id: string): Want | null {
-  const p = PERSON_BY_ID[id];
-  const st = s.people[id];
+  const p = PERSON_BY_ID[id], st = s.people[id];
   if (!p || !st || st.gone) return null;
-  // First, the thing they came in wanting. A replacement minister has not asked yet.
-  if (!st.granted && !st.name && p.want) return { id: 'signature', text: p.want.text, done: p.want.done, naira: p.want.naira, pc: p.want.pc, fx: p.want.fx };
-  if (st.name && s.turn - (st.since ?? s.turn) < 6) return null;
-  // Satisfied for now.
+  const all = records(s, id);
+  const open = all.find((r) => r.status === 'open');
+  if (open?.legacyWant) return { recordId: open.id, id: open.object, text: open.text, done: open.legacyWant.done, naira: open.terms?.naira, pc: open.terms?.politicalCapital, fx: open.legacyWant.fx };
   const window = Math.floor(s.turn / WINDOW);
-  if (st.grantedAt !== undefined && Math.floor(st.grantedAt / WINDOW) === window) return null;
-  const options = TEMPLATES.filter((t) => t.groups.includes(p.group as 'governor') && (!t.when || t.when(s, id)));
+  const justAnswered = all.some((r) => r.closed !== undefined && Math.floor((r.closed - (s.governance?.originMonth ?? 0) + 1) / WINDOW) === window);
+  if (justAnswered || (st.grantedAt !== undefined && Math.floor(st.grantedAt / WINDOW) === window) || (st.refusedAt !== undefined && Math.floor(st.refusedAt / WINDOW) === window)) return null;
+  // Legacy refusal timestamps show that an initial ask has already been answered;
+  // we do not invent which later template was refused in an old save.
+  if (!st.granted && !st.name && p.want && !all.some((r) => r.object === 'signature') && st.refusedAt === undefined) return { id: 'signature', text: p.want.text, done: p.want.done, naira: p.want.naira, pc: p.want.pc, fx: p.want.fx };
+  if (st.name && s.turn - (st.since ?? s.turn) < 6) return null;
+  const k = appetite(s, id), round = (x: number) => Math.round(x * 100) / 100;
+  const options = TEMPLATES.filter((t) => t.groups.includes(p.group as 'governor') && (!t.when || t.when(s, id))).map((t): Want => ({ id: t.id, text: t.text(s, id), done: t.done, naira: t.naira ? round(t.naira * k) : undefined, pc: t.pc ? Math.round(t.pc * k) : undefined, fx: t.fx(s, id) })).filter((w) => !wasAnswered(all, w));
   if (!options.length) return null;
-  const t = options[Math.floor(hash(`${id}.${window}.${st.grants ?? 0}`) * options.length)];
-  const k = appetite(s, id);
-  const round = (x: number) => Math.round(x * 100) / 100;
-  return { id: t.id, text: t.text(s, id), done: t.done, naira: t.naira ? round(t.naira * k) : undefined, pc: t.pc ? Math.round(t.pc * k) : undefined, fx: t.fx(s, id) };
+  return options[Math.floor(hash(id + '.' + window + '.' + (st.grants ?? 0)) * options.length)];
 }
 
-/** Refusing is free, once. Twice makes a grudge. */
-export function refuse(s: GameState, id: string): string {
-  const st = s.people[id];
-  const p = PERSON_BY_ID[id];
-  if (!st || !p) return '';
-  const w = currentWant(s, id);
-  st.refusals = (st.refusals ?? 0) + 1;
-  st.refusedAt = s.turn;
-  st.rel = Math.max(0, st.rel - 5);
-  // Saying no to something crooked, openly, is noticed by more people than the one refused.
-  const crooked = !!w && w.fx.some(([t, d]) => t === 'nation.integrity' && d < 0);
-  if (crooked) { applyFx(s, ['nation.integrity', 1]); applyFx(s, ['bloc.press', 1]); }
-  const seen = crooked ? ' The refusal gets around, and it does you no harm with the people who were watching.' : '';
-  if (st.refusals >= 2 && !st.grudge) {
-    st.grudge = true;
-    st.rel = Math.max(0, st.rel - 8);
-    return `${p.short} is refused again, and stops pretending not to mind. It is a grudge now, and the opposition will hear about it before you do.${seen}`;
+/** Engine boundary: store the exact proposal and its stable requester identity. */
+export function refreshRequests(s: GameState, only?: string): void {
+  const g = ensureGovernance(s), now = clockOf(s).worldMonth;
+  for (const r of Object.values(g.requests)) if (r.status === 'open' && r.legacyWant && (r.origin.administrationId !== g.administrationId || g.offices[r.legacyWant.office] !== r.requester)) {
+    closeRequest(s, r.id, 'withdrawn', 'The requester left the post or the administration changed.');
   }
-  return `${p.short} is told no. It is noted.${seen}`;
+  for (const id of only ? [only] : Object.keys(s.people)) {
+    const w = currentWant(s, id);
+    if (!w || w.recordId) continue;
+    const requester = resolveActor(s, { office: id });
+    const prior = records(s, id).filter((r) => r.status !== 'open').sort((a, b) => b.made - a.made)[0];
+    const recordId = 'want.' + g.administrationId + '.' + encodeURIComponent(requester) + '.' + now + '.' + w.id;
+    const r = openRequest(s, { id: recordId, requester: { person: requester }, object: w.id, text: w.text, terms: termsOf(w), ambition: PERSON_BY_ID[id]?.group, previous: prior?.id, changedBy: prior ? 'offer' : undefined });
+    r.legacyWant = { kind: w.id, office: id, done: w.done, fx: structuredClone(w.fx) };
+  }
 }
 
+export function grantRequest(s: GameState, id: string): void {
+  refreshRequests(s, id);
+  const w = currentWant(s, id);
+  if (w?.recordId) closeRequest(s, w.recordId, 'granted', w.done);
+}
+
+/** Refusal closes this request. It neither deletes debts nor manufactures a grudge. */
+export function refuse(s: GameState, id: string): string {
+  refreshRequests(s, id);
+  const st = s.people[id], w = currentWant(s, id);
+  if (!st || !w?.recordId) return '';
+  closeRequest(s, w.recordId, 'refused', 'The President declined this request.');
+  st.refusals = (st.refusals ?? 0) + 1; st.refusedAt = s.turn;
+  st.rel = Math.max(0, st.rel - 5);
+  const crooked = w.fx.some(([t, d]) => t === 'nation.integrity' && d < 0);
+  if (crooked) { applyFx(s, ['nation.integrity', 1]); applyFx(s, ['bloc.press', 1]); }
+  const name = st.short ?? PERSON_BY_ID[id]?.short ?? id;
+  return name + ' is told no. This request is closed.' + (crooked ? ' The public refusal of the improper request is noticed.' : '');
+}
 export function canRefuse(s: GameState, id: string): { ok: boolean; reason?: string } {
-  const st = s.people[id];
-  if (!st || st.gone) return { ok: false };
-  if (!currentWant(s, id)) return { ok: false, reason: 'Has not asked for anything.' };
-  if (st.refusedAt !== undefined && Math.floor(st.refusedAt / WINDOW) === Math.floor(s.turn / WINDOW)) return { ok: false, reason: 'Already refused.' };
-  return { ok: true };
+  return currentWant(s, id) ? { ok: true } : { ok: false, reason: 'Has no open request.' };
 }
-
-/** How the person regards being refused, for display. */
 export function grudgeLine(s: GameState, id: string): string | null {
-  const st = s.people[id];
-  if (!st) return null;
-  if (st.grudge) return 'Holds a grudge: refused twice.';
-  if ((st.refusals ?? 0) === 1) return 'Refused once. A second refusal will become a grudge.';
-  return null;
+  return s.people[id]?.grudge ? 'Holds an existing grievance.' : null;
 }

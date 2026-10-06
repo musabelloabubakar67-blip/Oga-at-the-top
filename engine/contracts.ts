@@ -50,6 +50,9 @@ export interface EpisodeRecord extends EpisodeBinding {
   status: 'open' | 'resolved';
   developments: { at: WorldMonth; stage: string; note: string }[];
 }
+export type RequestChange = 'offer' | 'appeal' | 'threat' | 'coalition' | 'evidence';
+export type RequestStatus = 'open' | 'refused' | 'granted' | 'substituted' | 'withdrawn' | 'lapsed';
+export interface RequestTerms { description: string; naira?: number; politicalCapital?: number }
 export interface RequestRecord {
   origin: RecordOrigin;
   id: RequestId;
@@ -58,7 +61,15 @@ export interface RequestRecord {
   text: string;
   episodeId?: EpisodeId;
   made: WorldMonth;
-  status: 'open' | 'refused' | 'granted' | 'withdrawn';
+  status: RequestStatus;
+  ambition?: string;
+  terms?: RequestTerms;
+  previous?: RequestId;
+  changedBy?: RequestChange;
+  history?: { at: WorldMonth; status: RequestStatus; text: string }[];
+  substitution?: { offered: WorldMonth; text: string; accepted: boolean; terms?: RequestTerms };
+  /** Snapshot used by the existing person-deal interface. */
+  legacyWant?: { kind: string; done: string; fx: import('./types').Fx[]; office: string };
   closed?: WorldMonth;
   response?: string;
 }
@@ -93,8 +104,9 @@ export type DomainEffect =
   | { type: 'episode.open'; id: EpisodeId; family: string; subject: string; stage: string; classification: DeskClassification; note: string }
   | { type: 'episode.advance'; id: EpisodeId; stage: string; note: string; classification: DeskClassification }
   | { type: 'episode.resolve'; id: EpisodeId; note: string }
-  | { type: 'request.open'; id: RequestId; requester: ActorRef; object: string; text: string; episodeId?: EpisodeId }
-  | { type: 'request.close'; id: RequestId; status: 'refused' | 'granted' | 'withdrawn'; response: string }
+  | { type: 'request.open'; id: RequestId; requester: ActorRef; object: string; text: string; episodeId?: EpisodeId; ambition?: string; terms?: RequestTerms; previous?: RequestId; changedBy?: RequestChange }
+  | { type: 'request.close'; id: RequestId; status: Exclude<RequestStatus, 'open' | 'substituted'>; response: string }
+  | { type: 'request.substitute'; id: RequestId; text: string; accepted: boolean; terms?: RequestTerms }
   | { type: 'commitment.open'; id: CommitmentId; responsible: ActorRef; object: string; text: string; afterMonths: number; visibility: 'public' | 'private' }
   | { type: 'commitment.note'; id: CommitmentId; text: string };
 
@@ -105,7 +117,7 @@ export interface DomainOutcome {
 
 export const SUPPORTED_OUTCOME_EFFECTS = [
   'episode.open', 'episode.advance', 'episode.resolve', 'request.open',
-  'request.close', 'commitment.open', 'commitment.note',
+  'request.close', 'request.substitute', 'commitment.open', 'commitment.note',
 ] as const;
 
 export interface GovernanceView {

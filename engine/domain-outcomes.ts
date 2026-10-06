@@ -1,3 +1,4 @@
+import { openRequest, closeRequest, substituteRequest } from './requests';
 import { CONTRACT_VERSION } from './contracts';
 import type { DomainEffect, DomainOutcome, GovernanceState, RecordOrigin } from './contracts';
 import { clockOf, ensureGovernance, resolveActor } from './governance';
@@ -39,21 +40,10 @@ function applyOne(s: GameState, g: GovernanceState, effect: DomainEffect, origin
       e.developments.push({ at: now, stage: e.stage, note: text(effect.note, 'closing explanation') });
       break;
     }
-    case 'request.open': {
-      fresh(g.requests, effect.id);
-      if (effect.episodeId && g.episodes[effect.episodeId]?.status !== 'open') throw new Error('Request episode is not open');
-      const requester = resolveActor(s, effect.requester);
-      if (Object.values(g.requests).some(r => r.status === 'open' && r.requester === requester && r.object === effect.object)) throw new Error('This person already has that request open');
-      g.requests[effect.id] = { origin: { ...origin }, id: effect.id, requester, object: text(effect.object, 'request object'), text: text(effect.text, 'request text'), episodeId: effect.episodeId, made: now, status: 'open' };
-      break;
-    }
-    case 'request.close': {
-      const r = g.requests[effect.id];
-      if (!r || r.status !== 'open') throw new Error('Request is not open');
-      if (!['refused', 'granted', 'withdrawn'].includes(effect.status)) throw new Error('Invalid request resolution');
-      r.status = effect.status; r.closed = now; r.response = text(effect.response, 'response');
-      break;
-    }
+    case 'request.open':
+      openRequest(s, effect, origin); Object.assign(g, s.governance); s.governance = g; break;
+    case 'request.close': closeRequest(s, effect.id, effect.status, effect.response); break;
+    case 'request.substitute': substituteRequest(s, effect.id, effect.text, effect.accepted, effect.terms); break;
     case 'commitment.open':
       fresh(g.commitments, effect.id);
       if (!Number.isSafeInteger(effect.afterMonths) || effect.afterMonths < 1) throw new Error('Commitment duration must be positive whole months');

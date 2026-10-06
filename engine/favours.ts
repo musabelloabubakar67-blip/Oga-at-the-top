@@ -1,3 +1,5 @@
+import { bindFavours, consumeFavour, favourBelongs, type FavourUseId } from './favour-ledger';
+import { closeRequest } from './requests';
 // What is owed, in both directions, and the businessmen who do most of the owing.
 
 import { mo } from './config';
@@ -200,11 +202,13 @@ export function tycoonDeal(s: GameState, id: string, op: TycoonOp): { text: stri
       return { text: `It is renewed in your name. ${t.short} now has it from you, and says so. ${t.short} owes you.`, archive: `Renewed for ${t.name} what the last government gave: ${t.want.text.replace(/\.$/, '').toLowerCase()}.` };
     }
     st.rel = clamp(st.rel + 22, 0, 100);
-    // Something given settles something owed first.
+    // Two strength of value settles the same counterpart's debt first.
     const debt = favoursOwing(s, id)[0];
     if (debt) {
-      s.favours = s.favours.filter((f) => f.id !== debt.id);
-      return { text: `${t.want.done} What you owed ${t.short} is settled.`, archive: `Gave ${t.name} what was asked: ${t.want.text.replace(/\.$/, '').toLowerCase()}.` };
+      const paid = Math.min(2, debt.size);
+      consumeFavour(s, debt.id, paid, 'settled', 'Settled against a granted concession');
+      if (paid < 2) addFavour(s, id, 'owed', 2 - paid, 'Remaining value of a granted concession.');
+      return { text: `${t.want.done} The granted concession is credited against what you owed ${t.short}.`, archive: `Gave ${t.name} what was asked: ${t.want.text.replace(/\.$/, '').toLowerCase()}.` };
     }
     addFavour(s, id, 'owed', 2, `You gave ${t.short} what was asked: ${t.want.text.replace(/\.$/, '').toLowerCase()}.`);
     return { text: `${t.want.done} ${t.short} owes you.`, archive: `Gave ${t.name} what was asked: ${t.want.text.replace(/\.$/, '').toLowerCase()}.` };
@@ -215,7 +219,7 @@ export function tycoonDeal(s: GameState, id: string, op: TycoonOp): { text: stri
     st.squeezed = s.turn;
     st.rel = clamp(st.rel - 24, 0, 100);
     // Anything they owed you is void, and anything you owed them is now a grievance.
-    s.favours = s.favours.filter((f) => !(f.who === id && f.dir === 'owed'));
+    for (const f of [...s.favours].filter((f) => f.who === id && f.dir === 'owed')) consumeFavour(s, f.id, f.size, 'voided', 'Counterpart repudiated the debt after coercion');
     s.news.push({
       chronicle: `FG MOVES AGAINST ${t.short.toUpperCase()} BUSINESS EMPIRE`, street: `GOVERNMENT DON FACE ${t.short.toUpperCase()}. BIG MAN DEY SWEAT`,
       weight: 4.5, valence: 0, topic: 'money', about: id, body: t.squeeze.done,
@@ -236,18 +240,20 @@ export function tycoonDeal(s: GameState, id: string, op: TycoonOp): { text: stri
 
 // ---------------------------------------------------------------- calling favours in
 
-export interface Use { id: string; label: string; detail: string }
+export interface Use { id: FavourUseId; label: string; detail: string; ok?: boolean; reason?: string; targets?: { id: string; label: string }[] }
 
 /** What this favour can be spent on. */
-export function usesFor(s: GameState, f: Favour): Use[] {
+export function usesFor(s: GameState, f: Favour, units = f.size): Use[] {
   const k = kindOf(f.who);
-  const n = f.size;
+  const n = units;
   const out: Use[] = [];
   if (k === 'governor') {
     out.push({ id: 'deliver', label: 'Deliver the zone', detail: `Approval in the zone rises now, and on election day the governor delivers an extra ${(1.5).toFixed(1)} points there for the next ${6 * n} months.` });
+    out.push({ id: 'mediate', label: 'Mediate locally', detail: 'The governor convenes local leaders: theatre threat falls by ' + (3 * n) + ' points.' });
     out.push({ id: 'calm', label: 'Bring the governors into line', detail: `The party warms by about ${4 * n} points.` });
   }
   if (k === 'senator') {
+    out.push({ id: 'oversight', label: 'Back an oversight hearing', detail: 'Capacity rises by ' + n + ' and integrity by ' + (0.5 * n) + ' points.' });
     out.push({ id: 'whip', label: 'Whip the vote', detail: `Votes as you ask for ${4 * n} months, and brings colleagues along. No grudge: it is a debt being paid.` });
   }
   if (k === 'minister') {
@@ -260,91 +266,95 @@ export function usesFor(s: GameState, f: Favour): Use[] {
   }
   if (k !== 'rival') out.push({ id: 'capital', label: 'Stand up for you in public', detail: `${5 * n} political capital.` });
   if (s.exposures.some((x) => x.witnesses.includes(f.who))) out.push({ id: 'silence', label: 'Forget what they saw', detail: 'They stop being a witness to what is in the drawer.' });
-  return out;
+  const asks = Object.values(s.governance?.requests ?? {}).filter((r) => r.status === 'open' && r.requester === f.counterpart);
+  if (asks.length) out.push({ id: 'withdraw-request', label: 'Withdraw a request', detail: 'Withdraw a specified open request.', targets: asks.map((r) => ({ id: r.id, label: r.text })) });
+  return out.map((use) => {
+    let reason: string | undefined;
+    if (!Number.isSafeInteger(n) || n < 1 || n > f.size) reason = 'Choose strength within the remaining balance.';
+    else if (f.eligibleUses && !f.eligibleUses.includes(use.id)) reason = 'The terms of this debt do not allow that use.';
+    else if (use.id === 'overtime' && !s.agenda.active.some((a) => (PERSON_BY_ID[f.who]?.tracks ?? []).includes(MILESTONE_BY_ID[a.id]?.track.id ?? ''))) reason = 'There is no active reform in this ministry to accelerate.';
+    else if (use.id === 'mediate' && s.theatres[PERSON_BY_ID[f.who]?.zone ?? 'NW'] < 35) reason = 'No local security crisis calls for mediation.';
+    return { ...use, ok: !reason, reason };
+  });
 }
 
 export function canCall(s: GameState, f: Favour | undefined, movesLeft: number): { ok: boolean; reason?: string } {
-  if (!f || f.dir !== 'owed') return { ok: false };
+  const providedId = f?.id;
+  const actual = s.favours.find((x) => x.id === providedId);
+  if (!actual || !favourBelongs(s, actual)) return { ok: false, reason: 'The debt belongs to a different person or President.' };
+  if (!f || actual.dir !== 'owed') return { ok: false };
+  f = actual;
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.people[f.who]?.gone) return { ok: false, reason: 'Has crossed to the opposition. The debt went with them.' };
   if (regard(s, f.who) < 30) return { ok: false, reason: 'No longer takes your calls. Mend the relationship first.' };
   return { ok: true };
 }
 
-/** Spends a favour. Returns what happened. */
-export function callFavour(s: GameState, f: Favour, use: string): { text: string; archive: string } {
-  const w = who(s, f.who);
-  const n = f.size;
-  s.favours = s.favours.filter((x) => x.id !== f.id);
+export function canUseFavour(s: GameState, id: number, use: string, movesLeft: number, units?: number, target?: string): { ok: boolean; reason?: string } {
+  const f = s.favours.find((f) => f.id === id);
+  const base = canCall(s, f, movesLeft);
+  if (!base.ok || !f) return base;
+  const n = units ?? (use === 'silence' || use === 'withdraw-request' ? 1 : f.size);
+  if ((use === 'silence' || use === 'withdraw-request') && n !== 1) return { ok: false, reason: 'This service uses one strength.' };
+  if (!Number.isSafeInteger(n) || n < 1 || n > f.size) return { ok: false, reason: 'Invalid remaining strength.' };
+  const option = usesFor(s, f, n).find((o) => o.id === use);
+  if (!option) return { ok: false, reason: 'This person cannot provide that service.' };
+  if (!option.ok) return { ok: false, reason: option.reason };
+  if (use === 'withdraw-request' && (!option.targets?.some((x) => x.id === target) && !(target === undefined && option.targets?.length === 1))) return { ok: false, reason: 'Choose an open request from this person.' };
+  return { ok: true };
+}
+
+/** Validated service: spends only the requested strength and journals the residual. */
+export function callFavour(s: GameState, f: Favour, use: string, units?: number, target?: string): { text: string; archive: string } {
+  const eligible = canUseFavour(s, f.id, use, 1, units, target);
+  if (!eligible.ok) throw new Error(eligible.reason);
+  f = s.favours.find((x) => x.id === f.id)!;
+  bindFavours(s);
+  const n = units ?? (use === 'silence' || use === 'withdraw-request' ? 1 : f.size);
+  const w = who(s, f.who), remaining = f.size - n;
   let text = '';
   switch (use) {
     case 'deliver': {
-      const zone = PERSON_BY_ID[f.who]?.zone;
-      if (zone) applyFx(s, [`zone.${zone}.approval`, 2 + n]);
-      s.counters[`deliver.${f.who}`] = s.turn + 6 * n;
-      text = `${w.short} goes home and works. Traditional rulers are visited, councillors are reminded, and the zone hears a good deal about what the President has done for it.`;
-      break;
+      const zone = PERSON_BY_ID[f.who]!.zone!;
+      applyFx(s, ['zone.' + zone + '.approval', 2 + n]);
+      s.counters['deliver.' + f.who] = s.turn + 6 * n;
+      text = w.short + ' works the zone for the President.'; break;
     }
-    case 'calm':
-      applyFx(s, ['bloc.party', 4 * n]);
-      text = `${w.short} convenes the governors and tells them, pleasantly, that this is not the year to make trouble. They take the point.`;
-      break;
+    case 'calm': applyFx(s, ['bloc.party', 4 * n]); text = w.short + ' brings the governors into line.'; break;
     case 'whip': {
-      const st = s.people[f.who];
-      if (st) st.compliantUntil = Math.max(st.compliantUntil ?? 0, s.turn + 4 * n);
-      for (const [id, p] of Object.entries(PERSON_BY_ID)) {
-        if (p.group === 'senator' && id !== f.who && s.people[id]) s.people[id].rel = clamp(s.people[id].rel + 2 * n, 0, 100);
-      }
-      text = `${w.short} counts the votes, visits the doubtful, and reports that the chamber is yours for the season.`;
-      break;
+      const st = s.people[f.who]; st.compliantUntil = Math.max(st.compliantUntil ?? 0, s.turn + 4 * n);
+      for (const [id, p] of Object.entries(PERSON_BY_ID)) if (p.group === 'senator' && id !== f.who && s.people[id]) s.people[id].rel = clamp(s.people[id].rel + 2 * n, 0, 100);
+      text = w.short + ' counts the votes and visits the doubtful.'; break;
     }
     case 'overtime': {
-      const tracks = PERSON_BY_ID[f.who]?.tracks ?? [];
-      let moved = 0;
-      for (const a of s.agenda.active) {
-        if (tracks.includes(MILESTONE_BY_ID[a.id]?.track.id ?? '')) { a.progress = Math.min(99, a.progress + 10 * n); moved++; }
-      }
-      text = moved
-        ? `${w.short} cancels leave across the ministry. ${moved === 1 ? 'The reform under way moves' : `${moved} reforms move`} sharply forward.`
-        : `${w.short} cancels leave across the ministry. There was nothing under way in the brief to speed up.`;
-      break;
+      const tracks = PERSON_BY_ID[f.who]!.tracks ?? [];
+      for (const a of s.agenda.active) if (tracks.includes(MILESTONE_BY_ID[a.id]?.track.id ?? '')) a.progress = Math.min(99, a.progress + 10 * n);
+      text = w.short + ' drives the active reforms in the ministry forward.'; break;
     }
-    case 'cash':
-      s.campaign.chest += 6 * n;
-      text = `₦${6 * n}bn reaches the campaign. ${w.short} considers the account closed.`;
-      break;
-    case 'invest':
-      applyFx(s, ['nation.fiscalSpace', 0.15 * n]);
-      applyFx(s, ['nation.jobs', 1.5 * n]);
-      text = `${w.short} takes up a bond issue nobody else wanted and breaks ground on a plant. Both are announced as acts of patriotism.`;
-      break;
-    case 'press': {
-      applyFx(s, ['bloc.press', 4 * n]);
-      const dropped = s.stories.shift();
-      text = dropped
-        ? `The Daily Stakeholder finds other things to write about. So, for some reason, do the others. The series against you ends without a final part.`
-        : 'The Daily Stakeholder runs a week of profiles of your ministers. They are described as "quietly effective".';
-      break;
+    case 'cash': s.campaign.chest += 6 * n; text = 'The campaign receives ' + (6 * n) + ' billion naira.'; break;
+    case 'invest': applyFx(s, ['debt.bonds', 0.15 * n]); applyFx(s, ['nation.fiscalSpace', 0.15 * n]); applyFx(s, ['nation.jobs', 1.5 * n]); text = w.short + ' buys the bond issue and invests in a plant. The borrowing remains a treasury liability.'; break;
+    case 'press': applyFx(s, ['bloc.press', 4 * n]); s.stories.shift(); text = 'The Daily Stakeholder prints a kind word; the running series ends.'; break;
+    case 'silence': for (const x of s.exposures) x.witnesses = x.witnesses.filter((id) => id !== f.who); applyFx(s, ['pressure.scandalHeat', -6]); text = w.short + ' stops corroborating what was seen.'; break;
+    case 'mediate': applyFx(s, ['theatre.' + PERSON_BY_ID[f.who]!.zone!, -3 * n]); text = w.short + ' convenes local leaders and negotiates room for the security effort.'; break;
+    case 'oversight': applyFx(s, ['nation.capacity', n]); applyFx(s, ['nation.integrity', 0.5 * n]); text = w.short + ' backs an oversight hearing and follows up the findings.'; break;
+    case 'withdraw-request': {
+      const asks = Object.values(s.governance!.requests).filter((r) => r.status === 'open' && r.requester === f.counterpart);
+      const request = asks.find((r) => r.id === target) ?? asks[0];
+      closeRequest(s, request.id, 'withdrawn', 'Withdrawn in settlement of a favour.');
+      text = w.short + ' withdraws the request: ' + request.text; break;
     }
-    case 'silence':
-      for (const x of s.exposures) x.witnesses = x.witnesses.filter((id) => id !== f.who);
-      applyFx(s, ['pressure.scandalHeat', -6]);
-      text = `${w.short} has a poor memory for certain months, and says so to the people who matter.`;
-      break;
-    default:
-      applyFx(s, ['pc', 5 * n]);
-      text = `${w.short} tells a press conference that the President has their full support, and means it for long enough to matter.`;
+    case 'capital': applyFx(s, ['pc', 5 * n]); text = w.short + ' publicly stands behind the President.'; break;
+    default: throw new Error('Unsupported favour service');
   }
-  // Nobody enjoys paying.
-  const cost = 3 * n;
-  if (s.people[f.who]) s.people[f.who].rel = clamp(s.people[f.who].rel - cost, 0, 100);
-  if (s.tycoons[f.who]) s.tycoons[f.who].rel = clamp(s.tycoons[f.who].rel - cost, 0, 100);
-  return { text, archive: `Called in a favour from ${w.name}.` };
+  consumeFavour(s, f.id, n, 'used', 'Called in a service', use);
+  if (s.people[f.who]) s.people[f.who].rel = clamp(s.people[f.who].rel - 3 * n, 0, 100);
+  if (s.tycoons[f.who]) s.tycoons[f.who].rel = clamp(s.tycoons[f.who].rel - 3 * n, 0, 100);
+  return { text: text + (remaining ? ' Remaining strength: ' + remaining + '.' : ' This debt is settled.'), archive: 'Called in ' + n + ' strength from ' + w.name + '.' };
 }
 
 /** Someone the President owes who has waited long enough to ask. */
 export function dueCreditor(s: GameState, kind: Kind): string | null {
-  const due = favoursOwing(s).filter((f) => kindOf(f.who) === kind && s.turn - f.turn >= 8 && !s.people[f.who]?.gone);
+  const due = favoursOwing(s).filter((f) => f.disputedAt === undefined && kindOf(f.who) === kind && s.turn - f.turn >= 8 && !s.people[f.who]?.gone);
   due.sort((a, b) => a.turn - b.turn);
   return due[0]?.who ?? null;
 }

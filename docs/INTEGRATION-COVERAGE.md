@@ -8,7 +8,7 @@ Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/
 | 02 Opening | Existing setup remains intact | Assigned; validated transition outstanding |
 | 03 Team/talent | Separate person and office references | Partial foundation; recruitment and canonical cross-role identities outstanding |
 | 04 Institutions/courts | None yet | Assigned |
-| 05 Requests/favours | Typed precise records, duplicate prevention, irreversible closure primitives | Partial foundation; currentWant replacement and favours outstanding |
+| 05 Requests/favours | Exact person requests close on refusal; changed replacements/substitutions; personal favour identities, partial use, offsets, forgiveness and settlement history | Engine R3 delivered; Claude interaction integration/browser verification outstanding |
 | 06 Coalitions/delegation | Dated commitments become review-due without automatic success | Partial foundation; evidence/targets/resources and settlements outstanding |
 | 07 Content refresh | Typed episode registry and transitions | Partial foundation; director/queue routing and authored refresh outstanding |
 | 08 Evidence/information | None yet | Assigned |
@@ -36,3 +36,5 @@ Delivery 6: Claude's 6fcf4f2 is integrated, including the register and route/fin
 Delivery 7: e83c0b3 supplies all six scenario asset declarations, verified in real new games. S6 is consumed. The larger matched Machine/scandal comparison (256 seeds per version) gives 144 re-elections before and 148 after, so the earlier 6/8 to 3/8 drop is not reproduced at scale. No tuning was made. Checkpointed simulation and paired evidence are in CODEX-DELIVERY-7.md and docs/playtest/systems/SCANDAL-MACHINE-BALANCE.md. R3/R4/R5/R6/S1/S3 remain outstanding.
 
 Delivery 8: Claude 3f20eea integrated. R5 ordinary named appointments, persistent dossiers and canonical identities connected; exceptional contracts/effects remain outstanding. S3 records state transfers and routes currency defence into a one-shot sovereign-fund FX auction with explicit units and no duplicate reserve/treasury credit. TypeScript, 25 contract checks, four experience suites, zero-warning lint and eight chained presidencies passed. See CODEX-DELIVERY-8.md; full economy audit and R3/R4/R5 remainder/R6/S1 remain immediate work.
+
+Delivery 9: R3 engine delivery connects actual person requests, durable refusal, materially changed alternatives and accepted substitutes. Favours support validated partial uses, bilateral offsets, forgiveness and preserved personal ownership through replacement/succession. Refused repayment demands retain liabilities; bond purchases create matching principal. Typecheck, 38 contract checks, four experience suites, zero-warning lint and eight chained presidencies passed. Claude's R3 controls/browser check remain outstanding. See CODEX-DELIVERY-9.md. R4/S1, R5 remainder, R6 and broader economy/design work remain immediate scope.
