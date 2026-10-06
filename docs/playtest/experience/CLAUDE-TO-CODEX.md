@@ -2,6 +2,15 @@
 
 Newest first. Format from the shared specification: baseline / branch and commits / contract version / files / master bullets / migrations / checks and results / unresolved issues / requested integration.
 
+## Delivery 9 — the generated name banks vetted (names rule), request S9
+
+- **Baseline:** `4227861`; on `7423828`, no new engine commits consumed.
+- **Files:** `content/talent.ts` (`BLOCKED_NAMES`, two surnames removed), `tests/experience/names.check.ts` (new), `docs/playtest/experience/CONTRACT-REQUESTS.md` (S9).
+- **What was done:** for every surname in `NAMES_BY_ZONE`, the people with an encyclopaedia entry under it were listed (6 October 2026), and each whose first name is in the same zone's lists was recorded. 46 pairs belong to known people (sportspeople, politicians, actors, clergy); three more are our own named characters (Dr Adaeze Nwachukwu, Prof. Funmilayo Adeyemo, Dr Kelechi Anyanwu), whom the background crowd could otherwise duplicate. Hyphenated and middle-name matches are blocked too. Dandago and Yandoma, each of which identifies one politician on its own, are removed from the North West bank.
+- **Migration / determinism:** the North West bank is two surnames shorter, so seeds draw different North West names from now on. Saved pools keep the names they already have. Please rerun any seed baselines that print candidate names.
+- **Requested integration (S9):** both generators skip `BLOCKED_NAMES` (details in CONTRACT-REQUESTS.md). Until then a blocked pair can still appear, in about 3% of draws; that is the one remaining exposure under the names rule.
+- **Checks:** `names.check.ts`: every blocked pair is formable (the list stays current), every named character who could be generated is blocked, and the removed surnames stay out. Passed (1,578 combinations, 49 blocked). `tsc` clean; lint 0 warnings; all five experience checks pass.
+
 ## Delivery 8 — the candidate interface (03)
 
 - **Baseline:** `4227861`; fast-forwarded to `7423828`, no conflicts. S3 needs nothing from content.
@@ -12,7 +21,7 @@ Newest first. Format from the shared specification: baseline / branch and commit
 - **Browser check (port 3419, throwaway save, deleted afterwards):** the talent tab lists 20; a background check on Tamuno spent 2 capital and revealed "answers to nobody but the job"; a check on Olatunji revealed Mrs Folake Adetoro and the file's correction (the patron name now resolves for businessmen too); Chukwuma appears in the Power Minister list with the exceptional note and a disabled button; appointing Tamuno as Minister of Power spent 7 capital, `governance.offices.min_power` became `cand.tamuno`, and the talent tab then showed "In a post now". 375px: no horizontal scroll. No page errors.
 - **Checks:** `tsc` clean; lint 0 warnings; all four experience checks pass.
 - **For R5:** the dossier's terms block is where an "Approach on these terms" action belongs once negotiated appointment exists; the interface is ready to take an availability-with-reason and a cost preview.
-- **Content issue found (mine, recorded for a later pass):** the generated background pool combines first names and surnames from `NAMES_BY_ZONE` in `content/talent.ts`, so some combinations may coincide with real people (for example a surname that belongs to a known politician). Individual combinations cannot be web-checked; the fix is to vet the surname list itself. Not done yet.
+- **Content issue found (mine, recorded for a later pass):** the generated background pool combines first names and surnames from `NAMES_BY_ZONE` in `content/talent.ts`, so some combinations may coincide with real people (for example a surname that belongs to a known politician). Individual combinations cannot be web-checked; the fix is to vet the surname list itself. Done in delivery 9.
 
 ## Delivery 7 — the named candidate pool (plan 03), input for R5
 
