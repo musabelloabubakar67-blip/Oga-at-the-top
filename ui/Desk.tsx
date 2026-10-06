@@ -30,6 +30,7 @@ import { forecastChallenge } from '../engine/courts';
 import { assetFiscal, assetFx, assetPerformance, assetSystem, assets, canExpand, canFinish, canRefurbish, canSetManager, expansionCost, finishCost, local, refurbishCost, upkeepCost, wear } from '../engine/places';
 import { ASSET_SYSTEMS } from '../content/asset-systems';
 import { Military } from './Military';
+import { Society } from './Society';
 import { runElection } from '../engine/election';
 import { upcoming } from '../engine/upcoming';
 import { bench } from '../engine/courts';
@@ -1609,6 +1610,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                   <StateMap s={s} />
                 </div>
                 <Citizens s={s} />
+                <Society s={s} />
                 <Military s={s} dispatch={dispatch} />
                 <Inline.Provider value={true}><NationModal s={s} dispatch={dispatch} onClose={() => {}} /></Inline.Provider>
               </div>

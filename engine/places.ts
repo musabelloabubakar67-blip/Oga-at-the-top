@@ -61,6 +61,10 @@ export function assetPerformance(s: GameState, id: string): { k: number; why: st
   const captured = leans(a.head);
   if (captured) { k *= 0.6; why.push(`${a.head.name} runs it for someone else`); }
   if (a.head.integrity <= 2) { k *= 0.85; why.push('Its manager takes a cut'); }
+  // Connected to what it needs (plan 14.A6).
+  const link = ASSET_SYSTEMS[id]?.with;
+  const joined = link?.ids.find((x) => x !== id && assets(s).some((y) => y.id === x));
+  if (link && joined) { k *= 1.15; why.push(`${link.why}: +15%`); }
   if (a.level) { k *= 1 + EXPANSION.gain * a.level; why.push(`Expanded ${a.level === 1 ? 'once' : 'twice'}: +${Math.round(EXPANSION.gain * a.level * 100)}%`); }
   return { k, why, captured };
 }

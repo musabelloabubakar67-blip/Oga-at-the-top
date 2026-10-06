@@ -4,14 +4,15 @@
 // Eleven people, each living on a different part of the national picture. What
 // each says is read from this month's state, so the same figures can be good
 // for one and bad for another. What they would do about it (organise, petition,
-// move, change work, back an alternative) is a proposal for contract R12 and is
-// labelled as one: the game does not act on it yet.
+// move, change work, back an alternative) happens in the game (engine/society.ts):
+// each act is recorded with its month and has effects on their group and zone.
 
 import { useState } from 'react';
 import { CITIZENS, type Citizen } from '../content/citizens';
 import { STATE_BY_ID } from '../content/states';
 import { SECTOR_BY_ID } from '../content/treasury';
 import type { GameState } from '../engine/types';
+import { dateLabel } from '../engine/config';
 import { getVar, test } from '../engine/vars';
 
 const ACT: Record<Citizen['responses'][number]['act'], string> = {
@@ -40,7 +41,7 @@ function shown(path: string, n: number): string {
 function Person({ s, c }: { s: GameState; c: Citizen }) {
   const [open, setOpen] = useState(false);
   const line = c.lines.find((l) => test(s, l.when));
-  const acts = c.responses.filter((r) => test(s, r.when));
+  const done = (s.society?.acts ?? []).filter((a) => a.who === c.id).slice(-3);
   return (
     <li className="border border-ink/20 p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -49,10 +50,9 @@ function Person({ s, c }: { s: GameState; c: Citizen }) {
       </div>
       <p className="label text-ink-soft">{c.work}</p>
       <p className={`mt-1 font-serif leading-snug ${line ? '' : 'italic text-ink-soft'}`}>“{line?.text ?? c.otherwise}”</p>
-      {acts.length > 0 && (
+      {done.length > 0 && (
         <ul className="mt-2 space-y-0.5 border-l-2 border-honour pl-2 text-[13px] leading-snug">
-          {acts.map((a) => <li key={a.text}><span className="label mr-1 text-honour">{ACT[a.act]}</span>{a.text}</li>)}
-          <li className="label text-ink-soft">Proposed · not yet acted on in the game</li>
+          {done.map((a) => <li key={a.turn + a.act}><span className="label mr-1 text-honour">{ACT[a.act]} · {dateLabel(a.turn, s.startYear)}</span>{a.text}</li>)}
         </ul>
       )}
       {open && (

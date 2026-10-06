@@ -20,6 +20,8 @@ export interface AssetSystem {
   /** What it adds to the armed forces each month at full output (plan 13): readiness points, backlog cleared,
    *  share of the dollar shortage covered, intelligence points. */
   military?: { readiness?: number; depots?: number; spares?: number; intel?: number };
+  /** What it is connected to (plan 14.A6): any of these built makes it run better, since goods, inputs or people can reach it. */
+  with?: { ids: string[]; why: string };
   /** What it changes, in one line, for the asset card. */
   does: string;
 }
@@ -52,3 +54,18 @@ export const ASSET_SYSTEMS: Record<string, AssetSystem> = {
   corridor_ops: { does: 'Keeps the roads of the farm belt open all year: the threat falls a little every month and food reaches the markets.' },
   ddr: { does: 'Fighters who leave the bush have somewhere to go: violence in the North East feeds less on itself, for as long as the camps are funded.' },
 };
+
+// What connects to what (plan 14.A6): a port needs a corridor out of it, a plant needs its inputs.
+const LINKS: Record<string, { ids: string[]; why: string }> = {
+  hub: { ids: ['rail', 'coastal'], why: 'Cargo leaves the port by rail or the coastal highway instead of waiting nine days on the road' },
+  rice: { ids: ['rail', 'corridor_ops'], why: 'The harvest reaches the cities on a guarded road or the railway' },
+  wheat: { ids: ['rail', 'corridor_ops'], why: 'The grain reaches the mills on a guarded road or the railway' },
+  car: { ids: ['steel'], why: 'Body panels from domestic steel' },
+  petrochem: { ids: ['refinery', 'refinery_delta', 'refinery_kaduna'], why: 'Feedstock from a working refinery' },
+  smelter: { ids: ['nuclear', 'export_power'], why: 'Power that does not fail on the pot lines' },
+  charter: { ids: ['hub', 'coastal'], why: 'A port and a highway for the firms in the zone' },
+  coastal: { ids: ['hub'], why: 'A port at the end of the road' },
+  steel: { ids: ['rail'], why: 'Ore and coal by rail' },
+  hospital: { ids: ['fusion'], why: '' },
+};
+for (const [id, link] of Object.entries(LINKS)) if (ASSET_SYSTEMS[id] && link.why) ASSET_SYSTEMS[id].with = link;

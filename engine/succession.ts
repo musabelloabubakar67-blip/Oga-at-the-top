@@ -97,6 +97,8 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   // What the state owns is what the last government left it; sales under way complete for the new one.
   // The armed forces outlast governments: command, readiness, contracts, deployments and unresolved abuses (plan 13.A8).
   if (prev.military) s.military = structuredClone(prev.military);
+  // What citizens did and the constituencies earlier successes created are the next government's politics (plan 14).
+  if (prev.society) s.society = { ...structuredClone(prev.society), acts: [] };
   if (prev.holdings) { s.holdings = structuredClone(prev.holdings); s.sales = structuredClone(prev.sales ?? []); s.receivables = structuredClone(prev.receivables ?? { tax: 0 }); }
   s.fundTransfers = structuredClone(prev.fundTransfers ?? []);
   s.oil = { ...prev.oil };

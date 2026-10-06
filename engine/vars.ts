@@ -232,6 +232,8 @@ export function getVar(s: GameState, path: string): number {
     case 'fiscal': return fiscalOf(s, p[1]);
     // The armed forces (plan 13): mil.readiness, mil.intel, mil.conduct, mil.arrears, mil.cooperation.<zone>, mil.competence.<post>, mil.coup.
     case 'mil': return hooks.military(s, p.slice(1));
+    // Groups, services and development (plan 14).
+    case 'group': case 'svc': case 'assets': case 'unequal': case 'constituency': return hooks.society(s, p);
     case 'refineries': return REFINERIES.filter((r) => s.ventures.won.includes(r.venture)).length;
     case 'cases': return p[1] === 'leaned' ? (s.cases ?? []).filter((c) => c.leaned).length : (s.cases ?? []).length;
     case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;

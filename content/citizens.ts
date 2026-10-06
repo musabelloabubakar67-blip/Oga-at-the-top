@@ -14,10 +14,8 @@
 // Rifkatu Gyari (the first name is closely tied to one of the abducted Chibok
 // schoolgirls). No text uses a gendered pronoun for a citizen.
 //
-// Status: `lines` are live: the country page shows them now, evaluated with the
-// existing condition language. `responses` (organising, petitioning, moving,
-// changing work, backing an alternative) are proposed behaviour for R12 and are
-// shown as such; nothing in the engine acts on them yet.
+// Status: integrated. `lines` are read each month; `responses` happen in the game
+// (engine/society.ts): each act is recorded and changes the group, the zone or the country.
 
 import type { Cond, ZoneId } from '../engine/types';
 

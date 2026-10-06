@@ -15,4 +15,6 @@ export const hooks = {
   missionCost: (_s: GameState): number => 0,
   /** Readings of the armed forces for conditions: readiness, intel, conduct, cooperation.<zone>, competence.<post> (engine/military.ts). */
   military: (_s: GameState, _path: string[]): number => 0,
+  /** Readings of groups, services and development for conditions: group.<id>, svc.<dim>, assets.industry (engine/society.ts). */
+  society: (_s: GameState, _path: string[]): number => 0,
 };

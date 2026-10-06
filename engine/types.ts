@@ -527,6 +527,8 @@ export interface GameState {
   holdings?: Record<string, import('./holdings').HoldingState>;
   /** The armed forces as an institution: command, readiness, missions, abuses (plan 13). Carried across governments. */
   military?: import('./military').Military;
+  /** Groups' fortunes, what citizens did, and the constituencies development created (plan 14). Carried across governments. */
+  society?: import('./society').Society;
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
