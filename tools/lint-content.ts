@@ -215,6 +215,7 @@ followed.add('opp.woo');
 followed.add('tribunal.petition');
 followed.add('promise.clash');
 followed.add('cast.call');
+followed.add('min.target.review'); // queued by setMinisterTarget (contract S1)
 for (const d of SHOCKS) followed.add(d.file);
 for (const e of EVENT_LIST) if (e.ignored) for (const f of e.ignored.follow ?? []) followed.add(f.event);
 for (const e of chains) if (!followed.has(e.id)) err(e, 'chain event is never queued by anything');

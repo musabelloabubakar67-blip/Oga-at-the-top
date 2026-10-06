@@ -19,6 +19,7 @@ import { dateLabel } from '../engine/config';
 import { describe } from '../engine/effects';
 import { moneyEffect } from '../engine/election';
 import { canCall, canTycoon, kindOf, regard, tycoonMood, usesFor, who } from '../engine/favours';
+import { canForgiveFavour, canOffsetFavours, canUseFavour, getFavourView } from '../engine/public';
 import { canRival } from '../engine/opposition';
 import {
   canDeal, governorEffect, ministerSpeed, personView, relWord, scorecard, senate, strongestRival,
@@ -141,38 +142,114 @@ function Fx({ fx }: { fx: Parameters<typeof describe>[0] }) {
 }
 
 /** A favour owed to the President, and what it can be spent on. */
+/** Debts running the other way between the same two people can be set against each other (contract R3). */
+function Offset({ s, f, dispatch }: { s: GameState; f: Favour; dispatch: Dispatch }) {
+  const other = s.favours.find((x) => x.who === f.who && x.dir !== f.dir && canOffsetFavours(s, f.id, x.id).ok);
+  if (!other) return null;
+  const n = Math.min(f.size, other.size);
+  return (
+    <button onClick={() => dispatch({ type: 'SETTLE_FAVOURS', ids: [f.id, other.id] })} className="label mt-1 text-honour hover:underline">
+      Set {n} against {n} the other way · free, no move
+    </button>
+  );
+}
+
+/** A favour owed to the President, and what it can be spent on. */
 function Owed({ s, f, dispatch, left }: { s: GameState; f: Favour; dispatch: Dispatch; left: number }) {
   const [open, setOpen] = useState(false);
+  const [units, setUnits] = useState(f.size);
+  const n = Math.min(units, f.size);
   const w = who(s, f.who);
   const can = canCall(s, f, left);
+  const forgive = canForgiveFavour(s, f.id, n);
   return (
     <div className="mt-2 border-l-2 border-state bg-state/5 px-3 py-2">
       <p className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-serif leading-snug">{w.short} owes you <span className="text-state">{'●'.repeat(f.size)}</span></span>
+        <span className="font-serif leading-snug">{w.short} owes you <span className="text-state">{'●'.repeat(f.size)}</span>{f.originalSize && f.originalSize > f.size ? <span className="text-ink-soft"> of {f.originalSize}</span> : null}</span>
         <button onClick={() => setOpen(!open)} disabled={!can.ok} className={`label ${can.ok ? 'text-state hover:underline' : 'text-ink-soft'}`}>{open ? 'Not now' : 'Call it in →'}</button>
       </p>
       <p className="text-[13px] leading-snug text-ink-soft">{f.why} Since {dateLabel(f.turn, s.startYear)}.{!can.ok && can.reason ? ` ${can.reason}` : ''}</p>
+      <Offset s={s} f={f} dispatch={dispatch} />
       {open && can.ok && (
         <div className="mt-2 flex flex-col gap-1.5">
-          {usesFor(s, f).map((u) => (
-            <button key={u.id} onClick={() => { dispatch({ type: 'FAVOUR', id: f.id, use: u.id }); setOpen(false); }} className={btn(true, 'good')}>
-              {u.label}<span className="block text-[13px] leading-snug text-ink-soft">{u.detail}</span>
-            </button>
-          ))}
-          <p className="text-[12.5px] text-ink-soft">Costs one move. The favour is spent, and nobody enjoys paying: they will like you a little less.</p>
+          {f.size > 1 && (
+            <p className="flex flex-wrap items-center gap-2 text-[13px]">
+              <span className="text-ink-soft">Spend</span>
+              {Array.from({ length: f.size }, (_, i) => i + 1).map((k) => (
+                <button key={k} onClick={() => setUnits(k)} className={`border px-2 ${k === n ? 'border-state text-ink' : 'border-ink/20 text-ink-soft'}`}>{k}</button>
+              ))}
+              <span className="text-ink-soft">of {f.size}. What is not spent stays owed.</span>
+            </p>
+          )}
+          {usesFor(s, f, n).map((u) => {
+            // Silence and withdrawing a request always use exactly one strength.
+            const units = u.id === 'silence' || u.id === 'withdraw-request' ? 1 : n;
+            if (u.targets?.length) {
+              return u.targets.map((t) => {
+                const ok = canUseFavour(s, f.id, u.id, left, 1, t.id);
+                return (
+                  <button key={u.id + t.id} disabled={!ok.ok} title={ok.reason} onClick={() => { dispatch({ type: 'FAVOUR', id: f.id, use: u.id, units: 1, target: t.id }); setOpen(false); }} className={btn(ok.ok, 'good')}>
+                    {u.label}: {t.label}<span className="block text-[13px] leading-snug text-ink-soft">Uses one strength.{ok.reason ? ` ${ok.reason}` : ''}</span>
+                  </button>
+                );
+              });
+            }
+            const ok = canUseFavour(s, f.id, u.id, left, units);
+            return (
+              <button key={u.id} disabled={!ok.ok} title={ok.reason} onClick={() => { dispatch({ type: 'FAVOUR', id: f.id, use: u.id, units }); setOpen(false); }} className={btn(ok.ok, 'good')}>
+                {u.label}<span className="block text-[13px] leading-snug text-ink-soft">{u.detail}{units !== n ? ' Uses one strength.' : ''}{ok.reason ? ` ${ok.reason}` : ''}</span>
+              </button>
+            );
+          })}
+          <p className="text-[12.5px] text-ink-soft">Costs one move. The strength spent is gone, and nobody enjoys paying: they will like you a little less.</p>
+          <button disabled={!forgive.ok} title={forgive.reason} onClick={() => { dispatch({ type: 'FORGIVE_FAVOUR', id: f.id, units: n }); setOpen(false); }} className={btn(forgive.ok)}>
+            Forgive {n === f.size ? 'it' : `${n} of it`}<span className="block text-[13px] leading-snug text-ink-soft">No move. They warm to you, and the debt is gone for good.{forgive.reason ? ` ${forgive.reason}` : ''}</span>
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function Owing({ s, f }: { s: GameState; f: Favour }) {
+function Owing({ s, f, dispatch }: { s: GameState; f: Favour; dispatch: Dispatch }) {
   const w = who(s, f.who);
   const months = s.turn - f.turn;
   return (
     <div className="mt-2 border-l-2 border-alarm bg-alarm/5 px-3 py-2">
-      <p className="font-serif leading-snug">You owe {w.short} <span className="text-alarm">{'●'.repeat(f.size)}</span></p>
-      <p className="text-[13px] leading-snug text-ink-soft">{f.why} {months >= 8 ? 'They have waited long enough to ask.' : `They will ask within ${8 - months} months.`} Giving them what they want settles it.</p>
+      <p className="font-serif leading-snug">You owe {w.short} <span className="text-alarm">{'●'.repeat(f.size)}</span>{f.originalSize && f.originalSize > f.size ? <span className="text-ink-soft"> of {f.originalSize}</span> : null}</p>
+      <p className="text-[13px] leading-snug text-ink-soft">{f.why} {months >= 8 ? 'They have waited long enough to ask.' : `They will ask within ${8 - months} months.`} Giving them what they want settles it. Refusing their demand does not erase the debt.</p>
+      <Offset s={s} f={f} dispatch={dispatch} />
+    </div>
+  );
+}
+
+const MODE: Record<string, string> = { used: 'Called in', offset: 'Set against a debt the other way', forgiven: 'Forgiven', settled: 'Settled', voided: 'Cancelled' };
+
+/** What has been paid, forgiven or offset, and claims that belong to a former President (contract R3 views). */
+function FavourHistory({ s }: { s: GameState }) {
+  const v = getFavourView(s);
+  const former = v.balances.filter((b) => !b.currentParties);
+  const log = [...v.settlements].reverse().slice(0, 12);
+  if (!former.length && !log.length) return null;
+  return (
+    <div className="mt-6">
+      {log.length > 0 && (
+        <>
+          <h3 className="label border-b rule pb-1 text-ink-soft">How debts were settled</h3>
+          <ul className="mt-2 space-y-1 text-[13px] leading-snug">
+            {log.map((e, i) => (
+              <li key={i}><span className="label mr-1 text-ink-soft">{MODE[e.mode] ?? e.mode}</span>{who(s, e.favour.who).short} · {e.favour.dir === 'owed' ? 'owed to the President' : 'owed by the President'} · {e.units} spent{e.remaining ? `, ${e.remaining} still owed` : ', cleared'}. <span className="text-ink-soft">{e.reason}</span></li>
+            ))}
+          </ul>
+        </>
+      )}
+      {former.length > 0 && (
+        <>
+          <h3 className="label mt-4 border-b rule pb-1 text-ink-soft">Claims from a former presidency</h3>
+          <p className="mt-1 text-[13px] text-ink-soft">These debts were between your predecessor and the people involved. They are history, not yours to spend or to pay.</p>
+          <ul className="mt-1 space-y-0.5 text-[13px]">{former.map((b) => <li key={b.id}>{who(s, b.who).short} · {b.dir === 'owed' ? 'owed the former President' : 'was owed by the former President'} {'●'.repeat(b.size)} · {b.why}</li>)}</ul>
+        </>
+      )}
     </div>
   );
 }
@@ -181,7 +258,7 @@ function FavoursOf({ s, id, dispatch, left }: { s: GameState; id: string; dispat
   return (
     <>
       {favoursOwed(s, id).map((f) => <Owed key={f.id} s={s} f={f} dispatch={dispatch} left={left} />)}
-      {favoursOwing(s, id).map((f) => <Owing key={f.id} s={s} f={f} />)}
+      {favoursOwing(s, id).map((f) => <Owing key={f.id} s={s} f={f} dispatch={dispatch} />)}
     </>
   );
 }
@@ -281,7 +358,8 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
             {owed.map((f) => <Owed key={f.id} s={s} f={f} dispatch={dispatch} left={left} />)}
             <h3 className="label mt-6 border-b rule pb-1 text-alarm">Owed by you</h3>
             {owing.length === 0 && <p className="mt-2 font-serif italic text-ink-soft">You owe nobody. It will not last.</p>}
-            {owing.map((f) => <Owing key={f.id} s={s} f={f} />)}
+            {owing.map((f) => <Owing key={f.id} s={s} f={f} dispatch={dispatch} />)}
+            <FavourHistory s={s} />
           </div>
         )}
 
