@@ -1,3 +1,5 @@
+import { release } from './talent';
+import { transferSavedFund, type FundDestination } from './fund-transfers';
 import { reformName } from './reforms';
 // Operations an outcome can run when a number is not enough: paying a named
 // debt, granting what someone wants, moving a fund, rescuing a bet.
@@ -95,11 +97,8 @@ export function runOp(s: GameState, op: Op2): string {
     case 'governors': group(s, 'governor', Number(a)); return '';
     case 'senators': group(s, 'senator', Number(a)); return '';
     case 'fundmove': {
-      const from = a as FundId;
-      const amount = s.funds[from] * Number(c ?? 1);
-      s.funds[from] = Math.max(0, s.funds[from] - amount);
-      if (b === 'treasury') s.nation.fiscalSpace += amount;
-      else if (b !== 'states' && s.funds[b as FundId] !== undefined) s.funds[b as FundId] += amount;
+      const moved = transferSavedFund(s, a as FundId, b as FundDestination, Number(c ?? 1));
+      if (moved.to === 'currency') return `The auction sold $${moved.dollars!.toFixed(3)}bn from the sovereign fund at ₦${Math.round(moved.rate!)} per dollar, buying ${naira(moved.naira)}. This was an intervention, not money available for the federal budget.`;
       return '';
     }
     case 'betrescue': s.counters[`trouble.${a}`] = s.turn; return rescue(s, String(a));
@@ -113,6 +112,7 @@ export function runOp(s: GameState, op: Op2): string {
       const old = s.chars.fin;
       const next = FINANCE_CANDIDATES.find((c) => c.name !== old?.name);
       if (!next) return '';
+      if (old) release(s, old.name);
       s.chars.fin = { ...next, rel: 40, notes: [] };
       s.chars.fin.patron = next.patron ?? 'president';
       s.chars.fin.rep = next.rep ?? { competence: next.competence, loyalty: next.loyalty };
@@ -178,7 +178,7 @@ export function opText(s: GameState, op: Op2): string | null {
     case 'fundmove': {
       const from = a as FundId;
       const amount = s.funds[from] * Number(c ?? 1);
-      const to = b === 'treasury' ? 'the treasury' : b === 'states' ? 'the states' : FUND_BY_ID[b as FundId]?.name ?? '';
+      const to = b === 'treasury' ? 'the treasury' : b === 'states' ? 'the states' : b === 'currency' ? 'a central-bank foreign-exchange auction' : FUND_BY_ID[b as FundId]?.name ?? '';
       return `${naira(amount)} leaves ${FUND_BY_ID[from].name} for ${to}`;
     }
     case 'betrescue': {

@@ -1,3 +1,5 @@
+import type { FundTransfer } from './fund-transfers';
+import type { Talent } from './talent';
 import type { DomainOutcome, EpisodeBinding, GovernanceState } from './contracts';
 
 // Core types for the slice. See docs/gdd for the full model; the slice
@@ -511,7 +513,7 @@ export interface GameState {
   agenda: { tracks: string[]; done: string[]; active: { id: string; progress: number; greased?: boolean }[]; failed: { id: string; turn: number; against?: string[] }[] };
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
   /** Everyone who could be appointed to anything. Created on first use. */
-  talent?: { pool: { id: string; name: string; short: string; spec: 'economics' | 'security' | 'law' | 'administration' | 'engineering' | 'politics' | 'media'; zone: ZoneId; competence: number; loyalty: number; integrity: number; clout: number; ambition: number; patron: string; rep: { competence: number; loyalty: number; integrity: number }; blurb: string; until: number; checked?: boolean }[]; taken: string[]; seq: number };
+  talent?: Talent;
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
@@ -519,7 +521,8 @@ export interface GameState {
   /** Other things put in a state: abandoned sites, monuments. */
   placed?: { state: string; kind: 'abandoned' | 'monument'; label: string; turn: number }[];
   /** The naira: official and street rates, reserves ($bn), the central bank's stance, the last year of rates. */
-  fx?: { rate: number; fair: number; parallel: number; reserves: number; stance: 'peg' | 'managed' | 'float'; hist: number[]; base: number };
+  fundTransfers?: FundTransfer[];
+  fx?: { interventionDollars?: number; rate: number; fair: number; parallel: number; reserves: number; stance: 'peg' | 'managed' | 'float'; hist: number[]; base: number };
   /** Each budget's oil forecast, checked against what oil did over the year. */
   oilForecasts?: { turn: number; said: number; by: string; sum: number; n: number }[];
   /** The Supreme Court. Seeded on first use. */

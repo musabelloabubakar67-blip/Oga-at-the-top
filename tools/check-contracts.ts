@@ -1,3 +1,7 @@
+import { candidate, candidatesFor, getCandidateView, release, take, talent, talentTick } from '../engine/talent';
+import { transferSavedFund } from '../engine/fund-transfers';
+import { currencyTick, fxFlow } from '../engine/currency';
+import { runOp } from '../engine/ops';
 import assert from 'node:assert/strict';
 import { getVar } from '../engine/vars';
 import { bindCast, eventOf, materialise } from '../engine/cast';
@@ -329,6 +333,101 @@ check('starting asset batch validates before modifying any state', () => {
     [{ asset: 'wheat', site: 'KN', condition: NaN }],
   ]) {
     assert.throws(() => initialiseScenarioAssets(s, { assets: specs }));
+    assert.equal(JSON.stringify(s), before);
+  }
+});
+
+
+check('named pool upgrades old saves once without altering generated files or RNG', () => {
+  const s = fresh(), t = talent(s);
+  t.pool = t.pool.filter((c) => !c.named); delete t.namedVersion;
+  const old = JSON.stringify(t.pool), rng = s.rng, seq = t.seq;
+  talent(s); talent(s);
+  assert.equal(t.pool.filter((c) => c.named).length, 20);
+  assert.equal(JSON.stringify(t.pool.filter((c) => !c.named)), old);
+  assert.equal(t.seq, seq); assert.equal(s.rng, rng);
+  const snapshot = JSON.stringify(s);
+  const view = getCandidateView(s); assert.equal(JSON.stringify(s), snapshot); view[0].career![0].post = 'Edited view';
+  assert.notEqual(candidate(s, view[0].id)!.career![0].post, 'Edited view');
+});
+
+check('named careers persist, appointed generated identities do not expire, and release restores availability', () => {
+  const s = fresh(); const t = talent(s); const generated = t.pool.find((c) => !c.named && c.id.startsWith('c'))!;
+  take(s, generated.id); generated.until = 1;
+  take(s, 'cand.tamuno');
+  s.turn = 100; talentTick(s);
+  assert.ok(candidate(s, generated.id));
+  assert.equal(t.pool.filter((c) => c.named).length, 20);
+  assert.ok(!candidatesFor(s, 'min_works', 99).some((o) => o.c.id === 'cand.tamuno'));
+  release(s, candidate(s, 'cand.tamuno')!.name);
+  assert.ok(candidate(s, 'cand.tamuno')!.until > s.turn);
+});
+
+check('real minister appointment consumes named candidate and binds canonical identity', () => {
+  const s = fresh(); s.phase = 'desk'; s.pc = 100;
+  const o = candidatesFor(s, 'min_works', 99).find((o) => o.c.id === 'cand.tamuno')!;
+  assert.equal(o.refuses, null); assert.equal(o.effective, 5);
+  const out = applyAction(s, { type: 'REPLACE_MINISTER', id: 'min_works', kind: 'technocrat', name: o.c.name });
+  assert.equal(out.people.min_works.name, o.c.name);
+  assert.equal(resolveActor(out, { office: 'min_works' }), o.c.id);
+  assert.ok(talent(out).taken.includes(o.c.id));
+  assert.ok(!candidatesFor(out, 'asset', 99).some((offer) => offer.c.id === o.c.id));
+  assert.notEqual(s.people.min_works.name, o.c.name);
+});
+
+check('legacy appointment buttons cannot silently accept exceptional terms', () => {
+  const s = fresh(); s.phase = 'desk'; s.pc = 100;
+  const name = candidate(s, 'cand.nwachukwu')!.name;
+  const out = applyAction(s, { type: 'REPLACE_FIN', name });
+  assert.equal(out.chars.fin.name, s.chars.fin.name);
+  assert.equal(out.pc, s.pc);
+  assert.ok(getCandidateView(out).find((c) => c.id === 'cand.nwachukwu')!.reason?.includes('terms'));
+});
+
+check('state grants conserve fund movements and remain attributed after succession', () => {
+  const s = fresh(); s.funds.buffer = 2;
+  const cash = s.nation.fiscalSpace;
+  const transfer = transferSavedFund(s, 'buffer', 'states', 0.25);
+  assert.equal(s.funds.buffer, 1.5); assert.equal(transfer.naira, 0.5);
+  assert.equal(s.nation.fiscalSpace, cash);
+  const next = newGame({ ...setup, name: 'Next' }, s);
+  assert.deepEqual(next.fundTransfers, s.fundTransfers);
+  next.fundTransfers![0].naira = 99;
+  assert.equal(s.fundTransfers![0].naira, 0.5);
+});
+
+check('FX auction converts units once and does not create treasury cash or double-count reserves', () => {
+  const s = fresh(); s.funds.abroad = 3; s.fx!.rate = 1500;
+  s.fx!.stance = 'float'; s.flags['fx.stance'] = 'float';
+  const cash = s.nation.fiscalSpace, reserves = s.fx!.reserves;
+  const baselineFlow = fxFlow(s).total;
+  const text = runOp(s, ['fundmove', 'abroad', 'currency', 0.5]);
+  assert.equal(s.funds.abroad, 1.5); assert.equal(s.fx!.interventionDollars, 1);
+  assert.equal(s.fx!.reserves, reserves); assert.equal(s.nation.fiscalSpace, cash);
+  assert.ok(text.includes('$1.000bn'));
+  assert.ok(Math.abs(fxFlow(s).total - baselineFlow - 1) < 1e-9);
+  currencyTick(s); assert.equal(s.fx!.interventionDollars, 0);
+  assert.ok(Math.abs(s.fx!.reserves - reserves - Math.max(0, baselineFlow) * 0.5) < 1e-9);
+  assert.equal(s.fundTransfers![0].dollars, 1);
+  const outcome = EVENTS['shock.flight'].choices.find((c) => c.id === 'defend')!.outcomes[0];
+  assert.deepEqual(outcome.ops![0], ['fundmove', 'abroad', 'currency', 0.5]);
+});
+
+check('actual currency defence CHOOSE records the auction and preserves its input', () => {
+  const s = fresh(); s.phase = 'desk'; s.funds.abroad = 3;
+  s.desk.lead = { eventId: 'shock.flight' };
+  const before = JSON.stringify(s);
+  const out = applyAction(s, { type: 'CHOOSE', eventId: 'shock.flight', choiceId: 'defend' });
+  assert.equal(out.funds.abroad, 1.5);
+  assert.equal(out.fundTransfers![0].to, 'currency');
+  assert.equal(out.fundTransfers![0].dollars, 1);
+  assert.equal(JSON.stringify(s), before);
+});
+
+check('malformed fund transfers fail before mutation', () => {
+  const s = fresh(), before = JSON.stringify(s);
+  for (const op of [['abroad', 'states', -1], ['abroad', 'states', 2], ['abroad', 'unknown', 0.5], ['abroad', 'abroad', 0.5], ['unknown', 'states', 1]] as const) {
+    assert.throws(() => runOp(s, ['fundmove', ...op]));
     assert.equal(JSON.stringify(s), before);
   }
 });

@@ -1,3 +1,4 @@
+import { CANDIDATES } from '../content/candidates';
 import { PERSON_BY_ID } from '../content/people';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from './config';
@@ -33,6 +34,12 @@ export function ensureGovernance(s: GameState, exactNewWorld = false): Governanc
   const occupied = new Set<string>();
   const bind = (office: string, name: string) => {
     occupied.add(office);
+    const named = office !== 'president' ? CANDIDATES.find((c) => c.name === name) : undefined;
+    if (named) {
+      g.persons[named.id] ??= { id: named.id, name };
+      g.offices[office] = named.id;
+      return;
+    }
     const current = g.persons[g.offices[office]];
     if (!current || current.name !== name) legacyIdentity(g, office, name);
   };

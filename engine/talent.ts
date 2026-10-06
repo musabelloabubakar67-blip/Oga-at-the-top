@@ -4,6 +4,7 @@
 // can refuse a government they do not trust. Appointing someone takes them out of
 // the pool for every other job.
 
+import { CANDIDATES, CANDIDATE_BY_ID, type NamedCandidate } from '../content/candidates';
 import { ORIGIN } from '../content/federal';
 import { ADVISER_POOL } from '../content/names';
 import { PERSON_BY_ID } from '../content/people';
@@ -25,9 +26,18 @@ export interface Candidate {
   until: number;
   /** Their file has been checked: the truth is known. */
   checked?: boolean;
+  /** Persistent authored identity. Generated candidates keep their existing ids. */
+  named?: boolean;
+  career?: NamedCandidate['career'];
+  roles?: string[];
+  expertise?: string;
+  view?: string;
+  reputation?: string;
+  exceptional?: NamedCandidate['exceptional'];
+  plainExcellence?: string;
 }
 
-export interface Talent { pool: Candidate[]; taken: string[]; seq: number }
+export interface Talent { pool: Candidate[]; taken: string[]; seq: number; namedVersion?: 1 }
 
 const POOL_SIZE = 48;
 const ZONES: ZoneId[] = ['NW', 'NE', 'NC', 'SW', 'SE', 'SS'];
@@ -95,7 +105,7 @@ function traitLine(rep: Candidate['rep']): string {
 
 /** The pool, created on first use. The hand-written people from earlier versions are in it too. */
 export function talent(s: GameState): Talent {
-  if (s.talent) return s.talent;
+  if (s.talent) { addNamed(s, s.talent); return s.talent; }
   const t: Talent = { pool: [], taken: [], seq: 0 };
   const specOf: Record<string, Spec> = { Obidike: 'administration', Dankani: 'politics', Akinwale: 'media', Gwadabe: 'administration', Nwankwor: 'law', Gidado: 'politics' };
   for (const p of ADVISER_POOL) {
@@ -105,10 +115,11 @@ export function talent(s: GameState): Talent {
       rep: { competence: p.rep?.competence ?? p.competence, loyalty: p.rep?.loyalty ?? p.loyalty, integrity: p.integrity }, blurb: p.blurb ?? '', until: 999,
     });
   }
-  while (t.pool.length < POOL_SIZE) t.pool.push(generate(s, t));
+  addNamed(s, t);
+  while (t.pool.filter((c) => !c.named).length < POOL_SIZE) t.pool.push(generate(s, t));
   // Anyone already in a job is not available for another.
-  const working = new Set([...Object.values(s.chars).map((c) => c.name), ...(s.institutions ?? []).map((i) => i.head.name), ...(s.assets ?? []).map((a) => a.head.name)]);
-  for (const c of t.pool) if (working.has(c.name)) t.taken.push(c.id);
+  const working = new Set([...Object.values(s.chars).map((c) => c.name), ...Object.values(s.people).map((p) => p.name), ...(s.institutions ?? []).map((i) => i.head.name), ...(s.assets ?? []).map((a) => a.head.name)]);
+  for (const c of t.pool) if (working.has(c.name) && !t.taken.includes(c.id)) t.taken.push(c.id);
   s.talent = t;
   return t;
 }
@@ -116,8 +127,8 @@ export function talent(s: GameState): Talent {
 /** Every month: some people move on, and new ones become available. */
 export function talentTick(s: GameState): void {
   const t = talent(s);
-  t.pool = t.pool.filter((c) => c.until > s.turn);
-  while (t.pool.length < POOL_SIZE) t.pool.push(generate(s, t));
+  t.pool = t.pool.filter((c) => c.named || t.taken.includes(c.id) || c.until > s.turn);
+  while (t.pool.filter((c) => !c.named).length < POOL_SIZE) t.pool.push(generate(s, t));
 }
 
 export function fits(c: Candidate, role: string): boolean {
@@ -134,6 +145,9 @@ const patronName = (id: string) => TYCOON_BY_ID[id]?.short ?? PERSON_BY_ID[id]?.
 /** Why this person will not take the job, if they will not. */
 export function refusal(s: GameState, c: Candidate): string | null {
   // A government is judged on its own record. Until it has one, nobody holds the last one against it.
+  // These appointments require a negotiated, enforceable contract. Legacy buttons
+  // must not silently accept terms or promise capabilities they do not yet enforce.
+  if (c.exceptional) return 'Requires a negotiated appointment on the stated terms.';
   const settled = s.turn > CFG.honeymoonMonths;
   // Corruption that is this government's: integrity has fallen on its watch, or the President has kept money.
   const ownRecord = s.nation.integrity < 32 && (s.nation.integrity <= s.baseline.integrity - 4 || s.purseTaken.personal >= 10);
@@ -155,7 +169,7 @@ export function candidatesFor(s: GameState, role: string, n = 10): Offer[] {
     .map((c) => ({ c, fit: fits(c, role), effective: competenceIn(c, role), refuses: refusal(s, c), shown: c.checked ? { competence: c.competence, loyalty: c.loyalty, integrity: c.integrity } : c.rep }))
     .sort((a, b) => Number(b.fit) - Number(a.fit) || b.shown.competence - a.shown.competence || b.shown.integrity - a.shown.integrity)
     // The best of each zone is always on the list, so a cabinet can be balanced.
-    .filter((o, i, all) => i < n || all.findIndex((x) => x.c.zone === o.c.zone) === i);
+    .filter((o, i, all) => (o.c.named && o.c.roles?.includes(role)) || i < n || all.findIndex((x) => x.c.zone === o.c.zone) === i);
 }
 
 export function candidate(s: GameState, id: string): Candidate | undefined {
@@ -174,7 +188,47 @@ export function take(s: GameState, id: string): void {
 export function release(s: GameState, name: string): void {
   const t = talent(s);
   const c = t.pool.find((x) => x.name === name);
-  if (c) { t.taken = t.taken.filter((x) => x !== c.id); c.until = s.turn + 8; }
+  if (c) { t.taken = t.taken.filter((x) => x !== c.id); c.until = c.named ? Number.MAX_SAFE_INTEGER : s.turn + 8; }
+}
+
+
+/** Add authored identities once without changing any saved generated file or dice. */
+function addNamed(s: GameState, t: Talent): void {
+  if (t.namedVersion === 1) return;
+  const working = new Set([...Object.values(s.chars).map((c) => c.name),
+    ...Object.values(s.people).map((p) => p.name), ...(s.institutions ?? []).map((i) => i.head.name),
+    ...(s.assets ?? []).map((a) => a.head.name)]);
+  for (const p of CANDIDATES) {
+    if (!t.pool.some((c) => c.id === p.id)) {
+      const rep = { competence: p.traits.competence, loyalty: p.traits.loyalty,
+        integrity: p.reputation ? Math.min(5, p.traits.integrity + 1) : p.traits.integrity };
+      t.pool.push({ id: p.id, name: p.name, short: p.short, zone: p.zone, spec: p.spec,
+        ...p.traits, patron: p.patron, rep, named: true, until: Number.MAX_SAFE_INTEGER,
+        blurb: p.career.map((step) => step.post).join('. ') + '. ' + p.expertise,
+        career: structuredClone(p.career), roles: [...p.roles], expertise: p.expertise,
+        view: p.view, reputation: p.reputation, exceptional: p.exceptional ? structuredClone(p.exceptional) : undefined,
+        plainExcellence: p.plainExcellence });
+    }
+    if (working.has(p.name) && !t.taken.includes(p.id)) t.taken.push(p.id);
+  }
+  t.namedVersion = 1;
+}
+
+/** Detached candidate dossiers for appointment screens. This is not a capability grant. */
+export function getCandidateView(s: GameState) {
+  const copy = structuredClone(s);
+  const t = talent(copy);
+  return structuredClone(t.pool.filter((c) => c.named).map((c) => ({
+    id: c.id, name: c.name, short: c.short, zone: c.zone, spec: c.spec,
+    roles: c.roles, career: c.career, expertise: c.expertise, view: c.view, blurb: c.blurb,
+    checked: !!c.checked,
+    shown: c.checked ? { competence: c.competence, loyalty: c.loyalty, integrity: c.integrity } : c.rep,
+    patron: c.checked || c.patron === 'president' ? c.patron : undefined,
+    reputation: c.checked ? c.reputation : undefined,
+    conditions: c.exceptional?.conditions ?? [], plainExcellence: c.plainExcellence,
+    state: t.taken.includes(c.id) ? 'appointed' as const : refusal(copy, c) ? 'unavailable' as const : 'available' as const,
+    reason: refusal(copy, c), proposedCapabilities: CANDIDATE_BY_ID[c.id]?.exceptional?.capabilities ?? [],
+  })));
 }
 
 export const CHECK_PC = 2;
@@ -187,7 +241,7 @@ export function check(s: GameState, id: string): string {
   s.pc = clamp(s.pc - CHECK_PC, 0, 100);
   c.checked = true;
   const p = c.patron === 'president' ? 'answers to nobody but the job' : c.patron === 'self' ? 'is out for themselves' : `is close to ${patronName(c.patron)}`;
-  return `The background check on ${c.name} is back: competence ${c.competence}, loyalty ${c.loyalty}, integrity ${c.integrity}, and ${p}.`;
+  return `The background check on ${c.name} is back: competence ${c.competence}, loyalty ${c.loyalty}, integrity ${c.integrity}, and ${p}.${c.reputation ? ` ${c.reputation}` : ''}`;
 }
 
 /** Headhunting: three more people in the field this job wants, at least one of them strong. */

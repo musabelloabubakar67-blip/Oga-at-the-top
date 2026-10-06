@@ -14,7 +14,7 @@ import { nonOilDollars } from './dependence';
 export type Stance = 'peg' | 'managed' | 'float';
 export const STANCE_NAME: Record<Stance, string> = { peg: 'Defend the naira', managed: 'A managed rate', float: 'Let it float' };
 
-export interface Fx { rate: number; fair: number; parallel: number; reserves: number; stance: Stance; hist: number[]; base: number }
+export interface Fx { interventionDollars?: number; rate: number; fair: number; parallel: number; reserves: number; stance: Stance; hist: number[]; base: number }
 
 export function initCurrency(s: GameState): void {
   s.fx = { rate: 1500, fair: 1560, parallel: 1600, reserves: 33, stance: 'managed', hist: [], base: 1500 };
@@ -32,6 +32,7 @@ export function fxFlow(s: GameState): { lines: { label: string; value: number }[
   const national = s.agenda.done.includes('i5');
   const plant = (s.assets ?? []).some((a) => a.id === 'refinery') || !!s.flags['refinery.sold'];
   const lines = [
+    { label: 'Sovereign-fund dollars auctioned', value: s.fx?.interventionDollars ?? 0 },
     { label: 'Oil exports', value: (s.oil.price * s.oil.output - 128) * 0.02 },
     { label: 'Money sent home from abroad', value: 0.25 + (s.agenda.done.includes('g6') ? (premium(s) < 0.2 ? 0.18 : 0.06) : 0) },
     { label: 'Non-oil exports', value: (n.jobs - 34) * 0.008 + nonOilDollars(s) },
@@ -80,7 +81,11 @@ export function fxScale(s: GameState): number {
 /** Every month: the fair value moves, the stance decides the official rate and what it costs, and the black market prices the difference. */
 export function currencyTick(s: GameState): void {
   const f = fx(s);
+  const auction = f.interventionDollars ?? 0;
   const flow = fxFlow(s).total;
+  const reserveFlow = flow - auction;
+  // Auctions settle once; their record remains after this pending flow is used.
+  f.interventionDollars = 0;
   const prevRate = f.rate;
   // Fair value: prices rising faster than abroad, and dollars short, both weaken it.
   f.fair *= 1 + (s.nation.inflation - 4) / 100 / 12;
@@ -90,15 +95,15 @@ export function currencyTick(s: GameState): void {
   const gap = f.fair / f.rate - 1;
   if (f.stance === 'float') {
     f.rate += (f.fair - f.rate) * 0.35;
-    f.reserves += Math.max(0, flow) * 0.5;
+    f.reserves += Math.max(0, reserveFlow) * 0.5;
     f.parallel = f.rate * 1.03;
   } else if (f.stance === 'managed') {
     f.rate += (f.fair - f.rate) * 0.2;
-    f.reserves += flow - Math.max(0, gap) * 1.5;
+    f.reserves += reserveFlow - Math.max(0, gap) * 1.5;
     f.parallel = f.rate * (1.04 + Math.max(0, gap) * 0.6);
   } else {
     // Defending a rate: every dollar the market wants and cannot find at the official rate comes out of the reserves.
-    f.reserves += flow - Math.max(0, gap) * 4;
+    f.reserves += reserveFlow - Math.max(0, gap) * 4;
     f.parallel = Math.max(f.rate * 1.04, f.fair * 1.05);
   }
   f.reserves = clamp(f.reserves, 0, 120);

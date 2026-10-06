@@ -87,6 +87,7 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   };
   s.debts = { ...prev.debts };
   s.funds = { ...prev.funds };
+  s.fundTransfers = structuredClone(prev.fundTransfers ?? []);
   s.oil = { ...prev.oil };
   s.budget = { ...prev.budget, alloc: { ...prev.budget.alloc }, year: s.startYear, due: false };
   s.theatres = { ...prev.theatres };

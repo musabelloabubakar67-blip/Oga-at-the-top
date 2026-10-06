@@ -218,6 +218,7 @@ export function replaceMinister(s: GameState, id: string, kind: keyof typeof REP
   const old = personView(s, id);
   const base = PERSON_BY_ID[id];
   const r = REPLACEMENTS[kind];
+  release(s, old.name);
   const used = new Set(Object.values(s.people).map((x) => x.name));
   const name = r.names.find((n) => !used.has(n)) ?? r.names[0];
   s.people[id] = {
