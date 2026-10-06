@@ -220,6 +220,8 @@ export function getVar(s: GameState, path: string): number {
       return f.rate;
     }
     case 'era': return s.era;
+    // Cases the Villa has leaned on (an opening constraint can promise none).
+    case 'cases': return p[1] === 'leaned' ? (s.cases ?? []).filter((c) => c.leaned).length : (s.cases ?? []).length;
     case 'vp': return p[1] === 'rel' ? (s.vp?.rel ?? 50) : p[1] === 'ambition' ? (s.vp?.ambition ?? 0) : p[1] === 'heir' ? (s.flags['succession.backed'] === 'vp' ? 1 : 0) : s.vp ? 1 : 0;
     case 'pred': if (p[1] === 'rel') return s.predecessor?.rel ?? 50;
       if (p[1] === 'active') return s.predecessor && !s.flags['pred.gone'] ? 1 : 0;

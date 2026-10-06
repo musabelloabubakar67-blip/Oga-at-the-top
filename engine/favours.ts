@@ -54,12 +54,19 @@ export function initTycoons(s: GameState): void {
   s.tycoons = {};
   s.favours = [];
   for (const t of TYCOONS) s.tycoons[t.id] = { rel: 50, granted: false, reasons: [] };
+  // The financier chosen at the opening (engine/opening.ts applies its effects and debts),
+  // or, in a legacy setup, the businessman the background implied.
+  const chosen = s.setup?.financier;
+  if (chosen !== undefined) {
+    s.flags.financier = chosen;
+    return;
+  }
   const backer = FINANCIER[s.president.background] ?? 'ty_trade';
   s.tycoons[backer].rel = 64;
   s.flags.financier = backer;
   addFavour(s, backer, 'owing', 3, `${TYCOON_BY_ID[backer].short} paid for your campaign.`);
-  // The Governors' Forum delivered, and has mentioned it since.
-  addFavour(s, 'gov_ss', 'owing', 2, 'Koroye delivered three states for you.');
+  // The Governors' Forum delivered, and has mentioned it since. A chosen route brings its own debts instead.
+  if (s.setup?.route === undefined) addFavour(s, 'gov_ss', 'owing', 2, 'Koroye delivered three states for you.');
 }
 
 export function tycoonMood(rel: number): string {

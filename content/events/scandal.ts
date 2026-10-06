@@ -284,7 +284,8 @@ export const SCANDAL: GameEvent[] = [
   {
     id: 'tempt.contractor', kind: 'recurring', slot: 'lead', category: 'temptation', tone: 'dry', intensity: 2,
     // There is no corridor to tender for once the corridors have been rebuilt.
-    when: { all: [{ turn: [6] }, { v: ['agenda.p2', '==', 0] }] }, weight: 7, max: 1,
+    // Only when a businessman paid for the campaign: the nephew is the financier's.
+    when: { all: [{ turn: [6] }, { v: ['agenda.p2', '==', 0] }, { not: { any: [{ flag: 'financier', is: 'small' }, { flag: 'financier', is: 'none' }] } }] }, weight: 7, max: 1,
     office: 'Bureau of Public Procurement', stamp: 'CONFIDENTIAL',
     title: 'Award of contract: the Abuja–Kano transmission corridor',
     body: [

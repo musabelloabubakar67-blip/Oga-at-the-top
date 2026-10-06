@@ -80,7 +80,7 @@ export const DOSSIERS: Dossier[] = [
       { who: 'sen_pres', holds: 'Which bills the Senate hears, and when.', wants: 'To be "carried along" on board appointments.' },
     ],
     briefing: [
-      'Nothing has broken yet, Sir. That is the danger. Everything here breaks on a schedule, and the schedule is not ours.',
+      'Nothing has broken yet, {SIR}. That is the danger. Everything here breaks on a schedule, and the schedule is not ours.',
       'The first thing anyone will test is whether you know what is owed. Most of your predecessor\'s cabinet did not.',
     ],
     firstAct: { text: 'The Finance Ministry\'s memorandum on the petrol subsidy is on the desk within the month.', points: 'subsidy.memo' },
@@ -104,7 +104,7 @@ export const DOSSIERS: Dossier[] = [
       { who: 'ty_bank', holds: 'A tenth of the government\'s domestic debt.', wants: 'Rates kept high while the money is plentiful.' },
     ],
     briefing: [
-      'It is easy to be popular this year, Sir. It will be very hard in your third.',
+      'It is easy to be popular this year, {SIR}. It will be very hard in your third.',
       'Whatever you save now is the only thing that will be there when the price falls. Everyone in this building will ask you to spend it first.',
     ],
     firstAct: { text: 'The governors\' letter about the stabilisation account will not wait long.', points: 'fund.share' },
@@ -130,7 +130,7 @@ export const DOSSIERS: Dossier[] = [
       { who: 'CBN', holds: 'The memorandum warning the last government, signed and dated.', wants: 'Your public commitment that the overdraft ends.' },
     ],
     briefing: [
-      'There is nothing in the account, Sir, and nobody will wait.',
+      'There is nothing in the account, {SIR}, and nobody will wait.',
       'Whatever you sign in the first quarter will be blamed on you. Whatever you do not sign will be blamed on you too, a little later.',
     ],
     firstAct: { text: 'The lender\'s programme comes back to the desk within the first year, with ending the overdraft as its third condition.', points: 'lender.offer' },
@@ -155,7 +155,7 @@ export const DOSSIERS: Dossier[] = [
       { who: 'sen_pres', holds: 'The Senate that removed your predecessor and knows it can.', wants: 'To be consulted, visibly.' },
     ],
     briefing: [
-      'Everyone is watching to see whether you are the cure or the next case, Sir.',
+      'Everyone is watching to see whether you are the cure or the next case, {SIR}.',
       'The party wants you to move on. The street wants you to look back. The files want to be read.',
     ],
     firstAct: { text: 'The Attorney General\'s file on the previous administration reaches the desk early.', points: 'inherit.matters' },
@@ -180,7 +180,7 @@ export const DOSSIERS: Dossier[] = [
       { who: 'ty_bank', holds: 'The investors who finally trust the books.', wants: 'Nothing changed.' },
     ],
     briefing: [
-      'You won by promising relief, Sir. The relief that is available is undoing the things that are about to start paying.',
+      'You won by promising relief, {SIR}. The relief that is available is undoing the things that are about to start paying.',
       'Your predecessor took the pain. If you keep the reforms, you will have the benefits and the blame for both.',
     ],
     firstAct: { text: 'Labour\'s leader writes within months, under pressure from members who want the subsidy back. What restoring it would cost is already on the desk.', points: 'minor.labour' },
@@ -205,7 +205,7 @@ export const DOSSIERS: Dossier[] = [
       { who: 'ty_trade', holds: 'The import licences for the food the farms are no longer growing.', wants: 'The borders kept open to imports.' },
     ],
     briefing: [
-      'Nothing else you want to do is possible until people can travel and farm, Sir.',
+      'Nothing else you want to do is possible until people can travel and farm, {SIR}.',
       'The armed forces will ask for money first and accountability never. You will need both.',
     ],
     firstAct: { text: 'The farm belt is the first theatre to test you.', points: 'attack.farms' },

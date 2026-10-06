@@ -87,7 +87,7 @@ export function Game() {
   })() : undefined;
 
   if (!ready) return <p className="label p-8 text-mute">Consultations are ongoing…</p>;
-  if (screen === 'setup') return <SetupScreen onStart={start} handover={handover} onBack={() => { setPrevious(null); if (previous) setState(null); setScreen('title'); }} />;
+  if (screen === 'setup') return <SetupScreen onStart={start} handover={handover} previous={previous ?? undefined} onBack={() => { setPrevious(null); if (previous) setState(null); setScreen('title'); }} />;
   if (screen === 'title' || !state) {
     return (
       <Title

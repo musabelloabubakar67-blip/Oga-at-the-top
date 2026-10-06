@@ -47,6 +47,7 @@ import { canCredit, canGroom, credit, groom } from './successor';
 import { CHECK_PC, HUNT_PC, candidate, candidatesFor, check, headhunt, release, take, talentTick } from './talent';
 import { refusal, talent } from './talent';
 import type { AppointmentPost } from './recruitment';
+import { applyOpening } from './opening';
 import { approach, canApproach, canAppointExceptional, canFundRecruitment, fundRecruitment, holdRecruitmentFunding, reconcileRecruitment, recruitmentTick, hasCapability } from './recruitment';
 import { canLeaveVacant, leaveVacant, canPayRecruitmentArrears, payRecruitmentArrears } from './recruitment';
 import { floatNow, initCurrency } from './currency';
@@ -230,6 +231,8 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   s.approvalPrev = approval(s);
   if (prev) { inheritGovernance(s, prev); inheritFavours(s, prev); }
   else ensureGovernance(s, true);
+  // The route, financier, constraint and first cabinet chosen before the oath (plan 02).
+  applyOpening(s, setup);
   refreshRequests(s);
   bindFavours(s);
   reviewCommitmentsDue(s);

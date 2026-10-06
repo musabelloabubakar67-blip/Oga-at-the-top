@@ -52,6 +52,7 @@ import { blocView, gauges, outlook, previewChoice, recordOf, resolveRead, traceF
 import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
 import { Citizens } from './Citizens';
+import { DOSSIER_BY_SCENARIO } from '../content/dossiers';
 import { Register } from './Register';
 import { BudgetModal, TreasuryModal } from './Treasury';
 import { getGovernanceView } from '../engine/public';
@@ -1343,8 +1344,17 @@ function Briefing({ s, go, dispatch }: { s: GameState; go: (v: View, tab?: strin
       {x.topic && <PowersButton s={s} ctx={topicKey(x.topic)} dispatch={dispatch} dark />}
     </li>
   );
+  // The first two months of a new world: the private briefing from the inheritance dossier (plan 02).
+  const dossier = s.era === 0 && s.turn <= 2 ? DOSSIER_BY_SCENARIO[s.setup?.scenario ?? 'standard'] : undefined;
   return (
     <div className="border-l-2 border-honour/60 pl-4">
+      {dossier && (
+        <div className="mb-4">
+          <p className="label text-honour">Private · the door is closed</p>
+          <div className="mt-1 space-y-1.5 font-serif leading-snug text-ivory/90">{dossier.briefing.map((b) => <p key={b}>“{fill(s, b)}”</p>)}</div>
+          <p className="mt-2 text-sm text-ivory/70"><span className="label mr-1 text-honour">The first real decision</span>{dossier.firstAct.text}</p>
+        </div>
+      )}
       {a.hurt.length === 0 && a.open.length === 0 ? (
         <p className="font-serif text-lg italic leading-snug text-ivory/90">“{fill(s, 'A quiet month so far, {SIR}. I do not trust it.')}”</p>
       ) : (

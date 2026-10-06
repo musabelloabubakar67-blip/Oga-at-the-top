@@ -617,6 +617,14 @@ export interface Setup {
   address: 'sir' | 'ma';
   finance: string;
   priorities: string[];
+  /** The coalition that won the election (content/routes.ts). Absent in legacy setups. */
+  route?: string;
+  /** Who paid for the campaign: a businessman id, 'small' or 'none'. Absent: legacy, from background. */
+  financier?: string;
+  /** An optional rule bound on the first day (content/routes.ts CONSTRAINTS). */
+  constraint?: string;
+  /** The first cabinet: office to candidate id, 'keep' or 'vacant'. */
+  team?: Record<string, string>;
 }
 
 export type ActionId =

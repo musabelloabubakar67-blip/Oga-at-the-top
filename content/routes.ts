@@ -8,12 +8,11 @@
 // owed. Owing is a favour; a stated expectation is a commitment, stored so the
 // register shows it and a later file can be judged against it.
 //
-// Status: authored content. The setup steps that offer these choices, and the
-// application of their effects, favours and commitments, wait on contract R6.
-// Every number here is a proposal for Codex to agree before it lands (plan 09:
-// economic parameters are agreed with the engine owner). Nothing reads this file yet.
+// Applied at the opening by engine/opening.ts: effects, favours owed and commitments
+// (each with an agreed test, so the register can judge it on its due date).
+// An optional governing constraint (CONSTRAINTS) is stored the same way.
 
-import type { Fx } from '../engine/types';
+import type { Cond, Fx } from '../engine/types';
 import { TYCOON_BY_ID } from './tycoons';
 
 /** The businessman's standing demand, quoted from content/tycoons.ts so it cannot drift. */
@@ -33,6 +32,10 @@ export interface StartingCommitment {
   responsible: string;
   afterMonths: number;
   visibility: 'public' | 'private';
+  /** The agreed test the commitment is judged on at its due date (contract R4). */
+  verify: Cond;
+  /** The test, in words, for the screen. */
+  judgedBy: string;
 }
 
 export interface Route {
@@ -78,6 +81,7 @@ export const ROUTES: Route[] = [
     commitments: [{
       object: 'consult-governors-on-federal-appointments', text: 'Consult each governor before making federal appointments in their state.',
       responsible: 'president', afterMonths: 24, visibility: 'private',
+      verify: { v: ['govs', '>=', 4] }, judgedBy: 'At least four of the six governors still with you when it falls due.',
     }],
   },
   {
@@ -90,6 +94,7 @@ export const ROUTES: Route[] = [
     commitments: [{
       object: 'coalition-partners-four-ministries', text: 'Give the coalition partners four ministries within the first year, as agreed before the election.',
       responsible: 'president', afterMonths: 12, visibility: 'public',
+      verify: { flag: 'coalition.ministries', is: 'kept' }, judgedBy: 'Whether the partners got their four ministries when they asked for them.',
     }],
   },
   {
@@ -102,6 +107,7 @@ export const ROUTES: Route[] = [
     commitments: [{
       object: 'cut-cost-of-governance', text: 'Cut the cost of running the government within the first year: the campaign\'s signature promise.',
       responsible: 'president', afterMonths: 12, visibility: 'public',
+      verify: { flag: 'promise.cost_cut', is: 'kept' }, judgedBy: 'Whether the cost of the government was actually cut, not only announced.',
     }],
   },
   {
@@ -114,6 +120,7 @@ export const ROUTES: Route[] = [
     commitments: [{
       object: 'complete-predecessor-projects', text: 'Complete the outgoing government\'s unfinished projects, as promised in the campaign.',
       responsible: 'president', afterMonths: 24, visibility: 'public',
+      verify: { v: ['debt.contractors', '<=', 0.6] }, judgedBy: 'Contractors paid down to ₦600bn or less, so the inherited sites are working.',
     }],
     // Only where there is a government to continue: the outgoing party is yours, or the scenario's
     // predecessor left in good enough standing to run on. Not after a removal, a rout or a collapse.
@@ -174,6 +181,7 @@ export const FINANCIERS: Financier[] = [
     commitments: [{
       object: 'publish-campaign-accounts', text: 'Publish the campaign\'s accounts, contributor by contributor, within six months of taking office.',
       responsible: 'president', afterMonths: 6, visibility: 'public',
+      verify: { flag: 'campaign.accounts', is: 'published' }, judgedBy: 'Whether the full accounts were published, contributor by contributor.',
     }],
     usualRoute: 'mobilisation',
   },
@@ -188,6 +196,49 @@ export const FINANCIERS: Financier[] = [
     commitments: [],
   },
 ];
+
+/** An optional rule the President binds the government to on the first day (plan 02.A7), stored as a public commitment. */
+export interface Constraint {
+  id: string;
+  name: string;
+  /** The rule as announced. */
+  text: string;
+  /** What it buys, and what it gives up. */
+  strengths: string;
+  costs: string;
+  fx: Fx[];
+  verify: Cond;
+  judgedBy: string;
+}
+
+export const CONSTRAINTS: Constraint[] = [
+  {
+    id: 'investigations', name: 'Hands off the investigators',
+    text: 'No instruction from the Villa to any investigation or prosecution, in either direction, for the whole term.',
+    strengths: 'The press and the investigators believe you from the first day, and cases against your opponents look like justice rather than politics.',
+    costs: 'When a case reaches someone you need, the option of a quiet word is gone, and using it anyway breaks a public promise.',
+    fx: [['bloc.press', 3], ['nation.integrity', 1]],
+    verify: { v: ['cases.leaned', '==', 0] }, judgedBy: 'No case leaned on by the Villa at any point in the term.',
+  },
+  {
+    id: 'no_printing', name: 'No printing',
+    text: 'The government will not ask the central bank to finance its spending.',
+    strengths: 'Lenders and the central bank take your numbers more seriously, and inflation expectations start lower.',
+    costs: 'In a shortfall the quick way out is closed: cut, borrow or tax, or break the promise in public.',
+    fx: [['bloc.establishment', 4]],
+    verify: { all: [{ v: ['ordered.print', '==', 0] }, { not: { flag: 'crisis.last', is: 'print' } }, { not: { flag: 'shortfall.last', is: 'print' } }] },
+    judgedBy: 'No order to print, and the central bank never told to cover a deficit or a shortfall.',
+  },
+  {
+    id: 'no_subsidy_return', name: 'No return to the subsidy',
+    text: 'Petrol will not go back to a price fixed below what it costs.',
+    strengths: 'The markets and the budget office plan on it, and the fuel marketers stop waiting for the old arrangement.',
+    costs: 'When the queues come, the cheapest-looking answer is ruled out, and labour knows it.',
+    fx: [['bloc.establishment', 2], ['bloc.street', -2]],
+    verify: { not: { flag: 'policy.subsidy', is: 'full' } }, judgedBy: 'The pump price never frozen below cost by decree.',
+  },
+];
+export const CONSTRAINT_BY_ID = Object.fromEntries(CONSTRAINTS.map((c) => [c.id, c])) as Record<string, Constraint>;
 
 export const ROUTE_BY_ID = Object.fromEntries(ROUTES.map((r) => [r.id, r])) as Record<RouteId, Route>;
 export const FINANCIER_BY_ID = Object.fromEntries(FINANCIERS.map((f) => [f.id, f])) as Record<FinancierId, Financier>;
