@@ -2,6 +2,7 @@
 // and prints distributions. Usage: npm run simulate -- [runs] [--trace]
 
 import { EVENT_LIST } from '../content';
+import { writeFileSync } from 'node:fs';
 import { measureLevers } from './levers';
 import { eraShifts } from '../engine/era';
 import { nightOptions } from '../engine/night';
@@ -505,15 +506,38 @@ const args = process.argv.slice(2);
 const runs = Number(args.find((a) => /^\d+$/.test(a)) ?? 200);
 
 if (args.includes('--scenarios')) {
-  // Every starting inheritance, played by three kinds of President.
-  for (const sc of SCENARIOS) {
-    const line = [BOTS[2], BOTS[4], BOTS[1]].map((bot) => {
+  // Optional filters retain the same seed schedule, so small runs are prefixes of larger runs.
+  const option = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+  const selected = SCENARIOS.filter((s) => !option('scenario') || s.id === option('scenario'));
+  const bots = [BOTS[2], BOTS[4], BOTS[1]].filter((b) => !option('bot') || b.name === option('bot'));
+  if (!Number.isSafeInteger(runs) || runs < 1 || !selected.length || !bots.length) throw new Error('Invalid scenario simulation runs or filter');
+  const rows: object[] = [];
+  for (const sc of selected) {
+    const line = bots.map((bot) => {
       let won = 0; let months = 0; const ends: Record<string, number> = {};
-      for (let i = 0; i < runs; i++) { const s = play(bot, 500 + i * 131, false, { scenario: sc.id }); if (s.flags['election.won']) won++; months += Math.min(s.turn, 96); ends[s.ending ?? '?'] = (ends[s.ending ?? '?'] ?? 0) + 1; }
+      for (let i = 0; i < runs; i++) {
+        const seed = 500 + i * 131;
+        const previousEveCount = eve[bot.name]?.length ?? 0;
+        const s = play(bot, seed, false, { scenario: sc.id });
+        const reelected = !!s.flags['election.won'];
+        if (reelected) won++;
+        months += Math.min(s.turn, 96);
+        ends[s.ending ?? '?'] = (ends[s.ending ?? '?'] ?? 0) + 1;
+        if (option('results')) rows.push({
+          scenario: sc.id, bot: bot.name, index: i, seed, reelected, months: Math.min(s.turn, 96), ending: s.ending,
+          eve: (eve[bot.name]?.length ?? 0) > previousEveCount ? eve[bot.name].at(-1) : null,
+          final: { treasury: s.nation.fiscalSpace, debt: s.nation.debt, approval: approval(s), hardship: hardship(s), assets: s.assets?.length ?? 0 },
+        });
+        if (option('results') && ((i + 1) % 16 === 0 || i + 1 === runs)) {
+          writeFileSync(option('results')!, JSON.stringify({ runs, completedRows: rows.length, seedFormula: '500 + index * 131', rows }, null, 2) + '\n');
+          console.log(`${sc.id}/${bot.name}: ${i + 1}/${runs} complete, ${won} re-elected`);
+        }
+      }
       return `${bot.name} ${Math.round((won / runs) * 100)}% re-elected, ${Math.round(months / runs)} months`;
     });
     console.log(`${sc.name.padEnd(26)} ${line.join(' · ')}`);
   }
+  if (option('results')) writeFileSync(option('results')!, JSON.stringify({ runs, seedFormula: '500 + index * 131', rows }, null, 2) + '\n');
   process.exit(0);
 }
 if (args.includes('--levers')) {
