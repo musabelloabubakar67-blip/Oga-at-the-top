@@ -1,4 +1,5 @@
 import { grantRequest } from './wants';
+import { canAppointExceptional, LINKED_POSTS } from './recruitment';
 // Your governors, senators and ministers, and the opposition they may defect to.
 
 import { MILESTONE_BY_ID, TRACK_BY_ID } from '../content/agenda';
@@ -228,6 +229,10 @@ export function replaceMinister(s: GameState, id: string, kind: keyof typeof REP
     competence: r.competence, clout: r.clout, integrity: r.integrity, ambition: r.ambition, bio: r.bio,
     since: s.turn, base: base.metric ? getVar(s, base.metric[0]) : 0, marks: [],
   };
+  for (const [role, ministry] of Object.entries(LINKED_POSTS)) if (ministry === id && s.chars[role]) Object.assign(s.chars[role], {
+    name, short: s.people[id].short, competence: r.competence, integrity: r.integrity, clout: r.clout,
+    loyalty: kind === 'party' ? 2 : 3, patron: kind === 'party' ? base.sponsor ?? 'self' : 'president', rep: { competence: r.competence, loyalty: kind === 'party' ? 4 : 3 },
+  });
   applyFx(s, ['bloc.party', kind === 'party' ? 5 : -4 - old.clout]);
   applyFx(s, ['bloc.villa', -2]);
   if (kind === 'party') applyFx(s, ['nation.integrity', -1.5]);
@@ -253,6 +258,7 @@ export function replaceMinister(s: GameState, id: string, kind: keyof typeof REP
 
 /** A named person from the talent pool takes the ministry. Their backer, if any, is pleased; the party reads the appointment by who that is. */
 export function replaceMinisterWith(s: GameState, id: string, o: Offer): { text: string; archive: string } {
+  if (!canAppointExceptional(s, o.c.id, { kind: 'minister', id }).ok) throw new Error('Exceptional appointment terms are not agreed or funded');
   const old = personView(s, id);
   const base = PERSON_BY_ID[id];
   const c = o.c;
@@ -263,6 +269,10 @@ export function replaceMinisterWith(s: GameState, id: string, o: Offer): { text:
     competence: o.effective, clout: c.clout, integrity: c.integrity, ambition: c.ambition, bio: c.blurb,
     since: s.turn, base: base.metric ? getVar(s, base.metric[0]) : 0, marks: [],
   };
+  for (const [role, ministry] of Object.entries(LINKED_POSTS)) if (ministry === id && s.chars[role]) Object.assign(s.chars[role], {
+    name: c.name, short: c.short, competence: o.effective, integrity: c.integrity, clout: c.clout, loyalty: c.loyalty, patron: c.patron,
+    rep: { competence: o.shown.competence, loyalty: o.shown.loyalty },
+  });
   const partyMan = c.patron.startsWith('gov_') || c.patron.startsWith('sen_');
   applyFx(s, ['bloc.party', partyMan ? 4 : -2 - old.clout]);
   applyFx(s, ['bloc.villa', -2]);

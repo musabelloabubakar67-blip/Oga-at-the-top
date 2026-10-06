@@ -33,6 +33,7 @@ export function ensureGovernance(s: GameState, exactNewWorld = false): Governanc
   // No longer occupied offices are removed; the historical person registry remains.
   const occupied = new Set<string>();
   const bind = (office: string, name: string) => {
+    if (s.vacancies?.[office]) return;
     occupied.add(office);
     const named = office !== 'president' ? CANDIDATES.find((c) => c.name === name) : undefined;
     if (named) {

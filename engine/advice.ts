@@ -7,6 +7,7 @@
 // ignored remembers it.
 
 import { candidatesFor, release, take, type Offer } from './talent';
+import { canAppointExceptional, LINKED_POSTS } from './recruitment';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { TYCOONS, TYCOON_BY_ID } from '../content/tycoons';
 import { REPLACEABLE } from '../content/names';
@@ -16,7 +17,7 @@ import type { Choice, Fx, GameEvent, GameState, Outcome } from './types';
 import { test } from './vars';
 
 /** Advisers who are also ministers: their name and competence follow whoever holds the brief. */
-export const LINKED: Record<string, string> = { power: 'min_power', nsa: 'min_defence' };
+export const LINKED = LINKED_POSTS;
 
 export interface Adviser {
   role: string;
@@ -32,6 +33,7 @@ export interface Adviser {
 }
 
 export function adviser(s: GameState, role: string): Adviser | null {
+  if (s.vacancies?.[`adviser:${role}`] || (LINKED[role] && s.people[LINKED[role]]?.gone)) return null;
   const c = s.chars[role];
   if (!c) return null;
   const linked = LINKED[role] ? s.people[LINKED[role]] : undefined;
@@ -97,6 +99,7 @@ export function canReplaceAdviser(s: GameState, role: string, name: string, move
   const o = poolFor(s, role).find((x) => x.c.name === name);
   if (!o) return { ok: false, reason: 'Not available.' };
   if (o.refuses) return { ok: false, reason: o.refuses };
+  const can = canAppointExceptional(s, o.c.id, { kind: 'adviser', id: role }); if (!can.ok) return can;
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < REPLACE_PC) return { ok: false, reason: `Needs ${REPLACE_PC} political capital.` };
   return { ok: true };
@@ -107,6 +110,7 @@ export function replaceAdviser(s: GameState, role: string, name: string): string
   const old = s.chars[role];
   const o = poolFor(s, role).find((x) => x.c.name === name)!;
   const c = o.c;
+  if (!canAppointExceptional(s, c.id, { kind: 'adviser', id: role }).ok) throw new Error('Exceptional appointment terms are not agreed or funded');
   take(s, c.id);
   release(s, old.name);
   s.chars[role] = {

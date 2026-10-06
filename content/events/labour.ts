@@ -5,6 +5,25 @@ import type { GameEvent } from '../../engine/types';
 
 export const LABOUR: GameEvent[] = [
   {
+    id: 'uni.negotiated.balance', kind: 'chain', slot: 'minor', channel: 'phone', office: 'The university union', category: 'labour', tone: 'grave', intensity: 2, max: 1,
+    title: 'The negotiated university balance is due',
+    body: ['The university union has sent the payment schedule it signed twelve months ago. The remaining ₦150bn is due. The first ₦75bn was paid when the agreement was signed; the balance has not yet been released.'],
+    choices: [{ id: 'pay', label: 'Release the agreed ₦150bn balance', outcomes: [{
+      result: 'The balance is paid once through the Accountant-General. The union publishes the payment confirmation and closes the settlement account.', fx: [['pressure.wageGrievance', -6], ['bloc.street', 3]], flags: { 'uni.agreement': 'implemented' },
+      domain: { version: CONTRACT_VERSION, effects: [
+        { type: 'commitment.fund', id: 'uni.negotiated.$ADMIN', amount: 0.15, reason: 'Balance of the negotiated university settlement' },
+        { type: 'commitment.review', id: 'uni.negotiated.$ADMIN', verdict: 'met', evidence: ['The first ₦75bn was paid at agreement.', 'The Accountant-General released the remaining ₦150bn on the agreed date.'] },
+      ] }, news: ['FG PAYS NEGOTIATED UNIVERSITY BALANCE', 'THE UNION HAS THE PAYMENT CONFIRMATION'], archive: 'Paid the ₦150bn balance of the negotiated university settlement.', sig: 2,
+    }] }, { id: 'wait', label: 'Ask for more time', outcomes: [{
+      result: 'The union points to the signed date and issues a fresh strike notice. The register records that the government withheld the balance.', fx: [['pressure.wageGrievance', 5]], flags: { 'uni.agreement': 'broken' },
+      domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.review', id: 'uni.negotiated.$ADMIN', verdict: 'withheld', evidence: ['The agreed ₦150bn balance was not released.', 'The government requested more time instead of paying.'] }] },
+      follow: [{ event: 'uni.strike', after: 1 }], news: ['UNION ISSUES STRIKE NOTICE OVER UNPAID SETTLEMENT', 'THE TIMETABLE WAS SIGNED. THE MONEY DID NOT COME'], archive: 'Withheld the balance of the negotiated university settlement.',
+    }] }],
+    ignored: { result: 'The payment deadline passes unanswered. The union issues a strike notice and publishes the unpaid schedule.', fx: [['pressure.wageGrievance', 5]], flags: { 'uni.agreement': 'broken' },
+      domain: { version: CONTRACT_VERSION, effects: [{ type: 'commitment.review', id: 'uni.negotiated.$ADMIN', verdict: 'withheld', evidence: ['The agreed ₦150bn balance was not released.', 'The payment reminder went unanswered.'] }] },
+      follow: [{ event: 'uni.strike', after: 1 }], news: ['UNIVERSITY SETTLEMENT DEADLINE PASSES UNPAID', 'THE UNION PUBLISHES THE UNPAID SCHEDULE'], archive: 'Left the negotiated university balance unpaid at its deadline.' },
+  },
+  {
     id: 'uni.ultimatum', kind: 'standalone', slot: 'lead', category: 'labour', tone: 'dry', intensity: 3,
     when: { all: [{ turn: [5] }, { flag: 'uni.agreement', is: 'inherited_unfunded' }] },
     weight: 40,

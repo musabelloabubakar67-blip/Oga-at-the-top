@@ -1,4 +1,5 @@
 import { consumeFavour, offsetFavours, bindFavours } from './favour-ledger';
+import { negotiateDebt } from './capabilities';
 import { closeRequest, openRequest } from './requests';
 import { authoriseTargetReleases, setMinisterTarget } from './commitments';
 import { release } from './talent';
@@ -38,6 +39,7 @@ const group = (s: GameState, g: 'governor' | 'senator', d: number) => {
 export function runOp(s: GameState, op: Op2): string {
   const [name, a, b, c] = op;
   switch (name) {
+    case 'negotiatedebt': return negotiateDebt(s, String(a));
     case 'targetrelease': return authoriseTargetReleases(s, String(a));
     case 'target': setMinisterTarget(s, String(a), Number(b), c === undefined ? 10 : Number(c)); return 'A dated ministerial target is recorded for review.';
     case 'paydebt': {
@@ -172,6 +174,7 @@ export function runOp(s: GameState, op: Op2): string {
 export function opText(s: GameState, op: Op2): string | null {
   const [name, a, b, c] = op;
   switch (name) {
+    case 'negotiatedebt': return 'Negotiates lower coupons with creditor consent; principal remains owed in full';
     case 'targetrelease': return 'Authorises full future releases through the ministry budget; past withholding remains recorded';
     case 'paydebt': {
       const id = a as DebtId;

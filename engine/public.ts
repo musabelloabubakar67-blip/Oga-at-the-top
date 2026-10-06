@@ -5,6 +5,8 @@ export { applyDomainOutcome } from './domain-outcomes';
 export type { StartingAssetSpec, ScenarioAssets } from './places';
 
 export { getCandidateView } from './talent';
+export { proposedSlate } from './talent';
+export { canAppoint } from './reduce';
 export type { Candidate, Talent, Offer } from './talent';
 export { transferSavedFund } from './fund-transfers';
 export type { FundDestination, FundTransfer } from './fund-transfers';
@@ -15,3 +17,6 @@ export { getFavourView, canOffsetFavours, canForgiveFavour, offsetFavours } from
 export type { FavourUseId, FavourSettlement } from './favour-ledger';
 export { canUseFavour, usesFor } from './favours';
 export { commitmentsView, fundCommitment, reviewCommitment, setMinisterTarget, authoriseTargetReleases } from './commitments';
+export { APPROACH_PC, canApproach, canAppointExceptional, getRecruitmentView, hasCapability, canFundRecruitment } from './recruitment';
+export type { AppointmentPost, Recruitment } from './recruitment';
+export { canLeaveVacant, getVacancyView, canPayRecruitmentArrears } from './recruitment';

@@ -1,4 +1,5 @@
 import { favourBelongs, favourParties } from './favour-ledger';
+import { hasCapability } from './recruitment';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { CFG, monthOf, termTurnOf } from './config';
 import { addOwed, shiftPoints } from './ledger';
@@ -128,6 +129,7 @@ export function senate(s: GameState): number {
 export function getVar(s: GameState, path: string): number {
   const p = path.split('.');
   switch (p[0]) {
+    case 'cap': return hasCapability(s, path) ? 1 : 0;
     case 'score': return PERSON_BY_ID[p[1]]?.group === 'minister' && s.people[p[1]] ? scoreOf(s, p[1]) : 0;
     case 'target': {
       const holder = s.governance?.offices[p[1]];

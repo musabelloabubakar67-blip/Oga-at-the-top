@@ -45,6 +45,10 @@ import { canFocus, initSecurity, offensiveOutcome, setFocus, worstTheatre } from
 import { shockTick } from './shocks';
 import { canCredit, canGroom, credit, groom } from './successor';
 import { CHECK_PC, HUNT_PC, candidate, candidatesFor, check, headhunt, release, take, talentTick } from './talent';
+import { refusal, talent } from './talent';
+import type { AppointmentPost } from './recruitment';
+import { approach, canApproach, canAppointExceptional, canFundRecruitment, fundRecruitment, holdRecruitmentFunding, reconcileRecruitment, recruitmentTick, hasCapability } from './recruitment';
+import { canLeaveVacant, leaveVacant, canPayRecruitmentArrears, payRecruitmentArrears } from './recruitment';
 import { floatNow, initCurrency } from './currency';
 import { canSetManager, setManager } from './places';
 import { canNominate, courtTick, nominate } from './courts';
@@ -726,6 +730,7 @@ function advance(s: GameState): void {
 
   const before = { ...s.nation };
   applyLedger(s);
+  recruitmentTick(s);
   agendaTick(s);
   ventureTick(s);
   economyTick(s);
@@ -836,6 +841,25 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'PERSON': person(s, action.id, action.op); break;
     case 'REPLACE_MINISTER': minister(s, action.id, action.kind, action.name); break;
     case 'CHECK_CANDIDATE': if (s.pc >= CHECK_PC && candidate(s, action.id) && !candidate(s, action.id)!.checked) note(s, check(s, action.id)); break;
+    case 'APPROACH_CANDIDATE': if (canApproach(s, action.id, action.post, action.acceptedTerms, movesLeft(s)).ok) {
+      const t = approach(s, action.id, action.post, action.acceptedTerms, movesLeft(s));
+      record(s, `recruit.${action.id}`, 'approach', 'politics', t, 1); note(s, t);
+    } break;
+    case 'APPOINT': if (canAppoint(s, action.id, action.post, movesLeft(s)).ok) {
+      const c = candidate(s, action.id)!, p = action.post;
+      const legacy: Action = p.kind === 'finance' ? { type: 'REPLACE_FIN', name: c.name }
+        : p.kind === 'minister' ? { type: 'REPLACE_MINISTER', id: p.id, kind: 'technocrat', name: c.name }
+        : p.kind === 'adviser' ? { type: 'REPLACE_ADVISER', role: p.id, name: c.name }
+        : p.kind === 'asset' ? { type: 'SET_MANAGER', id: p.id, name: c.name }
+        : built(s).some((i) => i.id === p.id) ? { type: 'REPLACE_HEAD', id: p.id, head: c.name } : { type: 'ESTABLISH', id: p.id, head: c.name };
+      Object.assign(s, applyAction(s, legacy));
+    } break;
+    case 'FUND_RECRUITMENT': if (canFundRecruitment(s, action.id).ok) note(s, fundRecruitment(s, action.id)); break;
+    case 'HOLD_RECRUITMENT': if (s.recruitment?.some((r) => r.candidateId === action.id && r.administrationId === s.governance!.administrationId && ['active', 'suspended'].includes(r.status) && r.monthlyCost > 0)) note(s, holdRecruitmentFunding(s, action.id)); break;
+    case 'PAY_RECRUITMENT_ARREARS': if (canPayRecruitmentArrears(s, action.id, action.amount).ok) note(s, payRecruitmentArrears(s, action.id, action.amount)); break;
+    case 'LEAVE_VACANT': if (canLeaveVacant(s, action.post, movesLeft(s)).ok) {
+      const t = leaveVacant(s, action.post, movesLeft(s)); record(s, `vacancy.${JSON.stringify(action.post)}`, 'vacant', 'politics', t, 2); note(s, t);
+    } break;
     case 'HEADHUNT': if (s.pc >= HUNT_PC && movesLeft(s) > 0) { s.desk.actionsUsed += 1; note(s, headhunt(s, action.role)); } break;
     case 'ORDER': order(s, action.id, action.target, action.level); break;
     case 'REPLACE_FIN': replaceFinance(s, action.name); break;
@@ -977,11 +1001,29 @@ export function applyAction(state: GameState, action: Action): GameState {
     } break;
     case 'END_MONTH': endMonth(s); break;
   }
+  reconcileRecruitment(s);
+  ensureGovernance(s);
   withdrawChangedFollowups(s);
   // The Chief of Staff's note is written at the start of the month; rewrite it once what it was about has been dealt with.
   if (action.type === 'BUDGET' || action.type === 'BUDGET_RESOLVE' || action.type === 'CHOOSE') s.desk.note = chiefOfStaffNote(s);
   reviewCommitmentsDue(s);
   return s;
+}
+
+/** Read-only eligibility for the shared appointment action; legacy costs and routes remain authoritative. */
+export function canAppoint(state: GameState, id: string, post: AppointmentPost, moves: number): { ok: boolean; reason?: string } {
+  const s = structuredClone(state), c = candidate(s, id);
+  if (!c || talent(s).taken.includes(id)) return { ok: false, reason: 'Candidate is not available.' };
+  const role = post.kind === 'finance' ? 'fin' : post.kind === 'asset' ? 'asset' : post.id;
+  const reason = refusal(s, c, role); if (reason) return { ok: false, reason };
+  const terms = canAppointExceptional(s, id, post); if (!terms.ok) return terms;
+  if (post.kind === 'institution') return built(s).some((i) => i.id === post.id) ? canReplaceHead(s, post.id, c.name, moves) : canEstablish(s, post.id, c.name, moves);
+  if (post.kind === 'adviser') return canReplaceAdviser(s, post.id, c.name, moves);
+  if (post.kind === 'asset') return canSetManager(s, post.id, c.name, moves);
+  if (post.kind === 'minister' && (PERSON_BY_ID[post.id]?.group !== 'minister' || !s.people[post.id])) return { ok: false, reason: 'No such ministry.' };
+  if (post.kind === 'finance' && (!s.chars.fin || s.chars.fin.name === c.name)) return { ok: false, reason: 'No vacant or replaceable Finance post.' };
+  const pc = post.kind === 'finance' ? 10 : sackCost(s, post.id);
+  return moves > 0 && s.pc >= pc ? { ok: true } : { ok: false, reason: `Needs one move and ${pc} political capital.` };
 }
 
 function note(s: GameState, text: string): void {
@@ -1154,7 +1196,7 @@ function agendaTick(s: GameState): void {
     // Some reforms hurt before they pay: the tariff rises before the light improves.
     for (const f of entry.m.during ?? []) applyFx(s, f);
     const building = drawsOnInfra(entry.track.id) ? buildSpeed(s) : 1;
-    a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building;
+      a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building * (a.id === 'p2' && hasCapability(s, 'cap.grid_diagnostics') ? 1.3 : 1);
     if (a.progress < 100) { still.push(a); continue; }
     const { m, track } = entry;
     const before = snapshot(s);
@@ -1382,6 +1424,7 @@ function replaceFinance(s: GameState, name: string): void {
   } : undefined);
   const old = s.chars.fin;
   if (!next || !old || next.name === old.name || movesLeft(s) <= 0 || s.pc < 10) return;
+  if (pooled && !canAppointExceptional(s, pooled.c.id, { kind: 'finance' }).ok) return;
   if (pooled) take(s, pooled.c.id);
   release(s, old.name);
   const before = snapshot(s);
@@ -1423,6 +1466,7 @@ function minister(s: GameState, id: string, kind: 'technocrat' | 'party', name?:
   if (movesLeft(s) <= 0 || s.pc < cost || !s.people[id] || PERSON_BY_ID[id]?.group !== 'minister') return;
   const pick = name ? candidatesFor(s, id, 99).find((o) => o.c.name === name) : undefined;
   if (name && (!pick || pick.refuses)) return;
+  if (pick && !canAppointExceptional(s, pick.c.id, { kind: 'minister', id }).ok) return;
   const before = snapshot(s);
   s.pc -= cost;
   s.desk.actionsUsed += 1;

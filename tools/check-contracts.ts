@@ -1,4 +1,5 @@
 import { candidate, candidatesFor, getCandidateView, release, take, talent, talentTick } from '../engine/talent';
+import { runRecruitmentChecks } from './check-recruitment';
 import { transferSavedFund } from '../engine/fund-transfers';
 import { currencyTick, fxFlow } from '../engine/currency';
 import { runOp } from '../engine/ops';
@@ -445,4 +446,5 @@ void unsupported;
 passed += runSocialChecks();
 passed += runCommitmentChecks();
 passed += runGeneratedNameChecks();
+passed += runRecruitmentChecks();
 process.stdout.write(`${passed} contract checks passed.\n`);

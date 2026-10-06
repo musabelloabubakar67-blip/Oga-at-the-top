@@ -121,6 +121,8 @@ These come from `EVENT-AUDIT.md`. Each is narrow and unblocks a specific fix.
 
 Status of the small requests at `b07f3e8`: S2, S5 and S7 delivered and consumed on this branch (all 26 headline warnings resolved; `grid.collapse` no longer fires during the blackout shock). S1, S3, S4, S6 outstanding. S8 new.
 
+Status at `6878dce`: every small request (S1 to S9) is delivered. S1 (targets) is consumed by `min.target.review`; S8 by the `$ADMIN` records; S9 means both generators now refuse `BLOCKED_NAMES`, so no blocked pair can appear in a new pool or court bench (pools saved before it are kept as they were).
+
 ## Content fixes already made on this branch (no engine change)
 
 D2 (empty fuel reserve), D3 (double metering), D4 (₦6tn headline), D6 (Eurobond headline), D7 (injunction now needs the open contracting rules in force), D8 (tax debate needs the tax reform under way), D9 (the lender's programme says it ends the subsidy and runs the subsidy beats), D12 (two public cabinet outcomes given headlines), and D1 in part (no credit for being put on a target).

@@ -4,6 +4,7 @@ import { reformName } from './reforms';
 // fills it from the state when the file is drawn.
 
 import { EVENTS } from '../content';
+import { withCapabilities } from './capabilities';
 import { clockOf, ensureGovernance } from './governance';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { THEATRE_BY_ZONE } from '../content/theatres';
@@ -146,13 +147,13 @@ export function materialise(s: GameState, e: GameEvent, cast: Record<string, str
         ...(effect.type === 'request.open' && effect.previous !== undefined ? { previous: scope(effect.previous) } : {}),
     })) },
   } : o;
-  if (!out.episode && !out.ignored?.domain && !out.choices.some((c) => c.outcomes.some((o) => o.domain))) return out;
-  return {
+  if (!out.episode && !out.ignored?.domain && !out.choices.some((c) => c.outcomes.some((o) => o.domain))) return withCapabilities(s, out);
+  return withCapabilities(s, {
     ...out,
     ...(out.episode ? { episode: { ...out.episode, episodeId: scope(out.episode.episodeId) } } : {}),
     choices: out.choices.map((c) => ({ ...c, outcomes: c.outcomes.map(outcome) })),
     ...(out.ignored ? { ignored: outcome(out.ignored) } : {}),
-  };
+  });
 }
 
 export function eventOf(s: GameState, item: DeskItem | null | undefined): GameEvent | undefined {

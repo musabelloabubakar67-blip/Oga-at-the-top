@@ -12,6 +12,7 @@ import { BACKGROUNDS, NAMES_BY_ZONE, ROLE_SPECS, SPEC_NAME, TITLES, type Spec } 
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from './config';
 import { chooseGeneratedName, fullGeneratedName } from './generated-names';
+import { exceptionalRefusal, getRecruitmentView } from './recruitment';
 import type { GameState, ZoneId } from './types';
 import { approval, clamp } from './vars';
 
@@ -141,11 +142,11 @@ export function competenceIn(c: Candidate, role: string): number {
 const patronName = (id: string) => TYCOON_BY_ID[id]?.short ?? PERSON_BY_ID[id]?.short ?? id;
 
 /** Why this person will not take the job, if they will not. */
-export function refusal(s: GameState, c: Candidate): string | null {
+export function refusal(s: GameState, c: Candidate, role?: string): string | null {
   // A government is judged on its own record. Until it has one, nobody holds the last one against it.
   // These appointments require a negotiated, enforceable contract. Legacy buttons
   // must not silently accept terms or promise capabilities they do not yet enforce.
-  if (c.exceptional) return 'Requires a negotiated appointment on the stated terms.';
+  if (c.exceptional) { const reason = exceptionalRefusal(s, c.id, role); if (reason) return reason; }
   const settled = s.turn > CFG.honeymoonMonths;
   // Corruption that is this government's: integrity has fallen on its watch, or the President has kept money.
   const ownRecord = s.nation.integrity < 32 && (s.nation.integrity <= s.baseline.integrity - 4 || s.purseTaken.personal >= 10);
@@ -164,7 +165,7 @@ export interface Offer { c: Candidate; fit: boolean; effective: number; refuses:
 export function candidatesFor(s: GameState, role: string, n = 10): Offer[] {
   const t = talent(s);
   return t.pool.filter((c) => !t.taken.includes(c.id))
-    .map((c) => ({ c, fit: fits(c, role), effective: competenceIn(c, role), refuses: refusal(s, c), shown: c.checked ? { competence: c.competence, loyalty: c.loyalty, integrity: c.integrity } : c.rep }))
+    .map((c) => ({ c, fit: fits(c, role), effective: competenceIn(c, role), refuses: refusal(s, c, role), shown: c.checked ? { competence: c.competence, loyalty: c.loyalty, integrity: c.integrity } : c.rep }))
     .sort((a, b) => Number(b.fit) - Number(a.fit) || b.shown.competence - a.shown.competence || b.shown.integrity - a.shown.integrity)
     // The best of each zone is always on the list, so a cabinet can be balanced.
     .filter((o, i, all) => (o.c.named && o.c.roles?.includes(role)) || i < n || all.findIndex((x) => x.c.zone === o.c.zone) === i);
@@ -226,10 +227,32 @@ export function getCandidateView(s: GameState) {
     conditions: c.exceptional?.conditions ?? [], plainExcellence: c.plainExcellence,
     state: t.taken.includes(c.id) ? 'appointed' as const : refusal(copy, c) ? 'unavailable' as const : 'available' as const,
     reason: refusal(copy, c), proposedCapabilities: CANDIDATE_BY_ID[c.id]?.exceptional?.capabilities ?? [],
+    recruitment: getRecruitmentView(copy).filter((r) => r.candidateId === c.id).at(-1),
   })));
 }
 
 export const CHECK_PC = 2;
+/** A suggestion based on appointment files, never an automatic cabinet or a revelation of hidden traits. */
+export function proposedSlate(s: GameState) {
+  const copy = structuredClone(s), chosen = new Set<string>(), zones = new Set<ZoneId>();
+  const offices = ['fin', 'min_defence', 'min_power', 'min_works', 'min_service', 'min_agric', 'min_justice', 'cos'];
+  const appointments = offices.map((role) => {
+    const offers = candidatesFor(copy, role, 99).filter((o) => o.c.named && o.c.roles?.includes(role));
+    const available = offers.filter((o) => !chosen.has(o.c.id) && !o.refuses && !o.c.exceptional)
+      .sort((a, b) => Number(zones.has(a.c.zone)) - Number(zones.has(b.c.zone)) || b.shown.competence - a.shown.competence || b.shown.integrity - a.shown.integrity);
+    const suggested = available[0];
+    if (suggested) { chosen.add(suggested.c.id); zones.add(suggested.c.zone); }
+    const incumbent = copy.chars[role]?.name ?? copy.people[role]?.name ?? PERSON_BY_ID[role]?.name;
+    const incumbentZone = incumbent ? copy.origins?.[incumbent] ?? ORIGIN[incumbent] : undefined;
+    if (!suggested && incumbentZone) zones.add(incumbentZone);
+    return { role, candidateId: suggested?.c.id, name: suggested?.c.name ?? incumbent ?? 'Vacant', source: suggested ? 'file' as const : 'incumbent' as const,
+      zone: suggested?.c.zone ?? incumbentZone, alternatives: offers.map((o) => ({ candidateId: o.c.id, name: o.c.name, zone: o.c.zone, shown: { ...o.shown }, reason: o.refuses, requiresNegotiation: !!o.c.exceptional })) };
+  });
+  const missing = ZONES.filter((z) => !zones.has(z));
+  return { appointments, coalitionConstraints: [{ kind: 'zone-balance' as const, represented: [...zones], missing,
+    text: missing.length ? `The proposed team leaves ${missing.join(', ')} without a represented office. Review the coalition before accepting it.` : 'The proposed team represents all six zones.' }],
+    note: 'These are suggestions from the files. The President chooses the team; no appointment or starting effect has been applied.' };
+}
 export const HUNT_PC = 3;
 
 /** A background check: the truth about one person. */

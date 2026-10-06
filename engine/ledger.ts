@@ -9,11 +9,12 @@ const round = (x: number) => Math.round(x * 1000) / 1000;
 /** Dollar debt costs more as the naira weakens. */
 export function rateOf(s: GameState, id: DebtId): number {
   const d = DEBT_BY_ID[id];
-  if (id === 'eurobond') return d.rate * (1 + Math.max(0, s.nation.inflation - 20) * 0.012);
+  const factor = s.debtTerms?.[id]?.rateFactor ?? 1;
+  if (id === 'eurobond') return d.rate * (1 + Math.max(0, s.nation.inflation - 20) * 0.012) * factor;
   // A banker who is with you keeps the auctions friendly; one who is not does the opposite.
   if (id === 'bonds') {
     const rel = s.tycoons?.ty_bank?.rel ?? 50;
-    return d.rate + (rel >= 60 ? -0.25 : rel < 35 ? 0.35 : 0);
+    return (d.rate + (rel >= 60 ? -0.25 : rel < 35 ? 0.35 : 0)) * factor;
   }
   return d.rate;
 }

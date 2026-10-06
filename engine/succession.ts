@@ -86,6 +86,11 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
     scandalHeat: w.sameParty ? prev.pressures.scandalHeat * 0.6 : prev.pressures.scandalHeat * 0.3,
   };
   s.debts = { ...prev.debts };
+  s.debtTerms = structuredClone(prev.debtTerms ?? {});
+  s.vacancies = structuredClone(Object.fromEntries(Object.entries(prev.vacancies ?? {}).filter(([, v]) => ['institution', 'asset'].includes(v.post.kind))));
+  s.counters['graft.trustLost'] = prev.counters['graft.trustLost'] ?? 0;
+  s.recruitment = structuredClone(prev.recruitment ?? []).map((r) => ['agreed', 'active', 'suspended'].includes(r.status)
+    ? { ...r, status: 'ended' as const, reason: 'The administration ended. A successor must negotiate or ratify the terms; payroll arrears remain recorded.' } : r);
   s.funds = { ...prev.funds };
   s.fundTransfers = structuredClone(prev.fundTransfers ?? []);
   s.oil = { ...prev.oil };

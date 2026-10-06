@@ -4,6 +4,7 @@
 // the capture shows, with the name of whoever is being served.
 
 import { mo } from './config';
+import { canAppointExceptional } from './recruitment';
 import { INSTITUTIONS, INSTITUTION_BY_ID, type InstitutionDef } from '../content/institutions';
 import { candidatesFor, release, specName, take } from './talent';
 import { CFG } from './config';
@@ -129,6 +130,7 @@ export function canEstablish(s: GameState, id: string, head: string, movesLeft: 
   const h = headsFor(s, id).find((x) => x.name === head);
   if (!h) return { ok: false, reason: 'Not available.' };
   if (h.refuses) return { ok: false, reason: h.refuses };
+  if (h.cid) { const can = canAppointExceptional(s, h.cid, { kind: 'institution', id }, d.naira); if (!can.ok) return can; }
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < d.pc) return { ok: false, reason: `Needs ${d.pc} political capital.` };
   if (d.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) return { ok: false, reason: 'There is no money, and nobody will lend it.' };
@@ -138,6 +140,7 @@ export function canEstablish(s: GameState, id: string, head: string, movesLeft: 
 export function establish(s: GameState, id: string, headName: string): { text: string; changes: ReturnType<typeof diff> } {
   const d = INSTITUTION_BY_ID[id];
   const head = headsFor(s, id).find((h) => h.name === headName)!;
+  if (head.cid && !canAppointExceptional(s, head.cid, { kind: 'institution', id }, d.naira).ok) throw new Error('Exceptional appointment terms are not agreed or funded');
   appointed(s, head);
   const before = snapshot(s);
   s.pc = clamp(s.pc - d.pc, 0, 100);
@@ -172,6 +175,7 @@ export function canReplaceHead(s: GameState, id: string, head: string, movesLeft
   const h = headsFor(s, id).find((x) => x.name === head);
   if (inst.head.name === head || !h) return { ok: false, reason: 'Not available.' };
   if (h.refuses) return { ok: false, reason: h.refuses };
+  if (h.cid) { const can = canAppointExceptional(s, h.cid, { kind: 'institution', id }); if (!can.ok) return can; }
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < REHEAD_PC) return { ok: false, reason: `Needs ${REHEAD_PC} political capital.` };
   return { ok: true };
@@ -179,6 +183,8 @@ export function canReplaceHead(s: GameState, id: string, head: string, movesLeft
 
 export function replaceHead(s: GameState, id: string, headName: string): string {
   const inst = built(s).find((i) => i.id === id)!;
+  const proposed = headsFor(s, id).find((h) => h.name === headName)!;
+  if (proposed.cid && !canAppointExceptional(s, proposed.cid, { kind: 'institution', id }).ok) throw new Error('Exceptional appointment terms are not agreed or funded');
   const old = inst.head;
   inst.head = headsFor(s, id).find((h) => h.name === headName)!;
   appointed(s, inst.head);

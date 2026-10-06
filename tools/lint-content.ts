@@ -22,6 +22,8 @@ const BASE_TOKENS = ['PRES', 'NAME', 'SIR', 'MRP', 'PARTY', 'PSHORT', 'HOME', 'Y
 const ROLES = new Set([...CAST.map((c) => c.id), 'fin']);
 const OPS = new Set(['backer', 'spendall', 'deliver', 'paydebt', 'notes', 'grant', 'settle', 'repudiate', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect', 'finleave', 'backsucc', 'succadj', 'weaken', 'forgive', 'charge', 'vpbrief', 'honour', 'breakp', 'settlep', 'pledgewant', 'target', 'targetrelease']);
 const KNOWN = new Set([...PEOPLE.map((p) => p.id), ...TYCOONS.map((t) => t.id), ...RIVALS.map((r) => r.id)]);
+OPS.add('negotiatedebt');
+const CAP_PATH = /^cap\.(debt_restructuring|grid_diagnostics|complex_prosecution|university_settlement)$/;
 
 const seen = new Set<string>();
 for (const e of EVENT_LIST) {
@@ -39,7 +41,7 @@ function checkCond(e: Ref, c: Cond | undefined): void {
   if ('not' in c) return checkCond(e, c.not);
   if ('v' in c) {
     const path = plain(c.v[0]);
-    if (!READ_PATH.test(path)) err(e, `unknown variable in condition: ${c.v[0]}`);
+    if (!READ_PATH.test(path) && !CAP_PATH.test(path)) err(e, `unknown variable in condition: ${c.v[0]}`);
     const p = path.split('.');
     if ((p[0] === 'person' || p[0] === 'comp' || p[0] === 'gone') && p[1] !== 'x' && !PERSON_BY_ID[p[1]]) err(e, `condition names an unknown person: ${c.v[0]}`);
     if (p[0] === 'tycoon' && p[1] !== 'x' && !TYCOON_BY_ID[p[1]]) err(e, `condition names an unknown businessman: ${c.v[0]}`);
@@ -216,6 +218,7 @@ followed.add('tribunal.petition');
 followed.add('promise.clash');
 followed.add('cast.call');
 followed.add('min.target.review'); // queued by setMinisterTarget (contract S1)
+followed.add('uni.negotiated.balance'); // queued by the negotiated university capability
 for (const d of SHOCKS) followed.add(d.file);
 for (const e of EVENT_LIST) if (e.ignored) for (const f of e.ignored.follow ?? []) followed.add(f.event);
 for (const e of chains) if (!followed.has(e.id)) err(e, 'chain event is never queued by anything');

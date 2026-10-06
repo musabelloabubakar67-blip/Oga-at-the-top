@@ -5,6 +5,7 @@
 // be reached. The President can stand behind a case or lean on it.
 
 import { midName } from './text';
+import { hasCapability } from './recruitment';
 import { NAMES } from '../content/names';
 import { PERSON_BY_ID } from '../content/people';
 import { addExposure } from './archive';
@@ -35,7 +36,7 @@ export function openCases(s: GameState): Case[] {
 export function trialLength(s: GameState): number {
   const base = s.agenda.done.includes('c2') ? 7 : 14;
   // Courts that are digitised and run by managers move faster.
-  return Math.max(4, Math.round(base * (s.agenda.done.includes('j2') ? 0.8 : 1) * (s.agenda.done.includes('j6') ? 0.85 : 1)));
+  return Math.max(4, Math.round(base * (s.agenda.done.includes('j2') ? 0.8 : 1) * (s.agenda.done.includes('j6') ? 0.85 : 1) * (hasCapability(s, 'cap.complex_prosecution') ? 0.7 : 1)));
 }
 
 /** Who is prosecuting, in a phrase. */
@@ -50,6 +51,8 @@ export function convictionOdds(s: GameState, c: Case): { p: number; lines: OddsL
   const lines: OddsLine[] = [{ label: 'An ordinary case in an ordinary court', value: 0.3 }];
   const add = (label: string, value: number) => { if (Math.abs(value) >= 0.01) lines.push({ label, value }); };
   if (s.agenda.done.includes('c2')) add('Anti-corruption courts with time limits', 0.2);
+  if (hasCapability(s, 'cap.complex_prosecution')) add('The complex-prosecution specialist builds evidence that survives appeal', 0.15);
+  if (s.counters['graft.trustLost']) add('Public interference damaged trust in the prosecution service', -Math.min(0.12, s.counters['graft.trustLost'] * 0.03));
   const g = graft(s);
   if (g) {
     const honest = g.head.integrity >= 3 && !(g.head.patron !== 'president' && g.head.loyalty <= 3);
@@ -140,6 +143,13 @@ export function caseTick(s: GameState): void {
     if (clout >= 4 && rand(s) < 0.015 * clout) {
       c.outcome = 'fled';
       c.closed = s.turn;
+      if (hasCapability(s, 'cap.complex_prosecution') && c.recover > 0 && !c.traced) {
+        const amount = c.recover * 0.25;
+        c.traced = { at: s.turn, amount }; c.recover -= amount;
+        // A recorded recovery is money, not a bounded national score.
+        s.nation.fiscalSpace += amount;
+        s.report.push({ kind: 'consequence', title: `${c.name}: assets traced abroad`, text: `The specialist recovered ₦${(amount * 1000).toFixed(1)}bn abroad, one quarter of the case's recorded recoverable assets. The remainder has not been recovered.`, changes: [] });
+      }
       applyFx(s, ['nation.integrity', -1]);
       s.news.push({ chronicle: `${c.name.toUpperCase()} JUMPS BAIL, LEAVES THE COUNTRY`, street: `${c.name.toUpperCase()} DON JAPA`, weight: 6, valence: -1, topic: 'scandal', body: 'The passport had been surrendered. A second one had not.' });
       s.report.push({ kind: 'failure', title: `${c.name} fled before the verdict`, cause: c.what, text: 'Bail was granted on a surety nobody checked. The case is open and the accused is abroad.', changes: [] });

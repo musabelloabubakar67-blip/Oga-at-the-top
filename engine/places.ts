@@ -8,6 +8,7 @@ import { STATES, STATE_BY_ID } from '../content/states';
 import { VENTURE_BY_ID } from '../content/ventures';
 import { REHEAD_PC, headsFor, type Head } from './institutions';
 import { release, take } from './talent';
+import { canAppointExceptional } from './recruitment';
 import type { Fx, GameState } from './types';
 import { ZONE_NAME, applyFx, clamp } from './vars';
 import { buildCost, payBuild } from './treasury';
@@ -150,6 +151,7 @@ export function canSetManager(s: GameState, id: string, head: string, movesLeft:
   const h = headsFor(s, 'asset').find((x) => x.name === head);
   if (a.head.name === head || !h) return { ok: false, reason: 'Not available.' };
   if (h.refuses) return { ok: false, reason: h.refuses };
+  if (h.cid) { const can = canAppointExceptional(s, h.cid, { kind: 'asset', id }); if (!can.ok) return can; }
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (s.pc < REHEAD_PC) return { ok: false, reason: `Needs ${REHEAD_PC} political capital.` };
   return { ok: true };
@@ -157,6 +159,8 @@ export function canSetManager(s: GameState, id: string, head: string, movesLeft:
 
 export function setManager(s: GameState, id: string, headName: string): string {
   const a = assets(s).find((x) => x.id === id)!;
+  const proposed = headsFor(s, 'asset').find((h) => h.name === headName)!;
+  if (proposed.cid && !canAppointExceptional(s, proposed.cid, { kind: 'asset', id }).ok) throw new Error('Exceptional appointment terms are not agreed or funded');
   const old = a.head;
   a.head = headsFor(s, 'asset').find((h) => h.name === headName)!;
   const cid = (a.head as Head).cid;

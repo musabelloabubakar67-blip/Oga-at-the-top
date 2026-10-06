@@ -1,6 +1,7 @@
 import type { FavourSettlement, FavourUseId } from './favour-ledger';
 import type { FundTransfer } from './fund-transfers';
 import type { Talent } from './talent';
+import type { AppointmentPost, Recruitment } from './recruitment';
 import type { DomainOutcome, EpisodeBinding, GovernanceState } from './contracts';
 
 // Core types for the slice. See docs/gdd for the full model; the slice
@@ -515,6 +516,9 @@ export interface GameState {
   ventures: { active: { id: string; progress: number }[]; won: string[]; lost: string[]; causes: Record<string, string> };
   /** Everyone who could be appointed to anything. Created on first use. */
   talent?: Talent;
+  recruitment?: Recruitment[];
+  vacancies?: Record<string, { post: AppointmentPost; at: number; previousName: string }>;
+  debtTerms?: Partial<Record<DebtId, { rateFactor: number; at: number; administrationId: string }>>;
   /** Where each big bet is being built: venture id to state id. */
   sites?: Record<string, string>;
   /** Big bets that worked and now run every month. */
@@ -551,7 +555,7 @@ export interface GameState {
   /** Where appointees from the talent pool come from, by name. */
   origins?: Record<string, ZoneId>;
   /** Prosecutions under way and decided: who, for what, and where it stands. */
-  cases?: { id: string; who: string; name: string; what: string; opened: number; stage: 'charged' | 'trial'; months: number; trialFrom?: number; recover: number; by: 'agency' | 'prosecutors'; backed?: boolean; leaned?: boolean; outcome?: 'convicted' | 'acquitted' | 'dropped' | 'fled'; closed?: number }[];
+  cases?: { id: string; who: string; name: string; what: string; opened: number; stage: 'charged' | 'trial'; months: number; trialFrom?: number; recover: number; by: 'agency' | 'prosecutors'; backed?: boolean; leaned?: boolean; outcome?: 'convicted' | 'acquitted' | 'dropped' | 'fled'; closed?: number; traced?: { at: number; amount: number } }[];
   institutions?: { id: string; head: { name: string; competence: number; loyalty: number; integrity: number; patron: string; rep: { competence: number; loyalty: number }; blurb?: string; spec?: string; fit?: boolean }; since: number; seen?: boolean; /** When it was set up, for ramp-up; `since` is when the head took over. */ founded?: number; funding?: 'lean' | 'standard' | 'generous'; /** What it has done since it was set up, in its own units. */ record?: Record<string, number> }[];
   /** Every adviser's forecasts, checked against what happened. */
   advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
@@ -660,6 +664,12 @@ export type Action =
   | { type: 'LAND_FORMER'; name: string }
   | { type: 'GROOM_CREDIT'; id: string; reform: string }
   | { type: 'CHECK_CANDIDATE'; id: string }
+  | { type: 'APPROACH_CANDIDATE'; id: string; post: AppointmentPost; acceptedTerms: string[] }
+  | { type: 'APPOINT'; id: string; post: AppointmentPost }
+  | { type: 'FUND_RECRUITMENT'; id: string }
+  | { type: 'HOLD_RECRUITMENT'; id: string }
+  | { type: 'PAY_RECRUITMENT_ARREARS'; id: string; amount?: number }
+  | { type: 'LEAVE_VACANT'; post: AppointmentPost }
   | { type: 'HEADHUNT'; role: string }
   | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
   | { type: 'HONOUR'; id: number }
