@@ -1,4 +1,5 @@
 import { entrenchedReform } from './constitution';
+import { canProbe, decideInquiry, inquiries, probe } from './inquiry';
 import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
 import { refreshRequests } from './wants';
 import { reviewCommitmentsDue } from './commitments';
@@ -840,6 +841,8 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'ASSET_UPKEEP': note(s, setUpkeep(s, action.id, action.mode)); break;
     case 'MISSION_START': if (canStartMission(s, action.id, movesLeft(s)).ok) note(s, startMission(s, action.id, action.resources as Resources, action.kept)); break;
     case 'MISSION_END': if (canEndMission(s, action.id)) note(s, endMission(s, action.id)); break;
+    case 'INQUIRY_PROBE': if (canProbe(s, action.id, action.method, movesLeft(s)).ok) note(s, probe(s, action.id, action.method)); break;
+    case 'INQUIRY_DECIDE': if (inquiries(s).some((q) => q.id === action.id && !q.decided) && movesLeft(s) > 0) note(s, decideInquiry(s, action.id, action.hypothesis)); break;
     case 'MIL_APPOINT': if (canAppointOfficer(s, action.post, action.officer, movesLeft(s)).ok) note(s, appointOfficer(s, action.post, action.officer)); break;
     case 'CASE':
       if (action.op === 'back' && canBack(s, action.id).ok) note(s, backCase(s, action.id));

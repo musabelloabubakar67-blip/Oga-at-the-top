@@ -531,6 +531,8 @@ export interface GameState {
   society?: import('./society').Society;
   /** The Supreme Court's judgments, with their reasoning (plan 04). The country's case law; carried across governments. */
   judgments?: { turn: number; subject: string; upheld: boolean; reasoning: string }[];
+  /** Questions with competing explanations: the reports, the decision and what turned out to be true (plan 08). */
+  inquiries?: import('./inquiry').Inquiry[];
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
@@ -670,6 +672,8 @@ export type Action =
   | { type: 'MISSION_START'; id: string; resources: 'lean' | 'standard' | 'surge'; kept: boolean[] }
   | { type: 'MISSION_END'; id: string }
   | { type: 'MIL_APPOINT'; post: string; officer: string }
+  | { type: 'INQUIRY_PROBE'; id: string; method: 'audit' | 'field' | 'intel' }
+  | { type: 'INQUIRY_DECIDE'; id: string; hypothesis: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

@@ -51,6 +51,8 @@ import { MILESTONE_BY_ID, ORDER_BY_ID } from '../content/agenda';
 import type { Choice, DeskItem, Fx, GameEvent, GameState, ZoneId } from '../engine/types';
 import { ZONES, approval, delegates, hardship, test } from '../engine/vars';
 import { traceFor } from '../engine/view';
+import { canProbe, inquiries } from '../engine/inquiry';
+import { MYSTERY_BY_ID } from '../content/mysteries';
 
 type Weights = Record<string, number>;
 interface Bot {
@@ -325,6 +327,18 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
         const f = s.favours.find((x) => x.dir === 'owed' && canCall(s, x, movesLeft(s)).ok);
         if (f) s = applyAction(s, { type: 'FAVOUR', id: f.id, use: 'capital' });
       }
+    }
+    // Questions (plan 08): a careful President asks a second source and decides on the weight of evidence;
+    // the others act on the ministry's account.
+    for (const q of inquiries(s).filter((x) => !x.decided)) {
+      if (movesLeft(s) <= 0) break;
+      const careful = bot.reforms === 'all';
+      if (careful && q.reports.length < 2 && !q.probing.length && canProbe(s, q.id, 'field', movesLeft(s)).ok) { s = applyAction(s, { type: 'INQUIRY_PROBE', id: q.id, method: 'field' }); continue; }
+      if (careful && q.probing.length) continue;
+      const votes = new Map<string, number>();
+      for (const r of q.reports) if (r.says) votes.set(r.says, (votes.get(r.says) ?? 0) + (r.confidence === 'high' ? 3 : r.confidence === 'medium' ? 2 : 1));
+      const pick = [...votes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? MYSTERY_BY_ID[q.id].hypotheses[0].id;
+      s = applyAction(s, { type: 'INQUIRY_DECIDE', id: q.id, hypothesis: pick });
     }
     if (bot.reforms) {
       const ranked = bot.reforms === 'all' ? [...s.agenda.tracks, ...TRACKS.map((t) => t.id).filter((id) => !s.agenda.tracks.includes(id))] : s.agenda.tracks;

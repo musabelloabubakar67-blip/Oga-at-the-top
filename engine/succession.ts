@@ -99,6 +99,8 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   if (prev.military) s.military = structuredClone(prev.military);
   // The court's case law binds the next government too (plan 04).
   if (prev.judgments) s.judgments = structuredClone(prev.judgments);
+  // Questions still open pass to the successor, with the evidence gathered so far.
+  if (prev.inquiries) s.inquiries = structuredClone(prev.inquiries);
   for (const k of ['struck', 'upheld']) if (prev.counters[k]) s.counters[k] = prev.counters[k];
   // What citizens did and the constituencies earlier successes created are the next government's politics (plan 14).
   if (prev.society) s.society = { ...structuredClone(prev.society), acts: [] };

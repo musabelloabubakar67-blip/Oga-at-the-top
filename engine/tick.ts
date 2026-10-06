@@ -1,5 +1,6 @@
 import { militaryTick } from './military';
 import { societyTick } from './society';
+import { inquiryTick } from './inquiry';
 import { formersTick } from './formers';
 import { predTick } from './predecessor';
 import { vpTick } from './vp';
@@ -90,6 +91,7 @@ export function economyTick(s: GameState): void {
   }
   militaryTick(s);
   societyTick(s);
+  inquiryTick(s);
   securityTick(s);
   // What the standing policies do this month, worked out against the economy as it is.
   policyTick(s);
