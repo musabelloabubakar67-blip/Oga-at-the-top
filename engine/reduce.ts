@@ -1,8 +1,9 @@
 import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
 import { refreshRequests } from './wants';
+import { reviewCommitmentsDue } from './commitments';
 import { reformName } from './reforms';
 import { applyDomainOutcome } from './domain-outcomes';
-import { ensureGovernance, inheritGovernance, markCommitmentsDue } from './governance';
+import { ensureGovernance, inheritGovernance } from './governance';
 export { reformName } from './reforms';
 
 import { canLand, land } from './formers';
@@ -227,7 +228,7 @@ export function newGame(setup: Setup, prev?: GameState): GameState {
   else ensureGovernance(s, true);
   refreshRequests(s);
   bindFavours(s);
-  markCommitmentsDue(s);
+  reviewCommitmentsDue(s);
   buildDesk(s);
   refreshOffers(s);
   // What was already unpaid on the first morning, for the verdict to measure against.
@@ -286,7 +287,10 @@ export function availability(s: GameState, c: Choice): Availability {
       ? { visible: true, ok: false, reason: 'The drawer does not hold enough.' }
       : { visible: false, ok: false };
   }
-  if (c.naira && c.naira > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
+  const commitmentPayment = Math.max(0, ...c.outcomes.filter((o, i) => test(s, o.when) || i === c.outcomes.length - 1).map((o) => o.domain?.effects.reduce((n, e) => n + (e.type === 'commitment.fund' ? e.amount : 0), 0) ?? 0));
+  if (commitmentPayment > 0 && commitmentPayment > s.nation.fiscalSpace) return { visible: true, ok: false, reason: 'There is not enough treasury cash for the commitment payment.' };
+  const totalCashCost = (c.naira ?? 0) + commitmentPayment;
+  if (totalCashCost > 0 && totalCashCost > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
     return { visible: true, ok: false, reason: 'There is no money, and nobody will lend it.' };
   }
   // Short of capital, the President can still act. The party and the Villa pay the difference.
@@ -736,6 +740,7 @@ function advance(s: GameState): void {
   shockTick(s);
   dispatchTick(s, before);
   refreshRequests(s);
+  reviewCommitmentsDue(s);
 
   const tt = termTurnOf(s.turn);
   if (s.term === 2 && tt === CFG.electionTermTurn + 1 && !s.succession) {
@@ -975,7 +980,7 @@ export function applyAction(state: GameState, action: Action): GameState {
   withdrawChangedFollowups(s);
   // The Chief of Staff's note is written at the start of the month; rewrite it once what it was about has been dealt with.
   if (action.type === 'BUDGET' || action.type === 'BUDGET_RESOLVE' || action.type === 'CHOOSE') s.desk.note = chiefOfStaffNote(s);
-  markCommitmentsDue(s);
+  reviewCommitmentsDue(s);
   return s;
 }
 

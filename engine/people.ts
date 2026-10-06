@@ -8,7 +8,7 @@ import { CFG } from './config';
 import type { GameState, Mark, PersonState, ZoneId } from './types';
 import { canRefuse, currentWant, refuse } from './wants';
 import { release, take, type Offer } from './talent';
-import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing } from './vars';
+import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing, registerScore } from './vars';
 
 export { senate, standing };
 export type { PersonState };
@@ -402,3 +402,4 @@ export function seedMinisters(s: GameState, roll: () => number): void {
   }
 }
 
+registerScore((s, id) => scorecard(s, id).score);

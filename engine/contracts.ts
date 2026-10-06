@@ -85,7 +85,17 @@ export interface CommitmentRecord {
   /** A due commitment awaits evidence; reaching the date is never success. */
   status: 'open' | 'review-due' | 'kept' | 'broken' | 'renegotiated';
   notes: { at: WorldMonth; text: string }[];
+  parties?: PersonId[];
+  conditions?: string[];
+  verify?: import('./types').Cond;
+  resources?: { naira: number; released: number; payments: { at: WorldMonth; administrationId: AdministrationId; amount: number; reason: string }[] };
+  review?: CommitmentReview;
+  reviews?: CommitmentReview[];
+  target?: { office: string; baseline: number; improvement: number; samples: TargetBudgetSample[]; budgetBaseline?: Partial<Record<import('./types').SectorId, number>> };
 }
+export type ReviewVerdict = 'met' | 'missed' | 'withheld' | 'disputed';
+export interface CommitmentReview { at: WorldMonth; verdict: ReviewVerdict; evidence: string[]; governmentContribution: string[]; score?: number }
+export interface TargetBudgetSample { at: WorldMonth; sector: import('./types').SectorId; allocated: number; released: number; mode: 'normal' | 'full' | 'hold'; reasons: string[]; governmentWithheld?: number }
 export interface GovernanceState {
   schemaVersion: typeof GOVERNANCE_SCHEMA_VERSION;
   contractVersion: typeof CONTRACT_VERSION;
@@ -107,8 +117,10 @@ export type DomainEffect =
   | { type: 'request.open'; id: RequestId; requester: ActorRef; object: string; text: string; episodeId?: EpisodeId; ambition?: string; terms?: RequestTerms; previous?: RequestId; changedBy?: RequestChange }
   | { type: 'request.close'; id: RequestId; status: Exclude<RequestStatus, 'open' | 'substituted'>; response: string }
   | { type: 'request.substitute'; id: RequestId; text: string; accepted: boolean; terms?: RequestTerms }
-  | { type: 'commitment.open'; id: CommitmentId; responsible: ActorRef; object: string; text: string; afterMonths: number; visibility: 'public' | 'private' }
-  | { type: 'commitment.note'; id: CommitmentId; text: string };
+  | { type: 'commitment.open'; id: CommitmentId; responsible: ActorRef; object: string; text: string; afterMonths: number; visibility: 'public' | 'private'; parties?: ActorRef[]; conditions?: string[]; verify?: import('./types').Cond; resources?: { naira: number } }
+  | { type: 'commitment.note'; id: CommitmentId; text: string }
+  | { type: 'commitment.fund'; id: CommitmentId; amount: number; reason: string }
+  | { type: 'commitment.review'; id: CommitmentId; verdict: ReviewVerdict; evidence: string[] };
 
 export interface DomainOutcome {
   version: typeof CONTRACT_VERSION;
@@ -117,7 +129,7 @@ export interface DomainOutcome {
 
 export const SUPPORTED_OUTCOME_EFFECTS = [
   'episode.open', 'episode.advance', 'episode.resolve', 'request.open',
-  'request.close', 'request.substitute', 'commitment.open', 'commitment.note',
+  'request.close', 'request.substitute', 'commitment.open', 'commitment.note', 'commitment.fund', 'commitment.review',
 ] as const;
 
 export interface GovernanceView {

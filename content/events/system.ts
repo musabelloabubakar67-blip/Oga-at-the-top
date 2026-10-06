@@ -867,6 +867,7 @@ export const SYSTEM: GameEvent[] = [
           // the minister's scorecard as a variable); the flag records that a target is outstanding.
           fx: [['person.$WHO', -4], ['nation.capacity', 1], ['counter.targets', 1]],
           flags: { 'target.$WHO': true },
+          ops: [['target', '$WHO', 6]],
           quiet: 'The target is signed in private. It becomes news only if it is missed.', archive: 'Put {WHO} on a written target, to be reviewed in six months.',
         }],
       },

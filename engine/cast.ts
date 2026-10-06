@@ -142,7 +142,8 @@ export function materialise(s: GameState, e: GameEvent, cast: Record<string, str
   const outcome = (o: GameEvent['choices'][number]['outcomes'][number]) => o.domain ? {
     ...o, domain: { ...o.domain, effects: o.domain.effects.map((effect) => ({
       ...effect, id: scope(effect.id),
-      ...(effect.type === 'request.open' && effect.episodeId !== undefined ? { episodeId: scope(effect.episodeId) } : {}),
+        ...(effect.type === 'request.open' && effect.episodeId !== undefined ? { episodeId: scope(effect.episodeId) } : {}),
+        ...(effect.type === 'request.open' && effect.previous !== undefined ? { previous: scope(effect.previous) } : {}),
     })) },
   } : o;
   if (!out.episode && !out.ignored?.domain && !out.choices.some((c) => c.outcomes.some((o) => o.domain))) return out;

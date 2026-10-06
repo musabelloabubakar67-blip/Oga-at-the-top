@@ -14,3 +14,4 @@ export type { RequestSpec } from './requests';
 export { getFavourView, canOffsetFavours, canForgiveFavour, offsetFavours } from './favour-ledger';
 export type { FavourUseId, FavourSettlement } from './favour-ledger';
 export { canUseFavour, usesFor } from './favours';
+export { commitmentsView, fundCommitment, reviewCommitment, setMinisterTarget } from './commitments';

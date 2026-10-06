@@ -20,7 +20,7 @@ const TARGET = /^(pred\.rel|vp\.rel|nation\.(inflation|petrolPrice|fiscalSpace|d
 const READ_PATH = /^(nation|pressure|bloc|zone|approval|hardship|pc|purse|turn|termTurn|exposure|rel|leverage|char|count|counter|campaign|agenda|bonus|ordered|venture|bets|senate|person|rival|tracks|debt|fund|oil|budget|tycoon|theatre|drift|sec|favour|owing|favours|debts|active|focus|story|gone|comp|govs|granted|delegates|margin|outlook|era|pred|bench|fx|wronged|grieve|inst|mine|vp|shock)(\.|$)/;
 const BASE_TOKENS = ['PRES', 'NAME', 'SIR', 'MRP', 'PARTY', 'PSHORT', 'HOME', 'YEAR', 'FIN', 'FINSHORT', 'COS', 'SAP', 'REFINERY', 'DONE', 'OIL', 'BENCH', 'OUTPUT', 'BUDGETYEAR', 'DELEGATES', 'PRED', 'PREDPARTY', 'VP', 'VP_SHORT', 'BACKER', 'BACKER_SHORT', 'SENATE', ...Object.keys(NAMES)];
 const ROLES = new Set([...CAST.map((c) => c.id), 'fin']);
-const OPS = new Set(['backer', 'spendall', 'deliver', 'paydebt', 'notes', 'grant', 'settle', 'repudiate', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect', 'finleave', 'backsucc', 'succadj', 'weaken', 'forgive', 'charge', 'vpbrief', 'honour', 'breakp', 'settlep', 'pledgewant']);
+const OPS = new Set(['backer', 'spendall', 'deliver', 'paydebt', 'notes', 'grant', 'settle', 'repudiate', 'grow', 'void', 'governors', 'senators', 'fundmove', 'betrescue', 'betdelay', 'betseen', 'sack', 'mark', 'seen', 'lean', 'story', 'storyend', 'focus', 'defect', 'finleave', 'backsucc', 'succadj', 'weaken', 'forgive', 'charge', 'vpbrief', 'honour', 'breakp', 'settlep', 'pledgewant', 'target']);
 const KNOWN = new Set([...PEOPLE.map((p) => p.id), ...TYCOONS.map((t) => t.id), ...RIVALS.map((r) => r.id)]);
 
 const seen = new Set<string>();

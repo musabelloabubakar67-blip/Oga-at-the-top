@@ -1,5 +1,6 @@
 import { consumeFavour, offsetFavours, bindFavours } from './favour-ledger';
 import { closeRequest, openRequest } from './requests';
+import { setMinisterTarget } from './commitments';
 import { release } from './talent';
 import { transferSavedFund, type FundDestination } from './fund-transfers';
 import { reformName } from './reforms';
@@ -37,6 +38,7 @@ const group = (s: GameState, g: 'governor' | 'senator', d: number) => {
 export function runOp(s: GameState, op: Op2): string {
   const [name, a, b, c] = op;
   switch (name) {
+    case 'target': setMinisterTarget(s, String(a), Number(b), c === undefined ? 10 : Number(c)); return 'A dated ministerial target is recorded for review.';
     case 'paydebt': {
       const id = a as DebtId;
       return pay(s, id, s.debts[id] * Number(b ?? 1));
