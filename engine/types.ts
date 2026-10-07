@@ -291,7 +291,7 @@ export interface Night {
 
 /** A promise the President made: to a person, a businessman, or the public. */
 export type PledgeKind = 'slot' | 'keep' | 'want' | 'project' | 'notax' | 'subsidy';
-export interface Pledge { id: number; to: string; kind: PledgeKind; object?: string; text: string; made: number; due: number; status: 'open' | 'kept' | 'broken'; closed?: number; snap?: number; holder?: string; warned?: boolean; clash?: number; requestId?: string }
+export interface Pledge { id: number; to: string; kind: PledgeKind; object?: string; text: string; made: number; due: number; status: 'open' | 'kept' | 'broken' | 'released'; closed?: number; snap?: number; holder?: string; warned?: boolean; clash?: number; requestId?: string }
 
 export interface Favour { id: number; who: string; dir: 'owed' | 'owing'; size: number; why: string; turn: number; counterpart?: string; president?: string; originalSize?: number; disputedAt?: number; terms?: string; eligibleUses?: FavourUseId[] }
 
@@ -619,7 +619,7 @@ export interface GameState {
   used: Record<string, number>;
   stories: Story[];
   /** Big bets: which named risks have been warned about, and any rescue or delay. */
-  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean; /** It missed its opening once and was given time. */ slipped?: number; /** Delivered in part: the share of the design that works. */ scale?: number; /** Appraised by the projects regulator before it went ahead (plan 04). */ reviewed?: boolean }>;
+  bets: Record<string, { warned: string[]; rescued?: boolean; delayed?: number; partner?: boolean; revived?: boolean; /** It missed its opening once and was given time. */ slipped?: number; /** Delivered in part: the share of the design that works. */ scale?: number; /** Appraised by the projects regulator before it went ahead (plan 04). */ reviewed?: boolean; /** Local support brought in as a favour, by whom (plan 05.A7). */ backed?: string }>;
   lastAction: { text: string; changes: Change[] } | null;
 }
 
@@ -734,6 +734,7 @@ export type Action =
   | { type: 'HEADHUNT'; role: string }
   | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
   | { type: 'HONOUR'; id: number }
+  | { type: 'SUBSTITUTE'; id: number; object: string }
   | { type: 'REVERSE'; id: string }
   | { type: 'NIGHT'; option: string }
   | { type: 'NIGHT_WAIT' }

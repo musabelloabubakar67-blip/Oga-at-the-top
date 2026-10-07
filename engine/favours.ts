@@ -1,5 +1,9 @@
 import { bindFavours, consumeFavour, favourBelongs, type FavourUseId } from './favour-ledger';
 import { closeRequest } from './requests';
+import { openQuestions, testify } from './inquiry';
+import { release } from './promises';
+import { MYSTERY_BY_ID } from '../content/mysteries';
+import { VENTURE_BY_ID } from '../content/ventures';
 // What is owed, in both directions, and the businessmen who do most of the owing.
 
 import { mo } from './config';
@@ -247,6 +251,9 @@ export function tycoonDeal(s: GameState, id: string, op: TycoonOp): { text: stri
 
 // ---------------------------------------------------------------- calling favours in
 
+/** Services that always use exactly one strength. */
+export const ONE: string[] = ['silence', 'withdraw-request', 'evidence', 'project', 'release'];
+
 export interface Use { id: FavourUseId; label: string; detail: string; ok?: boolean; reason?: string; targets?: { id: string; label: string }[] }
 
 /** What this favour can be spent on. */
@@ -268,10 +275,26 @@ export function usesFor(s: GameState, f: Favour, units = f.size): Use[] {
   }
   if (k === 'tycoon') {
     out.push({ id: 'cash', label: 'Money for the campaign', detail: `₦${6 * n}bn into the campaign chest. No new debt: this is the debt.` });
-    out.push({ id: 'invest', label: 'Put money into the country', detail: `Buys your bonds and builds: ₦${150 * n}bn to the treasury and jobs rise.` });
+    // Financing is a loan to the state, with interest; investment is private money into a plant. They are not the same (plan 05.A10).
+    out.push({ id: 'bonds', label: 'Buy the government\'s bonds', detail: `₦${150 * n}bn lent to the treasury. It is borrowing: it is repaid, with interest, like any other bond.` });
+    out.push({ id: 'invest', label: 'Invest in a plant', detail: `Private money into a factory: jobs rise by about ${(1.5 * n).toFixed(1)} points. Nothing reaches the treasury.` });
     if (TYCOON_BY_ID[f.who]?.paper) out.push({ id: 'press', label: 'A kind word in print', detail: `The press warms by about ${4 * n} points and a running story against you is dropped.` });
   }
   if (k !== 'rival') out.push({ id: 'capital', label: 'Stand up for you in public', detail: `${5 * n} political capital.` });
+  // Contextual services (plan 05.A7): each names its target and what it changes.
+  if (k === 'governor' || k === 'senator' || k === 'tycoon') {
+    const peers = k === 'tycoon' ? Object.keys(s.tycoons).filter((id) => id !== f.who && regard(s, id) < 50)
+      : Object.keys(s.people).filter((id) => id !== f.who && PERSON_BY_ID[id]?.group === k && !s.people[id].gone && regard(s, id) < 50);
+    out.push({ id: 'broker', label: 'Broker a meeting', detail: `Brings someone cool towards you to the table: their regard rises by ${5 * n}.`, targets: peers.map((id) => ({ id, label: who(s, id).name })) });
+  }
+  if (k === 'minister' || k === 'governor' || k === 'tycoon') {
+    out.push({ id: 'evidence', label: 'Tell what they saw', detail: 'Adds their account to an open inquiry. Well placed, usually right, and not neutral. Uses one strength.', targets: openQuestions(s).map((q) => ({ id: q.id, label: MYSTERY_BY_ID[q.id].title })) });
+  }
+  if (k === 'tycoon' || k === 'governor') {
+    out.push({ id: 'project', label: 'Back a big bet', detail: 'Brings local support and suppliers behind a project under way: its chance of opening rises by 6 points. Uses one strength.', targets: s.ventures.active.filter((v) => !s.bets[v.id]?.backed).map((v) => ({ id: v.id, label: VENTURE_BY_ID[v.id]?.name ?? v.id })) });
+  }
+  const promised = (s.pledges ?? []).filter((p) => p.status === 'open' && p.to === f.who);
+  if (promised.length) out.push({ id: 'release', label: 'Release you from a promise', detail: 'They let you off a promise made to them. It ends without being broken. Uses one strength.', targets: promised.map((p) => ({ id: String(p.id), label: p.text })) });
   if (s.exposures.some((x) => x.witnesses.includes(f.who))) out.push({ id: 'silence', label: 'Forget what they saw', detail: 'They stop being a witness to what is in the drawer.' });
   const asks = Object.values(s.governance?.requests ?? {}).filter((r) => r.status === 'open' && r.requester === f.counterpart);
   if (asks.length) out.push({ id: 'withdraw-request', label: 'Withdraw a request', detail: 'Withdraw a specified open request.', targets: asks.map((r) => ({ id: r.id, label: r.text })) });
@@ -281,6 +304,11 @@ export function usesFor(s: GameState, f: Favour, units = f.size): Use[] {
     else if (f.eligibleUses && !f.eligibleUses.includes(use.id)) reason = 'The terms of this debt do not allow that use.';
     else if (use.id === 'overtime' && !s.agenda.active.some((a) => (PERSON_BY_ID[f.who]?.tracks ?? []).includes(MILESTONE_BY_ID[a.id]?.track.id ?? ''))) reason = 'There is no active reform in this ministry to accelerate.';
     else if (use.id === 'mediate' && s.theatres[PERSON_BY_ID[f.who]?.zone ?? 'NW'] < 35) reason = 'No local security crisis calls for mediation.';
+    // Assistance has to have something to act on (plan 05.A9).
+    else if (use.id === 'calm' && s.blocs.party >= 85) reason = 'The party is already in line.';
+    else if (use.id === 'press' && !s.stories.length && s.blocs.press >= 75) reason = 'There is no story against you to drop, and the press is already warm.';
+    else if (use.id === 'whip' && (s.people[f.who]?.compliantUntil ?? 0) >= s.turn + 4 * n) reason = 'Already voting with you for that long.';
+    else if (use.targets && !use.targets.length) reason = use.id === 'broker' ? 'Nobody cool towards you that they could bring round.' : use.id === 'evidence' ? 'No open inquiry needs a witness.' : use.id === 'project' ? 'No big bet under way that needs backing.' : 'Nothing to act on.';
     return { ...use, ok: !reason, reason };
   });
 }
@@ -301,13 +329,13 @@ export function canUseFavour(s: GameState, id: number, use: string, movesLeft: n
   const f = s.favours.find((f) => f.id === id);
   const base = canCall(s, f, movesLeft);
   if (!base.ok || !f) return base;
-  const n = units ?? (use === 'silence' || use === 'withdraw-request' ? 1 : f.size);
-  if ((use === 'silence' || use === 'withdraw-request') && n !== 1) return { ok: false, reason: 'This service uses one strength.' };
+  const n = units ?? (ONE.includes(use) ? 1 : f.size);
+  if (ONE.includes(use) && n !== 1) return { ok: false, reason: 'This service uses one strength.' };
   if (!Number.isSafeInteger(n) || n < 1 || n > f.size) return { ok: false, reason: 'Invalid remaining strength.' };
   const option = usesFor(s, f, n).find((o) => o.id === use);
   if (!option) return { ok: false, reason: 'This person cannot provide that service.' };
   if (!option.ok) return { ok: false, reason: option.reason };
-  if (use === 'withdraw-request' && (!option.targets?.some((x) => x.id === target) && !(target === undefined && option.targets?.length === 1))) return { ok: false, reason: 'Choose an open request from this person.' };
+  if (option.targets && (!option.targets.some((x) => x.id === target) && !(target === undefined && option.targets.length === 1))) return { ok: false, reason: 'Choose what this is for.' };
   return { ok: true };
 }
 
@@ -317,8 +345,10 @@ export function callFavour(s: GameState, f: Favour, use: string, units?: number,
   if (!eligible.ok) throw new Error(eligible.reason);
   f = s.favours.find((x) => x.id === f.id)!;
   bindFavours(s);
-  const n = units ?? (use === 'silence' || use === 'withdraw-request' ? 1 : f.size);
+  const n = units ?? (ONE.includes(use) ? 1 : f.size);
   const w = who(s, f.who), remaining = f.size - n;
+  const only = (usesFor(s, f, n).find((u) => u.id === use)?.targets ?? [])[0]?.id;
+  target ??= only;
   let text = '';
   switch (use) {
     case 'deliver': {
@@ -339,7 +369,16 @@ export function callFavour(s: GameState, f: Favour, use: string, units?: number,
       text = w.short + ' drives the active reforms in the ministry forward.'; break;
     }
     case 'cash': s.campaign.chest += 6 * n; text = 'The campaign receives ' + (6 * n) + ' billion naira.'; break;
-    case 'invest': applyFx(s, ['debt.bonds', 0.15 * n]); applyFx(s, ['nation.fiscalSpace', 0.15 * n]); applyFx(s, ['nation.jobs', 1.5 * n]); text = w.short + ' buys the bond issue and invests in a plant. The borrowing remains a treasury liability.'; break;
+    case 'bonds': applyFx(s, ['debt.bonds', 0.15 * n]); applyFx(s, ['nation.fiscalSpace', 0.15 * n]); text = w.short + ' takes up the bond issue. The money is lent, not given: it is repaid with interest.'; break;
+    case 'invest': applyFx(s, ['nation.jobs', 1.5 * n]); text = w.short + ' puts private money into a plant. The jobs are real; none of it is the treasury\'s.'; break;
+    case 'broker': {
+      if (s.tycoons[target!]) s.tycoons[target!].rel = clamp(s.tycoons[target!].rel + 5 * n, 0, 100);
+      else if (s.people[target!]) s.people[target!].rel = clamp(s.people[target!].rel + 5 * n, 0, 100);
+      text = w.short + ' brings ' + who(s, target!).name + ' to the table. The conversation is cooler than a friendship and warmer than before.'; break;
+    }
+    case 'evidence': text = testify(s, target!, w.name); break;
+    case 'project': (s.bets[target!] ??= { warned: [] }).backed = f.who; text = w.short + ' brings local support and suppliers behind ' + (VENTURE_BY_ID[target!]?.name ?? target) + '.'; break;
+    case 'release': release(s, Number(target), w.name + ' releases the President from it, in settlement of a favour.'); text = w.short + ' lets you off the promise. It is neither kept nor broken.'; break;
     case 'press': applyFx(s, ['bloc.press', 4 * n]); s.stories.shift(); text = 'The Daily Stakeholder prints a kind word; the running series ends.'; break;
     case 'silence': for (const x of s.exposures) x.witnesses = x.witnesses.filter((id) => id !== f.who); applyFx(s, ['pressure.scandalHeat', -6]); text = w.short + ' stops corroborating what was seen.'; break;
     case 'mediate': applyFx(s, ['theatre.' + PERSON_BY_ID[f.who]!.zone!, -3 * n]); text = w.short + ' convenes local leaders and negotiates room for the security effort.'; break;

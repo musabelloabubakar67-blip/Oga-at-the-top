@@ -36,7 +36,7 @@ import { buildDesk, chiefOfStaffNote } from './director';
 import { dispatchTick } from './dispatches';
 import { agencyTick } from './agency';
 import { maybeCollation, nightChoose, nightEnd, nightTick, nightWait } from './night';
-import { canHonour, honour, pledge, pledgeOptions, pledgeTick } from './promises';
+import { canHonour, canSubstitute, substitute, honour, pledge, pledgeOptions, pledgeTick } from './promises';
 import { describe, diff, snapshot } from './effects';
 import { runElection } from './election';
 import { callFavour, canUseFavour, canCall, canTycoon, initTycoons, regard, tycoonDeal, who, type TycoonOp } from './favours';
@@ -1003,6 +1003,12 @@ export function applyAction(state: GameState, action: Action): GameState {
       s.desk.actionsUsed += 1;
       const t = honour(s, action.id);
       record(s, 'pledge.honour', 'honour', 'politics', 'Kept a promise of a ministry.', 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'SUBSTITUTE': if (canSubstitute(s, action.id, action.object, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      const t = substitute(s, action.id, action.object);
+      record(s, 'pledge.substitute', action.object, 'politics', 'Offered something else in place of a promise.', 1);
       s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
     } break;
     case 'REVERSE': if (canReverse(s, action.id).ok) reverse(s, action.id); break;

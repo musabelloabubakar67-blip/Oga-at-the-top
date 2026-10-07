@@ -6,12 +6,12 @@
 // decision. Three months later the truth comes out, and every report is traced:
 // which pointed the right way, which did not, and why.
 
-import { METHODS, MYSTERIES, MYSTERY_BY_ID, type Method, type Mystery } from '../content/mysteries';
+import { METHODS, MYSTERIES, MYSTERY_BY_ID, TESTIMONY, sourceOf, type Method, type Mystery } from '../content/mysteries';
 import { rand } from './rng';
 import type { GameState } from './types';
 import { applyFx, clamp, test } from './vars';
 
-export interface Report { method: Method; turn: number; says: string | null; text: string; confidence: 'low' | 'medium' | 'high' }
+export interface Report { method: Method | 'testimony'; turn: number; says: string | null; text: string; confidence: 'low' | 'medium' | 'high' }
 
 export interface Inquiry {
   id: string;
@@ -107,6 +107,21 @@ export function canProbe(s: GameState, id: string, m: Method, moves: number): { 
   return { ok: true };
 }
 
+/** Undecided questions someone could testify about. */
+export const openQuestions = (s: GameState) => (s.inquiries ?? []).filter((q) => !q.decided);
+
+/** Evidence supplied as a favour: a witness who was there says what happened, usually truly (plan 05.A7). */
+export function testify(s: GameState, id: string, giver: string): string {
+  const q = inquiries(s).find((x) => x.id === id && !x.decided);
+  if (!q) return '';
+  const def = MYSTERY_BY_ID[q.id];
+  const wrongs = def.hypotheses.map((h) => h.id).filter((h) => h !== q.truth);
+  const says = rand(s) < TESTIMONY.accuracy || !wrongs.length ? q.truth : wrongs[Math.floor(rand(s) * wrongs.length)];
+  const text = def.hypotheses.find((h) => h.id === says)!.text;
+  q.reports.push({ method: 'testimony', turn: s.turn, says, text: `${giver}, who was there: "${text}"`, confidence: 'medium' });
+  return `${giver} tells what they saw of ${def.title.toLowerCase()}.`;
+}
+
 /** Commission a source. Its report arrives when it is ready, not now. */
 export function probe(s: GameState, id: string, m: Method): string {
   const q = inquiries(s).find((x) => x.id === id)!;
@@ -138,7 +153,7 @@ function reveal(s: GameState, q: Inquiry): void {
   const def = MYSTERY_BY_ID[q.id];
   q.revealed = s.turn;
   const truth = def.hypotheses.find((h) => h.id === q.truth)!;
-  const lines = q.reports.map((r) => `${METHODS[r.method].name} (${r.confidence} confidence): ${r.says === q.truth ? 'pointed the right way' : r.says === null ? 'correctly found nothing within its sight' : `pointed the wrong way: ${METHODS[r.method].incentive.charAt(0).toLowerCase()}${METHODS[r.method].incentive.slice(1)}`}.`);
+  const lines = q.reports.map((r) => `${sourceOf(r.method).name} (${r.confidence} confidence): ${r.says === q.truth ? 'pointed the right way' : r.says === null ? 'correctly found nothing within its sight' : `pointed the wrong way: ${sourceOf(r.method).incentive.charAt(0).toLowerCase()}${sourceOf(r.method).incentive.slice(1)}`}.`);
   const contradicted = def.announced && def.announced.is !== q.truth ? ` ${def.announced.text} It was wrong, and the press has the dates.` : '';
   if (contradicted) applyFx(s, ['bloc.press', -2]);
   if (q.right && truth.implicates && s.tycoons[truth.implicates]) s.flags[`dirty.${truth.implicates}.inquiry`] = true;

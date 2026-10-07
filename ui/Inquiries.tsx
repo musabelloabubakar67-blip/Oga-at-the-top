@@ -6,7 +6,7 @@
 // decision. Closed questions show what was known, what was decided, and what
 // turned out to be true.
 
-import { METHODS, MYSTERY_BY_ID } from '../content/mysteries';
+import { METHODS, MYSTERY_BY_ID, sourceOf } from '../content/mysteries';
 import { dateLabel } from '../engine/config';
 import { canProbe, inquiries, methodsFor, REVEAL_AFTER } from '../engine/inquiry';
 import { describe } from '../engine/effects';
@@ -38,7 +38,7 @@ export function Inquiries({ s, dispatch }: { s: GameState; dispatch: (a: Action)
                 {q.reports.map((r, i) => (
                   <li key={i} className="border-l-2 border-ink/15 pl-2">
                     <p>{r.text}</p>
-                    <p className="text-ink-soft">{dateLabel(r.turn, s.startYear)} · {r.confidence} confidence · {METHODS[r.method].incentive}{q.revealed ? <span className={r.says === q.truth || r.says === null ? 'text-state' : 'text-alarm'}> · {r.says === q.truth ? 'it was right' : r.says === null ? 'it was right to find nothing' : 'it was wrong'}</span> : ''}</p>
+                    <p className="text-ink-soft">{dateLabel(r.turn, s.startYear)} · {r.confidence} confidence · {sourceOf(r.method).incentive}{q.revealed ? <span className={r.says === q.truth || r.says === null ? 'text-state' : 'text-alarm'}> · {r.says === q.truth ? 'it was right' : r.says === null ? 'it was right to find nothing' : 'it was wrong'}</span> : ''}</p>
                   </li>
                 ))}
                 {q.probing.map((p) => <li key={p.method} className="text-ink-soft">{METHODS[p.method].name}: reports {dateLabel(p.due, s.startYear)}.</li>)}

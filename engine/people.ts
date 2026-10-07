@@ -9,7 +9,8 @@ import { CFG } from './config';
 import type { GameState, Mark, PersonState, ZoneId } from './types';
 import { canRefuse, currentWant, reconcile, refuse } from './wants';
 import { release, take, type Offer } from './talent';
-import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing, registerScore } from './vars';
+import { addFavour, applyFx, approval, clamp, favoursOwing, getVar, groupStanding, hardship, senate, standing, registerScore } from './vars';
+import { consumeFavour } from './favour-ledger';
 
 export { senate, standing };
 export type { PersonState };
@@ -201,7 +202,16 @@ export function deal(s: GameState, id: string, op: PersonOp): { text: string; ar
     const mended = reconcile(s, id, w.id, w.fx);
     // They owe you now, and everyone watching knows it.
     applyFx(s, ['pc', CFG.agenda.grantPc]);
-    addFavour(s, id, 'owed', p.clout >= 5 ? 3 : 2, `You gave ${p.short} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.`);
+    const value = p.clout >= 5 ? 3 : 2;
+    // What the President owed this person is settled first; only the remainder becomes a debt to the President (plan 05.A6).
+    const debt = favoursOwing(s, id).find((f) => f.disputedAt === undefined) ?? favoursOwing(s, id)[0];
+    if (debt) {
+      const paid = Math.min(value, debt.size);
+      consumeFavour(s, debt.id, paid, 'settled', 'Settled against a granted request');
+      if (value > paid) addFavour(s, id, 'owed', value - paid, `Remaining value of what you gave ${p.short}.`);
+      return { text: `${w.done} It is credited against what you owed ${p.short}: ${paid} settled${debt.size > 0 && s.favours.some((f) => f.id === debt.id) ? `, ${debt.size} still owed` : ''}${value > paid ? `, and ${p.short} now owes you ${value - paid}` : ''}.${mended ? ' ' + mended : ''}`, archive: `Gave ${p.name} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.` };
+    }
+    addFavour(s, id, 'owed', value, `You gave ${p.short} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.`);
     return { text: `${w.done} ${p.short} owes you, and knows it.${st.grants > 1 ? ' The next request will be bigger; they always are.' : ''}${mended ? ' ' + mended : ''}`, archive: `Gave ${p.name} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.` };
   }
   // pressure

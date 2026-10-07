@@ -144,10 +144,14 @@ export function runSocialChecks(): number {
     const s = fresh(), who = Object.keys(s.tycoons)[0]; s.tycoons[who].rel = 80;
     const f = favour(s, who, 'owed', 2);
     const cash = s.nation.fiscalSpace, debt = s.debts.bonds;
-    callFavour(s, f, 'invest', 1);
+    callFavour(s, f, 'bonds', 1);
     assert.ok(Math.abs(s.nation.fiscalSpace - cash - 0.15) < 1e-9);
     assert.ok(Math.abs(s.debts.bonds - debt - 0.15) < 1e-9);
     assert.equal(s.favours[0].size, 1);
+    // Private investment is not financing: no treasury money, and no liability (plan 05.A10).
+    const cash2 = s.nation.fiscalSpace, debt2 = s.debts.bonds;
+    callFavour(s, s.favours[0], 'invest', 1);
+    assert.equal(s.nation.fiscalSpace, cash2); assert.equal(s.debts.bonds, debt2);
   });
   check('ministerial acceleration is unavailable with no reform to accelerate', () => {
     const s = fresh(); s.people.min_works.rel = 80;

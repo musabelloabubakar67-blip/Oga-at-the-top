@@ -24,6 +24,10 @@ export interface MethodDef {
   incentive: string;
 }
 
+/** Testimony from someone who owes the President a favour and was there (plan 05.A7): not commissioned, and not neutral. */
+export const TESTIMONY: MethodDef = { name: 'Testimony called in as a favour', source: 'Someone who was there', accuracy: 0.8, months: 0, pc: 0, naira: 0, incentive: 'Given as a favour to the President: well placed, but it tells the story its giver can live with.' };
+export const sourceOf = (m: Method | 'testimony'): MethodDef => (m === 'testimony' ? TESTIMONY : METHODS[m]);
+
 export const METHODS: Record<Method, MethodDef> = {
   claim: { name: 'The ministry\'s own account', source: 'The ministry responsible', accuracy: 0.35, months: 0, pc: 0, naira: 0, incentive: 'It is the ministry\'s own work being judged; its account favours the explanation that is nobody\'s fault.' },
   audit: { name: 'An audit of the spending records', source: 'The Auditor-General', accuracy: 0.85, months: 2, pc: 2, naira: 0.01, incentive: 'No stake in the answer, but it sees only what the money did, not what happened on the ground.' },

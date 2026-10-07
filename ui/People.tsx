@@ -18,7 +18,7 @@ import { TYCOONS } from '../content/tycoons';
 import { dateLabel } from '../engine/config';
 import { describe } from '../engine/effects';
 import { moneyEffect } from '../engine/election';
-import { canCall, canTycoon, kindOf, regard, tycoonMood, usesFor, who } from '../engine/favours';
+import { ONE, canCall, canTycoon, kindOf, regard, tycoonMood, usesFor, who } from '../engine/favours';
 import { canForgiveFavour, canOffsetFavours, canUseFavour, getFavourView, getVacancyView } from '../engine/public';
 import { canRival } from '../engine/opposition';
 import {
@@ -29,7 +29,7 @@ import { competenceShown, following, seenCompetence } from '../engine/people';
 import { MOTIVE_NAME, currentWant, grudgeLine, motiveOf } from '../engine/wants';
 import { PowersButton } from './Desk';
 import { fears, lastMove, leverage } from '../engine/agency';
-import { PUBLIC, canHonour, pledgeName, pledgeOptions, word } from '../engine/promises';
+import { PUBLIC, canHonour, canSubstitute, substitutes, pledgeName, pledgeOptions, word } from '../engine/promises';
 import { roleKey } from '../engine/context';
 import { REPLACE_PC, adviser, canReplaceAdviser, patronName, poolFor, trackRecord, worldview } from '../engine/advice';
 import { REPLACEABLE } from '../content/names';
@@ -110,6 +110,21 @@ function Promises({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; lef
               <p className="flex flex-wrap items-baseline justify-between gap-2"><span className="font-serif text-lg">{p.text}</span><span className={`label ${p.due - s.turn <= 3 ? 'text-alarm' : 'text-ink-soft'}`}>{p.due - s.turn <= 0 ? 'due now' : `due in ${mo(p.due - s.turn)}`}</span></p>
               <p className="text-[13px] text-ink-soft">To {pledgeName(s, p)} · made {mo(Math.max(0, s.turn - p.made))} ago{clash ? ` · the same post was promised to ${pledgeName(s, clash)}` : ''}</p>
               {p.kind === 'slot' && <button disabled={!h.ok} title={h.reason} onClick={() => dispatch({ type: 'HONOUR', id: p.id })} className={`mt-2 ${btn(h.ok, 'good')}`}>Keep it now: their nominee takes the ministry · 1 move</button>}
+              {substitutes(s, p.id).length > 0 && (
+                <div className="mt-2">
+                  <p className="label text-ink-soft">Offer something else instead · they decide</p>
+                  <div className="mt-1 flex flex-col gap-1.5">
+                    {substitutes(s, p.id).map((o) => {
+                      const ok = canSubstitute(s, p.id, o.want.id, left);
+                      return (
+                        <button key={o.want.id} disabled={!ok.ok} title={ok.reason} onClick={() => dispatch({ type: 'SUBSTITUTE', id: p.id, object: o.want.id })} className={btn(ok.ok)}>
+                          {o.want.text}<span className="block text-[13px] leading-snug text-ink-soft">{[o.want.pc && `${o.want.pc} capital`, o.want.naira && naira(o.want.naira)].filter(Boolean).join(' · ') || 'No cost'} · 1 move. {o.why}{o.accepts ? ' Likely to accept.' : ' Likely to say no, and the promise would stand.'}{ok.reason ? ` ${ok.reason}` : ''}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </li>
           );
         })}
@@ -118,7 +133,7 @@ function Promises({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; lef
         <>
           <p className="label mt-4 text-ink-soft">Kept and broken</p>
           <ul className="mt-1 space-y-0.5 text-[13px]">
-            {closed.map((p) => <li key={p.id} className="flex justify-between gap-3"><span>{p.text} <span className="text-ink-soft">· to {pledgeName(s, p)}</span></span><span className={p.status === 'kept' ? 'text-state' : 'text-alarm'}>{p.status === 'kept' ? 'Kept' : 'Broken'}</span></li>)}
+            {closed.map((p) => <li key={p.id} className="flex justify-between gap-3"><span>{p.text} <span className="text-ink-soft">· to {pledgeName(s, p)}</span></span><span className={p.status === 'broken' ? 'text-alarm' : p.status === 'kept' ? 'text-state' : 'text-ink-soft'}>{p.status === 'kept' ? 'Kept' : p.status === 'released' ? 'Released' : 'Broken'}</span></li>)}
           </ul>
         </>
       )}
@@ -189,13 +204,13 @@ function Owed({ s, f, dispatch, left }: { s: GameState; f: Favour; dispatch: Dis
           )}
           {usesFor(s, f, n).map((u) => {
             // Silence and withdrawing a request always use exactly one strength.
-            const units = u.id === 'silence' || u.id === 'withdraw-request' ? 1 : n;
+            const units = ONE.includes(u.id) ? 1 : n;
             if (u.targets?.length) {
               return u.targets.map((t) => {
-                const ok = canUseFavour(s, f.id, u.id, left, 1, t.id);
+                const ok = canUseFavour(s, f.id, u.id, left, units, t.id);
                 return (
-                  <button key={u.id + t.id} disabled={!ok.ok} title={ok.reason} onClick={() => { dispatch({ type: 'FAVOUR', id: f.id, use: u.id, units: 1, target: t.id }); setOpen(false); }} className={btn(ok.ok, 'good')}>
-                    {u.label}: {t.label}<span className="block text-[13px] leading-snug text-ink-soft">Uses one strength.{ok.reason ? ` ${ok.reason}` : ''}</span>
+                  <button key={u.id + t.id} disabled={!ok.ok} title={ok.reason} onClick={() => { dispatch({ type: 'FAVOUR', id: f.id, use: u.id, units, target: t.id }); setOpen(false); }} className={btn(ok.ok, 'good')}>
+                    {u.label}: {t.label}<span className="block text-[13px] leading-snug text-ink-soft">{u.detail}{ok.reason ? ` ${ok.reason}` : ''}</span>
                   </button>
                 );
               });

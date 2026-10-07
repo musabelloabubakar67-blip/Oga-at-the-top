@@ -15,7 +15,8 @@ import { who } from './favours';
 import { personView, replaceMinister } from './people';
 import { rand } from './rng';
 import type { GameState, Pledge, PledgeKind } from './types';
-import { currentWant, refreshRequests } from './wants';
+import { substituteRequest } from './requests';
+import { alternativesFor, currentWant, reconcile, refreshRequests, wantValue, type Want } from './wants';
 import { applyFx, clamp } from './vars';
 
 export const PUBLIC = 'public';
@@ -229,6 +230,60 @@ export function pledgeOp(s: GameState, name: string, flag: string): string {
   if (name === 'breakp') { breakPledge(s, p, `${who(s, p.to).short} learned that the same ministry had been promised to someone else.`); return ''; }
   if (name === 'settlep') { p.status = 'kept'; p.closed = s.turn; return ''; }
   return '';
+}
+
+// ---------------------------------------------------------------- substitution and release (plan 05.A5)
+
+/** A promise stays exactly what it was. Something else can be offered instead, but only the person promised can accept it. */
+export function substitutes(s: GameState, id: number): { want: Want; accepts: boolean; why: string }[] {
+  const p = pledges(s).find((x) => x.id === id);
+  if (!p || p.status !== 'open' || p.kind !== 'want' || !p.requestId || !PERSON_BY_ID[p.to]) return [];
+  const original = currentWant(s, p.to);
+  if (!original || original.recordId !== p.requestId) return [];
+  const temper = PERSON_BY_ID[p.to].temper, rel = s.people[p.to]?.rel ?? 50;
+  // A transactional person takes anything worth as much; others want nearly as much, and to still trust you.
+  const need = wantValue(original) * (temper === 'transactional' ? 1 : temper === 'loyal' ? 0.7 : 0.9);
+  return alternativesFor(s, p.to).map((want) => {
+    const enough = wantValue(want) >= need, trust = rel >= 40 || temper === 'transactional';
+    return { want, accepts: enough && trust, why: !enough ? 'Worth less to them than what was promised.' : !trust ? 'Does not trust you enough to swap one promise for another.' : 'Worth as much to them as what was promised.' };
+  });
+}
+
+export function canSubstitute(s: GameState, id: number, object: string, moves: number): { ok: boolean; reason?: string } {
+  const o = substitutes(s, id).find((x) => x.want.id === object);
+  if (!o) return { ok: false };
+  if (moves <= 0) return { ok: false, reason: "This month's moves are used." };
+  if (o.want.pc && s.pc < o.want.pc) return { ok: false, reason: `Needs ${o.want.pc} political capital.` };
+  return { ok: true };
+}
+
+/** Offer something else in place of the promised request. Accepted, the substitute is delivered and the promise is kept; refused, the promise stands unchanged. */
+export function substitute(s: GameState, id: number, object: string): string {
+  const p = pledges(s).find((x) => x.id === id)!;
+  const o = substitutes(s, id).find((x) => x.want.id === object)!;
+  const w = o.want, name = who(s, p.to).short, st = s.people[p.to];
+  s.desk.actionsUsed += 1;
+  substituteRequest(s, p.requestId!, w.text, o.accepts, { description: w.text, naira: w.naira, politicalCapital: w.pc });
+  if (!o.accepts) {
+    st.rel = clamp(st.rel - 3, 0, 100);
+    return `${name} hears the offer and declines it: ${o.why.toLowerCase()} The promise stands as it was made.`;
+  }
+  if (w.pc) s.pc = clamp(s.pc - w.pc, 0, 100);
+  if (w.naira) applyFx(s, ['nation.fiscalSpace', -w.naira]);
+  for (const fx of w.fx) applyFx(s, fx);
+  st.grants = (st.grants ?? 0) + 1; st.grantedAt = s.turn; st.granted = true;
+  st.rel = clamp(st.rel + 10, 0, 100);
+  const mended = reconcile(s, p.to, w.id, w.fx);
+  keep(s, p, true);
+  return `${name} agrees to take this instead: ${w.text.replace(/\.$/, '').toLowerCase()}. ${w.done} The promise is kept on the terms ${name} accepted.${mended ? ` ${mended}` : ''}`;
+}
+
+/** The person promised lets the President off: the promise ends without being broken, and is not counted either way. */
+export function release(s: GameState, id: number, why: string): void {
+  const p = pledges(s).find((x) => x.id === id);
+  if (!p || p.status !== 'open') return;
+  p.status = 'released'; p.closed = s.turn;
+  s.report.push({ kind: 'consequence', title: `Released from a promise: ${p.text.toLowerCase()}`, cause: `Made to ${who(s, p.to).name}`, text: why, changes: [] });
 }
 
 /** What the briefing should worry about: promises close to their deadline. */

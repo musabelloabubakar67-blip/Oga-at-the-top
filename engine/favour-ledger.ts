@@ -4,7 +4,7 @@ import { TYCOON_BY_ID } from '../content/tycoons';
 import { clockOf, ensureGovernance } from './governance';
 import type { Favour, GameState } from './types';
 
-export type FavourUseId = 'deliver' | 'calm' | 'whip' | 'overtime' | 'cash' | 'invest' | 'press' | 'capital' | 'silence' | 'mediate' | 'oversight' | 'withdraw-request' | 'decision';
+export type FavourUseId = 'deliver' | 'calm' | 'whip' | 'overtime' | 'cash' | 'invest' | 'press' | 'capital' | 'silence' | 'mediate' | 'oversight' | 'withdraw-request' | 'decision' | 'bonds' | 'broker' | 'evidence' | 'project' | 'release';
 export interface FavourSettlement { at: number; administrationId: string; mode: 'used' | 'offset' | 'forgiven' | 'settled' | 'voided'; favour: Favour; units: number; remaining: number; reason: string; use?: string; otherId?: number }
 
 /** Resolve against current occupants without mutating a save from a read. */
