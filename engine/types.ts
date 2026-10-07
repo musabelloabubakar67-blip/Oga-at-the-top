@@ -526,7 +526,7 @@ export interface GameState {
   vacancies?: Record<string, { post: AppointmentPost; at: number; previousName: string }>;
   debtTerms?: Partial<Record<DebtId, { rateFactor: number; at: number; administrationId: string }>>;
   /** The national accounts (engine/accounts.ts): revenue actually received, central bank money created, reserve movements. */
-  accounts?: { revHist: number[]; created: number; reserveLog: { turn: number; flow: number; intervention: number; note: string }[] };
+  accounts?: { revHist: number[]; created: number; reserveLog: { turn: number; flow: number; intervention: number; note: string }[]; /** What the fund abroad earned or lost each month (plan 09.A11). */ fundReturns?: { turn: number; gain: number; rate: number }[] };
   /** What the state owns (content/holdings.ts), sales under way, and established tax debts (engine/holdings.ts). */
   holdings?: Record<string, import('./holdings').HoldingState>;
   /** The armed forces as an institution: command, readiness, missions, abuses (plan 13). Carried across governments. */
@@ -667,6 +667,8 @@ export interface Setup {
   financier?: string;
   /** An optional rule bound on the first day (content/routes.ts CONSTRAINTS). */
   constraint?: string;
+  /** The party's programme (content/programmes.ts, plan 02.A5). */
+  programme?: string;
   /** The first cabinet: office to candidate id, 'keep' or 'vacant'. */
   team?: Record<string, string>;
 }

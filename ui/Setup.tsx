@@ -8,6 +8,8 @@
 // engine applies each choice (engine/opening.ts); nothing is defaulted.
 
 import { useMemo, useState, type ReactNode } from 'react';
+import { PROGRAMMES } from '../content/programmes';
+import { GROUP_BY_ID } from '../content/society';
 import { TRACKS } from '../content/agenda';
 import { CANDIDATES, CANDIDATE_BY_ID } from '../content/candidates';
 import { DOSSIER_BY_SCENARIO } from '../content/dossiers';
@@ -130,6 +132,7 @@ export function SetupScreen({ onStart, onBack, handover, previous }: { onStart: 
   const [route, setRoute] = useState<string | null>(null);
   const [financier, setFinancier] = useState<string | null>(null);
   const [constraint, setConstraint] = useState<string>('');
+  const [programme, setProgramme] = useState<string | null>(null);
   const barred = (n: string) => !!handover && !handover.sameParty && !!handover.served?.includes(n);
   const [finance, setFinance] = useState<string | null>(null);
   const [team, setTeam] = useState<Record<string, string>>({});
@@ -144,13 +147,14 @@ export function SetupScreen({ onStart, onBack, handover, previous }: { onStart: 
 
   const setup: Setup = {
     seed, scenario, name: name.trim(), party: party.trim(), partyShort: partyShort.trim(), home, background: background ?? 'governor', address: address ?? 'sir',
-    finance: finance ?? '', priorities, route: route ?? undefined, financier: financier ?? undefined, constraint: constraint || undefined, team,
+    finance: finance ?? '', priorities, route: route ?? undefined, financier: financier ?? undefined, constraint: constraint || undefined, programme: programme ?? undefined, team,
   };
   const problems = [
     ...(address ? [] : ['Choose how you will be addressed.']),
     ...(background ? [] : ['Choose your background.']),
     ...(route ? [] : ['Choose how you won.']),
     ...(financier ? [] : ['Choose who paid for the campaign.']),
+    ...(programme ? [] : ['Choose what your party stands for.']),
     ...validateSetup(setup, { successorSameParty: handover?.sameParty, barredFinance: handover?.served?.filter(barred) }),
   ];
   const ready = problems.length === 0;
@@ -250,6 +254,18 @@ export function SetupScreen({ onStart, onBack, handover, previous }: { onStart: 
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {(['sir', 'ma'] as const).map((a) => <button key={a} onClick={() => setAddress(a)} className={small(address === a)}>{a === 'sir' ? 'Mr President · Sir' : 'Madam President · Ma'}</button>)}
+            </div>
+            <p className="label mt-5 text-ink-soft">What {partyShort.trim() || 'the party'} stands for</p>
+            <p className="mt-1 text-sm text-ink-soft">A programme decides whom the government speaks for, and the agreement it came to power on. The agreement is on the register from the first day.</p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-3">
+              {PROGRAMMES.map((p) => (
+                <button key={p.id} onClick={() => setProgramme(p.id)} className={card(programme === p.id)}>
+                  <span className="block font-serif text-lg">{p.name}</span>
+                  <span className="mt-1 block text-sm leading-snug">{p.text}</span>
+                  <span className="mt-1 block text-[13px] leading-snug text-state">Speaks for: {p.constituencies.map((g) => (GROUP_BY_ID as Record<string, { name: string }>)[g]?.name.toLowerCase() ?? g).join(', ')}.</span>
+                  <span className="mt-1 block text-[13px] leading-snug text-ink-soft">Agreed with {p.agreement.with}: {p.agreement.text}</span>
+                </button>
+              ))}
             </div>
             <p className="label mt-5 text-ink-soft">What you did before</p>
             <div className="mt-2 grid gap-3 sm:grid-cols-2">

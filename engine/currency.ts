@@ -72,9 +72,22 @@ export function fxFlow(s: GameState): { lines: { label: string; value: number }[
     { label: 'Foreign debt service', value: -0.12 - Math.max(0, n.debt - 66) * 0.004 },
     // A country that works attracts dollars; one that is falling apart loses them. What is not already counted above.
     { label: 'Investors on the economy', value: (n.power - 35) * 0.006 + (n.security - 35) * 0.006 + (n.capacity - 34) * 0.004 + clamp(n.fiscalSpace, -1, 3) * 0.04 + Math.min(20, s.agenda.done.length) * 0.01 - Math.max(0, hardship(s) - 60) * 0.005 },
+    // Reserves matter against what they must pay for: below four months of cover, money leaves; above it, nothing extra (plan 09.A7).
+    { label: 'Worry about thin reserves', value: s.fx ? coverPenalty(s) : 0 },
     { label: 'Capital leaving, or arriving', value: (s.blocs.establishment - 50) * 0.006 + (n.integrity - 35) * 0.003 - Math.max(0, premium(s) - 0.2) * 0.6 },
   ];
   return { lines, total: lines.reduce((a, l) => a + l.value, 0) };
+}
+
+/** Months of imports and foreign debt service the reserves would pay for (plan 09.A7). */
+export function reserveCover(s: GameState): number {
+  const need = 2.56 + 0.3 + 0.12 + Math.max(0, s.nation.debt - 66) * 0.004;
+  return (s.fx?.reserves ?? 0) / need;
+}
+/** Thin reserves frighten creditors and investors; ample ones do not buy extra strength. */
+export const COVER_SAFE = 4;
+export function coverPenalty(s: GameState): number {
+  return -Math.max(0, COVER_SAFE - reserveCover(s)) * 0.08;
 }
 
 export function premium(s: GameState): number {
@@ -130,8 +143,10 @@ export function currencyTick(s: GameState): void {
     f.reserves += Math.max(0, reserveFlow) * 0.5;
     f.parallel = f.rate * 1.03;
   } else if (f.stance === 'managed') {
-    f.rate += (f.fair - f.rate) * 0.2;
-    f.reserves += reserveFlow - Math.max(0, gap) * 1.5;
+    // Smoothing needs reserves: with less than two months of cover the central bank can only let the rate go (plan 09.A5).
+    const thin = reserveCover(s) < 2;
+    f.rate += (f.fair - f.rate) * (thin ? 0.6 : 0.2);
+    f.reserves += reserveFlow - (thin ? 0 : Math.max(0, gap) * 1.5);
     f.parallel = f.rate * (1.04 + Math.max(0, gap) * 0.6);
   } else {
     // Defending a rate: every dollar the market wants and cannot find at the official rate comes out of the reserves.
@@ -157,6 +172,15 @@ export function currencyTick(s: GameState): void {
     if (s.debts) for (const id of ['eurobond', 'lender'] as const) if (s.debts[id]) s.debts[id] = Math.round(s.debts[id] * realMove * 1000) / 1000;
     if (s.funds?.abroad) s.funds.abroad = Math.round(s.funds.abroad * realMove * 1000) / 1000;
     syncDebt(s);
+  }
+  // The fund abroad is invested, not held as reserves: it earns a return that moves with markets (plan 09.A11).
+  if (s.funds?.abroad) {
+    const r = 0.003 + 0.015 * Math.sin(s.turn / 2.3) * (0.6 + 0.4 * Math.cos(s.turn / 13));
+    const gain = Math.round(s.funds.abroad * r * 1000) / 1000;
+    s.funds.abroad = Math.max(0, Math.round((s.funds.abroad + gain) * 1000) / 1000);
+    const acc = (s.accounts ??= { revHist: [], created: s.debts?.ways ?? 0, reserveLog: [] });
+    (acc.fundReturns ??= []).push({ turn: s.turn, gain, rate: Math.round(r * 10000) / 10000 });
+    if (acc.fundReturns.length > 12) acc.fundReturns.shift();
   }
   // The reserve journal: what moved them this month.
   const log = (s.accounts ??= { revHist: [], created: s.debts?.ways ?? 0, reserveLog: [] }).reserveLog;

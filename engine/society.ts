@@ -8,6 +8,7 @@
 // constituencies that later governments must answer to.
 
 import { ASSETS } from '../content/assets';
+import { PROGRAMME_BY_ID } from '../content/programmes';
 import { CITIZENS, type Citizen, type Group } from '../content/citizens';
 import { CONSTITUENCIES, DIM_START, GROUPS, GROUP_BY_ID, SERVICE_EFFECTS, type ServiceDim } from '../content/society';
 import { hooks } from './hooks';
@@ -104,6 +105,8 @@ export function fortune(s: GameState, g: Group): { v: number; lines: { label: st
     const a = assets(s).find((x) => x.id === id);
     if (a) lines.push({ label: `${ASSETS[id].name}`, value: Math.round(4 * assetPerformance(s, id).k) });
   }
+  const programme = PROGRAMME_BY_ID[String(s.flags.programme ?? '')];
+  if (programme?.constituencies.includes(g)) lines.push({ label: 'The governing party speaks for them', value: 4 });
   const org = ensureSociety(s).organised[g] ?? 0;
   if (org) lines.push({ label: 'Organised: they bargain together', value: org });
   return { v: clamp(Math.round(lines.reduce((a, l) => a + l.value, 0)), 0, 100), lines };

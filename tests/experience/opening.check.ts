@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { EVENTS } from '../../content';
 import { FINANCE_CANDIDATES } from '../../content/names';
 import { CONSTRAINTS, FINANCIERS, ROUTES } from '../../content/routes';
+import { PROGRAMMES } from '../../content/programmes';
+import { fortune } from '../../engine/society';
 import { getGovernanceView } from '../../engine/public';
 import { startingEffects, validateSetup } from '../../engine/opening';
 import { newGame } from '../../engine/reduce';
@@ -77,6 +79,17 @@ check('the promise files arise only for the route or financier that made the pro
   assert.ok(test(coal, EVENTS['start.coalition_ministries'].when) && !test(mob, EVENTS['start.coalition_ministries'].when));
   assert.ok(test(mob, EVENTS['start.cost_of_governance'].when) && !test(coal, EVENTS['start.cost_of_governance'].when));
   assert.ok(test(mob, EVENTS['start.campaign_accounts'].when) && !test(coal, EVENTS['start.campaign_accounts'].when));
+});
+
+check('a party programme speaks for its groups and binds an agreement on the register', () => {
+  for (const p of PROGRAMMES) {
+    const s = newGame({ ...base, programme: p.id }), plain = newGame(base);
+    const g = p.constituencies[0];
+    assert.ok(fortune(s, g).v > fortune(plain, g).v, `${p.id}: its people regard the government as theirs`);
+    const c = getGovernanceView(s).commitments.find((x) => x.object === 'programme.' + p.id);
+    assert.ok(c && c.verify && c.visibility === 'public', `${p.id}: the agreement is on the register`);
+  }
+  assert.ok(validateSetup({ ...base, programme: 'nonsense' }).length > 0);
 });
 
 console.log(`${passed} opening checks passed.`);

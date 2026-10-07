@@ -10,6 +10,7 @@
 // old behaviour (financier from background, the Governors' Forum debt).
 
 import { vpCandidates } from './vp';
+import { PROGRAMME_BY_ID } from '../content/programmes';
 import { TRACKS } from '../content/agenda';
 import { CANDIDATE_BY_ID } from '../content/candidates';
 import { FINANCE_CANDIDATES } from '../content/names';
@@ -60,6 +61,7 @@ export function validateSetup(setup: Setup, opts: { successorSameParty?: boolean
   if (setup.route !== undefined && !routeOpen(setup.route, setup.scenario ?? 'standard', opts.successorSameParty)) out.push('That route to power is not open in this inheritance.');
   if (setup.financier !== undefined && !FINANCIER_BY_ID[setup.financier as keyof typeof FINANCIER_BY_ID]) out.push('Choose who paid for the campaign.');
   if (setup.constraint && !CONSTRAINT_BY_ID[setup.constraint]) out.push('Unknown governing constraint.');
+  if (setup.programme && !PROGRAMME_BY_ID[setup.programme]) out.push('Unknown party programme.');
   const picked = Object.values(setup.team ?? {}).filter((v) => v && v !== 'keep' && v !== 'vacant');
   if (new Set(picked).size !== picked.length) out.push('The same person cannot hold two offices.');
   for (const [office, id] of Object.entries(setup.team ?? {})) {
@@ -106,6 +108,15 @@ export function applyOpening(s: GameState, setup: Setup): void {
     bump(constraint.fx);
     openCommitment(s, 'opening.constraint', { object: constraint.id, text: constraint.text, responsible: 'president', afterMonths: 48, visibility: 'public', verify: constraint.verify, judgedBy: constraint.judgedBy }, 'constraint');
     s.archive.push({ id: 'a-constraint', turn: 0, eventId: 'transition', choiceId: 'constraint', category: 'politics', headline: `Bound the government on the first day: ${constraint.text}`, sig: 2, touches: {} });
+  }
+  // The party's programme: whom it speaks for, and the agreement it came to power on (plan 02.A5).
+  const programme = setup.programme ? PROGRAMME_BY_ID[setup.programme] : undefined;
+  if (programme) {
+    s.flags.programme = programme.id;
+    bump(programme.fx);
+    const a = programme.agreement;
+    openCommitment(s, 'opening.programme', { object: `programme.${programme.id}`, text: `Agreed with ${a.with}: ${a.text}`, responsible: 'president', afterMonths: a.afterMonths, visibility: 'public', verify: a.verify, judgedBy: a.judgedBy }, 'programme');
+    s.archive.push({ id: 'a-programme', turn: 0, eventId: 'transition', choiceId: 'programme', category: 'politics', headline: `Came to power on a programme of ${programme.name.toLowerCase()}, and an agreement with ${a.with}.`, sig: 2, touches: {} });
   }
   applyTeam(s, setup.team ?? {});
 }

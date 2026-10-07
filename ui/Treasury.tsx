@@ -4,7 +4,7 @@ import { TaxAndSpending } from './TaxAndSpending';
 import { RaiseMoney } from './RaiseMoney';
 import { Overlay, CloseButton } from './shell';
 import { oilForecast } from '../engine/oilforecast';
-import { STANCE_NAME, fxFlow, fxInflation, fxScale, premium, realFall, yearFall } from '../engine/currency';
+import { STANCE_NAME, fxFlow, fxInflation, fxScale, premium, reserveCover, coverPenalty, COVER_SAFE, realFall, yearFall } from '../engine/currency';
 import { useState } from 'react';
 import { BENCHMARKS, DEBTS, FUNDS, SECTORS, SECTOR_BY_ID } from '../content/treasury';
 import { dateLabel, yearOf } from '../engine/config';
@@ -556,7 +556,7 @@ function Naira({ s }: { s: GameState }) {
   return (
     <div className="mt-4 space-y-4">
       <div className="grid gap-3 sm:grid-cols-4">
-        {[['Official rate', `${fmt(f.rate)} to $1`], ['Street rate', `${fmt(f.parallel)}`], ['Black-market premium', `${Math.round(prem * 100)}%`], ['Foreign reserves', `$${f.reserves.toFixed(1)}bn`]].map(([k, v]) => (
+        {[['Official rate', `${fmt(f.rate)} to $1`], ['Street rate', `${fmt(f.parallel)}`], ['Black-market premium', `${Math.round(prem * 100)}%`], ['Foreign reserves', `${f.reserves.toFixed(1)}bn · ${reserveCover(s).toFixed(1)} months of cover`]].map(([k, v]) => (
           <div key={k} className="border border-ink/15 p-3"><p className="label text-ink-soft">{k}</p><p className="font-serif text-2xl">{v}</p></div>
         ))}
       </div>
@@ -565,6 +565,10 @@ function Naira({ s }: { s: GameState }) {
           ? `The official rate is held with the reserves. The market thinks the naira is worth about ${fmt(f.fair)}; every dollar it wants at the official rate comes out of the reserves.${months !== null ? ` At this rate they last about ${months} months. When they fall below $5bn, the peg breaks overnight.` : ''}`
           : f.stance === 'float' ? 'The market sets the rate. There is no black market to speak of, and the reserves are left alone.' : 'The rate moves towards what the market thinks, a fifth of the way each month, with reserves spent to smooth it.'}
         {' '}Change it under Orders, in the economy section.
+      </p>
+      <p className="text-sm leading-snug text-ink-soft">
+        The reserves pay for {reserveCover(s).toFixed(1)} months of imports and foreign debt service. {reserveCover(s) < COVER_SAFE ? `Below ${COVER_SAFE} months, creditors and investors start to leave: it costs about ${Math.abs(coverPenalty(s)).toFixed(2)}bn a month.` : `Above ${COVER_SAFE} months that worry is gone; more reserves do not make the naira stronger by themselves.`}{f.stance === 'managed' && reserveCover(s) < 2 ? ' With under two months of cover, the central bank cannot smooth the rate; it moves most of the way to the market each month.' : ''}
+        {(() => { const r = s.accounts?.fundReturns ?? []; const total = r.reduce((a, x) => a + x.gain, 0); return r.length && s.funds.abroad > 0 ? ` The fund abroad (₦${s.funds.abroad.toFixed(2)}tn) is invested, not part of the reserves: over the last ${r.length} months it ${total >= 0 ? 'earned' : 'lost'} ₦${Math.round(Math.abs(total) * 1000)}bn.` : ''; })()}
       </p>
       <div>
         <p className="label border-b rule pb-1 text-ink-soft">Dollars in and out each month</p>
