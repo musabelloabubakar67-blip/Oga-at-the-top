@@ -26,6 +26,8 @@ import { REHEAD_PC, type Head, WATCHDOGS, cultureOf, institutionFiscalLines, ava
 import { CULTURE_NAME, INSTITUTION_BY_ID } from '../content/institutions';
 import { AUTHORITY_NAME, entrenchedReform, reformAuthority, ruleInForce } from '../engine/constitution';
 import { CAUSE_NAME, diagnose } from '../engine/diagnosis';
+import { firstMonthGuide, shortlist } from '../engine/shortlist';
+import { STAGE_NAME, deskObjects, pathsFor, readings, threads, whyExists } from '../engine/history';
 import { FISCAL_OBJECTIVES } from '../content/tracks-fiscal';
 import { adviser, adviserFor, campGain, forecast, patronName, recommend, secondFor, trackRecord, worldview } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
@@ -62,6 +64,7 @@ import { Papers } from './Paper';
 import { PeopleModal, senateLine } from './People';
 import { Citizens } from './Citizens';
 import { DOSSIER_BY_SCENARIO } from '../content/dossiers';
+import { SCENARIO_BY_ID } from '../content/scenarios';
 import { Register } from './Register';
 import { BudgetModal, TreasuryModal } from './Treasury';
 import { getGovernanceView } from '../engine/public';
@@ -1301,6 +1304,36 @@ function DrawerModal({ s, dispatch, onClose }: { s: GameState; dispatch: Dispatc
 
 // ---------------------------------------------------------------- the archive
 
+/** The history book (plan 17): one thread per reform, bet, institution, question, case, agreement and citizen. */
+function HistoryThreads({ s }: { s: GameState }) {
+  const [kind, setKind] = useState<string>('all');
+  const [open, setOpen] = useState<string | null>(null);
+  const all = threads(s);
+  const list = all.filter((t) => kind === 'all' || t.kind === kind);
+  const kinds = [...new Set(all.map((t) => t.kind))];
+  return (
+    <div className="mt-4">
+      <div className="flex flex-wrap gap-2 text-sm">{['all', ...kinds].map((k) => <button key={k} onClick={() => setKind(k)} className={`border px-2 py-0.5 ${kind === k ? 'border-state bg-state/10' : 'border-ink/20'}`}>{k === 'all' ? 'Everything' : k}</button>)}</div>
+      <ul className="mt-3 space-y-2">
+        {list.slice(0, 40).map((t) => (
+          <li key={t.id} className="border border-ink/15 p-2 text-[13px] leading-snug">
+            <button onClick={() => setOpen(open === t.id ? null : t.id)} className="flex w-full flex-wrap justify-between gap-2 text-left"><span className="font-serif text-base">{t.title}</span><span className="label text-ink-soft">{t.status}</span></button>
+            {open === t.id && (
+              <div className="mt-1">
+                <ul className="space-y-0.5">{t.entries.map((e, i) => <li key={i}><span className="label mr-1 text-ink-soft">{e.earlier ? 'earlier government' : dateLabel(e.turn, s.startYear)} · {STAGE_NAME[e.stage]}</span>{e.text}</li>)}</ul>
+                {whyExists(s, pathsFor(t)).length > 0 && (
+                  <p className="mt-1 text-ink-soft"><span className="font-semibold">How it came to this:</span> {whyExists(s, pathsFor(t)).map((a) => `${a.turn <= 0 ? 'earlier' : dateLabel(a.turn, s.startYear)}: ${a.headline}`).join(' · ')}</p>
+                )}
+                <ul className="mt-1 grid gap-x-4 sm:grid-cols-2">{readings(t).map((r) => <li key={r.who}><span className="font-semibold">{r.who}:</span> {r.text}</li>)}</ul>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ArchiveModal({ s, onClose }: { s: GameState; onClose: () => void }) {
   const entries = s.archive.filter((a) => !a.sealed);
   const years = [...new Set(entries.filter((a) => a.turn > 0).map((a) => yearOf(a.turn, s.startYear)))].sort((a, b) => b - a);
@@ -1309,7 +1342,10 @@ function ArchiveModal({ s, onClose }: { s: GameState; onClose: () => void }) {
     <Modal onClose={onClose} wide>
       <div className="paper p-5 sm:p-9">
         <p className="label text-state">The Presidential Archive</p>
-        <h2 className="mt-1 font-serif text-3xl">What you did</h2>
+        <h2 className="mt-1 font-serif text-3xl">How things came to be</h2>
+        <p className="mt-1 text-sm text-ink-soft">Each thread follows one thing from announcement to delivery or failure, marking what was alleged and what was established, what was forecast and what was observed, and which government did it.</p>
+        <HistoryThreads s={s} />
+        <h2 className="mt-8 font-serif text-2xl">What you did, month by month</h2>
         {years.map((y) => (
           <section key={y} className="mt-6">
             <h3 className="border-b rule pb-1 font-serif text-xl">{y}</h3>
@@ -1385,6 +1421,35 @@ const NAV: [View, string, string][] = [
 ];
 
 /** The Chief of Staff's briefing: what deserves the President's attention this month. */
+/** Where to look first, and why (plan 17): a short shortlist, a dismissible first-month guide, and what sits on the desk. */
+function FirstThings({ s, go }: { s: GameState; go: (v: View, tab?: string) => void }) {
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem('oatt.guide.off') === '1'; } catch { return false; } });
+  const picks = shortlist(s);
+  const guide = hidden ? null : firstMonthGuide(s);
+  const objects = deskObjects(s);
+  const where = (g: string): View => (g === 'desk' ? 'desk' : g as View);
+  const short = SCENARIO_BY_ID[s.setup?.scenario ?? '']?.short;
+  if (!picks.length && !guide && !objects.length && !short) return null;
+  return (
+    <div className="mb-4 space-y-2">
+      {short && !s.predecessor && <p className="text-[13px] text-ivory/80"><span className="label mr-1 text-honour">The test</span>{short.goalText} {Math.max(0, short.months - s.turn + 1)} months left.</p>}
+      {picks.length > 0 && (
+        <div>
+          <p className="label text-honour">First, if you do nothing else</p>
+          <ul className="mt-1 space-y-1">{picks.map((p) => <li key={p.text}><button onClick={() => go(where(p.go), p.go === 'power' ? (p.text.startsWith('Answer') ? 'opposition' : p.text.startsWith('Prepare') ? 'succession' : undefined) : undefined)} className="w-full text-left hover:bg-ivory/5"><span className="font-serif text-ivory">{p.text}</span> <span className="text-[12.5px] text-ivory/60">{p.why}</span></button></li>)}</ul>
+        </div>
+      )}
+      {guide && (
+        <div className="border border-ivory/15 p-2">
+          <p className="flex justify-between"><span className="label text-honour">Your first month</span><button onClick={() => { setHidden(true); try { localStorage.setItem('oatt.guide.off', '1'); } catch { /* ignore */ } }} className="label text-ivory/50 hover:text-ivory">Hide the guide</button></p>
+          <ul className="mt-1 space-y-1 text-[13px]">{guide.map((g) => <li key={g.text}><button onClick={() => go(where(g.go))} className="text-left hover:bg-ivory/5"><span className="text-ivory">{g.text}.</span> <span className="text-ivory/60">{g.why}</span></button></li>)}</ul>
+        </div>
+      )}
+      {objects.length > 0 && <p className="text-[12.5px] italic text-ivory/55">On the desk: {objects.join('; ').toLowerCase()}.</p>}
+    </div>
+  );
+}
+
 function Briefing({ s, go, dispatch }: { s: GameState; go: (v: View, tab?: string) => void; dispatch: Dispatch }) {
   const a = attention(s);
   const row = (x: Item, tone: string) => (
@@ -1397,6 +1462,7 @@ function Briefing({ s, go, dispatch }: { s: GameState; go: (v: View, tab?: strin
   const dossier = s.era === 0 && s.turn <= 2 ? DOSSIER_BY_SCENARIO[s.setup?.scenario ?? 'standard'] : undefined;
   return (
     <div className="border-l-2 border-honour/60 pl-4">
+      <FirstThings s={s} go={go} />
       {dossier && (
         <div className="mb-4">
           <p className="label text-honour">Private · the door is closed</p>

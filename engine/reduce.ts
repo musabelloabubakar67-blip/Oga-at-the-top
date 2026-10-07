@@ -735,6 +735,9 @@ function advance(s: GameState): void {
   s.turn += 1;
 
   if (s.turn > CFG.termLength * 2) return end(s, 'term_limit');
+  // A short scenario ends when its months are up, judged on its stated goal (plan 17).
+  const short = SCENARIO_BY_ID[s.setup.scenario ?? '']?.short;
+  if (short && !s.predecessor && s.turn > short.months) { s.flags['short.met'] = test(s, short.goal); return end(s, 'term_limit'); }
   if (s.turn === CFG.termLength + 1) {
     if (!s.flags['election.won']) return end(s, s.flags['ticket.lost'] ? 'ticket_denied' : 'defeated');
     s.term = 2;

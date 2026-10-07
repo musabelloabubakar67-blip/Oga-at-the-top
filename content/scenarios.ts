@@ -1,5 +1,5 @@
 import type { ScenarioAssets } from '../engine/public';
-import type { BlocId, DebtId, FlagValue, FundId, Nation, Pressures, ZoneId } from '../engine/types';
+import type { BlocId, Cond, DebtId, FlagValue, FundId, Nation, Pressures, ZoneId } from '../engine/types';
 
 // STARTING SCENARIOS
 // A new world begins from a chosen inheritance. Each is also a state that play
@@ -33,6 +33,8 @@ export interface Scenario extends ScenarioAssets {
   history: [number, string, Record<string, number>][];
   /** The outgoing government's own account, for the inauguration paper. */
   farewell: string;
+  /** A short scenario (plan 17): a fixed number of months and a stated goal, judged on what actually happened. */
+  short?: { months: number; goal: Cond; goalText: string };
 }
 
 const STANDARD_HISTORY: Scenario['history'] = [
@@ -47,7 +49,7 @@ const STANDARD_HISTORY: Scenario['history'] = [
 
 export const SCENARIOS: Scenario[] = [
   {
-    id: 'standard', assets: [{ asset: 'wheat', site: 'KN', condition: 0.35 }], // working on a third of its hectares; pumps unserviced for four years
+    id: 'standard', assets: [{ asset: 'wheat', site: 'KN', condition: 0.35 }], // working on a third of its hectares; pumps unserviced for four years
     name: 'The Standard Inheritance', difficulty: 'Normal',
     blurb: 'Everything is fragile and nothing has broken yet. A petrol subsidy nobody admits to, two thirds of revenue going on interest, ₦2.5tn of unpaid bills, and a university agreement signed eleven years ago and never funded.',
     test: 'Whether you can fix any of it before it breaks.',
@@ -55,7 +57,7 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'OUTGOING ADMINISTRATION SAYS IT IS LEAVING THE ECONOMY "ON A SOUND FOOTING"',
   },
   {
-    id: 'boom', assets: [{ asset: 'coastal', site: 'LA', condition: 0.4 }], // the first stretch open and busy, the rest surveyed
+    id: 'boom', assets: [{ asset: 'coastal', site: 'LA', condition: 0.4 }], // the first stretch open and busy, the rest surveyed
     name: 'The Boom', difficulty: 'Easy to survive, hard to govern well',
     blurb: 'Oil is at $98. The stabilisation account is full, the treasury is flush and the country is in a generous mood. Institutions are as weak as ever, every governor expects a share, and the price will not stay where it is.',
     test: 'Whether you save anything before the price falls, some time in your second year.',
@@ -75,7 +77,7 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'OUTGOING ADMINISTRATION: "WE ARE LEAVING THE TREASURY FULL"',
   },
   {
-    id: 'morning', assets: [{ asset: 'export_power', site: 'NI', condition: 0.8 }], // working, selling power for dollars
+    id: 'morning', assets: [{ asset: 'export_power', site: 'NI', condition: 0.8 }], // working, selling power for dollars
     name: 'The Morning After', difficulty: 'Hard',
     blurb: 'Your predecessor defended the currency until the reserves ran out. The naira was let go in the final month. Inflation is above 30%, the treasury is all but empty, ₦3.5tn is unpaid, and a lender\'s programme is on the table with its conditions attached.',
     test: 'Whether you can stabilise a country with nothing in the account and nobody willing to wait.',
@@ -95,7 +97,7 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'OUTGOING PRESIDENT: "HISTORY WILL VINDICATE THE DEFENCE OF THE NAIRA"',
   },
   {
-    id: 'scandal', assets: [{ asset: 'hospital', site: 'FC', condition: 1 }], // open, staffed and good
+    id: 'scandal', assets: [{ asset: 'hospital', site: 'FC', condition: 1 }], // open, staffed and good
     name: 'After the Scandal', difficulty: 'Hard, political',
     blurb: 'Your predecessor was removed from office. Integrity and public trust are at the floor, the party is split between those who voted for the removal and those who did not, the press is in open season, and the street expects prosecutions.',
     test: 'Whether you clean house and keep a party, or keep the party and the stain.',
@@ -113,7 +115,7 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'REMOVED PRESIDENT\'S FILES "ARE BEING STUDIED" — ATTORNEY GENERAL',
   },
   {
-    id: 'reformer', assets: [{ asset: 'hub', site: 'LA', condition: 0.85 }], // twelve firms trading and a waiting list
+    id: 'reformer', assets: [{ asset: 'hub', site: 'LA', condition: 0.85 }], // twelve firms trading and a waiting list
     name: 'The Reformer\'s Handover', difficulty: 'Normal; a test of restraint',
     blurb: 'Your predecessor ended the subsidy, cleared the gas debt, unified the tax system and lost the election for it. Revenue is rising and the books are sounder than they have been in twenty years. Prices are brutal, labour is furious, and the easy applause is in undoing all of it.',
     test: 'Whether you keep what was done long enough for it to pay.',
@@ -133,7 +135,7 @@ export const SCENARIOS: Scenario[] = [
     farewell: 'DEFEATED PRESIDENT: "I DID WHAT WAS NECESSARY. YOU ARE WELCOME"',
   },
   {
-    id: 'emergency', assets: [{ asset: 'rice', site: 'KB', condition: 0.7 }], // working, inside a theatre that is getting worse
+    id: 'emergency', assets: [{ asset: 'rice', site: 'KB', condition: 0.7 }], // working, inside a theatre that is getting worse
     name: 'The Long Emergency', difficulty: 'Hard, and grave',
     blurb: 'Security has collapsed across the North West, the North East and the farm belt. Defence takes most of the budget, the farms are emptying, food prices follow, and the governors want their own police.',
     test: 'Whether you can make the country safe before anything else becomes possible.',
@@ -149,6 +151,37 @@ export const SCENARIOS: Scenario[] = [
       [6, 'Announced that the refinery was 95% complete.', { 'counter.refinery': 1 }],
     ],
     farewell: 'OUTGOING ADMINISTRATION: INSECURITY "A GLOBAL PHENOMENON"',
+  },
+  // ---------------------------------------------------------------- short scenarios (plan 17)
+  {
+    id: 'payroll', assets: [{ asset: 'hub', site: 'LA', condition: 0.6 }], name: 'The Payroll Year', difficulty: 'Short: twelve months',
+    blurb: 'The treasury is empty, the stabilisation account is gone, and salaries are due in three weeks. The last government borrowed to pay the last ones.',
+    test: 'Whether you can pay the workers of the state for a year without borrowing the country into a corner.',
+    nation: { fiscalSpace: 0.05, inflation: 27 }, funds: { buffer: 0 }, debts: { pensions: 0.9, contractors: 1.6, ways: 5.6 },
+    flags: { 'scenario.payroll': true },
+    history: [[8, 'Paid two months of salaries with a central bank advance.', { 'debt.ways': 0.6 }], [3, 'Emptied the stabilisation account.', { 'fund.buffer': -0.4 }]],
+    farewell: 'OUTGOING ADMINISTRATION: "THE TREASURY IS IN SAFE HANDS"',
+    short: { months: 12, goal: { all: [{ v: ['debt.pensions', '<', 0.6] }, { v: ['nation.debt', '<', 100] }] }, goalText: 'Pensions owed below ₦600bn, and debt service still below 100% of revenue, after twelve months.' },
+  },
+  {
+    id: 'queues', assets: [{ asset: 'refinery', site: 'RI', condition: 0.3 }], name: 'The Fuel Queues', difficulty: 'Short: nine months',
+    blurb: 'The queues are a kilometre long in six cities. The importers say they cannot import; the depots say they are empty; somebody is lying.',
+    test: 'Whether you can end the queues without making the people who caused them richer.',
+    pressures: { fuelSupplyStress: 78 }, theatres: { SS: 64 },
+    flags: { 'scenario.queues': true },
+    history: [[5, 'Raised the pump price, then lowered it a week later.', { 'nation.petrolPrice': 0 }]],
+    farewell: 'OUTGOING ADMINISTRATION: "THERE IS SUFFICIENT PRODUCT IN STOCK"',
+    short: { months: 9, goal: { v: ['pressure.fuelSupplyStress', '<', 40] }, goalText: 'Fuel supply stress below 40 after nine months.' },
+  },
+  {
+    id: 'corridor', assets: [{ asset: 'rail', site: 'LA', condition: 0.6 }], name: 'The Corridor', difficulty: 'Short: twelve months',
+    blurb: 'Kidnappers own the expressway between Lagos and the north at night. Lorries travel in convoy or not at all.',
+    test: 'Whether you can open the corridor without the army becoming the problem.',
+    theatres: { SW: 74, NC: 70 },
+    flags: { 'scenario.corridor': true },
+    history: [[6, 'Announced a joint task force. Nobody was appointed to it.', { 'nation.security': -2 }]],
+    farewell: 'OUTGOING ADMINISTRATION: "THE ROADS ARE SAFER THAN EVER"',
+    short: { months: 12, goal: { all: [{ v: ['theatre.SW', '<', 55] }, { v: ['mil.conduct', '>=', 50] }] }, goalText: 'The South West below 55, with military conduct at 50 or better, after twelve months.' },
   },
 ];
 

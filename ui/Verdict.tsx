@@ -5,6 +5,21 @@ import { verdict } from '../engine/legacy';
 import { winnerOf } from '../engine/succession';
 import type { Action, GameState } from '../engine/types';
 import { Aftermath } from './Aftermath';
+import { useState } from 'react';
+import { shareText } from '../engine/history';
+
+/** A shareable extract (plan 17): what happened, with the private ledger included when there is one. */
+function ShareVerdict({ s }: { s: GameState }) {
+  const [copied, setCopied] = useState(false);
+  const text = shareText(s);
+  return (
+    <section className="mt-10 border-t rule pt-6">
+      <h2 className="label text-ink-soft">Share the verdict</h2>
+      <pre className="mt-2 whitespace-pre-wrap bg-ink/5 p-3 font-mono text-[12.5px]">{text}</pre>
+      <button onClick={() => { navigator.clipboard?.writeText(text).then(() => setCopied(true)).catch(() => setCopied(false)); }} className="mt-2 border border-ink/30 px-3 py-1 text-sm hover:border-state">{copied ? 'Copied' : 'Copy it'}</button>
+    </section>
+  );
+}
 
 export function VerdictScreen({ s, onDone, onSucceed, dispatch }: { s: GameState; onDone: () => void; onSucceed: () => void; dispatch: (a: Action) => void }) {
   const v = verdict(s);
@@ -90,6 +105,7 @@ export function VerdictScreen({ s, onDone, onSucceed, dispatch }: { s: GameState
           )}
         </section>
 
+        <ShareVerdict s={s} />
         <Aftermath s={s} dispatch={dispatch} />
 
         <section className="mt-10 border-t rule pt-6">

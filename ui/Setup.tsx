@@ -16,6 +16,7 @@ import { CAST, DEFAULT_PARTY, FINANCE_CANDIDATES, NAMES } from '../content/names
 import { PERSON_BY_ID } from '../content/people';
 import { CONSTRAINTS, FINANCIERS, ROUTES } from '../content/routes';
 import { SCENARIOS } from '../content/scenarios';
+import { dailySeed, decodeStart, encodeStart } from '../engine/history';
 import { STATES, STATE_BY_ID } from '../content/states';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from '../engine/config';
@@ -134,7 +135,10 @@ export function SetupScreen({ onStart, onBack, handover, previous }: { onStart: 
   const [priorities, setPriorities] = useState<string[]>([]);
   const [detail, setDetail] = useState(false);
   const toggle = (id: string) => setPriorities((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < 4 ? [...p, id] : p));
-  const seed = useMemo(() => Date.now() % 2147483647, []);
+  // The seed decides everything random in the game: share it, or play today's, and the country is the same (plan 17).
+  const [seed, setSeed] = useState(() => Date.now() % 2147483647);
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
   const dossier = handover ? undefined : DOSSIER_BY_SCENARIO[scenario];
 
   const setup: Setup = {
@@ -197,6 +201,13 @@ export function SetupScreen({ onStart, onBack, handover, previous }: { onStart: 
                       <span className="mt-1 block text-sm leading-snug text-ink-soft">{x.blurb}</span>
                     </button>
                   ))}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                  <button onClick={() => setSeed(dailySeed())} className="border border-ink/25 px-2 py-1 hover:border-state">Today's country</button>
+                  <span className="text-ink-soft">Share code: <span className="font-mono">{encodeStart({ seed, scenario, background: background ?? undefined, home: home || undefined })}</span></span>
+                  <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Paste a share code" className="border border-ink/25 bg-paper px-2 py-1 font-mono" />
+                  <button onClick={() => { const d = decodeStart(code); if (!d) { setCodeError('That is not a share code.'); return; } setCodeError(null); setSeed(d.seed); setScenario(d.scenario); setBackground(d.background as Background); setHome(d.home); }} className="border border-ink/25 px-2 py-1 hover:border-state">Play this country</button>
+                  {codeError && <span className="text-alarm">{codeError}</span>}
                 </div>
                 {dossier && (
                   <div className="mt-4 space-y-3 text-[13px] leading-snug">

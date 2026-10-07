@@ -210,6 +210,49 @@ export const DOSSIERS: Dossier[] = [
     ],
     firstAct: { text: 'The farm belt is the first theatre to test you.', points: 'attack.farms' },
   },
+  // ---------------------------------------------------------------- short scenarios (plan 17)
+  {
+    scenario: 'payroll',
+    predecessor: 'The outgoing President leaves after one term, with the salaries paid and nothing in the account to pay the next ones.',
+    claims: [
+      { claim: 'The treasury is in safe hands.', source: 'The outgoing Minister of Finance', finding: 'The account holds less than the salaries of one month, and the stabilisation account was emptied three months ago.', status: 'false', checkedBy: 'The Accountant-General' },
+      { claim: 'The central bank advance has been repaid.', source: 'The office of the outgoing President', finding: 'It was rolled into the overdraft, which is larger than it was.', status: 'false', checkedBy: 'The central bank' },
+    ],
+    obligations: [
+      { what: 'Pensions owed and unpaid', owedTo: 'Retired federal workers', amount: '₦0.9tn', due: 'Now', kind: 'debt', state: 'debt.pensions' },
+      { what: 'Salaries due every month', owedTo: 'Federal workers', due: 'Every month', kind: 'programme' },
+    ],
+    asset: { asset: 'hub', site: 'LA', condition: 'Running at three fifths: the port clears in four days, not two.', why: 'It earns fees in naira and dollars, and could be leased if the money runs out.' },
+    leverage: [{ who: 'ty_bank', holds: 'The banks that buy government bonds', wants: 'A higher rate, and the deposits of the government' }],
+    briefing: ['{SIR}, the first payroll is in three weeks. Everything else can wait for it.', 'There are four ways to find money quickly, and each has a price. The Treasury shows them.'],
+    firstAct: { text: 'The Accountant-General will need an instruction on the first payroll within weeks. Raising money is in the Treasury.', points: 'treasury.payroll' },
+  },
+  {
+    scenario: 'queues',
+    predecessor: 'The outgoing President leaves in the middle of a fuel scarcity, having blamed vandals, importers and the weather in turn.',
+    claims: [
+      { claim: 'There is sufficient product in stock.', source: 'The national oil company', finding: 'There is stock in the depots and none at the stations; nobody has checked why.', status: 'disputed', checkedBy: 'Nobody yet' },
+      { claim: 'The refinery will produce by the end of the quarter.', source: 'The Minister of State, Petroleum', finding: 'It runs at a third of its capacity on a good day.', status: 'partly true', checkedBy: 'The engineers on site' },
+    ],
+    obligations: [{ what: 'The petrol subsidy, paid monthly', owedTo: 'The importers', due: 'Every month', kind: 'programme' }],
+    asset: { asset: 'refinery', site: 'RI', condition: 'Working at a third of its capacity.', why: 'A third of a refinery is still petrol the country does not have to import.' },
+    leverage: [{ who: 'ty_fuel', holds: 'A third of the depot space in the country', wants: 'An import licence and no questions about the depots' }],
+    briefing: ['{SIR}, the queues are the first thing anyone will judge you on.', 'Find out who is keeping the fuel before you decide who to blame.'],
+    firstAct: { text: 'The scarcity reaches the desk early, and the question of who is keeping the fuel opens in the register.', points: 'petrol.scarcity' },
+  },
+  {
+    scenario: 'corridor',
+    predecessor: 'The outgoing President leaves having announced a joint task force for the expressway, and appointed nobody to it.',
+    claims: [
+      { claim: 'The roads are safer than ever.', source: 'The outgoing Minister of Interior', finding: 'Kidnappings on the corridor doubled in the last year.', status: 'false', checkedBy: 'The count kept by the transport unions' },
+      { claim: 'A joint task force has been established.', source: 'The office of the outgoing President', finding: 'It exists on paper; it has no commander and no budget.', status: 'partly true', checkedBy: 'Defence Headquarters' },
+    ],
+    obligations: [{ what: 'Compensation promised to the families of kidnapped drivers', owedTo: 'The transport unions', due: 'Overdue', kind: 'promise' }],
+    asset: { asset: 'rail', site: 'LA', condition: 'Running at three fifths: the trains run, the night service does not.', why: 'Freight by rail is freight that does not travel the corridor at night.' },
+    leverage: [{ who: 'gov_sw', holds: 'The regional security outfit the corridor patrols depend on', wants: 'A say in who commands the operation' }],
+    briefing: ['{SIR}, the corridor is a mission, not a speech. Choose the commander, the resources and the limits.', 'If the army becomes the problem on that road, the road is lost twice.'],
+    firstAct: { text: 'Order a mission on the corridor from The country, The armed forces; the service chiefs will disagree about how to fight it as soon as it starts.', points: 'mil.dispute' },
+  },
 ];
 
 export const DOSSIER_BY_SCENARIO = Object.fromEntries(DOSSIERS.map((d) => [d.scenario, d]));
