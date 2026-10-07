@@ -13,6 +13,7 @@ import { Aimed } from './Aimed';
 import { Candidates } from './Candidates';
 import { candidatesFor } from '../engine/talent';
 import { useContext, useState } from 'react';
+import { Coalitions, Delegate } from './Legislature';
 import { PEOPLE, PERSON_BY_ID, RIVALS, type Group } from '../content/people';
 import { TYCOONS } from '../content/tycoons';
 import { dateLabel } from '../engine/config';
@@ -447,6 +448,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </>
         )}
 
+        {tab === 'opposition' && <Coalitions s={s} dispatch={dispatch} />}
         {tab === 'opposition' && <Proposals s={s} dispatch={dispatch} />}
         {tab === 'opposition' && <FormerPresident s={s} dispatch={dispatch} left={left} />}
         {tab === 'opposition' && (
@@ -678,6 +680,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                     </div>
                   )}
                   {base.group === 'minister' && <Deputy s={s} post={p.id} dispatch={dispatch} left={left} />}
+                  {base.group === 'minister' && !st.gone && <Delegate s={s} post={p.id} dispatch={dispatch} left={left} />}
                   {base.group === 'minister' && swap === p.id && (() => {
                     const cost = sackCost(s, p.id);
                     return (

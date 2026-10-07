@@ -17,4 +17,9 @@ export const hooks = {
   military: (_s: GameState, _path: string[]): number => 0,
   /** Readings of groups, services and development for conditions: group.<id>, svc.<dim>, assets.industry (engine/society.ts). */
   society: (_s: GameState, _path: string[]): number => 0,
+  /** Where a reform stands, what it would take from the treasury, and a launch on a minister's delegated authority (engine/reduce.ts). */
+  milestoneStatus: (_s: GameState, _id: string): string => 'hidden',
+  launchMoney: (_s: GameState, _id: string): number => 0,
+  /** Launches without the President's capital; returns why it cannot, or null. */
+  launchDelegated: (_s: GameState, _id: string): string | null => 'Not available.',
 };

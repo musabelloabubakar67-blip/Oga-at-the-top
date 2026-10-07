@@ -1,4 +1,7 @@
 import { entrenchedReform } from './constitution';
+import { hooks } from './hooks';
+import { answerCoalition, billPassed, billPasses, billTick, canAnswerCoalition, canConcede, canRevoke, concede, isBill, revoke, whipCount } from './legislature';
+import { canDelegate, delegate, delegationTick, endDelegation } from './delegation';
 import { heldFactor } from './diagnosis';
 import { answer, canAnswer } from './proposals';
 import { choosePost } from './postoffice';
@@ -751,6 +754,8 @@ function advance(s: GameState): void {
   applyLedger(s);
   recruitmentTick(s);
   agendaTick(s);
+  billTick(s);
+  delegationTick(s);
   ventureTick(s);
   economyTick(s);
   politicsTick(s);
@@ -847,6 +852,31 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'ACT': act(s, action.action, action.zone); break;
     case 'DRAWER': drawer(s, action.op); break;
     case 'LAUNCH': launch(s, action.id, action.grease); break;
+    case 'CONCEDE': if (canConcede(s, action.id, action.voter, action.kind, movesLeft(s)).ok) {
+      const b = snapshot(s);
+      const t = concede(s, action.id, action.voter, action.kind);
+      record(s, `bill.${action.id}`, action.kind, 'politics', `Conceded a provision to ${personView(s, action.voter).name} on ${reformName(s, action.id)}.`, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'REVOKE_CONCESSION': if (canRevoke(s, action.id, action.voter).ok) {
+      const b = snapshot(s);
+      const t = revoke(s, action.id, action.voter);
+      record(s, `bill.${action.id}`, 'revoke', 'politics', `Withdrew a concession to ${personView(s, action.voter).name} after the vote on ${reformName(s, action.id)}.`, 2);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'COALITION': if (canAnswerCoalition(s, action.id).ok) {
+      const b = snapshot(s);
+      const t = answerCoalition(s, action.id, action.accept);
+      record(s, 'coalition', action.accept ? 'accept' : 'refuse', 'politics', action.accept ? 'Accepted a joint demand from two politicians.' : 'Refused a joint demand from two politicians.', 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'DELEGATE': if (canDelegate(s, action.office, action.track, movesLeft(s)).ok && action.budget >= 0 && action.months >= 3 && action.months <= 24) {
+      const b = snapshot(s);
+      const t = delegate(s, action.office, action.track, action.budget, action.months, action.reporting);
+      record(s, `delegate.${action.office}`, action.track, 'action', `Delegated an objective to ${personView(s, action.office).name}.`, 1);
+      s.lastAction = { text: t, changes: diff(b, snapshot(s)) };
+    } break;
+    case 'END_DELEGATION': endDelegation(s, action.office); break;
     case 'VENTURE': launchVenture(s, action.id, action.site); break;
     case 'VENTURE_REVIVE': revive(s, action.id); break;
     case 'EXPAND_ASSET': if (canExpand(s, action.id).ok) note(s, expand(s, action.id)); break;
@@ -1191,7 +1221,7 @@ function reverse(s: GameState, id: string): void {
 
 export interface LaunchCheck { ok: boolean; reason?: string; grease?: boolean }
 
-export function canLaunch(s: GameState, id: string): LaunchCheck {
+export function canLaunch(s: GameState, id: string, ignorePc = false): LaunchCheck {
   const entry = MILESTONE_BY_ID[id];
   if (!entry) return { ok: false };
   const st = milestoneStatus(s, id);
@@ -1206,23 +1236,24 @@ export function canLaunch(s: GameState, id: string): LaunchCheck {
     return { ok: false, reason: `Defeated in the Assembly. It can be brought back in ${wait} ${wait === 1 ? 'month' : 'months'}.` };
   }
   if (s.agenda.active.length >= agendaSlots(s)) return { ok: false, reason: `The government can carry ${agendaSlots(s)} reforms at once. State capacity of 50 adds a sixth, and 65 a seventh.` };
-  if (s.pc < launchCost(s, entry.m)) return { ok: false, reason: `Needs ${launchCost(s, entry.m)} political capital.` };
+  if (!ignorePc && s.pc < launchCost(s, entry.m)) return { ok: false, reason: `Needs ${launchCost(s, entry.m)} political capital.` };
   if (launchMoney(s, entry.m).treasury > s.nation.fiscalSpace && s.nation.debt >= CFG.economy.noLendingAbove) {
     return { ok: false, reason: 'There is no money, and nobody will lend it.' };
   }
-  if (entry.m.needs && !test(s, entry.m.needs)) {
-    // The votes are not there. They can be bought.
+  if (entry.m.needs && !test(s, entry.m.needs) && !(isBill(id) && whipCount(s, id).majority)) {
+    // The votes are not there. They can be negotiated, provision by provision, or bought.
     return { ok: false, reason: entry.m.needsText ?? 'Not yet possible.', grease: s.purse >= CFG.agenda.greasePurse };
   }
   return { ok: true };
 }
 
-function launch(s: GameState, id: string, grease = false): void {
-  const check = canLaunch(s, id);
+function launch(s: GameState, id: string, grease = false, delegated = false): void {
+  const check = canLaunch(s, id, delegated);
   if (!check.ok && !(grease && check.grease)) return;
   const { m, track } = MILESTONE_BY_ID[id];
   const before = snapshot(s);
-  s.pc = clamp(s.pc - launchCost(s, m), 0, 100);
+  // A minister acting on delegated authority spends the ministry's standing, not the President's capital.
+  if (!delegated) s.pc = clamp(s.pc - launchCost(s, m), 0, 100);
   const entry = record(s, `reform.${id}`, 'launch', 'action', `Launched: ${reformName(s, m.id)}.`, 1);
   payBuild(s, m.naira, drawsOnInfra(track.id), entry.touches);
   for (const fx of m.start ?? []) applyFx(s, fx, entry.touches);
@@ -1265,7 +1296,7 @@ function agendaTick(s: GameState): void {
     const min = ministerFor(track.id);
 
     // A reform that needs the Assembly is voted on at the end. Without the party, or logistics, it falls.
-    if (m.needs && !a.greased && !test(s, m.needs)) {
+    if (m.needs && !a.greased && !billPasses(s, m.id)) {
       const rec = record(s, `reform.${m.id}`, 'failed', 'action', `Defeated in the National Assembly: ${reformName(s, m.id)}.`, 3);
       applyFx(s, ['pc', -6], rec.touches);
       applyFx(s, ['bloc.press', -3], rec.touches);
@@ -1288,7 +1319,9 @@ function agendaTick(s: GameState): void {
     }
 
     const rec = record(s, `reform.${m.id}`, 'done', 'action', m.archive, 3);
-    for (const fx of m.done) applyFx(s, fx, rec.touches);
+    // Passing a bill begins delivery of its settlement: concessions become commitments, and a later start defers the effects.
+    const deferred = billPassed(s, m.id, m.done);
+    if (!deferred) for (const fx of m.done) applyFx(s, fx, rec.touches);
     for (const [k, v] of Object.entries(m.flags ?? {})) { s.flags[k] = v; rec.touches[`flag:${k}`] = 1; }
     applyFx(s, ['pc', s.agenda.tracks.includes(track.id) ? CFG.agenda.donePriorityPc : CFG.agenda.donePc]);
     s.agenda.done.push(m.id);
@@ -1587,3 +1620,15 @@ function focus(s: GameState, zone: ZoneId | null): void {
   record(s, 'security.focus', zone ?? 'none', 'action', zone ? `Concentrated the security effort on the ${ZONE_NAME[zone]}.` : 'Returned forces to their usual stations.', 1);
   s.lastAction = { text, changes: [] };
 }
+
+hooks.milestoneStatus = (s, id) => milestoneStatus(s, id);
+hooks.launchMoney = (s, id) => launchMoney(s, MILESTONE_BY_ID[id].m).treasury + launchMoney(s, MILESTONE_BY_ID[id].m).fund;
+hooks.launchDelegated = (s, id) => {
+  const check = canLaunch(s, id, true);
+  if (!check.ok) return check.reason ?? 'It cannot be launched now.';
+  const used = s.desk.actionsUsed;
+  launch(s, id, false, true);
+  // The minister's launch is not one of the President's moves.
+  s.desk.actionsUsed = used;
+  return null;
+};

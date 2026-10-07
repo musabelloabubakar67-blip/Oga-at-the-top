@@ -4,6 +4,7 @@
 // the Vice President, offer help, or make deals with each other that you hear
 // about later. Nothing here waits for the President.
 
+import { formCoalition } from './legislature';
 import { PEOPLE, PERSON_BY_ID } from '../content/people';
 import { who } from './favours';
 import { strongestRival } from './people';
@@ -148,6 +149,7 @@ function act(s: GameState, m: Move): void {
       // The Vice President hears of any deal that might be about the succession.
       if (s.vp && (PERSON_BY_ID[m.other!]?.clout ?? 0) + p.clout >= 8) s.vp.rel = clamp((s.vp.rel ?? 50) - 3, 0, 100);
       s.news.push({ chronicle: `${me.short.toUpperCase()} AND ${o.short.toUpperCase()} IN "PRIVATE MEETING" — AIDES`, street: `${me.short.toUpperCase()} AND ${o.short.toUpperCase()} DON JOIN HAND?`, weight: 2.4, valence: -1, topic: 'politics', about: id, body: 'Neither side would say what was discussed. Both sides said it was not about the President.' });
+      formCoalition(s, id, m.other!);
       log(s, id, 'pact', `${me.short} and ${o.short} have been meeting. Neither is happy with you${bloc ? ', and together they now move votes in the party' : ''}.`, `${me.short} and ${o.short} are making a deal`, m.other);
       return;
     }

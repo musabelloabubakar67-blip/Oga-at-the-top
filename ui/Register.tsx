@@ -11,6 +11,7 @@ import { mo } from '../engine/config';
 import { getGovernanceView } from '../engine/public';
 import type { CommitmentRecord, CommitmentReview, GovernanceView, RequestChange, RequestRecord, ReviewVerdict } from '../engine/public';
 import { pledgeName } from '../engine/promises';
+import { RegisterSettlements } from './Legislature';
 import type { GameState } from '../engine/types';
 
 const ago = (n: number) => (n <= 0 ? 'this month' : `${mo(n)} ago`);
@@ -174,6 +175,8 @@ export function Register({ s }: { s: GameState }) {
           </ul>
         </section>
       )}
+
+      <RegisterSettlements s={s} />
 
       {asked.length > 0 && (
         <section className="mt-6">

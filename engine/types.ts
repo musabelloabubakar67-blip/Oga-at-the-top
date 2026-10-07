@@ -568,6 +568,12 @@ export interface GameState {
   orderLog?: { id: string; turn: number; target?: string }[];
   /** Who has been hit by a hostile order, and until when they will not forget. */
   wronged?: { who: string; kind: string; turn: number; what: string; until: number }[];
+  /** Bills negotiated in the Assembly and their concessions (engine/legislature.ts, plan 06). */
+  bills?: Record<string, import('./legislature').Bill>;
+  /** Joint demands from pacts between politicians (plan 06.A2). */
+  coalitions?: import('./legislature').Coalition[];
+  /** Objectives delegated to ministers (engine/delegation.ts, plan 06.A5). */
+  delegations?: Record<string, import('./delegation').Delegation>;
   /** Promises made, kept and broken. */
   pledges?: Pledge[];
   /** How the cast feel about each other, 'a|b' to 0..100; 50 when never set. */
@@ -735,6 +741,11 @@ export type Action =
   | { type: 'PLEDGE'; to: string; kind: PledgeKind; object?: string }
   | { type: 'HONOUR'; id: number }
   | { type: 'SUBSTITUTE'; id: number; object: string }
+  | { type: 'CONCEDE'; id: string; voter: string; kind: import('../content/positions').ConcessionKind }
+  | { type: 'REVOKE_CONCESSION'; id: string; voter: string }
+  | { type: 'COALITION'; id: string; accept: boolean }
+  | { type: 'DELEGATE'; office: string; track: string; budget: number; months: number; reporting: 1 | 3 }
+  | { type: 'END_DELEGATION'; office: string }
   | { type: 'REVERSE'; id: string }
   | { type: 'NIGHT'; option: string }
   | { type: 'NIGHT_WAIT' }

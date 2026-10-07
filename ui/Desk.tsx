@@ -1,6 +1,7 @@
 'use client';
 
 import { attention, type Item } from '../engine/attention';
+import { BillPanel } from './Legislature';
 import { categoryKey, powersFor, topicKey } from '../engine/context';
 import { narrative } from '../engine/narrative';
 import { attackedReform, loserOf } from '../engine/attacks';
@@ -820,6 +821,7 @@ function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; t
       {m.emerge?.(s) && m.emergeText && <p className="mt-1 text-sm text-honour">{m.emergeText}</p>}
       {st === 'closed' && <p className="mt-1 text-sm text-mute">Closed by the rival answer: {(m.excludes ?? []).filter((id) => s.agenda.done.includes(id) || s.agenda.active.some((a) => a.id === id)).map((id) => reformName(s, id)).join('; ')}.</p>}
       {st === 'later' && <p className="mt-1 text-sm text-mute">{can.reason}</p>}
+      {st === 'done' && m.needs && <BillPanel s={s} id={m.id} dispatch={dispatch} left={movesLeft(s)} />}
       {st === 'done' && m.reversal && (
         <div className="mt-2 space-y-1">
           <p className="text-sm text-ivory/70">{m.reversal.text}</p>
@@ -836,6 +838,7 @@ function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; t
           <div className="h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, active.progress)}%` }} /></div>
           <p className="label mt-1 text-honour">Under way · {Math.round(Math.min(99, active.progress))}%</p>
           {m.duringText && <p className="mt-0.5 text-[12.5px] leading-snug text-alarm/90">Hurting while it lasts: {m.duringText}</p>}
+          {m.needs && <BillPanel s={s} id={m.id} dispatch={dispatch} left={movesLeft(s)} />}
           {diagnose(s, m.id).slice(0, 2).map((f) => (
             <p key={f.cause + f.text} className="mt-0.5 text-[12.5px] leading-snug text-ivory/70"><span className="font-semibold">{CAUSE_NAME[f.cause]}:</span> {f.text} <span className="text-ivory/55">What would fix it: {f.remedy}</span></p>
           ))}
@@ -878,8 +881,9 @@ function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; t
             </span>
           </div>
           {!can.ok && can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{can.reason}</p>}
-          {m.needs && !test(s, m.needs) && m.needsText !== can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{m.needsText ?? 'The Assembly votes are not there yet.'}</p>}
-          {m.needs && can.ok && <p className="mt-1 text-[13px] text-mute">Goes to a vote in the Assembly when it is ready. If the party has turned by then, it falls.</p>}
+          {m.needs && !test(s, m.needs) && !can.ok && m.needsText !== can.reason && <p className="mt-1 text-[13px] text-[#e08a7c]">{m.needsText ?? 'The Assembly votes are not there yet.'}</p>}
+          {m.needs && can.ok && <p className="mt-1 text-[13px] text-mute">Goes to a vote in the Assembly when it is ready. It passes if the party carries it, or if the count below holds.</p>}
+          {m.needs && <BillPanel s={s} id={m.id} dispatch={dispatch} left={movesLeft(s)} />}
           {!can.ok && can.grease && (
             <button onClick={() => dispatch({ type: 'LAUNCH', id: m.id, grease: true })} className="mt-1.5 border border-honour/50 px-3 py-1.5 font-serif text-honour hover:bg-honour/10">
               Launch with logistics · ₦10bn from the drawer
