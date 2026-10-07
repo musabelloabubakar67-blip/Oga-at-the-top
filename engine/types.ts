@@ -533,6 +533,8 @@ export interface GameState {
   judgments?: { turn: number; subject: string; upheld: boolean; reasoning: string }[];
   /** Questions with competing explanations: the reports, the decision and what turned out to be true (plan 08). */
   inquiries?: import('./inquiry').Inquiry[];
+  /** The opposition's proposals and how the President answered them (plan 15). */
+  proposals?: import('./proposals').OpenProposal[];
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
@@ -674,6 +676,7 @@ export type Action =
   | { type: 'MIL_APPOINT'; post: string; officer: string }
   | { type: 'INQUIRY_PROBE'; id: string; method: 'audit' | 'field' | 'intel' }
   | { type: 'INQUIRY_DECIDE'; id: string; hypothesis: string }
+  | { type: 'PROPOSAL'; id: string; how: 'adopt' | 'negotiate' | 'defeat' | 'alternative' }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

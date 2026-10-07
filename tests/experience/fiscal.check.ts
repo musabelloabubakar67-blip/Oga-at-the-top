@@ -17,7 +17,8 @@ import { migrate } from '../../engine/migrate';
 import { milestoneStatus, newGame } from '../../engine/reduce';
 import { fiscalFlow, releaseRate } from '../../engine/treasury';
 import type { GameState } from '../../engine/types';
-import { applyFx } from '../../engine/vars';
+import { applyFx, test } from '../../engine/vars';
+import { FISCAL_OBJECTIVES } from '../../content/tracks-fiscal';
 
 const setup = { seed: 41, scenario: 'standard', name: 'Check', party: 'Progressive Stakeholders Congress', partyShort: 'PSC', home: 'KN', background: 'governor' as const, address: 'sir' as const, finance: FINANCE_CANDIDATES[0].name, priorities: ['power', 'security', 'food', 'works'] };
 const fresh = (): GameState => { const s = newGame(setup); s.phase = 'desk'; return s; };
@@ -88,6 +89,19 @@ check('an old save with a Treasury priority keeps both halves as priorities', ()
   raw.agenda.tracks = ['treasury', 'power', 'security', 'food'];
   const m = migrate(raw)!;
   assert.ok(m.agenda.tracks.includes('tax') && m.agenda.tracks.includes('treasury'));
+});
+
+check('each track has its own foundations and objectives, not only the old reforms split in two', () => {
+  const found = (id: string) => TRACK_BY_ID[id].milestones.filter((m) => (m.gen ?? 1) === 1).map((m) => m.id);
+  assert.deepEqual(found('tax'), ['t1', 'tx1', 't3', 'tx2', 'tx3']);
+  assert.deepEqual(found('treasury'), ['y1', 'tr1', 't2', 'tr2', 't4', 'tr3']);
+  for (const id of ['tx1', 'tx2', 'tx3', 'tr1', 'tr2', 'tr3']) assert.ok(MILESTONE_BY_ID[id], `${id} is a new foundation`);
+  const s = fresh();
+  const met = (t: 'tax' | 'treasury') => FISCAL_OBJECTIVES[t].filter((o) => test(s, o.met)).length;
+  const tax0 = met('tax'), tre0 = met('treasury');
+  deliver(s, ['t1', 'tx1', 't3', 'tx2', 'tx3', 'y1', 'tr1', 't2', 'tr2', 't4', 'tr3', 'y3']);
+  s.debts.contractors = 0.2;
+  assert.ok(met('tax') > tax0 && met('treasury') > tre0, 'delivering the foundations meets the objectives they serve');
 });
 
 console.log(`${passed} fiscal checks passed.`);

@@ -3,7 +3,7 @@ import { SITUATIONAL } from './orders2';
 import { MORE_TRACKS } from './tracks2';
 import { LOOSE_TRACKS } from './tracks3';
 import { ADD, HEALTH, NEW_TRACKS, REVERSALS, REWRITE } from './tracks4';
-import { TAX_REFORMS, TAX_TRACK_HEAD, TREASURY_REFORMS } from './tracks-fiscal';
+import { TAX_FOUNDATIONS, TAX_REFORMS, TAX_TRACK_HEAD, TREASURY_FOUNDATIONS, TREASURY_REFORMS } from './tracks-fiscal';
 
 // THE REFORM AGENDA
 // Six tracks of four reforms each. A reform is launched, paid for, takes time,
@@ -373,8 +373,12 @@ function restructure(tracks: Track[]): Track[] {
   const t1 = take('t1'), t3 = take('t3'), t5 = take('t5');
   const treasury = track('treasury');
   Object.assign(treasury, { name: 'Fix the Treasury', goal: 'Releases on time, budgets believed, borrowing that is manageable' });
-  treasury.milestones.unshift(TREASURY_REFORMS.first);
-  const tax: Track = { ...TAX_TRACK_HEAD, milestones: [t1, t3, { ...t5, gen: 2, excludes: ['x12'] }, ...TAX_REFORMS] };
+  // Each track has its own foundations, in order: the inherited reforms where they belong, and new ones written for its job.
+  const [tr1, tr2, tr3] = TREASURY_FOUNDATIONS;
+  const t2 = take('t2'), t4 = take('t4');
+  treasury.milestones.unshift(TREASURY_REFORMS.first, tr1, t2, tr2, t4, tr3);
+  const [tx1, tx2, tx3] = TAX_FOUNDATIONS;
+  const tax: Track = { ...TAX_TRACK_HEAD, milestones: [t1, tx1, t3, tx2, tx3, { ...t5, gen: 2, excludes: ['x12'] }, ...TAX_REFORMS] };
   list.splice(list.indexOf(treasury), 0, tax);
   const health = track('people');
   const e1 = health.milestones.find((m) => m.id === 'e1')!, e4 = health.milestones.find((m) => m.id === 'e4')!;

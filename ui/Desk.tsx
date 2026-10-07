@@ -25,6 +25,8 @@ import { activeShocks } from '../engine/shocks';
 import { REHEAD_PC, type Head, WATCHDOGS, cultureOf, institutionFiscalLines, available as availableInstitutions, built, canAbolish, canEstablish, canReplaceHead, headsFor, monthlyFx, performance } from '../engine/institutions';
 import { CULTURE_NAME, INSTITUTION_BY_ID } from '../content/institutions';
 import { AUTHORITY_NAME, entrenchedReform, reformAuthority, ruleInForce } from '../engine/constitution';
+import { CAUSE_NAME, diagnose } from '../engine/diagnosis';
+import { FISCAL_OBJECTIVES } from '../content/tracks-fiscal';
 import { adviser, adviserFor, campGain, forecast, patronName, recommend, secondFor, trackRecord, worldview } from '../engine/advice';
 import { canFocus, offensiveStrength, theatreDrift, threatWord, worstTheatre } from '../engine/security';
 import { forecastChallenge } from '../engine/courts';
@@ -830,6 +832,9 @@ function ReformRow({ s, track, m, dispatch, showTrack, note }: { s: GameState; t
           <div className="h-1.5 bg-ivory/10"><div className="h-1.5 bg-honour transition-all duration-700" style={{ width: `${Math.min(100, active.progress)}%` }} /></div>
           <p className="label mt-1 text-honour">Under way · {Math.round(Math.min(99, active.progress))}%</p>
           {m.duringText && <p className="mt-0.5 text-[12.5px] leading-snug text-alarm/90">Hurting while it lasts: {m.duringText}</p>}
+          {diagnose(s, m.id).slice(0, 2).map((f) => (
+            <p key={f.cause + f.text} className="mt-0.5 text-[12.5px] leading-snug text-ivory/70"><span className="font-semibold">{CAUSE_NAME[f.cause]}:</span> {f.text} <span className="text-ivory/55">What would fix it: {f.remedy}</span></p>
+          ))}
         </div>
       )}
       {st === 'next' && (
@@ -900,6 +905,11 @@ function TrackCard({ s, track, dispatch, priority, noteFor }: { s: GameState; tr
         <span className="label text-mute">{done}/{track.milestones.length}</span>
       </div>
       <p className="text-sm text-mute">{track.goal}{track.loose && ' · foundations in any order; read each one before you sign it'}{!priority && ' · not a declared priority: costs more capital'}</p>
+      {(track.id === 'tax' || track.id === 'treasury') && (
+        <ul className="mt-1 space-y-0.5 text-[12.5px] leading-snug">
+          {FISCAL_OBJECTIVES[track.id].map((o) => { const met = test(s, o.met); return <li key={o.text} className={met ? 'text-state-lit' : 'text-ivory/60'}>{met ? '✓' : '○'} {o.text}</li>; })}
+        </ul>
+      )}
       {settled ? <p className="label mt-3 text-state-lit">Foundations complete</p> : <p className="mt-3 text-sm text-mute">Deepening opens when every foundation is delivered or ruled out by a delivered rival.</p>}
       {groups.filter((g) => g.rows.length).map((g) => (
         <section key={g.title} className="mt-3">

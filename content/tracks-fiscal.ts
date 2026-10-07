@@ -1,4 +1,4 @@
-import type { GameState, Milestone } from '../engine/types';
+import type { Cond, GameState, Milestone } from '../engine/types';
 
 // WHO PAYS, AND HOW THE MONEY IS SPENT (plan 10)
 // The old "Fix the Treasury" track mixed two different jobs. Taxation is who
@@ -45,6 +45,9 @@ export const FISCAL_PROFILE: Record<string, FiscalProfile> = {
   t1: { base: 12, admin: 0.002, burden: 'traders' },
   t3: { base: 8, burden: 'importers' },
   t5: { base: 6 },
+  tx1: { base: 8, burden: 'business', admin: 0.001 },
+  tx2: { base: 5, admin: -0.001 },
+  tx3: { base: 3 },
   x1: { base: 10, burden: 'poor' },
   x2: { base: 4, burden: 'wealthy' },
   x3: { base: 8, burden: 'wealthy', admin: 0.002 },
@@ -60,6 +63,9 @@ export const FISCAL_PROFILE: Record<string, FiscalProfile> = {
   x13: { base: 3 },
   // The Treasury
   y1: { discipline: 12 },
+  tr1: { discipline: 8 },
+  tr2: { discipline: 6 },
+  tr3: { discipline: 10 },
   t2: { discipline: 8 },
   t4: { discipline: 10 },
   t6: { discipline: 6 },
@@ -169,6 +175,68 @@ export const TAX_REFORMS: M[] = [
     done: [['bloc.street', 6], ['nation.integrity', 2], ['bonus.fiscal', -0.003]],
     news: ['TRADERS REFUNDED AS LEVY COLLECTORS ARE AUDITED', 'DEM DON RETURN MARKET WOMEN MONEY'], archive: 'Refunded traders overcharged by the levy collectors.' }),
 ];
+
+// ---------------------------------------------------------------- each track's own foundations
+// Who Pays and Fix the Treasury each get foundations written for their own job,
+// not only the reforms inherited from the old combined track.
+
+/** Who Pays: find every taxpayer, make paying easy, make disputes fair. */
+export const TAX_FOUNDATIONS: M[] = [
+  g1({ id: 'tx1', name: 'A register of every business above a threshold', pc: 4, naira: 0.1, months: 6,
+    lasting: 'Firms above the threshold are known to the tax service: the base widens every year as they grow into it.',
+    blurb: 'Most firms that should pay tax have never been asked. Register them, from the company registry, the banks and the market associations, before asking for anything.',
+    during: [['bloc.establishment', -0.3]], duringText: 'Firms that were invisible are now on a list.',
+    done: [['bonus.fiscal', 0.012], ['nation.capacity', 1]],
+    news: ['TAX SERVICE REGISTERS 1.4 MILLION BUSINESSES', 'TAX PEOPLE DON KNOW WHO DEY DO BUSINESS'], archive: 'Registered every business above the tax threshold.' }),
+  g1({ id: 'tx2', name: 'File and pay online, and publish what each tax costs to collect', pc: 4, naira: 0.15, months: 6,
+    lasting: 'Paying tax takes an hour, not a week, and every tax\'s collection cost is public: compliance rises and the costliest taxes are visible.',
+    blurb: 'A return that takes a week of queues is a return nobody files. Put it online, and publish what it costs the state to collect each naira.',
+    done: [['bonus.fiscal', 0.008], ['nation.capacity', 2], ['bloc.establishment', 3]],
+    news: ['TAX RETURNS GO ONLINE; COLLECTION COSTS PUBLISHED', 'YOU FIT PAY TAX FOR PHONE NOW'], archive: 'Put tax filing online and published collection costs.' }),
+  g1({ id: 'tx3', name: 'A tax appeals tribunal that decides in ninety days', pc: 6, naira: 0.05, months: 8, ...SENATE,
+    lasting: 'An assessment can be challenged and decided quickly: taxpayers who think the state is fair pay more readily.',
+    blurb: 'An unfair assessment that takes six years to overturn is a reason never to file. A tribunal that decides in ninety days is a reason to.',
+    done: [['nation.integrity', 2], ['bloc.establishment', 4], ['bonus.fiscal', 0.005]],
+    news: ['TAX APPEALS TRIBUNAL TO DECIDE IN 90 DAYS', 'TAX WAHALA GO END FOR THREE MONTHS NOW'], archive: 'Created a tax appeals tribunal with a ninety-day limit.' }),
+];
+
+/** Fix the Treasury: budgets that are believed, payments through one ledger, bills recorded and paid. */
+export const TREASURY_FOUNDATIONS: M[] = [
+  g1({ id: 'tr1', name: 'Three-year spending envelopes, passed with the budget', pc: 6, naira: 0, months: 6, ...SENATE,
+    lasting: 'Ministries plan against a three-year envelope: the budget is believed, and projects are not started that cannot be finished.',
+    blurb: 'A budget written for one year starts projects nobody can finish. Pass three-year envelopes with it, so every ministry knows what it will have.',
+    start: [['bloc.party', -3]],
+    done: [['bloc.establishment', 4], ['nation.capacity', 1]],
+    news: ['BUDGET NOW COMES WITH THREE-YEAR ENVELOPES', 'MINISTRIES GO KNOW THEIR MONEY FOR THREE YEARS'], archive: 'Introduced three-year spending envelopes.' }),
+  g1({ id: 'tr2', name: 'A register of every unpaid bill, aged and scheduled', pc: 4, naira: 0, months: 4,
+    lasting: 'Every arrear is recorded with its date and a payment schedule: no bill is forgotten, and none is paid twice.',
+    blurb: 'Nobody knows what the government owes its contractors, pensioners and suppliers. Record every unpaid bill, with its age, and schedule it.',
+    done: [['nation.integrity', 2], ['bloc.establishment', 3], ['debt.contractors', -0.1]],
+    news: ['GOVERNMENT PUBLISHES REGISTER OF UNPAID BILLS', 'NOW WE KNOW WETIN GOVERNMENT DEY OWE'], archive: 'Created a register of every unpaid government bill.' }),
+  g1({ id: 'tr3', name: 'Every payment through one financial management system', pc: 6, naira: 0.2, months: 8,
+    lasting: 'Every payment is made and recorded in one ledger: releases arrive when scheduled, and a payment without a budget line cannot be made.',
+    blurb: 'Payments are made from spreadsheets, cheque books and goodwill. One system, one ledger: no payment without a budget line, no budget line without a record.',
+    during: [['bloc.villa', -0.3]], duringText: 'Payments that used to be arranged now have to be recorded.',
+    done: [['nation.capacity', 3], ['nation.integrity', 3]],
+    news: ['ALL FEDERAL PAYMENTS NOW THROUGH ONE SYSTEM', 'EVERY GOVERNMENT KOBO DON ENTER ONE LEDGER'], archive: 'Put every federal payment through one financial management system.' }),
+];
+
+/** The objectives each track serves, each measured in the game (shown on the track). */
+export const FISCAL_OBJECTIVES: Record<'tax' | 'treasury', { text: string; met: Cond }[]> = {
+  tax: [
+    { text: 'A broad base: most of what is owed is assessed and collected (tax base 50 or more)', met: { v: ['fiscal.base', '>=', 50] } },
+    { text: 'Less dependence on oil: taxes at home carry more of the budget', met: { v: ['fiscal.base', '>=', 40] } },
+    { text: 'A fair burden: the poor do not carry most of it', met: { not: { v: ['agenda.x1', '==', 1] } } },
+    { text: 'Easy to pay, fair to dispute: online filing and a quick tribunal', met: { all: [{ v: ['agenda.tx2', '==', 1] }, { v: ['agenda.tx3', '==', 1] }] } },
+  ],
+  treasury: [
+    { text: 'Releases arrive when promised (spending discipline 55 or more)', met: { v: ['fiscal.discipline', '>=', 55] } },
+    { text: 'Budgets that are believed: three-year envelopes and an independent check', met: { any: [{ v: ['agenda.tr1', '==', 1] }, { v: ['agenda.t6', '==', 1] }] } },
+    { text: 'Fewer arrears: contractors owed less than ₦500bn', met: { v: ['debt.contractors', '<', 0.5] } },
+    { text: 'Procurement in the open: no award above the published price', met: { v: ['agenda.y3', '==', 1] } },
+    { text: 'Manageable borrowing: debt service under 60% of revenue', met: { v: ['nation.debt', '<', 60] } },
+  ],
+};
 
 /** New Treasury reforms: the account, the calendar, the price list and the borrowing plan. */
 export const TREASURY_REFORMS: { first: M; deeper: M[] } = {

@@ -41,6 +41,7 @@ import { NOMINATE_PC, bench, benchVars, canNominate, forecastChallenge, nominees
 import { profileOf } from '../engine/judgment';
 import { PHILOSOPHY_NAME } from '../content/courts';
 import { rules } from '../engine/constitution';
+import { Proposals } from './Proposals';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
@@ -429,6 +430,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
           </>
         )}
 
+        {tab === 'opposition' && <Proposals s={s} dispatch={dispatch} />}
         {tab === 'opposition' && <FormerPresident s={s} dispatch={dispatch} left={left} />}
         {tab === 'opposition' && (
           <>

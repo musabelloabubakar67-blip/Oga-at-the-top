@@ -1,4 +1,6 @@
 import { entrenchedReform } from './constitution';
+import { heldFactor } from './diagnosis';
+import { answer, canAnswer } from './proposals';
 import { canProbe, decideInquiry, inquiries, probe } from './inquiry';
 import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
 import { refreshRequests } from './wants';
@@ -843,6 +845,7 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'MISSION_END': if (canEndMission(s, action.id)) note(s, endMission(s, action.id)); break;
     case 'INQUIRY_PROBE': if (canProbe(s, action.id, action.method, movesLeft(s)).ok) note(s, probe(s, action.id, action.method)); break;
     case 'INQUIRY_DECIDE': if (inquiries(s).some((q) => q.id === action.id && !q.decided) && movesLeft(s) > 0) note(s, decideInquiry(s, action.id, action.hypothesis)); break;
+    case 'PROPOSAL': if (canAnswer(s, action.id, action.how, movesLeft(s)).ok) note(s, answer(s, action.id, action.how)); break;
     case 'MIL_APPOINT': if (canAppointOfficer(s, action.post, action.officer, movesLeft(s)).ok) note(s, appointOfficer(s, action.post, action.officer)); break;
     case 'CASE':
       if (action.op === 'back' && canBack(s, action.id).ok) note(s, backCase(s, action.id));
@@ -1230,7 +1233,8 @@ function agendaTick(s: GameState): void {
     // Some reforms hurt before they pay: the tariff rises before the light improves.
     for (const f of entry.m.during ?? []) applyFx(s, f);
     const building = drawsOnInfra(entry.track.id) ? buildSpeed(s) : 1;
-      a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building * (a.id === 'p2' && hasCapability(s, 'cap.grid_diagnostics') ? 1.3 : 1);
+    // A held release slows what spends through it (plan 15.A3): money, not the minister, is the cause.
+    a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building * heldFactor(s, entry.track.id) * (a.id === 'p2' && hasCapability(s, 'cap.grid_diagnostics') ? 1.3 : 1);
     if (a.progress < 100) { still.push(a); continue; }
     const { m, track } = entry;
     const before = snapshot(s);

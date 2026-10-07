@@ -53,6 +53,8 @@ import { ZONES, approval, delegates, hardship, test } from '../engine/vars';
 import { traceFor } from '../engine/view';
 import { canProbe, inquiries } from '../engine/inquiry';
 import { MYSTERY_BY_ID } from '../content/mysteries';
+import { PROPOSAL_BY_ID } from '../content/proposals';
+import { canAnswer } from '../engine/proposals';
 
 type Weights = Record<string, number>;
 interface Bot {
@@ -339,6 +341,13 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       for (const r of q.reports) if (r.says) votes.set(r.says, (votes.get(r.says) ?? 0) + (r.confidence === 'high' ? 3 : r.confidence === 'medium' ? 2 : 1));
       const pick = [...votes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? MYSTERY_BY_ID[q.id].hypotheses[0].id;
       s = applyAction(s, { type: 'INQUIRY_DECIDE', id: q.id, hypothesis: pick });
+    }
+    // The opposition's proposals (plan 15): each kind of President answers in character.
+    for (const p of (s.proposals ?? []).filter((x) => !x.answer)) {
+      if (movesLeft(s) <= 0) break;
+      const def = PROPOSAL_BY_ID[p.id];
+      const how = bot.name === 'Populist' ? 'adopt' : bot.reforms === 'all' ? (test(s, def.alternative.met) ? 'alternative' : 'negotiate') : bot.name === 'Kleptocrat' ? 'defeat' : 'negotiate';
+      if (canAnswer(s, p.id, how, movesLeft(s)).ok) s = applyAction(s, { type: 'PROPOSAL', id: p.id, how });
     }
     if (bot.reforms) {
       const ranked = bot.reforms === 'all' ? [...s.agenda.tracks, ...TRACKS.map((t) => t.id).filter((id) => !s.agenda.tracks.includes(id))] : s.agenda.tracks;
