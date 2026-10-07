@@ -16,7 +16,7 @@ export const ACC = {
   /** ₦tn a month per dollar of oil price, at 1.75m barrels a day and the starting real exchange rate. */
   oilK: 0.003,
   /** Taxes and other revenue at home, ₦tn a month, at the starting capacity, jobs and integrity. */
-  nonOilBase: 0.0725,
+  nonOilBase: 0.1,
   /** Annual interest rate on each interest-bearing debt. */
   interest: { eurobond: 0.144, bonds: 0.108, ways: 0.09, lender: 0.03 } as Partial<Record<DebtId, number>>,
   /** Salaries and overheads of the federal government, ₦tn a month. */

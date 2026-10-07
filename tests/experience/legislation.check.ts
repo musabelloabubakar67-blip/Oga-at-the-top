@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { MILESTONE_BY_ID } from '../../content/agenda';
 import { FINANCE_CANDIDATES } from '../../content/names';
 import { delegations } from '../../engine/delegation';
-import { answerCoalition, formCoalition, isBill, voterView, whipCount } from '../../engine/legislature';
+import { answerCoalition, billPassed, formCoalition, isBill, voterView, whipCount } from '../../engine/legislature';
 import { applyAction, canLaunch, milestoneStatus, newGame } from '../../engine/reduce';
 import type { GameState } from '../../engine/types';
 import { test } from '../../engine/vars';
@@ -124,6 +124,16 @@ check('a delegated objective runs routine work, escalates what it cannot do, and
   const target = s.governance!.commitments[d.target!];
   assert.ok(target.review, 'the target was actually reviewed');
   assert.ok(['met', 'missed', 'withheld', 'disputed'].includes(target.review!.verdict));
+});
+
+check('a concession to someone who has left the post lapses at the vote instead of failing it', () => {
+  let s = fresh(); hostileSenate(s);
+  const id = readyBill(s);
+  s = applyAction(s, { type: 'CONCEDE', id, voter: 'sen_lead', kind: 'date' });
+  s.people.sen_lead.gone = true;
+  billPassed(s, id, []);
+  assert.ok(s.bills![id].concessions.every((c) => c.revoked !== undefined), 'the concession lapsed');
+  assert.ok(!Object.values(s.governance!.commitments).some((c) => c.object === 'bill-concession'), 'and no commitment was made to them');
 });
 
 console.log(`${passed} legislation and delegation checks passed.`);

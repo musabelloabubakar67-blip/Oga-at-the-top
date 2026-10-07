@@ -1,29 +1,27 @@
 # Integration coverage - current immediate scope
 
-Latest checkpoint (6 October 2026): Codex has left the project; Claude owns the engine, content and interface on `redesign/claude-experience`. Plans 02, 09, 10 and 11 are integrated there with experience checks; the rest of the immediate scope continues in plan order. Earlier delivery notes below are kept as history.
+Latest checkpoint (7 October 2026): Claude owns the engine, content and interface on `redesign/claude-experience`. Plans 01 to 17 are integrated with experience checks; plan 18 (balance, verification and documentation) is in progress. Row-level evidence for every action and acceptance line is in `docs/playtest/experience/COVERAGE.md`; the eleven connected histories are in `docs/playtest/experience/HISTORIES.md`. Earlier delivery notes below are kept as history.
 
-Baseline: `422786119dd1695d11d64282bd8f043c38a70352`. Systems branch: `redesign/codex-systems`. Contract delivery: 1.0.0. This is an initial index; expand to each master bullet as implementations land. Partial never means complete or deferred.
-
-| Master workstream | Current systems evidence | Status |
+| Master workstream | Evidence (commits, checks) | Status |
 |---|---|---|
-| 01 History/foundations | Identity registry, world-clock carry, additive save migration and rejection; contract checks | Partial; legacy timelines, advice and history defects outstanding |
-| 02 Opening | Existing setup remains intact | Assigned; validated transition outstanding |
-| 03 Team/talent | Ordinary named appointments; exceptional terms, recurring payroll, breaches, active capabilities, canonical linked identities, vacancies and proposed slate | R5 engine delivered; Claude recruitment UI integration and broader career depth remain |
-| 04 Institutions/courts | None yet | Assigned |
-| 05 Requests/favours | Exact requests close on refusal; changed replacements/substitutions; personal favour identities, partial use, offsets, forgiveness, settlement history and real controls | R3 engine and Claude interaction integration delivered; broader action-plan depth remains |
-| 06 Coalitions/delegation | Dated evidence reviews, actual commitment payments, government attribution; scorecard targets, monthly release samples, authored reviews and live register | R4/S1 integrated; broader negotiated programmes/delegation outstanding |
-| 07 Content refresh | Typed episode registry and transitions | Partial foundation; director/queue routing and authored refresh outstanding |
-| 08 Evidence/information | None yet | Assigned |
-| 09 Economy | Gross accounts: oil and tax revenue, interest at each debt's rate against actual revenue, revaluation of foreign debt and the fund abroad, reserve log, dollar flow, created money (6b7041a, economy.check.ts) | Integrated; reserve adequacy and fund returns remain |
-| 10 Tax/treasury | Who Pays and Fix the Treasury tracks; tax base, burdens, administration cost; spending discipline driving releases, arrears, lenders and losses; Tax and spending tab (fiscal.check.ts) | Integrated and verified for its acceptance test |
-| 11 Emergency funds | Holdings register (three refineries), timed sales, diligence, leases, minority stakes, tax-debt collection, emergency bonds, payroll crisis file, Raising money view (b56e470, 9f8bcd4, holdings.check.ts) | Integrated; pledging and stolen-funds recovery remain |
-| 12 Big bets | None yet | Assigned |
-| 13 Military | None yet | Assigned |
-| 14 Citizens/development | None yet | Assigned |
-| 15 Maintenance/opposition | None yet | Assigned |
-| 16 Succession/afterlife | New world records and due dates survive succession | Partial foundation; strategic preparation and other inheritance systems outstanding |
-| 17 History/experience | Detached governance view | Partial foundation; history/shortlists/scenarios/sharing outstanding |
-| 18 Verification/docs | Ten executable contract checks; typecheck, existing reform checks and content lint | Partial; broader simulation/browser integration outstanding |
+| 01 History/foundations | Identity registry, world clock, migration (Codex); adviser records by person, dated forecasts, chained worlds carrying institutions, assets, forces, inquiries, judgments and cases; misconduct in the verdict (4fc42fa; foundations.check.ts) | Integrated |
+| 02 Opening | Transition with dossier, route, financier, rule, first cabinet and running mate (a37885d, 4fc42fa); party programmes with coalition agreements (5bda1f9); dossiers.check.ts, opening.check.ts | Integrated |
+| 03 Team/talent | Named pool, exceptional recruitment R5 (140eb87, ec8a646); deputies, promotion, opposition recruitment (4fc42fa); government.check.ts, recruitment.check.ts | Integrated |
+| 04 Institutions/courts | Charters, independent action, binding rules, reasoned judgments (c83724f; institutions.check.ts) | Integrated |
+| 05 Requests/favours | R3 (Codex); refusals by motive, grudges by kind, substitution with consent, targeted favour services, bonds as financing (0ce0280; requests.check.ts) | Integrated |
+| 06 Coalitions/delegation | R4/S1 reviews (Codex); issue positions, negotiated bills, coalitions, delegation (a938669; legislation.check.ts, targets.check.ts) | Integrated |
+| 07 Content refresh | Event audit and families; episodes, pacing, report presentation, verb audit (d9ae90a; stories.check.ts, VERB-AUDIT.md) | Integrated; repeated joke refresh (07.A10) continues in plan 18 |
+| 08 Evidence/information | Mysteries, sourced reports, decisions traced to the truth (0c68d70; inquiry.check.ts) | Integrated |
+| 09 Economy | Gross accounts (6b7041a); reserve cover, managed-rate constraint, fund returns, conservation audit (5bda1f9; economy.check.ts, money.check.ts) | Integrated; economic-meaning audit of constants (09.A14) in plan 18 |
+| 10 Tax/treasury | Two tracks with their own foundations and objectives (502b19e, 2178c59; fiscal.check.ts) | Integrated and verified |
+| 11 Emergency funds | Holdings, three refineries, timed sales, collection, borrowing, deferral (b56e470, 9f8bcd4; holdings.check.ts) | Integrated |
+| 12 Big bets | Partial openings, wear, system links, bets audit (0bfc6a3, 78b5b86; bets.check.ts, success.check.ts) | Integrated |
+| 13 Military | Forces as an institution, missions, conduct, coups (b5be5d7; military.check.ts, forces.check.ts) | Integrated |
+| 14 Citizens/development | Groups, services, constituencies (2650c93; society.check.ts, citizens.check.ts) | Integrated |
+| 15 Maintenance/opposition | Diagnosis by cause, opposition proposals (2178c59; opposition.check.ts) | Integrated |
+| 16 Succession/afterlife | Settlement, the year after, export and import of countries (e744320; succession.check.ts) | Integrated |
+| 17 History/experience | Threads, shortlist, short scenarios, sharing (d2645b7; history.check.ts) | Integrated; concision and accessibility pass in plan 18 |
+| 18 Verification/docs | 83 contract checks, 30 experience suites, content lint, reform checks, verb and bets audits, multi-seed simulation, histories | In progress: balance, browser playtests, documentation |
 
 Content/UI ownership remains Claude's and is not evaluated as complete from its inventory alone. Claude's branch through 0468e5d is now integrated, including its audit, dossiers and content repairs.
 

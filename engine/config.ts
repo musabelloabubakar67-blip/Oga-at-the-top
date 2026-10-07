@@ -28,11 +28,6 @@ export const CFG = {
     shockToInflation: 22,
     fiscalBase: -0.012,
     subsidyDrift: { full: -0.16, partial: -0.1, phasing: -0.06, removed: 0.07 } as Record<string, number>,
-    capacityToFiscal: 0.004,
-    debtToFiscal: 0.003,
-    integrityToFiscal: 0.002,
-    borrowToDebt: 3,
-    debtPaydown: 0.15,
     powerDecay: 0.07,
     securityDecay: 0.08,
     debtCliff: 90,
@@ -41,7 +36,6 @@ export const CFG = {
     austeritySecurity: 0.25,
     noLendingAbove: 100,
     jobsDecay: 0.03,
-    jobsToFiscal: 0.003,
     // The centre keeps this share of monthly income above the threshold; the states take the rest.
     federalKeep: { above: 0.12, share: 0.4 },
   },
@@ -61,7 +55,7 @@ export const CFG = {
   election: {
     approval: 0.38, machine: 4, rally: 1, rallyCap: 3, chestPer: 0.25, chestCap: 3, governor: 0.6,
     scandal: 16, home: 6, homeZone: 3, noise: 2.5, successorPenalty: 3, tycoon: 1.6,
-    united: -3, split: 2, swing: 7, clean: 0.08, scar: 0.4, incumbency: 1, rival: 0.1,
+    united: -3, split: 2, swing: 9, clean: 0.08, scar: 0.4, incumbency: 1, rival: 0.1,
   },
 
   director: { quietChance: 0.2, minorOne: 0.42, minorTwo: 0.08 },

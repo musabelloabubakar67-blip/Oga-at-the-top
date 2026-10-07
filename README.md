@@ -22,7 +22,7 @@ Then open http://localhost:3000. The game saves to the browser automatically, an
 |---|---|
 | `npm run typecheck` | TypeScript check |
 | `npm run lint:content` | Checks all content: references, tokens, operations, cast selectors, big-bet conditions; every lead file must have a delayed consequence and an option that is always available |
-| `npm run simulate -- 40 --probe` | Plays 40 presidencies with each of seven scripted strategies; prints re-election rates, endings, legacy grades, and the state on the eve of the first election |
+| `npm run simulate -- 40 --probe` | Plays 40 presidencies with each of twelve scripted strategies; prints re-election rates, endings, legacy grades, and the state on the eve of the first election |
 | `npm run simulate -- --trace` | Prints one reformer presidency decision by decision |
 | `npm run simulate -- 12 --scenarios` | Re-election rates for three strategies in each of the six starting scenarios |
 | `npm run simulate -- 4 --world` | Chains four presidents through one country, each inheriting what the last one left |
@@ -42,8 +42,12 @@ Then open http://localhost:3000. The game saves to the browser automatically, an
 | `content/` | Everything authored, as data: events, reforms, big bets, executive powers, people, businessmen, debts, theatres, press lines |
 | `content/names.ts` | The name registry and the naming rule |
 | `ui/` | The screens |
-| `tools/` | Content linter and balance simulator |
+| `engine/legislature.ts`, `delegation.ts` | Bills, concessions and pacts; objectives delegated to ministers |
+| `engine/episodes.ts`, `content/families.ts` | Recurring problems as developing stories, with exits |
+| `engine/institutions.ts`, `courts.ts`, `military.ts`, `society.ts` | Independent agencies, the court, the armed forces, citizens and groups |
+| `tests/experience/` | Thirty experience suites; `npm run check:experience` |
+| `tools/` | Content linter, balance simulator, contract checks, bets and verb audits |
 
 ## In one paragraph
 
-Each month the President reads two newspapers that disagree, decides at most one file, and has four moves. There are seventy reforms and thirty-two big bets, each with a price and, for the bets, a list of things that must be true for them to work. The country owes six named debts and has four places to keep savings. Sixteen named politicians, five businesspeople and three rivals each want something, and what is owed runs in both directions. Corruption is available and works. After four years there is an election; after eight, a verdict against what was inherited.
+Each month the President reads two newspapers that disagree, decides at most one file, and has four moves. There are 220 reforms on eighteen tracks and forty big bets, each with a price and, for the bets, a list of things that must be true for them to work. The country owes six named debts and has four places to keep savings. Sixteen named politicians, five businesspeople and three rivals each want something and stand somewhere on the issues; bills are negotiated with them, and what is owed runs in both directions. Ministers can be given objectives; institutions, courts and the armed forces act on their own rules; citizens and groups feel what the government does. Corruption is available and works. After four years there is an election; after eight, a verdict against what was inherited.

@@ -2,6 +2,13 @@
 // and prints distributions. Usage: npm run simulate -- [runs] [--trace]
 
 import { nonOilRevenue, oilRevenue, revenueAnnual } from '../engine/accounts';
+import { canConcede, isBill, whipCount } from '../engine/legislature';
+import { canDelegate } from '../engine/delegation';
+import { STANCES } from '../content/positions';
+import { canBorrowNow, canCollect } from '../engine/holdings';
+import { canRefurbish } from '../engine/places';
+import { canStartMission } from '../engine/military';
+import { MISSIONS } from '../content/military';
 import { EVENT_LIST } from '../content';
 import { writeFileSync } from 'node:fs';
 import { measureLevers } from './levers';
@@ -297,6 +304,51 @@ function play(bot: Bot, seed: number, log = false, opts: { scenario?: string; pr
       if (amount > 0.05 && amount <= spare && canPay(s, id, amount).ok) s = applyAction(s, { type: 'PAY_DEBT', id, amount });
     }
     if (bot.saves && s.nation.fiscalSpace > 3.4 && canFund(s, 'abroad', 1).ok) s = applyAction(s, { type: 'FUND', id: 'abroad', amount: 1 });
+    // Plan 18: the systems of the redesign, used as each kind of President would use them.
+    const governing = bot.name !== 'Random' && bot.name !== 'Do-nothing';
+    if (governing && !skip('bills')) {
+      // A priority bill that the party will not carry is negotiated, voter by voter, with what each wants most
+      // (the kleptocrat and the machine trade board seats; the careful ones prefer a later start or oversight).
+      for (const t of bot.tracks ?? []) {
+        const next = TRACKS.find((x) => x.id === t)?.milestones.find((m) => milestoneStatus(s, m.id) === 'next' && isBill(m.id));
+        if (!next || canLaunch(s, next.id).ok || whipCount(s, next.id).majority) continue;
+        for (const v of whipCount(s, next.id).voters.filter((x) => !x.yes && !x.concession).sort((a, b) => b.weight - a.weight)) {
+          if (movesLeft(s) <= 1 || whipCount(s, next.id).majority) break;
+          const kind = bot.name === 'Kleptocrat' || bot.name === 'Machine' ? 'appointment' : bot.name === 'Populist' ? 'geography' : (STANCES[v.id]?.prefers === 'appointment' ? 'oversight' : STANCES[v.id]?.prefers ?? 'date');
+          if (canConcede(s, next.id, v.id, kind, movesLeft(s)).ok) s = applyAction(s, { type: 'CONCEDE', id: next.id, voter: v.id, kind });
+        }
+      }
+      // Pacts: the machine and the populist buy peace; the careful refuse a demand that costs the treasury.
+      for (const k of (s.coalitions ?? []).filter((x) => x.status === 'open')) {
+        const accept = bot.name === 'Machine' || bot.name === 'Populist' || bot.name === 'Kleptocrat' || k.demand !== 'revenue';
+        s = applyAction(s, { type: 'COALITION', id: k.id, accept });
+      }
+    }
+    // The careful delegate one priority track to its minister once a term, with a modest budget.
+    if (governing && !skip('delegate') && (bot.name.startsWith('Reformer') || bot.name === 'Institutionalist') && termTurnOf(s.turn) === 6 && movesLeft(s) > 1) {
+      for (const t of bot.tracks ?? []) {
+        const minister = PEOPLE.find((p) => p.group === 'minister' && (p.tracks ?? []).includes(t) && !s.people[p.id]?.gone);
+        if (minister && canDelegate(s, minister.id, t, movesLeft(s)).ok) { s = applyAction(s, { type: 'DELEGATE', office: minister.id, track: t, budget: 0.3, months: 12, reporting: 3 }); break; }
+      }
+    }
+    // Emergency money when the treasury is empty: the careful collect tax debts; everyone else borrows in a hurry.
+    if (governing && !skip('emergency') && s.nation.fiscalSpace < 0.05 && movesLeft(s) > 1) {
+      if ((bot.name.startsWith('Reformer') || bot.name === 'Institutionalist') && canCollect(s, movesLeft(s)).ok) s = applyAction(s, { type: 'COLLECT_TAX' });
+      else if (canBorrowNow(s, 0.3, movesLeft(s)).ok) s = applyAction(s, { type: 'BORROW_NOW', amount: 0.3 });
+    }
+    // Maintenance: the careful refurbish a worn plant; the others let it run down.
+    if (governing && !skip('upkeep') && (bot.name.startsWith('Reformer') || bot.name === 'Institutionalist')) {
+      for (const a of s.assets ?? []) if (movesLeft(s) > 1 && canRefurbish(s, a.id).ok) { s = applyAction(s, { type: 'REFURBISH_ASSET', id: a.id }); break; }
+    }
+    // Missions: a theatre past 70 gets a campaign; the careful keep every limit, the kleptocrat keeps none.
+    if (governing && !skip('missions') && movesLeft(s) > 1) {
+      const hot = (['NW', 'NE', 'NC', 'SW', 'SE', 'SS'] as ZoneId[]).filter((z) => s.theatres[z] >= 70).sort((a, b) => s.theatres[b] - s.theatres[a])[0];
+      const draft = hot ? MISSIONS.find((m) => m.theatre === hot) : undefined;
+      if (draft && canStartMission(s, draft.id, movesLeft(s)).ok) {
+        const careful = bot.name.startsWith('Reformer') || bot.name === 'Institutionalist';
+        s = applyAction(s, { type: 'MISSION_START', id: draft.id, resources: careful ? 'standard' : bot.name === 'Kleptocrat' ? 'lean' : 'surge', kept: draft.limits.map(() => bot.name !== 'Kleptocrat') });
+      }
+    }
     // Everyone but the cynics keeps the Vice President busy, and calls on a cold former President.
     if (!skip('vp') && bot.name !== 'Random' && bot.name !== 'Do-nothing') {
       if (canPortfolio(s, movesLeft(s)).ok && s.pc > 25 && movesLeft(s) > 1) s = applyAction(s, { type: 'VP', op: 'portfolio' });

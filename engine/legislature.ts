@@ -129,6 +129,8 @@ export function billPassed(s: GameState, id: string, effects: Fx[]): Fx[] | null
   const g = ensureGovernance(s), now = clockOf(s).worldMonth, name = MILESTONE_BY_ID[id].m.name;
   let defer = false;
   for (const c of b.concessions.filter((c) => !c.revoked)) {
+    // Someone who has left the post, or crossed to the opposition, can no longer collect: the concession lapses.
+    if (!g.offices[c.voter] || s.people[c.voter]?.gone) { c.revoked = s.turn; continue; }
     const st = s.people[c.voter], who = st?.name ?? PERSON_BY_ID[c.voter].name, seat = STANCES[c.voter]?.seat ?? 'NC';
     switch (c.kind) {
       case 'geography': applyFx(s, [`zone.${seat}.approval`, 2]); applyFx(s, ['approval', -0.3]); break;

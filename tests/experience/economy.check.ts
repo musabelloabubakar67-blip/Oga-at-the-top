@@ -26,9 +26,9 @@ const fresh = (): GameState => { const s = newGame(setup); s.phase = 'desk'; ret
 let passed = 0;
 const check = (label: string, run: () => void) => { run(); passed++; console.log(`PASS ${label}`); };
 
-check('the standard inheritance starts at 66% debt service, from interest against revenue', () => {
+check('the standard inheritance starts at 60% debt service, from interest against revenue', () => {
   const s = fresh();
-  assert.ok(Math.abs(s.nation.debt - 66) < 1, `debt service ${s.nation.debt}`);
+  assert.ok(Math.abs(s.nation.debt - 60) < 1, `debt service ${s.nation.debt}`);
   assert.ok(Math.abs(serviceRatio(s) - (100 * interestAnnual(s)) / revenueAnnual(s)) < 1e-9);
 });
 
