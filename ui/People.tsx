@@ -26,7 +26,7 @@ import {
 } from '../engine/people';
 import { movesLeft, sackCost } from '../engine/reduce';
 import { competenceShown, following, seenCompetence } from '../engine/people';
-import { currentWant, grudgeLine } from '../engine/wants';
+import { MOTIVE_NAME, currentWant, grudgeLine, motiveOf } from '../engine/wants';
 import { PowersButton } from './Desk';
 import { fears, lastMove, leverage } from '../engine/agency';
 import { PUBLIC, canHonour, pledgeName, pledgeOptions, word } from '../engine/promises';
@@ -42,6 +42,7 @@ import { profileOf } from '../engine/judgment';
 import { PHILOSOPHY_NAME } from '../content/courts';
 import { rules } from '../engine/constitution';
 import { Proposals } from './Proposals';
+import { DEPUTY_PC, PROMOTE_PC, canAppointDeputy, canPromote, deputyOptions } from '../engine/deputies';
 import { ENDORSE_PC, TEST_MONTHS, TEST_PC, canEndorse, canTest, profileOf as successorProfile } from '../engine/settlement';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
@@ -596,7 +597,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
 
                   {want && !st.gone && (
                     <div className="mt-3 border-l-2 border-honour bg-paper-dim px-3 py-2">
-                      <p className="label text-ink-soft">Wants{(st.grants ?? 0) > 0 ? ` · given ${st.grants} ${st.grants === 1 ? 'thing' : 'things'} before, and the asks grow` : ''}</p>
+                      <p className="label text-ink-soft">Wants · {MOTIVE_NAME[motiveOf(want.id, want.fx)]}{(st.grants ?? 0) > 0 ? ` · given ${st.grants} ${st.grants === 1 ? 'thing' : 'things'} before, and the asks grow` : ''}</p>
                       <p className="font-serif leading-snug">{want.text}</p>
                       <Fx fx={want.fx} />
                     </div>
@@ -634,6 +635,14 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                           </button>
                         );
                       })()}
+                      {want && (() => {
+                        const no = canDeal(s, p.id, 'explain', left);
+                        return (
+                          <button disabled={!no.ok} title={no.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'explain' })} className={btn(no.ok, 'bad')}>
+                            Refuse, and explain why · 1 capital
+                          </button>
+                        );
+                      })()}
                       {base.group !== 'minister' && (
                         <button disabled={!press.ok} title={press.reason} onClick={() => dispatch({ type: 'PERSON', id: p.id, op: 'pressure' })} className={btn(press.ok, 'bad')}>
                           Lean on them · 4 capital
@@ -653,6 +662,7 @@ export function PeopleModal({ s, dispatch, onClose, start }: { s: GameState; dis
                       )}
                     </div>
                   )}
+                  {base.group === 'minister' && <Deputy s={s} post={p.id} dispatch={dispatch} left={left} />}
                   {base.group === 'minister' && swap === p.id && (() => {
                     const cost = sackCost(s, p.id);
                     return (
@@ -893,6 +903,34 @@ function Federal({ s }: { s: GameState }) {
       </table>
       {ps.some((p) => !p.zone) && <p className="mt-2 text-[13px] text-ink-soft">Not counted, origin not on record: {ps.filter((p) => !p.zone).map((p) => p.name).join(', ')}.</p>}
       <p className="mt-2 text-[13px] text-ink-soft">The succession follows the same rule: after a President from one half of the country, the party expects a candidate from the other.</p>
+    </div>
+  );
+}
+
+/** The ministry's deputy: appoint one from the pool, watch them grow, promote them (plan 03.A6). */
+function Deputy({ s, post, dispatch, left }: { s: GameState; post: string; dispatch: Dispatch; left: number }) {
+  const [open, setOpen] = useState(false);
+  const d = s.deputies?.[post];
+  const c = d ? s.talent?.pool.find((x) => x.id === d.cid) : null;
+  if (d && c) {
+    const can = canPromote(s, post, left);
+    return (
+      <p className="mt-1 text-[13px]">
+        <span className="label mr-1 text-ink-soft">Deputy</span>{c.name}, competence {c.competence}, {s.turn - d.since} months in post{d.grown ? `, grown ${d.grown === 1 ? 'once' : `${d.grown} times`} under this minister` : ''}.{' '}
+        <button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'PROMOTE', post })} className={`ml-1 border px-2 py-0.5 ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>Promote them to the post · {PROMOTE_PC} capital</button>
+      </p>
+    );
+  }
+  const opts = deputyOptions(s, post);
+  if (!opts.length) return null;
+  return (
+    <div className="mt-1 text-[13px]">
+      <button onClick={() => setOpen(!open)} className="label text-state underline">{open ? 'Close' : 'Appoint a deputy'}</button>
+      {open && (
+        <ul className="mt-1 space-y-1">
+          {opts.map((o) => { const can = canAppointDeputy(s, post, o.c.id, left); return <li key={o.c.id}><button disabled={!can.ok} title={can.reason} onClick={() => dispatch({ type: 'DEPUTY', post, cid: o.c.id })} className={`border px-2 py-0.5 text-left ${can.ok ? 'border-ink/30 hover:border-state' : 'border-ink/10 opacity-45'}`}>{o.c.name} · competence {o.shown.competence} · {DEPUTY_PC} capital</button></li>; })}
+        </ul>
+      )}
     </div>
   );
 }

@@ -93,6 +93,14 @@ export function VerdictScreen({ s, onDone, onSucceed, dispatch }: { s: GameState
           </section>
         )}
 
+        {v.misconduct.length > 0 && (
+          <section className="mt-10 border-l-4 border-alarm p-5">
+            <p className="label text-alarm">The record of misconduct</p>
+            <p className="mt-1 text-sm text-ink-soft">Not about money, and not erased by how the retirement goes.</p>
+            <ul className="mt-2 list-disc pl-5 font-serif text-lg">{v.misconduct.map((m) => <li key={m}>{m}</li>)}</ul>
+          </section>
+        )}
+
         <section className={`mt-10 border-l-4 p-5 ${v.after.bad ? 'border-alarm bg-alarm/5' : 'border-state bg-state/5'}`}>
           <p className="label text-ink-soft">After noon on the last day</p>
           <h2 className={`mt-1 font-serif text-3xl ${v.after.bad ? 'text-alarm' : 'text-state'}`}>{v.after.title}</h2>

@@ -7,7 +7,7 @@ import { PEOPLE, PERSON_BY_ID, REPLACEMENTS, RIVALS, type Person } from '../cont
 import { VENTURES } from '../content/ventures';
 import { CFG } from './config';
 import type { GameState, Mark, PersonState, ZoneId } from './types';
-import { canRefuse, currentWant, refuse } from './wants';
+import { canRefuse, currentWant, reconcile, refuse } from './wants';
 import { release, take, type Offer } from './talent';
 import { addFavour, applyFx, approval, clamp, getVar, groupStanding, hardship, senate, standing, registerScore } from './vars';
 
@@ -145,14 +145,14 @@ export function peopleTick(s: GameState): void {
 
 // ---------------------------------------------------------------- dealings
 
-export type PersonOp = 'court' | 'grant' | 'pressure' | 'refuse';
+export type PersonOp = 'court' | 'grant' | 'pressure' | 'refuse' | 'explain';
 
 export function canDeal(s: GameState, id: string, op: PersonOp, movesLeft: number): { ok: boolean; reason?: string } {
   const p = PERSON_BY_ID[id];
   const st = s.people[id];
   if (!p || !st) return { ok: false };
   if (st.gone) return { ok: false, reason: 'Has crossed to the opposition.' };
-  if (op === 'refuse') return canRefuse(s, id);
+  if (op === 'refuse' || op === 'explain') return canRefuse(s, id, op === 'explain');
   if (movesLeft <= 0) return { ok: false, reason: "This month's moves are used." };
   if (op === 'grant') {
     const w = currentWant(s, id);
@@ -184,6 +184,7 @@ export function deal(s: GameState, id: string, op: PersonOp): { text: string; ar
       archive: `Spent time with ${p.name}.`,
     };
   }
+  if (op === 'explain') return { text: refuse(s, id, true), archive: `Refused ${p.name} what was asked, and explained why.` };
   if (op === 'refuse') return { text: refuse(s, id), archive: `Refused ${p.name} what was asked.` };
   const w = op === 'grant' ? currentWant(s, id) : null;
   if (op === 'grant' && w) {
@@ -196,13 +197,12 @@ export function deal(s: GameState, id: string, op: PersonOp): { text: string; ar
     // Every grant makes the next ask bigger.
     st.grants = (st.grants ?? 0) + 1;
     st.grantedAt = s.turn;
-    // Being given something settles old refusals.
-    st.refusals = 0;
-    st.grudge = false;
+    // A grant settles the grievance it answers, not every grievance (plan 05.A11).
+    const mended = reconcile(s, id, w.id, w.fx);
     // They owe you now, and everyone watching knows it.
     applyFx(s, ['pc', CFG.agenda.grantPc]);
     addFavour(s, id, 'owed', p.clout >= 5 ? 3 : 2, `You gave ${p.short} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.`);
-    return { text: `${w.done} ${p.short} owes you, and knows it.${st.grants > 1 ? ' The next request will be bigger; they always are.' : ''}`, archive: `Gave ${p.name} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.` };
+    return { text: `${w.done} ${p.short} owes you, and knows it.${st.grants > 1 ? ' The next request will be bigger; they always are.' : ''}${mended ? ' ' + mended : ''}`, archive: `Gave ${p.name} what was asked: ${w.text.replace(/\.$/, '').toLowerCase()}.` };
   }
   // pressure
   s.pc = clamp(s.pc - 4, 0, 100);

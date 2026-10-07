@@ -67,7 +67,8 @@ export function handoverNotes(prev: GameState): string[] {
 }
 
 // What stays true of the country whoever is President.
-const WORLD_FLAG = /^(post\.|reversed\.|law\.|constitution\.|diaspora\.|census\.|credit\.|unions\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
+// Selected policies (the subsidy, standing policies) and the exchange-rate stance are part of the country too (plan 01.A4).
+const WORLD_FLAG = /^(post\.|data\.|policy\.|fx\.|reversed\.|law\.|constitution\.|diaspora\.|census\.|credit\.|unions\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
 // Decisions that cannot be taken twice.
 const WORLD_ORDERS = ['tax', 'duties', 'subsidy_end', 'price_freeze', 'merge'];
 
@@ -121,9 +122,23 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   // Reforms delivered stay delivered. Those under way are still under way, at the stage they had reached.
   s.agenda.done = [...prev.agenda.done];
   // What was built keeps running under the same heads, captured or not.
-  s.institutions = (prev.institutions ?? []).map((i) => ({ ...i, head: { ...i.head } }));
+  // The calendar restarts at month one (plan 01.A3): every carried date moves with it, so an institution
+  // founded years ago is years old, not founded in the future with a negative age.
+  const back = (t: number) => t - (prev.turn - 1);
+  s.institutions = (prev.institutions ?? []).map((i) => ({ ...i, head: { ...i.head }, since: back(i.since), founded: back(i.founded ?? i.since), acts: (i.acts ?? []).map((a) => ({ ...a, turn: back(a.turn) })) }));
   // What was built stays where it was built, with whoever runs it; the bench sits on.
-  s.assets = structuredClone(prev.assets ?? []);
+  s.assets = structuredClone(prev.assets ?? []).map((a) => ({ ...a, since: back(a.since), expanding: a.expanding ? Math.max(1, back(a.expanding)) : undefined, completing: a.completing ? Math.max(1, back(a.completing)) : undefined, refurbishing: a.refurbishing ? Math.max(1, back(a.refurbishing)) : undefined }));
+  // The same for the armed forces, the open questions, the case law and the constituencies.
+  if (s.military) {
+    s.military.missions = s.military.missions.map((m) => ({ ...m, started: back(m.started), ended: m.ended === undefined ? undefined : back(m.ended), log: m.log.map((l) => ({ ...l, turn: back(l.turn) })) }));
+    s.military.abuses = s.military.abuses.map((a) => ({ ...a, turn: back(a.turn) }));
+    s.military.inquiries = s.military.inquiries.map((q) => ({ ...q, opened: back(q.opened) }));
+  }
+  if (s.inquiries) s.inquiries = s.inquiries.map((q) => ({ ...q, opened: back(q.opened), probing: q.probing.map((p) => ({ ...p, due: Math.max(1, back(p.due)) })), decided: q.decided ? { ...q.decided, turn: back(q.decided.turn) } : undefined, revealed: q.revealed === undefined ? undefined : back(q.revealed), reports: q.reports.map((r) => ({ ...r, turn: back(r.turn) })) }));
+  if (s.judgments) s.judgments = s.judgments.map((j) => ({ ...j, turn: back(j.turn) }));
+  // Live prosecutions continue under the next government (plan 01.A4); the courts do not start again.
+  s.cases = (prev.cases ?? []).filter((c) => !c.outcome).map((c) => ({ ...c, opened: back(c.opened), trialFrom: c.trialFrom === undefined ? undefined : back(c.trialFrom), backed: false, leaned: false }));
+  if (s.society) s.society.constituencies = Object.fromEntries(Object.entries(s.society.constituencies).map(([k, t]) => [k, back(t)]));
   s.placed = (prev.placed ?? []).map((p) => ({ ...p }));
   s.sites = { ...(prev.sites ?? {}) };
   if (prev.fx) s.fx = { ...prev.fx, hist: [...prev.fx.hist] };

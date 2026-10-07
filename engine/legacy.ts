@@ -23,6 +23,8 @@ export interface Verdict {
   defining: string[];
   /** What happens to you after noon on the last day. */
   after: After;
+  /** Documented misconduct that is not about money (plan 01.A8): it stays on the record whatever the retirement. */
+  misconduct: string[];
 }
 
 function grade(delta: number, steps: [number, number, number, number]): [Grade, number] {
@@ -43,6 +45,24 @@ const ENDING_LINE: Record<EndingKind, string> = {
   resigned: 'You resigned.',
   annulled: 'The courts annulled your election. The Vice President was sworn in that afternoon, and you left by the back gate.',
 };
+
+/** What is documented against the President beyond money: abuses of force, interference with justice, improper bargains. */
+export function misconductOf(s: GameState): string[] {
+  const out: string[] = [];
+  const m = s.military;
+  if (m?.misused) out.push(`Soldiers were used against civilians at the President's order (${m.misused === 1 ? 'once' : `${m.misused} times`}).`);
+  const buried = (m?.abuses ?? []).filter((a) => a.resolved === 'buried').length;
+  if (buried) out.push(`${buried === 1 ? 'An abuse by the forces was' : `${buried} abuses by the forces were`} buried rather than tried.`);
+  const leaned = (s.cases ?? []).filter((c) => c.leaned).length;
+  if (leaned) out.push(`The President leaned on ${leaned === 1 ? 'a prosecution' : `${leaned} prosecutions`}.`);
+  if (s.flags['graft.leash']) out.push('An anti-corruption case was stopped from the Villa.');
+  if (s.flags['bench.packed']) out.push('The Supreme Court was packed with loyalists.');
+  if (s.counters.struck) out.push(`${s.counters.struck === 1 ? 'An order was' : `${s.counters.struck} orders were`} struck down as unlawful.`);
+  const improper = (s.settlement?.terms ?? []).filter((t) => t.improper).length;
+  if (improper) out.push(`${improper === 1 ? 'A private succession bargain was' : `${improper} private succession bargains were`} made.`);
+  if ((s.inheritance?.stances && Object.values(s.inheritance.stances).includes('honoured')) && (s.inheritance.settlement?.terms ?? []).some((t) => t.improper && s.inheritance!.stances[t.id] === 'honoured')) out.push('An improper bargain made by the predecessor was honoured.');
+  return out;
+}
 
 export function verdict(s: GameState): Verdict {
   const b = s.baseline;
@@ -168,6 +188,7 @@ export function verdict(s: GameState): Verdict {
     } : null,
     left,
     after,
+    misconduct: misconductOf(s),
     // The election result is the verdict's first line; the list is for what you chose to do.
     defining: s.archive.filter((a) => a.sig === 3 && a.turn > 0 && !a.sealed && a.eventId !== 'election').map((a) => a.headline).slice(-8),
   };

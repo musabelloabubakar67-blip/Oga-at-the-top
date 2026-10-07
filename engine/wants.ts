@@ -1,12 +1,16 @@
 // What people want changes. Each governor, senator and minister asks first for the
-// thing they came in wanting; after that, what they ask for follows their situation
-// and their mood, and every grant makes the next request bigger. Two refusals make
-// a grudge, and a grudge is an opening for the opposition.
+// thing they came in wanting; after that, what they ask for follows their situation:
+// a pressing need comes before patronage, and every grant makes the next request
+// bigger. A refusal closes the request. How it is taken depends on why they asked,
+// who they are and whether they were told why (plan 05.A3): an improper ask refused
+// costs little, a real need refused without a word costs a great deal. A grudge
+// forms only from two refusals of the same kind of ask, never from two unrelated
+// ones, and a grant settles only the grievance it answers (05.A11).
 
 import { clockOf, ensureGovernance, resolveActor } from './governance';
 import { closeRequest, openRequest } from './requests';
 import type { RequestRecord } from './contracts';
-import { PERSON_BY_ID } from '../content/people';
+import { PERSON_BY_ID, type Temper } from '../content/people';
 import { termTurnOf } from './config';
 import type { Fx, GameState, ZoneId } from './types';
 import { ZONE_NAME, applyFx } from './vars';
@@ -57,7 +61,16 @@ const TEMPLATES: Template[] = [
     fx: () => [['bloc.party', -1], ['nation.capacity', 0.5]] },
 ];
 
-const WINDOW = 8;
+/** Months after an answer before the same person asks for something new. Not a rotating window: the clock starts at the answer. */
+export const NEXT_ASK = 6;
+/** Why someone asks: a real need for their people, patronage for their network, or something improper. */
+export type Motive = 'need' | 'patronage' | 'improper';
+const MOTIVE: Record<string, Motive> = { projects: 'need', troops: 'need', budget: 'need', permsec: 'need', ally: 'patronage', ticket: 'patronage', constituency: 'patronage', chair: 'patronage', amend: 'patronage', portfolio: 'patronage', cover: 'improper', contract: 'improper' };
+export function motiveOf(object: string, fx: Fx[] = []): Motive {
+  if (MOTIVE[object]) return MOTIVE[object];
+  return fx.some(([t, d]) => t === 'nation.integrity' && d < 0) ? 'improper' : 'patronage';
+}
+export const MOTIVE_NAME: Record<Motive, string> = { need: 'a need in their state or ministry', patronage: 'patronage for their network', improper: 'an improper favour' };
 const hash = (x: string) => { let h = 2166136261; for (let i = 0; i < x.length; i++) h = Math.imul(h ^ x.charCodeAt(i), 16777619); return (h >>> 0) / 4294967296; };
 
 /** Each grant makes the next request bigger. */
@@ -85,9 +98,10 @@ export function currentWant(s: GameState, id: string): Want | null {
   const all = records(s, id);
   const open = all.find((r) => r.status === 'open');
   if (open?.legacyWant) return { recordId: open.id, id: open.object, text: open.text, done: open.legacyWant.done, naira: open.terms?.naira, pc: open.terms?.politicalCapital, fx: open.legacyWant.fx };
-  const window = Math.floor(s.turn / WINDOW);
-  const justAnswered = all.some((r) => r.closed !== undefined && Math.floor((r.closed - (s.governance?.originMonth ?? 0) + 1) / WINDOW) === window);
-  if (justAnswered || (st.grantedAt !== undefined && Math.floor(st.grantedAt / WINDOW) === window) || (st.refusedAt !== undefined && Math.floor(st.refusedAt / WINDOW) === window)) return null;
+  // The next ask comes a fixed time after the last answer, whenever that was.
+  const origin = s.governance?.originMonth ?? 0;
+  const lastAnswer = Math.max(-99, ...all.filter((r) => r.closed !== undefined).map((r) => r.closed! - origin + 1), st.grantedAt ?? -99, st.refusedAt ?? -99);
+  if (s.turn - lastAnswer < NEXT_ASK) return null;
   // Legacy refusal timestamps show that an initial ask has already been answered;
   // we do not invent which later template was refused in an old save.
   if (!st.granted && !st.name && p.want && !all.some((r) => r.object === 'signature') && st.refusedAt === undefined) return { id: 'signature', text: p.want.text, done: p.want.done, naira: p.want.naira, pc: p.want.pc, fx: p.want.fx };
@@ -95,8 +109,23 @@ export function currentWant(s: GameState, id: string): Want | null {
   const k = appetite(s, id), round = (x: number) => Math.round(x * 100) / 100;
   const options = TEMPLATES.filter((t) => t.groups.includes(p.group as 'governor') && (!t.when || t.when(s, id))).map((t): Want => ({ id: t.id, text: t.text(s, id), done: t.done, naira: t.naira ? round(t.naira * k) : undefined, pc: t.pc ? Math.round(t.pc * k) : undefined, fx: t.fx(s, id) })).filter((w) => !wasAnswered(all, w));
   if (!options.length) return null;
-  return options[Math.floor(hash(id + '.' + window + '.' + (st.grants ?? 0)) * options.length)];
+  // A pressing situation comes first; otherwise the person's own order of wants, which moves on with each answer.
+  const pressing = options.filter((w) => TEMPLATES.find((t) => t.id === w.id)?.when && motiveOf(w.id) === 'need');
+  const pool = pressing.length ? pressing : options;
+  return pool[Math.floor(hash(id + '.' + all.length + '.' + (st.grants ?? 0)) * pool.length)];
 }
+
+/** What else could be offered in place of the open request: the other things this person could
+ *  plausibly want now, at their current appetite (plan 05.A5 substitution). */
+export function alternativesFor(s: GameState, id: string): Want[] {
+  const p = PERSON_BY_ID[id], cur = currentWant(s, id);
+  if (!p || !cur) return [];
+  const k = appetite(s, id), round = (x: number) => Math.round(x * 100) / 100;
+  return TEMPLATES.filter((t) => t.id !== cur.id && t.groups.includes(p.group as 'governor') && (!t.when || t.when(s, id)))
+    .map((t): Want => ({ id: t.id, text: t.text(s, id), done: t.done, naira: t.naira ? round(t.naira * k) : undefined, pc: t.pc ? Math.round(t.pc * k) : undefined, fx: t.fx(s, id) }));
+}
+/** What a want is worth to the person asking, in political capital: money counts at twenty points a trillion. */
+export const wantValue = (w: Pick<Want, 'pc' | 'naira'>) => (w.pc ?? 0) + 20 * (w.naira ?? 0);
 
 /** Engine boundary: store the exact proposal and its stable requester identity. */
 export function refreshRequests(s: GameState, only?: string): void {
@@ -127,22 +156,66 @@ export function grantRequest(s: GameState, id: string): void {
   if (w?.recordId) closeRequest(s, w.recordId, 'granted', w.done);
 }
 
-/** Refusal closes this request. It neither deletes debts nor manufactures a grudge. */
-export function refuse(s: GameState, id: string): string {
+/** Political capital to sit them down and explain a refusal. */
+export const EXPLAIN_PC = 1;
+
+/** How a refusal lands: by motive, by temperament, by their weight, and by whether they were told why. */
+export function refusalCost(s: GameState, id: string, motive: Motive, explained: boolean): number {
+  const base = { need: 9, patronage: 5, improper: 2 }[motive];
+  const temper: Temper = PERSON_BY_ID[id]?.temper ?? 'loyal';
+  const k = { loyal: 0.6, transactional: 1, ambitious: 1.3, principled: motive === 'improper' ? 0 : 0.8 }[temper];
+  const clout = s.people[id]?.clout ?? PERSON_BY_ID[id]?.clout ?? 3;
+  return Math.round(base * k * (0.8 + 0.1 * clout) * (explained ? (motive === 'need' ? 0.5 : 0.4) : 1));
+}
+
+/** Refusal closes this request. It neither deletes debts nor manufactures a grudge from unrelated refusals. */
+export function refuse(s: GameState, id: string, explained = false): string {
   refreshRequests(s, id);
   const st = s.people[id], w = currentWant(s, id);
   if (!st || !w?.recordId) return '';
-  closeRequest(s, w.recordId, 'refused', 'The President declined this request.');
+  const motive = motiveOf(w.id, w.fx);
+  if (explained) s.pc = Math.max(0, s.pc - EXPLAIN_PC);
+  closeRequest(s, w.recordId, 'refused', explained ? 'The President declined this request and explained why.' : 'The President declined this request.');
   st.refusals = (st.refusals ?? 0) + 1; st.refusedAt = s.turn;
-  st.rel = Math.max(0, st.rel - 5);
-  const crooked = w.fx.some(([t, d]) => t === 'nation.integrity' && d < 0);
-  if (crooked) { applyFx(s, ['nation.integrity', 1]); applyFx(s, ['bloc.press', 1]); }
+  st.rel = Math.max(0, st.rel - refusalCost(s, id, motive, explained));
+  const grievances = (st.grievances ??= []);
+  grievances.push({ motive, turn: s.turn, explained, object: w.id });
   const name = st.short ?? PERSON_BY_ID[id]?.short ?? id;
-  return name + ' is told no. This request is closed.' + (crooked ? ' The public refusal of the improper request is noticed.' : '');
+  // A grudge needs two unexplained refusals of the same kind of ask, within two years. An improper ask refused is no grievance.
+  const same = grievances.filter((g) => g.motive === motive && !g.explained && s.turn - g.turn <= 24);
+  let grudge = '';
+  if (motive !== 'improper' && same.length >= 2 && !st.grudge) {
+    st.grudge = true; st.grudgeMotive = motive;
+    (s.wronged ??= []).push({ who: id, kind: 'refusal', turn: s.turn, what: `two refusals of ${MOTIVE_NAME[motive]}`, until: s.turn + 24 });
+    grudge = ` That is the second time ${name} has been refused ${MOTIVE_NAME[motive]} without a reason. It is now a grievance, and the opposition will hear of it.`;
+  }
+  if (motive === 'improper') { applyFx(s, ['nation.integrity', 1]); applyFx(s, ['bloc.press', 1]); }
+  const how = motive === 'improper' ? ' The refusal of an improper request is noticed, and few hold it against you.'
+    : explained ? ` You explain why. ${name} does not like it, but understands it.` : motive === 'need' ? ` It was a real need, and ${name} was given no reason.` : '';
+  return `${name} is told no. This request is closed.${how}${grudge}`;
 }
-export function canRefuse(s: GameState, id: string): { ok: boolean; reason?: string } {
-  return currentWant(s, id) ? { ok: true } : { ok: false, reason: 'Has no open request.' };
+export function canRefuse(s: GameState, id: string, explained = false): { ok: boolean; reason?: string } {
+  if (!currentWant(s, id)) return { ok: false, reason: 'Has no open request.' };
+  if (explained && s.pc < EXPLAIN_PC) return { ok: false, reason: `Needs ${EXPLAIN_PC} political capital.` };
+  return { ok: true };
+}
+/** A grant settles only the grievance it answers: patronage given does not mend a need refused (05.A11). */
+export function reconcile(s: GameState, id: string, object: string, fx: Fx[] = []): string | null {
+  const st = s.people[id];
+  if (!st) return null;
+  const motive = motiveOf(object, fx);
+  st.grievances = (st.grievances ?? []).filter((g) => g.motive !== motive);
+  st.refusals = st.grievances.length;
+  if (st.grudge && (st.grudgeMotive ?? motive) === motive) {
+    st.grudge = false; delete st.grudgeMotive;
+    s.wronged = (s.wronged ?? []).filter((w) => !(w.who === id && w.kind === 'refusal'));
+    return 'The grievance this answers is settled.';
+  }
+  return st.grudge ? `The older grievance, over ${MOTIVE_NAME[st.grudgeMotive as Motive] ?? 'something else'}, is not.` : null;
 }
 export function grudgeLine(s: GameState, id: string): string | null {
-  return s.people[id]?.grudge ? 'Holds an existing grievance.' : null;
+  const st = s.people[id];
+  if (st?.grudge) return `Holds a grievance: refused ${MOTIVE_NAME[st.grudgeMotive as Motive] ?? 'what was asked'} twice, without a reason. Only giving that kind of thing will settle it.`;
+  const g = (st?.grievances ?? []).filter((x) => s.turn - x.turn <= 24 && x.motive !== 'improper');
+  return g.length ? `Refused before: ${g.map((x) => MOTIVE_NAME[x.motive as Motive]).join('; ')}.` : null;
 }

@@ -2,6 +2,7 @@ import { entrenchedReform } from './constitution';
 import { heldFactor } from './diagnosis';
 import { answer, canAnswer } from './proposals';
 import { choosePost } from './postoffice';
+import { appointDeputy, canAppointDeputy, canPromote, promote } from './deputies';
 import { canEndorse, canTest, decideTerm, endorse, negotiateSettlement, testCandidate } from './settlement';
 import { canProbe, decideInquiry, inquiries, probe } from './inquiry';
 import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
@@ -860,6 +861,8 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'SUCC_ENDORSE': if (canEndorse(s, action.id, action.from, movesLeft(s)).ok) note(s, endorse(s, action.id, action.from)); break;
     case 'SETTLE': if (!s.settlement) note(s, negotiateSettlement(s, action.with, action.name, action.terms, action.rival)); break;
     case 'TERM': if (s.inheritance?.settlement?.terms.some((t) => t.id === action.id) && !s.inheritance.stances[action.id] && movesLeft(s) > 0) note(s, decideTerm(s, action.id, action.stance)); break;
+    case 'DEPUTY': if (canAppointDeputy(s, action.post, action.cid, movesLeft(s)).ok) note(s, appointDeputy(s, action.post, action.cid)); break;
+    case 'PROMOTE': if (canPromote(s, action.post, movesLeft(s)).ok) note(s, promote(s, action.post)); break;
     case 'PROPOSAL': if (canAnswer(s, action.id, action.how, movesLeft(s)).ok) note(s, answer(s, action.id, action.how)); break;
     case 'MIL_APPOINT': if (canAppointOfficer(s, action.post, action.officer, movesLeft(s)).ok) note(s, appointOfficer(s, action.post, action.officer)); break;
     case 'CASE':
@@ -1502,7 +1505,7 @@ function person(s: GameState, id: string, op: PersonOp): void {
   if (!canDeal(s, id, op, movesLeft(s)).ok) return;
   const before = snapshot(s);
   // Saying no costs nothing but the relationship.
-  if (op !== 'refuse') s.desk.actionsUsed += 1;
+  if (op !== 'refuse' && op !== 'explain') s.desk.actionsUsed += 1;
   const out = deal(s, id, op);
   record(s, `person.${id}`, op, 'politics', out.archive, op === 'grant' ? 2 : 1, out.sealed);
   s.lastAction = { text: out.text, changes: diff(before, snapshot(s)) };

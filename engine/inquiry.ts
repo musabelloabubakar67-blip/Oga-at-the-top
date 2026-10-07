@@ -26,6 +26,15 @@ export interface Inquiry {
 }
 
 export const REVEAL_AFTER = 3;
+
+/** A specific, attributed report rather than an assertion drawn from the general mood (plan 01.A7): once the
+ *  identity rails exist and integrity is low, a newspaper may publish records offered for sale. It is an allegation. */
+function breachTick(s: GameState): void {
+  if (s.flags['data.breach'] || !s.agenda.done.includes('d4') || s.nation.integrity >= 38) return;
+  if (rand(s) >= 0.04) return;
+  s.flags['data.breach'] = 'alleged';
+  s.news.push({ chronicle: 'IDENTITY RECORDS OFFERED FOR SALE ONLINE, NEWSPAPER REPORTS', street: 'DEM DEY SELL OUR DATA? — NEWSPAPER', weight: 5, valence: -1, topic: 'scandal', body: 'The Federal Chronicle has published samples of what it says are identity records offered for sale. The identity agency denies any breach. Nobody has yet investigated.' });
+}
 /** Months a question can stay undecided before events overtake it. */
 export const LAPSE_AFTER = 6;
 
@@ -54,6 +63,7 @@ function findings(s: GameState, q: Inquiry, m: Method): Report {
 
 /** Monthly: questions open, inquiries report, waiting costs, and decisions meet the truth. */
 export function inquiryTick(s: GameState): void {
+  breachTick(s);
   const list = inquiries(s);
   const open = list.filter((q) => !q.decided);
   for (const m of MYSTERIES) {

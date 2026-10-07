@@ -316,6 +316,10 @@ export interface PersonState {
   refusals?: number;
   refusedAt?: number;
   grudge?: boolean;
+  /** What the grudge is about; only a grant of the same kind settles it (plan 05.A11). */
+  grudgeMotive?: string;
+  /** Refusals, each with its motive and whether it was explained (plan 05.A3). */
+  grievances?: { motive: string; turn: number; explained: boolean; object: string }[];
   /** Ministers: what the files say their competence is, when it differs from the truth. The truth shows after ten months, or with published scorecards. */
   repCompetence?: number;
   /** Ministers: when they took the brief, and what their numbers were then. */
@@ -541,6 +545,8 @@ export interface GameState {
   inheritance?: import('./settlement').Inheritance;
   /** The year after office: the former President's decisions (plan 16). */
   post?: import('./postoffice').Post;
+  /** Deputies in the ministries, growing into the job (plan 03.A6). */
+  deputies?: Record<string, { cid: string; since: number; grown: number }>;
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
@@ -586,7 +592,7 @@ export interface GameState {
     /** Routines a strong leader built, 0–1: they survive the leader's departure (plan 04.A4). */ routine?: number;
     /** What it did on its own, against whoever (plan 04.A2). */ acts?: { turn: number; text: string }[] }[];
   /** Every adviser's forecasts, checked against what happened. */
-  advice?: { role: string; turn: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
+  advice?: { role: string; /** The person who gave it: records follow people, not offices. */ who?: string; turn: number; /** When its last forecast effect can be observed. */ due?: number; event: string; choice: string; followed: boolean; miss: number; served?: string }[];
   /** What is happening to the country from outside, and what already has. */
   shocks: { active: { id: string; since: number; until: number; felt?: Record<string, number> }[]; seen: string[]; last: number };
   report: ReportItem[];
@@ -688,7 +694,9 @@ export type Action =
   | { type: 'SETTLE'; with: string; name: string; terms: string[]; rival: boolean }
   | { type: 'TERM'; id: string; stance: 'honoured' | 'renegotiated' | 'broken' | 'investigated' }
   | { type: 'POST'; choice: string }
-  | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
+  | { type: 'DEPUTY'; post: string; cid: string }
+  | { type: 'PROMOTE'; post: string }
+  | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' | 'explain' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }
   | { type: 'FUND'; id: FundId; amount: number }

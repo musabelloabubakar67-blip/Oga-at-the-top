@@ -9,6 +9,7 @@
 // Nothing is silently defaulted. A legacy setup without these fields keeps the
 // old behaviour (financier from background, the Governors' Forum debt).
 
+import { vpCandidates } from './vp';
 import { TRACKS } from '../content/agenda';
 import { CANDIDATE_BY_ID } from '../content/candidates';
 import { FINANCE_CANDIDATES } from '../content/names';
@@ -28,7 +29,9 @@ import type { Fx, GameState, Setup } from './types';
 import { addFavour, applyFx } from './vars';
 
 /** Offices the opening cabinet is chosen for: the same eight as the proposed slate. */
-export const OPENING_OFFICES = ['fin', 'min_defence', 'min_power', 'min_works', 'min_service', 'min_agric', 'min_justice', 'cos'] as const;
+/** Who can stand as running mate: someone the party can sell, from politics, administration or economics (plan 03.A2). */
+export const VP_SPECS = ['politics', 'administration', 'economics'];
+export const OPENING_OFFICES = ['vp', 'fin', 'min_defence', 'min_power', 'min_works', 'min_service', 'min_agric', 'min_justice', 'cos'] as const;
 export type OpeningOffice = (typeof OPENING_OFFICES)[number];
 
 const postOf = (office: string): AppointmentPost =>
@@ -65,7 +68,7 @@ export function validateSetup(setup: Setup, opts: { successorSameParty?: boolean
       const c = CANDIDATE_BY_ID[id];
       if (!c) out.push(`Unknown candidate for ${office}.`);
       else if (c.exceptional) out.push(`${c.name} serves only on negotiated terms: approach them after taking office.`);
-      else if (!c.roles.includes(office)) out.push(`${c.name} cannot serve as ${office}.`);
+      else if (office === 'vp' ? !VP_SPECS.includes(c.spec) : !c.roles.includes(office)) out.push(`${c.name} cannot serve as ${office}.`);
     }
   }
   return out;
@@ -121,6 +124,17 @@ function applyTeam(s: GameState, team: Record<string, string>): void {
     }
     const c = CANDIDATE_BY_ID[choice];
     if (!c || c.exceptional) continue;
+    if (office === 'vp') {
+      // The running mate chosen on the ticket (plan 03.A2): no cost, because nobody has been dropped yet.
+      const o = vpCandidates(s).find((x) => x.c.id === choice && !x.refuses) ?? candidatesFor(s, 'vp', 99).find((x) => x.c.id === choice && !x.refuses);
+      if (!o || !s.vp) continue;
+      const c = o.c;
+      take(s, c.id);
+      s.vp = { ...s.vp, name: c.name, short: c.short, zone: c.zone, competence: c.competence, loyalty: c.loyalty, integrity: c.integrity, clout: Math.max(2, c.clout), ambition: c.ambition, rel: 65, since: 0, blurb: c.blurb };
+      (s.origins ??= {})[c.name] = c.zone;
+      s.archive.push({ id: 'a-team-vp', turn: 0, eventId: 'transition', choiceId: 'team', category: 'politics', headline: `Chose ${c.name} as running mate.`, sig: 2, touches: {} });
+      continue;
+    }
     if (office === 'fin') {
       const o = candidatesFor(s, 'fin', 99).find((x) => x.c.id === choice && !x.refuses);
       if (!o) continue;

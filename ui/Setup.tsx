@@ -17,6 +17,7 @@ import { PERSON_BY_ID } from '../content/people';
 import { CONSTRAINTS, FINANCIERS, ROUTES } from '../content/routes';
 import { SCENARIOS } from '../content/scenarios';
 import { dailySeed, decodeStart, encodeStart } from '../engine/history';
+import { VP_SPECS } from '../engine/opening';
 import { STATES, STATE_BY_ID } from '../content/states';
 import { TYCOON_BY_ID } from '../content/tycoons';
 import { CFG } from '../engine/config';
@@ -101,7 +102,7 @@ const STEPS = ['The inheritance', 'Who you are', 'How you won', 'The mandate', '
 const card = (on: boolean) => `text-left border p-4 transition-colors ${on ? 'border-state bg-state/10' : 'border-ink/20 hover:border-ink/50'}`;
 const small = (on: boolean) => `text-left border px-3 py-1.5 text-sm transition-colors ${on ? 'border-state bg-state/10' : 'border-ink/20 hover:border-ink/50'}`;
 const TEAM_OFFICES: { id: string; title: string }[] = [
-  { id: 'cos', title: 'Chief of Staff' }, { id: 'min_defence', title: 'National Security Adviser' }, { id: 'min_power', title: 'Minister of Power' },
+  { id: 'vp', title: 'Running mate (Vice President)' }, { id: 'cos', title: 'Chief of Staff' }, { id: 'min_defence', title: 'National Security Adviser' }, { id: 'min_power', title: 'Minister of Power' },
   { id: 'min_works', title: 'Minister of Works' }, { id: 'min_justice', title: 'Attorney General' }, { id: 'min_agric', title: 'Minister of Agriculture' },
   { id: 'min_service', title: 'Minister of Industry and the Public Service' },
 ];
@@ -340,8 +341,8 @@ export function SetupScreen({ onStart, onBack, handover, previous }: { onStart: 
             </div>
             <ul className="mt-5 space-y-3">
               {TEAM_OFFICES.map((o) => {
-                const incumbent = o.id === 'cos' ? CAST.find((c) => c.id === 'cos')!.name : PERSON_BY_ID[o.id]?.name;
-                const options = CANDIDATES.filter((c) => c.roles.includes(o.id) && !c.exceptional);
+                const incumbent = o.id === 'cos' ? CAST.find((c) => c.id === 'cos')!.name : o.id === 'vp' ? 'the running mate the party suggests' : PERSON_BY_ID[o.id]?.name;
+                const options = CANDIDATES.filter((c) => (o.id === 'vp' ? VP_SPECS.includes(c.spec) : c.roles.includes(o.id)) && !c.exceptional);
                 const exceptional = CANDIDATES.filter((c) => c.roles.includes(o.id) && c.exceptional);
                 const pick = team[o.id] ?? 'keep';
                 return (

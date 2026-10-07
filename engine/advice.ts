@@ -236,7 +236,9 @@ export function logAdvice(s: GameState, e: GameEvent, c: Choice, role: string, s
   const real = [...aidFx(actual.fx), ...(c.naira ? [['nation.fiscalSpace', -c.naira] as Fx] : []), ...(actual.later ?? []).flatMap((l) => l.fx)];
   const miss = missBy([...said.now, ...said.later], real);
   const served = a.patron !== 'president' && recommended === c.id && patronGain(a, actual, c) > 0 ? a.patron : undefined;
-  (s.advice ??= []).push({ role, turn: s.turn, event: e.id, choice: c.id, followed: recommended === c.id, miss, served });
+  // Plan 01: the record belongs to the person, not the office, and a forecast of later effects is not judged until they can be observed.
+  const due = s.turn + Math.max(0, ...(actual.later ?? []).map((l) => (Array.isArray(l.after) ? l.after[1] : l.after)));
+  (s.advice ??= []).push({ role, who: a.name, turn: s.turn, due, event: e.id, choice: c.id, followed: recommended === c.id, miss, served });
   if (s.advice.length > 120) s.advice.shift();
   if (recommended && recommended !== c.id) ignored(s, a, e);
 }
@@ -252,11 +254,15 @@ function ignored(s: GameState, a: Adviser, e: GameEvent): void {
 }
 
 /** An adviser's record: forecasts checked against what happened, and whom their advice served. */
-export function trackRecord(s: GameState, role: string): { checked: number; close: number; followed: number; served: [string, number][] } {
-  const rows = (s.advice ?? []).filter((r) => r.role === role);
+export function trackRecord(s: GameState, role: string): { checked: number; close: number; followed: number; served: [string, number][]; pending: number } {
+  // Only the person now in the office: a replacement starts their own record (plan 01.A5).
+  const who = adviser(s, role)?.name;
+  const mine = (s.advice ?? []).filter((r) => r.role === role && (r.who === undefined || r.who === who));
+  // A forecast whose outcome has not arrived yet is pending, not right or wrong (plan 01.A6).
+  const rows = mine.filter((r) => (r.due ?? r.turn) <= s.turn);
   const served: Record<string, number> = {};
   for (const r of rows) if (r.served) served[r.served] = (served[r.served] ?? 0) + 1;
-  return { checked: rows.length, close: rows.filter((r) => r.miss <= 1).length, followed: rows.filter((r) => r.followed).length, served: Object.entries(served) as [string, number][] };
+  return { checked: rows.length, close: rows.filter((r) => r.miss <= 1).length, followed: rows.filter((r) => r.followed).length, served: Object.entries(served) as [string, number][], pending: mine.length - rows.length };
 }
 
 export type AidFx = (fx: Fx[] | undefined) => Fx[];

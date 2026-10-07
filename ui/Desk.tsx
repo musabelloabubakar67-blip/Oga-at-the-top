@@ -251,7 +251,7 @@ function FileModal({ s, e, item, dispatch, onClose }: { s: GameState; e: GameEve
             {adv && (
               <p className="mt-1 text-[13px] leading-snug text-ink-soft">
                 {adv.title}. {worldview(adv)} Reputation: {adv.rep.competence >= 4 ? 'able' : adv.rep.competence <= 2 ? 'out of their depth' : 'adequate'}, {adv.rep.loyalty >= 4 ? 'loyal' : adv.rep.loyalty <= 2 ? 'their own person' : 'reliable enough'}.
-                {' '}{record && record.checked ? `Their forecasts so far: ${record.close} of ${record.checked} close to what happened.` : 'No record yet to check them against.'}
+                {' '}{record && record.checked ? `Their forecasts so far: ${record.close} of ${record.checked} close to what happened.` : 'No record yet to check them against.'}{record?.pending ? ` ${record.pending} more cannot be judged until their effects arrive.` : ''}
                 {' '}A forecast is a forecast: what happens is shown after you decide.
                 {canSecond && <button onClick={() => dispatch({ type: 'SECOND_OPINION', eventId: e.id })} className="ml-1 underline hover:text-state">Ask {secondFor(s, adv.role)!.name} for a second opinion · 1 move</button>}
               </p>

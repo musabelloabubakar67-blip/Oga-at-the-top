@@ -3,6 +3,7 @@ import { societyTick } from './society';
 import { inquiryTick } from './inquiry';
 import { proposalTick } from './proposals';
 import { settlementTick } from './settlement';
+import { deputyTick } from './deputies';
 import { formersTick } from './formers';
 import { predTick } from './predecessor';
 import { vpTick } from './vp';
@@ -96,6 +97,7 @@ export function economyTick(s: GameState): void {
   inquiryTick(s);
   proposalTick(s);
   settlementTick(s);
+  deputyTick(s);
   securityTick(s);
   // What the standing policies do this month, worked out against the economy as it is.
   policyTick(s);

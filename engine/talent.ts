@@ -187,7 +187,20 @@ export function take(s: GameState, id: string): void {
 export function release(s: GameState, name: string): void {
   const t = talent(s);
   const c = t.pool.find((x) => x.name === name);
-  if (c) { t.taken = t.taken.filter((x) => x !== c.id); c.until = c.named ? Number.MAX_SAFE_INTEGER : s.turn + 8; }
+  if (!c) return;
+  // A strong person who is let go is recruited by the opposition (plan 03.A6): they stay unavailable, and the rival is stronger.
+  if (c.competence >= 4 && c.clout >= 3 && s.phase === 'desk' && s.opposition) {
+    const rival = Object.entries(s.opposition).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (rival) {
+      s.opposition[rival] = Math.min(95, (s.opposition[rival] ?? 30) + 2);
+      c.until = Number.MAX_SAFE_INTEGER;
+      if (!t.taken.includes(c.id)) t.taken.push(c.id);
+      s.news.push({ chronicle: `${c.name.toUpperCase()} JOINS THE OPPOSITION`, street: `${c.short.toUpperCase()} DON CROSS TO THE OTHER SIDE`, weight: 4, valence: -1, topic: 'politics', body: `${c.name}, let go by the government, has joined the opposition's policy team.` });
+      return;
+    }
+  }
+  t.taken = t.taken.filter((x) => x !== c.id);
+  c.until = c.named ? Number.MAX_SAFE_INTEGER : s.turn + 8;
 }
 
 

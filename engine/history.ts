@@ -129,6 +129,7 @@ export function shareText(s: GameState): string {
   ];
   // Misconduct is part of the record and is never left out of a shared verdict.
   if (v.ledger && (v.ledger.personal >= 1 || v.ledger.political >= 1 || v.ledger.tolerated)) lines.push(`The private ledger: ₦${Math.round(v.ledger.personal)}bn kept, ₦${Math.round(v.ledger.political)}bn in political money, looked away ${v.ledger.tolerated} time${v.ledger.tolerated === 1 ? '' : 's'}.`);
+  if (v.misconduct.length) lines.push(`On the record: ${v.misconduct.join(' ')}`);
   if (s.flags['short.met'] !== undefined) lines.push(`Short scenario goal: ${s.flags['short.met'] ? 'met' : 'not met'}.`);
   lines.push(`Seed ${s.seed ?? 0}, ${s.setup.scenario ?? 'standard'}.`);
   return lines.join('\n');
