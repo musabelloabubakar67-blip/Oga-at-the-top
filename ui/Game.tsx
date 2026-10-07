@@ -14,6 +14,7 @@ import { eraShifts } from '../engine/era';
 import { narrative } from '../engine/narrative';
 import { SetupScreen, Title, type Handover } from './Setup';
 import { VerdictScreen } from './Verdict';
+import { importCountry } from '../engine/exporting';
 
 // One key from here on. Saves are brought forward by engine/migrate.ts, not abandoned.
 const SAVE = 'oatt.save';
@@ -33,6 +34,8 @@ export function Game() {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   /** The finished presidency whose country the next President inherits. */
   const [previous, setPrevious] = useState<GameState | null>(null);
+  /** The letter that came with an imported country: the outgoing player's account, kept apart from the record. */
+  const [letter, setLetter] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -56,7 +59,11 @@ export function Game() {
 
   const dispatch = useCallback((a: Action) => setState((s) => (s ? applyAction(s, a) : s)), []);
 
-  const start = (setup: Setup) => { setState(newGame(setup, previous ?? undefined)); setPrevious(null); setScreen('play'); };
+  const start = (setup: Setup) => {
+    const next = newGame(setup, previous ?? undefined);
+    if (letter && next.inheritance) next.inheritance.letter = `${previous?.president.name ?? 'Your predecessor'} writes: "${letter}"`;
+    setState(next); setPrevious(null); setLetter(''); setScreen('play');
+  };
 
   const remember = (s: GameState) => {
     const v = verdict(s);
@@ -95,10 +102,11 @@ export function Game() {
         history={history}
         onContinue={() => setScreen('play')}
         onNew={() => setScreen('setup')}
+        onInherit={(text) => { const r = importCountry(text); if (!r.ok) return r.reason; setPrevious(r.prev); setLetter(r.letter); setScreen('setup'); return null; }}
       />
     );
   }
-  if (state.phase === 'verdict') return <VerdictScreen s={state} onDone={finish} onSucceed={succeedNow} />;
+  if (state.phase === 'verdict') return <VerdictScreen s={state} onDone={finish} onSucceed={succeedNow} dispatch={dispatch} />;
   if (state.phase === 'election' && state.election) {
     return <ElectionNight s={state} onDone={() => dispatch({ type: 'ELECTION_DONE' })} />;
   }

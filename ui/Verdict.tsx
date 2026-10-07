@@ -3,9 +3,10 @@
 import { breakdown } from '../engine/election';
 import { verdict } from '../engine/legacy';
 import { winnerOf } from '../engine/succession';
-import type { GameState } from '../engine/types';
+import type { Action, GameState } from '../engine/types';
+import { Aftermath } from './Aftermath';
 
-export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: () => void; onSucceed: () => void }) {
+export function VerdictScreen({ s, onDone, onSucceed, dispatch }: { s: GameState; onDone: () => void; onSucceed: () => void; dispatch: (a: Action) => void }) {
   const v = verdict(s);
   const w = winnerOf(s);
   const tone = (g: string) => (g === 'Transformed' || g === 'Stronger' ? 'text-state' : g === 'Held' ? 'text-ink-soft' : 'text-alarm');
@@ -88,6 +89,8 @@ export function VerdictScreen({ s, onDone, onSucceed }: { s: GameState; onDone: 
             </div>
           )}
         </section>
+
+        <Aftermath s={s} dispatch={dispatch} />
 
         <section className="mt-10 border-t rule pt-6">
           <h2 className="label text-ink-soft">What happens next</h2>

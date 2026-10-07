@@ -42,6 +42,7 @@ import { profileOf } from '../engine/judgment';
 import { PHILOSOPHY_NAME } from '../content/courts';
 import { rules } from '../engine/constitution';
 import { Proposals } from './Proposals';
+import { ENDORSE_PC, TEST_MONTHS, TEST_PC, canEndorse, canTest, profileOf as successorProfile } from '../engine/settlement';
 import { ZONE_NAME, approval, delegates, favoursOwed, favoursOwing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
@@ -930,6 +931,22 @@ function Succession({ s, dispatch, left }: { s: GameState; dispatch: Dispatch; l
               </p>
               <p className="label text-ink-soft">{c.title}</p>
               {c.why.length > 0 && <p className="mt-1 text-[13px] leading-snug text-ink-soft">{c.why.join('. ')}.</p>}
+              {(() => {
+                const p = successorProfile(s, c.id);
+                const t = canTest(s, c.id, left), ep = canEndorse(s, c.id, 'party', left), eg = canEndorse(s, c.id, 'governors', left);
+                return (
+                  <div className="mt-1 text-[13px] leading-snug">
+                    <p>Competence {p.competence}/5 · electoral appeal {p.appeal >= 0 ? '+' : ''}{p.appeal} · coalition acceptance {p.acceptance} · loyalty {p.loyalty} · commitment to your programme {Math.round(p.commitment * 100)}%{p.notes.length ? `. ${p.notes.join('. ')}.` : ''}</p>
+                    {!backed && (
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <button disabled={!t.ok} title={t.reason} onClick={() => dispatch({ type: 'SUCC_TEST', id: c.id })} className={`border px-2 py-0.5 ${t.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>Test them with a hard brief · {TEST_PC} capital, {TEST_MONTHS} months</button>
+                        <button disabled={!ep.ok} title={ep.reason} onClick={() => dispatch({ type: 'SUCC_ENDORSE', id: c.id, from: 'party' })} className={`border px-2 py-0.5 ${ep.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>Win the party's endorsement · {ENDORSE_PC} capital</button>
+                        <button disabled={!eg.ok} title={eg.reason} onClick={() => dispatch({ type: 'SUCC_ENDORSE', id: c.id, from: 'governors' })} className={`border px-2 py-0.5 ${eg.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>Win the governors' endorsement · {ENDORSE_PC} capital</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {!backed && (
                 <button disabled={!can.ok} onClick={() => dispatch({ type: 'GROOM', id: c.id })}
                   className={`mt-2 border px-3 py-1 text-sm ${can.ok ? 'border-ink/25 hover:border-state' : 'border-ink/10 opacity-50'}`}>

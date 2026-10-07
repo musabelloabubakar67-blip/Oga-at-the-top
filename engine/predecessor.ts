@@ -30,6 +30,16 @@ export function predTick(s: GameState): void {
     const r = strongestRival(s);
     s.opposition[r.id] = clamp((s.opposition[r.id] ?? 30) + 0.08, 5, 95);
   }
+  // Complicated legacies (plan 16.A14). An honest former President who is crossed is believed when they criticise.
+  if (p.kept < 5 && p.rel < 30) applyFx(s, ['bloc.press', -0.1]);
+  // A party chairman from the last government pulls the party their way.
+  if (s.flags['post.chair'] && p.sameParty) applyFx(s, ['bloc.party', p.rel >= 50 ? 0.05 : -0.08]);
+  // A former President with an institute defends the institutions, whatever else they did: abolishing one costs more.
+  if (s.flags['post.foundation'] && (s.inheritance?.institutions ?? []).some((id) => !(s.institutions ?? []).some((i) => i.id === id)) && !s.flags['pred.defended']) {
+    s.flags['pred.defended'] = true;
+    applyFx(s, ['bloc.press', -4]); applyFx(s, ['nation.integrity', -1]);
+    s.news.push({ chronicle: `FORMER PRESIDENT ${p.name.toUpperCase()} CONDEMNS ABOLITION OF INSTITUTION`, street: 'OLD OGA SAY DEM NO SUPPOSED CLOSE AM', weight: 5, valence: -1, topic: 'politics', body: `${p.name}'s institute calls it "the dismantling of a check that outlasts any of us". Some of the people saying so remember what else the former President did.` });
+  }
 }
 
 export function predMood(rel: number): string {

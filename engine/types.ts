@@ -535,6 +535,12 @@ export interface GameState {
   inquiries?: import('./inquiry').Inquiry[];
   /** The opposition's proposals and how the President answered them (plan 15). */
   proposals?: import('./proposals').OpenProposal[];
+  /** The succession settlement this government negotiated (plan 16). */
+  settlement?: import('./settlement').Settlement;
+  /** What this government inherited: the dossier, the predecessor's letter, the settlement and what was done with it (plan 16). */
+  inheritance?: import('./settlement').Inheritance;
+  /** The year after office: the former President's decisions (plan 16). */
+  post?: import('./postoffice').Post;
   sales?: import('./holdings').PendingSale[];
   receivables?: { tax: number; collecting?: { until: number; perMonth: number } };
   /** Where each big bet is being built: venture id to state id. */
@@ -677,6 +683,11 @@ export type Action =
   | { type: 'INQUIRY_PROBE'; id: string; method: 'audit' | 'field' | 'intel' }
   | { type: 'INQUIRY_DECIDE'; id: string; hypothesis: string }
   | { type: 'PROPOSAL'; id: string; how: 'adopt' | 'negotiate' | 'defeat' | 'alternative' }
+  | { type: 'SUCC_TEST'; id: string }
+  | { type: 'SUCC_ENDORSE'; id: string; from: 'party' | 'governors' }
+  | { type: 'SETTLE'; with: string; name: string; terms: string[]; rival: boolean }
+  | { type: 'TERM'; id: string; stance: 'honoured' | 'renegotiated' | 'broken' | 'investigated' }
+  | { type: 'POST'; choice: string }
   | { type: 'PERSON'; id: string; op: 'court' | 'grant' | 'pressure' | 'refuse' }
   | { type: 'PAY_DEBT'; id: DebtId; amount: number }
   | { type: 'SECURITISE' }

@@ -16,6 +16,8 @@ import { strongestRival } from './people';
 import type { ArchiveEntry, GameState, Predecessor } from './types';
 import { ZONES, approval, clamp, hardship } from './vars';
 import { eraShifts } from './era';
+import { afterOffice } from './afterlife';
+import { buildInheritance } from './settlement';
 
 export interface Winner { sameParty: boolean; party: string; partyShort: string; rival?: string; how: string }
 
@@ -65,7 +67,7 @@ export function handoverNotes(prev: GameState): string[] {
 }
 
 // What stays true of the country whoever is President.
-const WORLD_FLAG = /^(reversed\.|law\.|constitution\.|diaspora\.|census\.|credit\.|unions\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
+const WORLD_FLAG = /^(post\.|reversed\.|law\.|constitution\.|diaspora\.|census\.|credit\.|unions\.|policy\.uni\.|wage\.|oil\.|flood\.|refinery\.|grain\.|vat\.|print\.|ways\.|lender\.|doctors\.|statepolice\.|econ\.)/;
 // Decisions that cannot be taken twice.
 const WORLD_ORDERS = ['tax', 'duties', 'subsidy_end', 'price_freeze', 'merge'];
 
@@ -168,6 +170,10 @@ export function applyInheritance(s: GameState, prev: GameState, w: Winner): void
   freshCabinet(s);
   // What changed in politics, not just in the accounts.
   for (const x of eraShifts(prev, w)) x.apply(s);
+  // What the new government inherits beyond the accounts: the dossier, the letter, the settlement (plan 16).
+  s.inheritance = buildInheritance(prev, w.sameParty, afterOffice(prev).title);
+  // A settlement's public terms bind in politics, not in law: a predecessor whose terms are kept is an ally.
+  if (s.inheritance.settlement?.terms.length && s.predecessor) s.predecessor.rel = clamp((s.predecessor.rel ?? 40) + 10, 0, 100);
   // From the other side: the rival slot of the party that won now belongs to the party that lost, under the outgoing Vice President.
   if (!w.sameParty && w.rival) {
     const lead = prev.vp ?? { name: `Senator ${prev.president.name.split(' ').slice(-1)[0]}`, short: prev.president.name.split(' ').slice(-1)[0] };

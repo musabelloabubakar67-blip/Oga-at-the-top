@@ -56,6 +56,9 @@ export function afterOffice(s: GameState): After {
   const owed = s.favours.filter((f) => f.dir === 'owed').length;
   if (owed >= 2) { p += Math.min(2, owed * 0.2); shield.push(`${owed} people who still owe you`); }
 
+  // The year after (plan 16): cooperating closes files; fighting works only with a friendly bench.
+  if (s.flags['post.cooperated']) { p += 1.5; shield.push('You answered the questions of the agency'); }
+  if (s.flags['post.fought']) { if (bench.loyal >= 2) { p += 1; shield.push('A court quashed the investigation'); } else { r += 1; risk.push('You defied the agency and lost in court'); } }
   const net = r - p;
   const clean = kept < 5 && trail < 3;
   const out = (kind: AfterKind, title: string, text: string, bad = false): After => ({ kind, title, text, risk, shield, bad });

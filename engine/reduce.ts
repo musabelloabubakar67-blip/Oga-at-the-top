@@ -1,6 +1,8 @@
 import { entrenchedReform } from './constitution';
 import { heldFactor } from './diagnosis';
 import { answer, canAnswer } from './proposals';
+import { choosePost } from './postoffice';
+import { canEndorse, canTest, decideTerm, endorse, negotiateSettlement, testCandidate } from './settlement';
 import { canProbe, decideInquiry, inquiries, probe } from './inquiry';
 import { bindFavours, consumeFavour, offsetFavours, canOffsetFavours, canForgiveFavour, inheritFavours, favourBelongs } from './favour-ledger';
 import { refreshRequests } from './wants';
@@ -825,7 +827,13 @@ function electionDone(s: GameState): void {
 export function applyAction(state: GameState, action: Action): GameState {
   const s = structuredClone(state);
   ensureGovernance(s);
-  if (s.phase === 'verdict') return s;
+  // After office, only the year-after decisions remain (plan 16).
+  if (s.phase === 'verdict') {
+    if (action.type === 'POST') choosePost(s, action.choice);
+    // A settlement can still be negotiated at the handover, with the heir or with the winner.
+    if (action.type === 'SETTLE' && !s.settlement) note(s, negotiateSettlement(s, action.with, action.name, action.terms, action.rival));
+    return s;
+  }
   if (action.type === 'ELECTION_DONE') { electionDone(s); return s; }
   if (action.type === 'DISMISS_PAPER') { if (s.phase === 'papers') s.phase = 'desk'; return s; }
   if (s.phase !== 'desk') return s;
@@ -845,6 +853,10 @@ export function applyAction(state: GameState, action: Action): GameState {
     case 'MISSION_END': if (canEndMission(s, action.id)) note(s, endMission(s, action.id)); break;
     case 'INQUIRY_PROBE': if (canProbe(s, action.id, action.method, movesLeft(s)).ok) note(s, probe(s, action.id, action.method)); break;
     case 'INQUIRY_DECIDE': if (inquiries(s).some((q) => q.id === action.id && !q.decided) && movesLeft(s) > 0) note(s, decideInquiry(s, action.id, action.hypothesis)); break;
+    case 'SUCC_TEST': if (canTest(s, action.id, movesLeft(s)).ok) note(s, testCandidate(s, action.id)); break;
+    case 'SUCC_ENDORSE': if (canEndorse(s, action.id, action.from, movesLeft(s)).ok) note(s, endorse(s, action.id, action.from)); break;
+    case 'SETTLE': if (!s.settlement) note(s, negotiateSettlement(s, action.with, action.name, action.terms, action.rival)); break;
+    case 'TERM': if (s.inheritance?.settlement?.terms.some((t) => t.id === action.id) && !s.inheritance.stances[action.id] && movesLeft(s) > 0) note(s, decideTerm(s, action.id, action.stance)); break;
     case 'PROPOSAL': if (canAnswer(s, action.id, action.how, movesLeft(s)).ok) note(s, answer(s, action.id, action.how)); break;
     case 'MIL_APPOINT': if (canAppointOfficer(s, action.post, action.officer, movesLeft(s)).ok) note(s, appointOfficer(s, action.post, action.officer)); break;
     case 'CASE':

@@ -68,6 +68,12 @@ export function candidate(s: GameState, id: string): Candidate {
   // Built up over two terms, a nobody can become a contender; the record they are given is what makes it believable.
   let strength = (clout - 3) * 0.7 + (competence - 3) * 0.4 + groomed * 0.4 + credits * 0.3;
   if (credits) why.push(`Has ${credits === 1 ? 'a reform' : `${credits} reforms`} to campaign on, credited by you`);
+  // A delegated test the country watched, and endorsements negotiated (plan 16): they improve the odds; they guarantee nothing.
+  const tested = s.flags[`tested.${id}`];
+  if (tested === 'passed') { strength += 0.6; why.push('Delivered a hard brief in public (+0.6)'); }
+  if (tested === 'failed') { strength -= 0.6; why.push('Failed a hard brief in public (−0.6)'); }
+  const endorsements = (s.counters[`endorse.${id}.party`] ? 1 : 0) + (s.counters[`endorse.${id}.governors`] ? 1 : 0);
+  if (endorsements) { strength += endorsements * 0.4; why.push(`Endorsed by ${endorsements === 2 ? 'the party and the governors' : 'one of the party or the governors'} (+${(endorsements * 0.4).toFixed(1)})`); }
   const early = s.counters[`groomEarly.${id}`] ?? 0;
   if (early) { strength += Math.min(2, early) * 0.2; why.push('Built up since the first term: the country is used to the idea'); }
   if (clout >= 4) why.push('Has a structure of their own');

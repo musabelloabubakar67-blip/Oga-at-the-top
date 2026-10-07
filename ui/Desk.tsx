@@ -35,6 +35,7 @@ import { ASSET_SYSTEMS } from '../content/asset-systems';
 import { Military } from './Military';
 import { Society } from './Society';
 import { Inquiries } from './Inquiries';
+import { Inheritance } from './Inheritance';
 import { runElection } from '../engine/election';
 import { upcoming } from '../engine/upcoming';
 import { bench } from '../engine/courts';
@@ -1647,7 +1648,7 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                 <Inline.Provider value={true}><NationModal s={s} dispatch={dispatch} onClose={() => {}} /></Inline.Provider>
               </div>
             )}
-            {view === 'register' && <div className="space-y-6"><Inquiries s={s} dispatch={dispatch} /><Register s={s} /></div>}
+            {view === 'register' && <div className="space-y-6"><Inheritance s={s} dispatch={dispatch} /><Inquiries s={s} dispatch={dispatch} /><Register s={s} /></div>}
             {view === 'treasury' && <Inline.Provider value={true}><TreasuryModal s={s} dispatch={dispatch} start="books" onClose={() => {}} onBudget={() => setPanel('budget')} /></Inline.Provider>}
           </main>
         </div>

@@ -27,9 +27,12 @@ import type { Background, Fx, GameState, Setup, ZoneId } from '../engine/types';
 import { ZONE_NAME } from '../engine/vars';
 import type { HistoryRecord } from './Game';
 
-export function Title({ canContinue, history, onContinue, onNew }: {
+export function Title({ canContinue, history, onContinue, onNew, onInherit }: {
   canContinue: boolean; history: HistoryRecord[]; onContinue: () => void; onNew: () => void;
+  /** Inherit a country another player exported (plan 16). Returns a reason if the file is refused. */
+  onInherit?: (text: string) => string | null;
 }) {
+  const [refused, setRefused] = useState<string | null>(null);
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-16">
       <p className="label text-honour">The Presidency · Federal Republic of Nigeria</p>
@@ -46,7 +49,14 @@ export function Title({ canContinue, history, onContinue, onNew }: {
         <button onClick={onNew} className="border border-honour/60 px-6 py-3 font-serif text-lg text-ivory hover:bg-honour/10">
           {canContinue ? 'Begin a new presidency' : 'Take the oath'}
         </button>
+        {onInherit && (
+          <label className="cursor-pointer border border-ivory/25 px-6 py-3 font-serif text-lg text-ivory hover:bg-ivory/5">
+            Inherit a country from another player
+            <input type="file" accept="application/json,.json" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setRefused(onInherit(await f.text())); }} />
+          </label>
+        )}
       </div>
+      {refused && <p className="mt-3 max-w-xl text-sm text-[#e08a7c]">{refused}</p>}
       {history.length > 0 && (
         <section className="mt-16">
           <p className="label text-mute">Past Presidents</p>
