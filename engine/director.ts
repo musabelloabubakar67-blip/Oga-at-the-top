@@ -6,6 +6,8 @@ import { fill } from './text';
 import type { DeskItem, GameEvent, GameState, Topic } from './types';
 import type { Section } from './upcoming';
 import { duePledges, pledgeName } from './promises';
+import { beat, familyBlocks } from './episodes';
+import { FAMILY_OF } from '../content/families';
 import { BLOCS, getVar, hardship, test } from './vars';
 
 const LIGHT = new Set(['farce', 'absurd']);
@@ -29,10 +31,29 @@ export function eligible(s: GameState, e: GameEvent): boolean {
   const max = e.max ?? (e.kind === 'standalone' ? 1 : Infinity);
   if (count >= max) return false;
   if (s.turn - lastFired(s, e.id) <= (e.cooldown ?? defaultCooldown(e))) return false;
+  // A solved problem stops demanding; an open one develops at its own pace (plan 07.A4).
+  if (familyBlocks(s, e)) return false;
   if (!e.cast) return test(s, e.when);
   // A file about a person arises only if there is such a person, and its conditions are about them.
   const cast = resolveCast(s, e);
-  return !!cast && test(s, materialise(s, e, cast).when);
+  if (!cast) return false;
+  // Someone who already has a request open with the President does not also ring about it.
+  if (FAMILY_OF[e.id]?.id === 'coalition' && Object.values(cast).some((office) => openRequestFrom(s, office))) return false;
+  return test(s, materialise(s, e, cast).when);
+}
+
+function openRequestFrom(s: GameState, office: string): boolean {
+  const person = s.governance?.offices[office];
+  return !!person && Object.values(s.governance?.requests ?? {}).some((r) => r.status === 'open' && r.requester === person);
+}
+
+/** People who were the subject of a file in the last three months: the desk does not keep returning to the same person. */
+function recentlySeen(s: GameState, e: GameEvent): boolean {
+  if (!e.cast) return false;
+  const cast = resolveCast(s, e);
+  if (!cast) return false;
+  const seen = (s.subjectsSeen ?? []).filter((x) => s.turn - x.turn <= 3).flatMap((x) => x.ids);
+  return Object.values(cast).some((id) => seen.includes(id));
 }
 
 function item(s: GameState, e: GameEvent): DeskItem {
@@ -48,6 +69,8 @@ function weightOf(s: GameState, e: GameEvent): number {
   if (LIGHT.has(e.tone)) w *= 0.55;
   // What the President did comes back before what merely happens.
   if (e.reactive) w *= 3.5;
+  // The same person again so soon is likelier to be an accident of the draw than a development.
+  if (recentlySeen(s, e)) w *= 0.3;
   // A professional military settles routine security matters by its own procedures (plan 13): fewer reach the President.
   if (e.category === 'security' && e.kind === 'recurring' && !e.id.startsWith('mil.') && getVar(s, 'mil.professional') >= 2) w *= 0.5;
   return w;
@@ -55,6 +78,7 @@ function weightOf(s: GameState, e: GameEvent): number {
 
 function mark(s: GameState, e: GameEvent): void {
   (s.fired[e.id] ??= []).push(s.turn);
+  beat(s, e.id);
   if (e.slot === 'lead') {
     s.recent.push({ tone: e.tone, category: e.category, intensity: e.intensity });
     if (s.recent.length > 6) s.recent.shift();
@@ -111,6 +135,9 @@ function takeQueued(s: GameState, slot: 'lead' | 'minor'): DeskItem | null {
     const cast = { ...(e.cast ? resolveCast(s, e, q.cast) ?? {} : {}), ...q.cast };
     const complete = Object.keys(e.cast ?? {}).every((key) => !!cast[key]);
     if (!spent && complete && test(s, q.when) && test(s, materialise(s, e, cast).when)) {
+      // The same follow-up queued twice for the same people is one development, not two (plan 07.A5).
+      const same = JSON.stringify(q.cast ?? {});
+      s.queue = s.queue.filter((x) => !(x.event === q.event && JSON.stringify(x.cast ?? {}) === same && x.due <= s.turn + 1));
       return { eventId: e.id, ...(Object.keys(cast).length ? { cast } : {}), ...(q.castPersons ? { castPersons: q.castPersons } : {}) };
     }
     i--;
@@ -215,8 +242,11 @@ export function buildDesk(s: GameState): void {
     minors.push(item(s, m));
   }
 
+  const leadItem = queuedLead ?? (lead ? item(s, lead) : null);
+  const ids = [leadItem, ...minors].flatMap((x) => Object.values(x?.cast ?? {}));
+  if (ids.length) { (s.subjectsSeen ??= []).push({ turn: s.turn, ids }); s.subjectsSeen = s.subjectsSeen.filter((x) => s.turn - x.turn <= 6); }
   s.desk = {
-    lead: queuedLead ?? (lead ? item(s, lead) : null),
+    lead: leadItem,
     minors,
     actionsUsed: 0,
     drawerUsed: false,

@@ -150,6 +150,7 @@ export const REACTIVE: GameEvent[] = [
         outcomes: [{
           result: 'Forty bureau de change operators are arrested on television. The naira falls a further 8% the following week.',
           fx: [['bonus.inflation', 1], ['bloc.press', -4], ['bloc.establishment', -5], ['approval', 1]],
+          ops: [['charge', 'Forty bureau de change operators', 'currency speculation', 0]],
           news: ['SECURITY AGENTS ARREST CURRENCY "SPECULATORS"', 'DEM ARREST MONEY CHANGERS. DOLLAR STILL CLIMB'],
           archive: 'Blamed currency traders for inflation caused by printing money.',
         }],

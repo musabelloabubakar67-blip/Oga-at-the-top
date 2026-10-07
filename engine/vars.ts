@@ -225,6 +225,8 @@ export function getVar(s: GameState, path: string): number {
       return f.rate;
     }
     case 'era': return s.era;
+    // How many files the live episode of a story family has had: episode.<family>[.<subject>] (plan 07.A9).
+    case 'episode': { const e = s.families?.[`${p[1]}:${p[2] ?? p[1]}`]; return e && e.closed === undefined ? e.beats.length : 0; }
     // Cases the Villa has leaned on (an opening constraint can promise none).
     case 'holding': return s.holdings?.[p[1]]?.share ?? 1;
     // How many of the three refineries have been brought back to work.

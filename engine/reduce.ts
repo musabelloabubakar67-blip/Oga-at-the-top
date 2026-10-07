@@ -1289,7 +1289,13 @@ function agendaTick(s: GameState): void {
     for (const f of entry.m.during ?? []) applyFx(s, f);
     const building = drawsOnInfra(entry.track.id) ? buildSpeed(s) : 1;
     // A held release slows what spends through it (plan 15.A3): money, not the minister, is the cause.
+    const was = a.progress;
     a.progress += (100 / entry.m.months) * speed * ministerSpeed(s, entry.track.id) * building * heldFactor(s, entry.track.id) * (a.id === 'p2' && hasCapability(s, 'cap.grid_diagnostics') ? 1.3 : 1);
+    // Quiet progress is reported once, at the halfway mark, not every month (plan 07.A6).
+    if (was < 50 && a.progress >= 50 && a.progress < 100) {
+      const min = ministerFor(entry.track.id);
+      s.report.push({ kind: 'reform', cls: 'progress', title: `Halfway: ${reformName(s, a.id)}`, text: `${min ? `${personView(s, min.id).short} reports` : 'The ministry reports'} the work half done, about ${Math.max(1, Math.round((100 - a.progress) / Math.max(1, a.progress - was)))} months from completion at this pace.`, changes: [] });
+    }
     if (a.progress < 100) { still.push(a); continue; }
     const { m, track } = entry;
     const before = snapshot(s);

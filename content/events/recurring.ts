@@ -250,6 +250,7 @@ export const RECURRING: GameEvent[] = [
         outcomes: [{
           result: 'You stand in the village the next morning. The inquiry finds that the unit had no fuel. Two commanders are relieved.',
           fx: [['theatre.NC', -4], ['approval', 1.5], ['zone.NC.approval', 4], ['bloc.establishment', -3], ['nation.capacity', 1], ['person.gov_nc', 5]],
+          later: [{ after: [3, 4], fx: [['theatre.NC', -2]], label: 'The fuel supply the inquiry found broken is restored to the forward units in the North Central.' }],
           news: ['PRESIDENT VISITS ATTACKED COMMUNITIES, ORDERS INQUIRY', 'PRESIDENT REACH THE VILLAGE. TWO COMMANDERS REMOVED'],
           archive: 'Visited attacked communities and ordered an inquiry into the military response.', sig: 2,
         }],
@@ -308,8 +309,9 @@ export const RECURRING: GameEvent[] = [
       {
         id: 'negotiate', label: 'Authorise negotiation through intermediaries',
         outcomes: [{
-          result: 'After 26 days all but three of the children are released. No ransom is acknowledged. The three are still missing.',
+          result: 'After 26 days all but three of the children are released. No ransom is acknowledged. The three are still missing, and the intermediaries are still talking.',
           fx: [['approval', 1], ['zone.NW.approval', 3], ['nation.security', -2], ['nation.integrity', -1]],
+          later: [{ after: [4, 6], fx: [['zone.NW.approval', 1], ['theatre.NW', 1]], label: 'Two of the three missing children are returned through the same intermediaries. The third has not been found, and the gang has learned what children are worth.' }],
           news: ['109 ABDUCTED PUPILS REGAIN FREEDOM', '109 CHILDREN ARE HOME. THREE ARE NOT'],
           archive: 'Authorised negotiation for abducted schoolchildren. 109 of 112 returned.', sig: 3,
         }],
@@ -370,15 +372,17 @@ export const RECURRING: GameEvent[] = [
         outcomes: [{
           result: 'Four officials and the developer are charged. It is the first prosecution of its kind to reach trial.',
           fx: [['nation.integrity', 4], ['nation.capacity', 1.5], ['bloc.party', -5], ['approval', 2], ['bloc.press', 4], ['person.gov_sw', -6]],
+          ops: [['charge', 'The developer of the collapsed building and four officials', 'unsealing and building on a condemned site', 0]],
           news: ['DEVELOPER, FOUR OFFICIALS CHARGED OVER COLLAPSE', 'FOR ONCE, SOMEBODY GO ANSWER'],
           archive: 'Prosecuted a party donor and officials over a fatal building collapse.', sig: 3,
         }],
       },
       {
-        id: 'panel', label: 'Constitute a panel of inquiry',
+        id: 'panel', label: 'Constitute a panel of inquiry: it reports in five months',
         outcomes: [{
-          result: 'The panel sits for five months. Its report is submitted and not published.',
+          result: 'The panel sits for five months. It buys time, and the anger has somewhere to go while it sits; nobody is charged meanwhile.',
           fx: [['nation.integrity', -1.5], ['bloc.press', -3], ['counter.committees', 1]],
+          later: [{ after: [5, 5], fx: [['nation.capacity', 0.5]], label: 'The building-collapse panel reports: the permit office is reorganised. Nobody is charged.' }],
           news: ['PANEL TO PROBE BUILDING COLLAPSE', 'ANOTHER PANEL. THE LAST REPORT NEVER COME OUT'],
           archive: 'Set up a panel of inquiry into a fatal building collapse.',
         }],

@@ -56,6 +56,7 @@ export const INSTITUTION_FILES: GameEvent[] = [
         outcomes: [{
           result: 'Biometric verification is ordered. Fifteen thousand names disappear. Three state coordinators are arrested. The party asks why its people are always the ones caught.',
           fx: [['nation.integrity', 2], ['bloc.party', -3], ['nation.fiscalSpace', 0.05]],
+          ops: [['charge', 'Three state coordinators of the jobs corps', 'payroll fraud', 0.02]],
           news: ['15,000 GHOST WORKERS PURGED FROM JOBS CORPS', 'DEM DON REMOVE GHOST FROM JOBS CORPS'],
           archive: 'Purged ghost workers from the youth jobs corps.', sig: 2,
         }],

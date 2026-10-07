@@ -1,6 +1,7 @@
 'use client';
 
 import { attention, type Item } from '../engine/attention';
+import { reportClass } from '../engine/episodes';
 import { BillPanel } from './Legislature';
 import { categoryKey, powersFor, topicKey } from '../engine/context';
 import { narrative } from '../engine/narrative';
@@ -75,6 +76,9 @@ import { standing } from '../engine/vars';
 
 type Dispatch = (a: Action) => void;
 type Pred = ReturnType<typeof describe>;
+
+/** The month's report, read in this order: what closed, what moved, what now stands (plan 07.A6). Decisions are in the next column. */
+const REPORT_GROUPS: [ReturnType<typeof reportClass>, string][] = [['closing', 'Settled'], ['progress', 'Progress'], ['condition', 'Developments and standing conditions'], ['decision', 'Decided']];
 
 function nextFixture(s: GameState): string {
   const tt = termTurnOf(s.turn);
@@ -1601,16 +1605,25 @@ export function Desk({ s, dispatch, onQuit }: { s: GameState; dispatch: Dispatch
                   {s.report.length > 0 ? (
                     <div>
                       <p className="label text-mute">{s.turn === 1 ? "On the first day" : "Since last month"}</p>
-                      <ul className="mt-2 space-y-2">
-                        {s.report.map((r, i) => (
-                          <li key={i} className={`border-l-2 bg-[#1a1d20] px-4 py-3 ${r.kind === 'reform' ? 'border-state-lit' : r.kind === 'failure' ? 'border-alarm' : 'border-honour'}`}>
-                            <p className="font-serif text-lg leading-snug text-ivory">{r.title}</p>
-                            {r.cause && <p className="text-sm text-mute">{r.kind === 'consequence' ? `Because of: ${r.cause}` : r.cause}</p>}
-                            {r.text && <p className="mt-1 font-serif leading-snug text-ivory/80">{r.text}</p>}
-                            <div className="mt-1.5"><Changes changes={r.changes} dark /></div>
-                          </li>
-                        ))}
-                      </ul>
+                      {REPORT_GROUPS.map(([cls, heading]) => {
+                        const list = s.report.filter((r) => reportClass(r) === cls);
+                        if (!list.length) return null;
+                        return (
+                          <div key={cls} className="mt-2">
+                            <p className="label text-[11px] text-mute/80">{heading}</p>
+                            <ul className="mt-1 space-y-2">
+                              {list.map((r, i) => (
+                                <li key={i} className={`border-l-2 bg-[#1a1d20] px-4 py-3 ${r.kind === 'reform' ? 'border-state-lit' : r.kind === 'failure' ? 'border-alarm' : 'border-honour'}`}>
+                                  <p className="font-serif text-lg leading-snug text-ivory">{r.title}</p>
+                                  {r.cause && <p className="text-sm text-mute">{r.kind === 'consequence' ? `Because of: ${r.cause}` : r.cause}</p>}
+                                  {r.text && <p className="mt-1 font-serif leading-snug text-ivory/80">{r.text}</p>}
+                                  <div className="mt-1.5"><Changes changes={r.changes} dark /></div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : <p className="font-serif italic text-ivory/60">Nothing you did last month has come back yet.</p>}
                 </section>

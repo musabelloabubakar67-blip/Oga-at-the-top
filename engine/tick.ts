@@ -1,5 +1,6 @@
 import { militaryTick } from './military';
 import { societyTick } from './society';
+import { episodeTick } from './episodes';
 import { inquiryTick } from './inquiry';
 import { proposalTick } from './proposals';
 import { settlementTick } from './settlement';
@@ -94,6 +95,7 @@ export function economyTick(s: GameState): void {
   }
   militaryTick(s);
   societyTick(s);
+  episodeTick(s);
   inquiryTick(s);
   proposalTick(s);
   settlementTick(s);

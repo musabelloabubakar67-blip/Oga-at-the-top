@@ -257,6 +257,7 @@ export const SYSTEM: GameEvent[] = [
       { when: { flag: 'contractors.last', is: 'pay' }, text: 'Half the arrears were paid last time, oldest first. These are the newer certificates, and the ones that were left.' },
       { when: { flag: 'contractors.last', is: 'notes' }, text: 'The promissory notes issued last time trade at a discount in Lagos. The firms that sold them are back with new certificates and less patience.' },
       { when: { flag: 'contractors.last', is: 'appeal' }, text: 'The appeal against the last judgment is still pending. This judgment adds the interest that has run on that one.' },
+      { when: { v: ['episode.procurement', '>=', 3] }, text: 'The association has a new chairman, elected last month on a promise to stop negotiating with the Ministry and deal only with the courts.' },
     ],
     trace: [['debt.contractors', 1]],
     reads: [
@@ -640,6 +641,7 @@ export const SYSTEM: GameEvent[] = [
         }, {
           result: 'The harvest is three months off. People notice every one of them.',
           fx: [['nation.inflation', 2], ['approval', -3], ['bloc.street', -4]],
+          later: [{ after: [3, 3], fx: [['nation.inflation', -1.5]], label: 'The harvest comes in and rice prices ease. Waiting worked; it cost three months of prices.' }],
           news: ['RICE HITS RECORD AS FG URGES CALM', 'RICE DON COST PASS. GOVERNMENT SAY MAKE WE WAIT'],
           archive: 'Waited out a rice shortage.',
         }],

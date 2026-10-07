@@ -426,7 +426,7 @@ export interface Track {
   milestones: Milestone[];
 }
 
-export interface ReportItem { title: string; cause?: string; text?: string; changes: Change[]; kind: 'consequence' | 'reform' | 'failure' }
+export interface ReportItem { title: string; cause?: string; text?: string; changes: Change[]; kind: 'consequence' | 'reform' | 'failure'; /** How to read it: a decision, progress, a standing condition or a closing (plan 07.A6). */ cls?: import('./contracts').DeskClassification }
 
 export type ZoneState = { approval: number; lean: number };
 
@@ -572,6 +572,10 @@ export interface GameState {
   bills?: Record<string, import('./legislature').Bill>;
   /** Joint demands from pacts between politicians (plan 06.A2). */
   coalitions?: import('./legislature').Coalition[];
+  /** Recurring problems as episodes, by family and subject (engine/episodes.ts, plan 07). */
+  families?: Record<string, import('./episodes').Episode>;
+  /** Whom the desk's files were about, by month, so the same person is not drawn again and again. */
+  subjectsSeen?: { turn: number; ids: string[] }[];
   /** Objectives delegated to ministers (engine/delegation.ts, plan 06.A5). */
   delegations?: Record<string, import('./delegation').Delegation>;
   /** Promises made, kept and broken. */
